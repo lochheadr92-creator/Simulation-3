@@ -1,0 +1,128 @@
+baseline: exit 0, 0 failing
+
+rotation-frozen: the rotation always starts at the sorted roster, giving a permanent winner
+  file      kernel/ordering.py
+  exit      1
+  noticed   8 test(s)
+            tests/test_atomicity.py::test_losing_one_leg_to_contention_leaves_the_other_leg_untouched
+            tests/test_rotation.py::test_a_later_identity_does_not_win_by_being_lower_in_sort_order
+            tests/test_rotation.py::test_equivalent_contention_has_no_permanent_winner_across_successive_ticks
+            tests/test_rotation.py::test_rotated_roster_matches_the_declared_rule
+            tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+            tests/test_rotation.py::test_rotation_sorts_by_identity_and_ignores_insertion_order
+            tests/test_rotation.py::test_the_engine_rotates_tick_over_tick_within_one_continuous_run
+            tests/test_rotation.py::test_three_way_equivalent_contention_cycles_across_successive_ticks
+
+credit-spendable-immediately: a unit credited this tick becomes spendable this tick
+  file      kernel/settlement.py
+  exit      1
+  noticed   4 test(s)
+            tests/test_credit_boundary.py::test_a_unit_claimed_this_tick_is_not_spendable_until_the_next_one
+            tests/test_credit_boundary.py::test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend
+            tests/test_credit_boundary.py::test_the_recipient_cannot_pass_on_a_unit_received_this_tick
+            tests/test_credit_boundary.py::test_the_roadmap_credit_fixture[0]
+
+authority-not-checked: authority over a debited account is never checked
+  file      kernel/settlement.py
+  exit      1
+  noticed   6 test(s)
+            tests/test_atomicity.py::test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied
+            tests/test_atomicity.py::test_a_denied_transaction_does_not_consume_availability_for_a_later_one
+            tests/test_atomicity.py::test_a_denied_transaction_stages_no_effects_at_all
+            tests/test_atomicity.py::test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing
+            tests/test_atomicity.py::test_an_unauthorised_single_source_claim_changes_nothing
+            tests/test_atomicity.py::test_nothing_may_debit_the_consumption_sink
+
+order-by-arrival: resolution follows the order proposals were collected in
+  file      kernel/settlement.py
+  exit      1
+  noticed   7 test(s)
+            tests/test_atomicity.py::test_losing_one_leg_to_contention_leaves_the_other_leg_untouched
+            tests/test_order_independence.py::test_every_permutation_of_the_inputs_gives_one_canonical_result
+            tests/test_order_independence.py::test_the_recorded_outcomes_are_themselves_order_independent
+            tests/test_rotation.py::test_a_later_identity_does_not_win_by_being_lower_in_sort_order
+            tests/test_rotation.py::test_equivalent_contention_has_no_permanent_winner_across_successive_ticks
+            tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+            tests/test_rotation.py::test_three_way_equivalent_contention_cycles_across_successive_ticks
+
+outcome-order-by-arrival: the record lists outcomes in the order proposals arrived
+  file      kernel/settlement.py
+  exit      1
+  noticed   3 test(s)
+            tests/test_order_independence.py::test_the_recorded_outcomes_are_themselves_order_independent
+            tests/test_proposal_identity.py::test_a_duplicate_identity_is_rejected_whichever_arrived_first
+            tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+
+canonical-keys-unsorted: canonical bytes follow mapping insertion order
+  file      kernel/canonical.py
+  exit      1
+  noticed   1 test(s)
+            tests/test_determinism.py::test_the_canonical_form_is_independent_of_mapping_order
+
+state-mappings-writable: state hands out a live mutable mapping
+  file      kernel/state.py
+  exit      1
+  noticed   3 test(s)
+            tests/test_atomicity.py::test_settlement_is_the_only_write_path_to_a_balance
+            tests/test_observation.py::test_refused_observer_mutation_leaves_the_canonical_identity_unchanged
+            tests/test_observation.py::test_state_mappings_refuse_mutation
+
+view-shares-the-live-mapping: a view points at the state's own mapping instead of a copy
+  file      kernel/state.py
+  exit      1
+  noticed   2 test(s)
+            tests/test_observation.py::test_a_view_is_handed_a_copy_rather_than_a_handle_on_the_world
+            tests/test_observation.py::test_two_views_do_not_share_one_mapping
+
+shortfall-checks-one-leg: only the first leg of a transaction is checked against availability
+  file      kernel/settlement.py
+  exit      1
+  noticed   1 test(s)
+            tests/test_indivisibility.py::test_a_partly_available_multi_source_claim_is_denied_whole
+
+duplicate-identity-allowed: proposals sharing an identity are resolved instead of rejected
+  file      kernel/settlement.py
+  exit      1
+  noticed   3 test(s)
+            tests/test_proposal_identity.py::test_a_duplicate_identity_does_not_take_an_unrelated_proposal_with_it
+            tests/test_proposal_identity.py::test_a_duplicate_identity_is_rejected_whichever_arrived_first
+            tests/test_proposal_identity.py::test_all_proposals_sharing_an_identity_are_rejected
+
+duplicate-sequence-allowed: one actor may declare two proposals at the same sequence
+  file      kernel/settlement.py
+  exit      1
+  noticed   2 test(s)
+            tests/test_proposal_identity.py::test_a_duplicate_sequence_is_rejected_whichever_arrived_first
+            tests/test_proposal_identity.py::test_an_actor_cannot_declare_two_proposals_at_the_same_sequence
+
+balanced-effects-not-checked: a transaction may create or destroy units
+  file      kernel/settlement.py
+  exit      1
+  noticed   1 test(s)
+            tests/test_atomicity.py::test_an_unbalanced_transaction_is_refused_by_the_integrity_rail
+
+amounts-may-be-fractional: a transaction amount need not be a whole unit
+  file      kernel/units.py
+  exit      1
+  noticed   3 test(s)
+            tests/test_indivisibility.py::test_a_boolean_amount_is_denied_even_though_python_calls_it_an_integer
+            tests/test_indivisibility.py::test_a_fractional_amount_is_denied_rather_than_rounded
+            tests/test_indivisibility.py::test_a_whole_valued_float_is_still_denied
+
+conservation-rail-off: settlement no longer checks that the declared total is conserved
+  file      kernel/settlement.py
+  exit      0
+  noticed   0 test(s)
+  unreachable  no input can reach this rail: a committed transaction must already have balanced effects and touch only accounts inside the world, and those two together conserve the total by construction
+
+negative-balance-rail-off: settlement no longer refuses to leave a negative balance
+  file      kernel/settlement.py
+  exit      1
+  noticed   2 test(s)
+            tests/test_integrity_rails.py::test_the_negative_balance_rail_refuses_to_commit
+            tests/test_integrity_rails.py::test_the_negative_stock_rail_refuses_to_commit
+
+restored: exit 0
+
+14 of 15 mutations were detected by at least one test
+declared unreachable and confirmed unreachable: conservation-rail-off

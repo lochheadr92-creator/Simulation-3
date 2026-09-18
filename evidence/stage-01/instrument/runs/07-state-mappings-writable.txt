@@ -1,0 +1,56 @@
+.............F........................................................F. [ 67%]
+............F......................                                      [100%]
+================================== FAILURES ===================================
+_____________ test_settlement_is_the_only_write_path_to_a_balance _____________
+
+    def test_settlement_is_the_only_write_path_to_a_balance():
+        """There is no public mutator anywhere on the state objects."""
+        state = genesis(balances={"A": 1}, sources={"S": source(1, "A")})
+    
+        for obj in (state, state.sources["S"]):
+            writable = [
+                name
+                for name in dir(obj)
+                if not name.startswith("_") and name.startswith(("set_", "add_", "credit", "debit", "apply"))
+            ]
+            assert writable == []
+    
+>       with pytest.raises(Exception):
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE Exception
+
+tests\test_atomicity.py:237: Failed
+_____________________ test_state_mappings_refuse_mutation _____________________
+
+    def test_state_mappings_refuse_mutation():
+        state = live_world()
+    
+>       with pytest.raises(TypeError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TypeError
+
+tests\test_observation.py:28: Failed
+___ test_refused_observer_mutation_leaves_the_canonical_identity_unchanged ____
+
+    def test_refused_observer_mutation_leaves_the_canonical_identity_unchanged():
+        engine = Engine(live_world())
+        digest_before = engine.state.digest()
+        view = engine.view_for("A")
+    
+        for attempt in (
+            lambda: view.balances.__setitem__("A", 99),
+            lambda: engine.state.balances.__setitem__("A", 99),
+            lambda: engine.state.sources.__setitem__("S", Source(stock=0)),
+            lambda: setattr(engine.state, "consumed", 99),
+            lambda: setattr(engine.state.sources["S"], "stock", 0),
+        ):
+>           with pytest.raises((TypeError, AttributeError, dataclasses.FrozenInstanceError)):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE any of (TypeError, AttributeError, FrozenInstanceError)
+
+tests\test_observation.py:237: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_atomicity.py::test_settlement_is_the_only_write_path_to_a_balance
+FAILED tests/test_observation.py::test_state_mappings_refuse_mutation - Faile...
+FAILED tests/test_observation.py::test_refused_observer_mutation_leaves_the_canonical_identity_unchanged
+3 failed, 104 passed in 0.22s

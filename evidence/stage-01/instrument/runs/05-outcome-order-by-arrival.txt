@@ -1,0 +1,76 @@
+........................................................................ [ 67%]
+...............F....F.............F                                      [100%]
+================================== FAILURES ===================================
+_________ test_the_recorded_outcomes_are_themselves_order_independent _________
+
+    def test_the_recorded_outcomes_are_themselves_order_independent():
+        baseline = None
+        for proposal_order in permutations(PROPOSAL_NAMES):
+            engine = Engine(build_state(BALANCES, SOURCE_NAMES, AUTHORISED))
+            record = engine.tick(build_proposals(proposal_order))
+            seen = tuple((outcome.proposal_id, outcome.reason) for outcome in record.outcomes)
+            if baseline is None:
+                baseline = seen
+            assert seen == baseline
+    
+>       assert baseline == (
+            ("p1", "accepted"),
+            ("p4", "accepted"),
+            ("p2", "denied_insufficient_source"),
+            ("p3", "accepted"),
+        )
+E       AssertionError: assert (('p1', 'acce..., 'accepted')) == (('p1', 'acce..., 'accepted'))
+E         
+E         At index 1 diff: ('p2', 'denied_insufficient_source') != ('p4', 'accepted')
+E         Use -v to get more diff
+
+tests\test_order_independence.py:72: AssertionError
+________ test_a_duplicate_identity_is_rejected_whichever_arrived_first ________
+
+    def test_a_duplicate_identity_is_rejected_whichever_arrived_first():
+        forward = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")}))
+        reverse = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")}))
+    
+        first = claim("same", "A", 0, sources={"S": 1})
+        second = claim("same", "B", 0, sources={"S": 1})
+    
+        forward_record = forward.tick([first, second])
+        reverse_record = reverse.tick([second, first])
+    
+        assert accepted_ids(forward_record) == ()
+        assert accepted_ids(reverse_record) == ()
+>       assert forward_record.digest() == reverse_record.digest()
+E       AssertionError: assert '757c0eea74b8...1f6e51554561f' == '23da6d7b5385...338e993e55343'
+E         
+E         - 23da6d7b5385ab6a3e9fca552c9c13890b29fb17da7be48bb45338e993e55343
+E         + 757c0eea74b86d35dee09e9cf8f8a0819fac3ec6a37ebcc75ad1f6e51554561f
+
+tests\test_proposal_identity.py:50: AssertionError
+___________ test_rotation_does_not_reorder_one_actors_own_proposals ___________
+
+    def test_rotation_does_not_reorder_one_actors_own_proposals():
+        """An actor's declared sequence survives the rotation."""
+        engine = Engine(
+            genesis(tick=1, balances={"A": 0, "B": 0}, sources={"S": source(1, "A", "B")})
+        )
+    
+        record = engine.tick(
+            [
+                claim("second", "A", 1, sources={"S": 1}),
+                claim("first", "A", 0, sources={"S": 1}),
+                claim("theirs", "B", 0, sources={"S": 1}),
+            ]
+        )
+    
+>       assert [outcome.proposal_id for outcome in record.outcomes] == ["theirs", "first", "second"]
+E       AssertionError: assert ['first', 'second', 'theirs'] == ['theirs', 'first', 'second']
+E         
+E         At index 0 diff: 'first' != 'theirs'
+E         Use -v to get more diff
+
+tests\test_rotation.py:127: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_order_independence.py::test_the_recorded_outcomes_are_themselves_order_independent
+FAILED tests/test_proposal_identity.py::test_a_duplicate_identity_is_rejected_whichever_arrived_first
+FAILED tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+3 failed, 104 passed in 0.22s

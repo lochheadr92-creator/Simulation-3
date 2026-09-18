@@ -1,0 +1,41 @@
+........................................................................ [ 67%]
+..FF...............................                                      [100%]
+================================== FAILURES ===================================
+_______ test_a_view_is_handed_a_copy_rather_than_a_handle_on_the_world ________
+
+    def test_a_view_is_handed_a_copy_rather_than_a_handle_on_the_world():
+        """Containment, not only immutability.
+    
+        While state objects are replaced rather than edited, sharing the world's own
+        mapping with an observer is unobservable. It is still the wrong shape: the
+        view is the boundary an actor decides against, and it must not be a handle
+        on the live world that a later slice could make mutable.
+        """
+        engine = Engine(live_world())
+        view = engine.view_for("A")
+    
+>       assert view.balances is not engine.state.balances
+E       AssertionError: assert mappingproxy({'A': 2, 'B': 0}) is not mappingproxy({'A': 2, 'B': 0})
+E        +  where mappingproxy({'A': 2, 'B': 0}) = WorldView(actor='A', tick=0, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({'S': SourceView(source_id='S', stock=3, authorised=('A', 'B'))}), roster=('A', 'B')).balances
+E        +  and   mappingproxy({'A': 2, 'B': 0}) = WorldState(tick=0, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({'S': Source(stock=3, authorised=frozenset({'A', 'B'}))}), consumed=0).balances
+E        +    where WorldState(tick=0, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({'S': Source(stock=3, authorised=frozenset({'A', 'B'}))}), consumed=0) = <kernel.engine.Engine object at 0x000001D1180C8920>.state
+
+tests\test_observation.py:93: AssertionError
+___________________ test_two_views_do_not_share_one_mapping ___________________
+
+    def test_two_views_do_not_share_one_mapping():
+        engine = Engine(live_world())
+    
+        first = engine.view_for("A")
+        second = engine.view_for("B")
+    
+>       assert first.balances is not second.balances
+E       AssertionError: assert mappingproxy({'A': 2, 'B': 0}) is not mappingproxy({'A': 2, 'B': 0})
+E        +  where mappingproxy({'A': 2, 'B': 0}) = WorldView(actor='A', tick=0, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({'S': SourceView(source_id='S', stock=3, authorised=('A', 'B'))}), roster=('A', 'B')).balances
+E        +  and   mappingproxy({'A': 2, 'B': 0}) = WorldView(actor='B', tick=0, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({'S': SourceView(source_id='S', stock=3, authorised=('A', 'B'))}), roster=('A', 'B')).balances
+
+tests\test_observation.py:106: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_observation.py::test_a_view_is_handed_a_copy_rather_than_a_handle_on_the_world
+FAILED tests/test_observation.py::test_two_views_do_not_share_one_mapping - A...
+2 failed, 105 passed in 0.22s
