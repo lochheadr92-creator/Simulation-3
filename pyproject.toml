@@ -1,0 +1,6 @@
+# Minimal test setup for the V3 kernel. There is no package build or
+# distribution in Stage 1a; pytest imports the kernel from the repository root.
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
