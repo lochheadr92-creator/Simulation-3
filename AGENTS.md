@@ -213,3 +213,22 @@ original passing suite. Its recorded findings remain historical evidence.
 
 **Linked revision:** the repair is identified by the changed-file hashes and source
 base in `evidence/stage-01/RECORD.md`; no acceptance or Stage 1 exit is implied.
+
+### OD-003 - 2026-09-20 - Commit and publish the new V3 repository
+
+**Exact owner direction:** "commit and push all eork", after identifying
+`https://github.com/lochheadr92-creator/Simulation-3.git` as the new simulation
+repository.
+
+**Scope:** commit all current work in `C:/dev/03-Living-World-V3` and push the
+existing `codex/kernel-first-slice` branch, including its preceding local history,
+to that repository. This expressly supersedes OD-001's initial no-remote/no-push
+restriction for this publication. It authorises no merge, force push, later slice,
+new run, stage acceptance, or alteration of the old simulation project.
+
+**Reason:** preserve and publish the new engine, repairs, governing documents and
+complete evidence in the owner-created repository.
+
+**Linked revision:** repair commit
+`fb5a8959fb6a7a23d6e3107fe32be8248cc19901`; this entry is committed as
+`docs(stage-1a): record publication authority (OD-003)`.

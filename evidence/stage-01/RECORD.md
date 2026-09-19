@@ -579,3 +579,26 @@ entire `evidence/stage-01/repair-1/` evidence tree, adding a dated rollback stat
 Do not reset or delete the repository, erase prior evidence, or touch the old
 project. No configuration, dependencies, canonical identity files or world
 definitions require rollback.
+
+### Publication direction and committed repair — 2026-09-20
+
+Owner direction OD-003 authorises committing and pushing all current new-V3 work
+to [Simulation-3](https://github.com/lochheadr92-creator/Simulation-3) on the
+existing `codex/kernel-first-slice` branch. No merge or stage progression follows.
+
+The repair and evidence are committed at
+`fb5a8959fb6a7a23d6e3107fe32be8248cc19901`.
+Earlier statements that the repair was uncommitted describe delivery before
+OD-003. The archived application verification likewise records that earlier state.
+
+`repair-1/FILE_MANIFEST.json` identifies the files at this repair commit, before
+this publication-only amendment to AGENTS.md and RECORD.md. Every manifest entry
+was checked against its staged Git blob before the repair commit. The narrow
+`.gitattributes` entry `evidence/stage-01/repair-1/** -text` preserves archived
+evidence bytes, including terminal-output line endings, across checkout. Original
+evidence, original expected results and the old project remain unchanged.
+
+This follow-up changes only the owner-direction register and this publication
+note. Engine/test content remains the validated repair. Independent post-repair
+acceptance and Stage 1 completion remain pending. Publication does not change
+that status.
