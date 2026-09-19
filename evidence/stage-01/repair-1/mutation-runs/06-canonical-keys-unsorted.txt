@@ -1,0 +1,132 @@
+..............................................F......................... [ 48%]
+..................................FFFFFFF............................... [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+___________ test_the_canonical_form_is_independent_of_mapping_order ___________
+
+    def test_the_canonical_form_is_independent_of_mapping_order():
+        forward = canonical.canonical_bytes({"a": 1, "b": {"x": 1, "y": 2}})
+        reverse = canonical.canonical_bytes({"b": {"y": 2, "x": 1}, "a": 1})
+    
+>       assert forward == reverse
+E       assert b'{"a":1,"b":{"x":1,"y":2}}' == b'{"b":{"y":2,"x":1},"a":1}'
+E         
+E         At index 2 diff: b'a' != b'b'
+E         Use -v to get more diff
+
+tests\test_determinism.py:114: AssertionError
+_______ test_canonical_bytes_match_existing_json_for_ordinary_values[0] _______
+
+amount = 0
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line..."b":0,"a":0}}' == b'{"a":{"a":0...603",null,0]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+_______ test_canonical_bytes_match_existing_json_for_ordinary_values[1] _______
+
+amount = 1
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line...b":1,"a":-1}}' == b'{"a":{"a":-...603",null,1]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+______ test_canonical_bytes_match_existing_json_for_ordinary_values[-1] _______
+
+amount = -1
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line...b":-1,"a":1}}' == b'{"a":{"a":1...03",null,-1]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+___ test_canonical_bytes_match_existing_json_for_ordinary_values[999999999] ___
+
+amount = 999999999
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line...:-999999999}}' == b'{"a":{"a":-...l,999999999]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+__ test_canonical_bytes_match_existing_json_for_ordinary_values[1000000000] ___
+
+amount = 1000000000
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line...-1000000000}}' == b'{"a":{"a":-...,1000000000]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+__ test_canonical_bytes_match_existing_json_for_ordinary_values[-1000000000] __
+
+amount = -1000000000
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line...:1000000000}}' == b'{"a":{"a":1...-1000000000]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+_ test_canonical_bytes_match_existing_json_for_ordinary_values[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123] _
+
+amount = 100000000000000000...0000000000000000123
+
+    @pytest.mark.parametrize('amount', [0, 1, -1, 999_999_999, 1_000_000_000, -1_000_000_000, 10 ** 100 + 123])
+    def test_canonical_bytes_match_existing_json_for_ordinary_values(amount):
+        value = {'z': ['line\nquote"', '\\', '\u2603', None, amount], 'a': {'b': amount, 'a': -amount}}
+        expected = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('utf-8')
+>       assert canonical_bytes(value) == expected
+E       assert b'{"z":["line...00000000123}}' == b'{"a":{"a":-...00000000123]}'
+E         
+E         At index 2 diff: b'z' != b'a'
+E         Use -v to get more diff
+
+tests\test_repair_boundaries.py:94: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_determinism.py::test_the_canonical_form_is_independent_of_mapping_order
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[0]
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[1]
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[-1]
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[999999999]
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[1000000000]
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[-1000000000]
+FAILED tests/test_repair_boundaries.py::test_canonical_bytes_match_existing_json_for_ordinary_values[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123]
+8 failed, 140 passed in 0.80s

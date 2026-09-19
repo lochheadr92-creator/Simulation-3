@@ -1,0 +1,128 @@
+[
+  {
+    "path": "evidence/stage-01/instrument/fixture_digests_output.txt",
+    "checkout_sha256": "b301f2e1c7a5626852e243ca48826a439b791609fcf6ddafcb66c368e34ce10a",
+    "original_sha256": "6bc59e22d8c9bb0e5d7ed0993faca46097aafe35dc341aca57cdd9d4dff98133",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/mutation_check_output.txt",
+    "checkout_sha256": "6a51ef761e15b739c489c87a6e90fcd89e48e2c3f213d0d3f39610ff378056b0",
+    "original_sha256": "8f7ebf7d2aecb4b93fd9b89649fe2d10e3ce4f601d9413e9057818ee77034b92",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/pytest_verbose_output.txt",
+    "checkout_sha256": "4b2449486db2c9881623957c196e8788eba42568946940ad8e50a3d5b27e0e36",
+    "original_sha256": "b24c5474aa5bbe2324dcebd0b49c085be30c12b349902f32b4b04a38d9ecccfd",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/00-baseline.txt",
+    "checkout_sha256": "a0b17210e2cfbd35f866ee14fcde7d02bb5a2ececd6fb18d8ba3969100827b70",
+    "original_sha256": "67de72fa100b1cd55c45175068eb45e239a4ed1f6042c4df2f0a970d32352433",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/01-rotation-frozen.txt",
+    "checkout_sha256": "20df4b829414c4c26c11a6a8962a0f8ddc00a2c8add72d2e4c76ad98d217ca90",
+    "original_sha256": "1f45b660e61f30db94c3e80884c5704646e3eb2e77034698da9f4f1fde7778fb",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/02-credit-spendable-immediately.txt",
+    "checkout_sha256": "4c66716ab8ea3506d76ce436034eb2dba8076e8192cd570415c7e30c049d2297",
+    "original_sha256": "47f108102fa618fec6473f9e0d0c5463e476f8f6a4768296574229d99fb97c70",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/03-authority-not-checked.txt",
+    "checkout_sha256": "14899bad5c6dfab1c0efb922ddd2e48870c30e55402b2b70259d1af54b9511cd",
+    "original_sha256": "64f191048ffb0a26bd39e506167ef93310ba2f3b0df59307c385ec35a2e9befb",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/04-order-by-arrival.txt",
+    "checkout_sha256": "3bd757d130ef259230c4ef4762d6a939c85caafc28045739679b367a69fa2c9d",
+    "original_sha256": "da0479588a48e7f16018fdab2a44f5d170ff8200467f0472ddc5fa3e3b46b7d9",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/05-outcome-order-by-arrival.txt",
+    "checkout_sha256": "ccf9116621743dd449ea76c4803852d32985495355ecffaf4aa3956e478ba509",
+    "original_sha256": "92acc59255521e08c9e9082e231620d08b4ed0f275c5dc76b539c38f27f68785",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/06-canonical-keys-unsorted.txt",
+    "checkout_sha256": "8d325674ea840372d5a060ea9fbce794acd8d797770f63c4f69f6686807b48fc",
+    "original_sha256": "d73320a627c86e6479271a8ed9bf2cae110c803639970316b241c60a8e9fdca3",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/07-state-mappings-writable.txt",
+    "checkout_sha256": "14685fbe62cff00e8ff0d4c29fc4f988e7c2bbf01d8910876cc9126b80c4b070",
+    "original_sha256": "54e3b12a77580ce63b36b6646d69d8f327235894c79150e5146047e27d6e7f41",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/08-view-shares-the-live-mapping.txt",
+    "checkout_sha256": "b17acabf91ad069a06a42934e3b589850ff67ceca33577f0ab436f8846ed92eb",
+    "original_sha256": "8dde3928027c370f5ad90fe83b6e2873b0ea5d7e02cda4406b8f20083b19ba18",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/09-shortfall-checks-one-leg.txt",
+    "checkout_sha256": "7c3cf01ff4d551e5962eae9eaf9d4fd07b53ef681551f064e98d276e354a8200",
+    "original_sha256": "9588ee43d4b9c56fd48f5bfde3857908dc2bfad9a8b2dd2d6ba1f33a444c168a",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/10-duplicate-identity-allowed.txt",
+    "checkout_sha256": "beb5dc125e016227c08b024a4b41d205f68e422ced9ff4a08acd7e34cdfd5eaf",
+    "original_sha256": "2f1a11df192726efd90e2492a05e54b6542123fc504bfec648e64083389d6714",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/11-duplicate-sequence-allowed.txt",
+    "checkout_sha256": "2c83bd58f7ef5d68b87efa9879819f5beb507876773e0a57d6fd9a54473601fa",
+    "original_sha256": "a7b5e093f77481bc6ad64ab548d9b21f5e3c6d8a9d5d5bcd2d3e95b0e7df6acb",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/12-balanced-effects-not-checked.txt",
+    "checkout_sha256": "9fb64ae8e8e5d5aa0d80d6d8f3b16784ca42e3d807b2a37f89d63bd392ff8f35",
+    "original_sha256": "8ade8f2ea50edfb6837136445fcd7bd1fd301c7d0139622ef232b86ea720d1d1",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/13-amounts-may-be-fractional.txt",
+    "checkout_sha256": "a02f6588e03b30b05df68886a2bd2ab8315918ebc187853f6be1ab7723ecac8a",
+    "original_sha256": "013eb327a4e8693b004e22b5458943ba2a6b3fe0c5c83c65b8f971a041187cb6",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/14-conservation-rail-off.txt",
+    "checkout_sha256": "7045f9d9e0d0ef7a8d32496b87c92b8326b12933ca84af72110b5cc7a83c1667",
+    "original_sha256": "49ede46a10df5c8ffd6e79a98c3bed5e351d67e7ab52a3ab4677c968151e710b",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/15-negative-balance-rail-off.txt",
+    "checkout_sha256": "ee84543410b34b6a4ecbd0f4c2e7e50202599c25b9f9e44b2b45a8a18a9424fb",
+    "original_sha256": "954435e1a98cffdaed4ddbba78b1e9c116dab54281479713edbaf264cccd3c94",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "evidence/stage-01/instrument/runs/99-restored.txt",
+    "checkout_sha256": "7045f9d9e0d0ef7a8d32496b87c92b8326b12933ca84af72110b5cc7a83c1667",
+    "original_sha256": "49ede46a10df5c8ffd6e79a98c3bed5e351d67e7ab52a3ab4677c968151e710b",
+    "difference_only_line_endings": true
+  },
+  {
+    "path": "tests/test_observation.py",
+    "checkout_sha256": "5b3e339296a5fa41443f78df41a78b994ebc3b5f8b91a438f4d9cdbd57872a4b",
+    "original_sha256": "98b5082227f59a2df97743b5de5a8863782400522cf0062961ee51636a5f7a6d",
+    "difference_only_line_endings": true
+  }
+]

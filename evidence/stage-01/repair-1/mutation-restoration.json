@@ -1,0 +1,25 @@
+{
+  "exit_code": 0,
+  "files_restored_exactly": true,
+  "before": {
+    "evidence\\stage-01\\instrument\\mutation_check.py": "59a8b7aa9416f34c300c5d684417594d23826a1eb8b542711e5e1c8298998c60",
+    "kernel\\canonical.py": "20fa4781f240854b3eb04bdabd0b750c6e60be12d59798a2179b41b4893a8de0",
+    "kernel\\engine.py": "e5a3bedbf7ec6662ad7a1c39875759e560d0e0c19e2296fbaa62f3338863eaac",
+    "kernel\\ordering.py": "bf3a6d0220334ccdaf7d10daf048bca7fd0d1874171aa2f9421ceaa93af88487",
+    "kernel\\settlement.py": "a6e92c26a0c5f727fb4e1c86ff58cd95be765897b6d9526c84da8a13d9965947",
+    "kernel\\state.py": "9a65cfd1e2fde009ca403e518d9cfd1f00d7596ba56495629ffe9fd252c4f897",
+    "kernel\\units.py": "aa8b04387d1c4f3662e4a412ccf46699c0c8976602b68093d821a7ec1e89580a"
+  },
+  "after": {
+    "evidence\\stage-01\\instrument\\mutation_check.py": "59a8b7aa9416f34c300c5d684417594d23826a1eb8b542711e5e1c8298998c60",
+    "kernel\\canonical.py": "20fa4781f240854b3eb04bdabd0b750c6e60be12d59798a2179b41b4893a8de0",
+    "kernel\\engine.py": "e5a3bedbf7ec6662ad7a1c39875759e560d0e0c19e2296fbaa62f3338863eaac",
+    "kernel\\ordering.py": "bf3a6d0220334ccdaf7d10daf048bca7fd0d1874171aa2f9421ceaa93af88487",
+    "kernel\\settlement.py": "a6e92c26a0c5f727fb4e1c86ff58cd95be765897b6d9526c84da8a13d9965947",
+    "kernel\\state.py": "9a65cfd1e2fde009ca403e518d9cfd1f00d7596ba56495629ffe9fd252c4f897",
+    "kernel\\units.py": "aa8b04387d1c4f3662e4a412ccf46699c0c8976602b68093d821a7ec1e89580a"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "python_hash_seed": "0",
+  "pytest_addopts": "--basetemp=\"C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp\""
+}

@@ -1,1 +1,4 @@
 * text=auto eol=lf
+
+# Preserve the byte identities of archived repair evidence.
+evidence/stage-01/repair-1/** -text

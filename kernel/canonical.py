@@ -41,14 +41,35 @@ def canonicalise(value: Any) -> Any:
     raise CanonicalError(f"{type(value).__name__} has no canonical form")
 
 
+def _integer_text(value: int) -> str:
+    """Decimal JSON digits without the process-wide int-to-string limit."""
+    negative = value < 0
+    remaining = abs(value)
+    chunks = []
+    while remaining >= 1_000_000_000:
+        remaining, chunk = divmod(remaining, 1_000_000_000)
+        chunks.append(f"{chunk:09d}")
+    return ("-" if negative else "") + str(remaining) + "".join(reversed(chunks))
+
+
+def _encode(value: Any) -> str:
+    """Encode the already validated canonical value with unchanged JSON syntax."""
+    if value is None:
+        return "null"
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=True)
+    if isinstance(value, int):
+        return _integer_text(value)
+    if isinstance(value, list):
+        return "[" + ",".join(_encode(item) for item in value) + "]"
+    return "{" + ",".join(
+        _encode(key) + ":" + _encode(value[key])
+        for key in sorted(value)
+    ) + "}"
+
+
 def canonical_bytes(value: Any) -> bytes:
-    return json.dumps(
-        canonicalise(value),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        allow_nan=False,
-    ).encode("utf-8")
+    return _encode(canonicalise(value)).encode("utf-8")
 
 
 def digest(value: Any) -> str:

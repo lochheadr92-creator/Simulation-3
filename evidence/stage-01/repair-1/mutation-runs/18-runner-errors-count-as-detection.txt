@@ -1,0 +1,282 @@
+........................................................................ [ 48%]
+................................................FFFFFFFF.........F...... [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+___________ test_invalid_mutation_execution_is_unknown[1-failures0] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAAF60>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio0')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACAB650>, code = 1
+failures = []
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FACF8D60>()
+E        +    where <function main at 0x000001D0FACF8D60> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      1
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[2-failures1] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAB920>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio1')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACAA6F0>, code = 2
+failures = []
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FACFBE20>()
+E        +    where <function main at 0x000001D0FACFBE20> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      2
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[2-failures2] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAA240>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio2')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACA9C40>, code = 2
+failures = ['test']
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FACF8C20>()
+E        +    where <function main at 0x000001D0FACF8C20> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      2
+  noticed   1 test(s)
+            test
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[3-failures3] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACA9DC0>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio3')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACA9190>, code = 3
+failures = []
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FAE0C2C0>()
+E        +    where <function main at 0x000001D0FAE0C2C0> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      3
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[4-failures4] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAC8C0>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio4')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACAFDD0>, code = 4
+failures = []
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FAE0C860>()
+E        +    where <function main at 0x000001D0FAE0C860> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      4
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[5-failures5] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAE840>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio5')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACAE390>, code = 5
+failures = []
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FAE0CE00>()
+E        +    where <function main at 0x000001D0FAE0CE00> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      5
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[1-failures6] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAF110>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio6')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACAD550>, code = 1
+failures = ['ERROR:collection']
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FAE0D440>()
+E        +    where <function main at 0x000001D0FAE0D440> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      1
+  noticed   1 test(s)
+            ERROR:collection
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+___________ test_invalid_mutation_execution_is_unknown[1-failures7] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAC800>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_invalid_mutation_executio7')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001D0FACACB90>, code = 1
+failures = ['test', 'ERROR:teardown']
+
+    @pytest.mark.parametrize('code, failures', [(1, []), (2, []), (2, ['test']), (3, []), (4, []), (5, []), (1, ['ERROR:collection']), (1, ['test', 'ERROR:teardown'])])
+    def test_invalid_mutation_execution_is_unknown(monkeypatch, tmp_path, capsys, code, failures):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        monkeypatch.setattr(harness, 'run_suite', lambda label: (code, failures) if label.startswith('01-') else (0, []))
+>       assert harness.main() != 0
+E       AssertionError: assert 0 != 0
+E        +  where 0 = <function main at 0x000001D0FAE0DBC0>()
+E        +    where <function main at 0x000001D0FAE0DBC0> = <module 'reviewed_mutation_harness' from 'C:\\Users\\RJLoc\\.codex\\visualizations\\2026\\09\\18\\01a0b500-f6b1-7372-a969-c3035043fb48\\v3-slice1a-repairs\\evidence\\stage-01\\instrument\\mutation_check.py'>.main
+
+tests\test_repair_boundaries.py:126: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      1
+  noticed   2 test(s)
+            test
+            ERROR:teardown
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+_______ test_mutation_harness_must_not_count_runner_failure_as_detected _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D0FACAF050>
+tmp_path = WindowsPath('C:/Users/RJLoc/.codex/visualizations/2026/09/18/01a0b500-f6b1-7372-a969-c3035043fb48/v3-slice1a-repair-validation/mutation-tmp/test_mutation_harness_must_not0')
+
+    def test_mutation_harness_must_not_count_runner_failure_as_detected(monkeypatch, tmp_path):
+        harness = isolated_harness(monkeypatch, tmp_path)
+        monkeypatch.setattr(harness, 'MUTATIONS', harness.MUTATIONS[:1])
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        def fake_suite(label):
+            return (2, []) if label.startswith('01-') else (0, [])
+        monkeypatch.setattr(harness, 'run_suite', fake_suite)
+        result = harness.main()
+        OBSERVATIONS['harness_runner_failure'] = {'injected_mutant_exit': 2, 'identified_failed_tests': 0,
+                                                  'harness_exit': result}
+>       assert result != 0, 'Harness accepted an interrupted/failed test runner as mutation detection'
+E       AssertionError: Harness accepted an interrupted/failed test runner as mutation detection
+E       assert 0 != 0
+
+tests\test_review_regressions.py:131: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+probe: controlled mutation
+  file      probe.py
+  exit      2
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+=========================== short test summary info ===========================
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[1-failures0]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[2-failures1]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[2-failures2]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[3-failures3]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[4-failures4]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[5-failures5]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[1-failures6]
+FAILED tests/test_repair_boundaries.py::test_invalid_mutation_execution_is_unknown[1-failures7]
+FAILED tests/test_review_regressions.py::test_mutation_harness_must_not_count_runner_failure_as_detected
+9 failed, 139 passed in 0.82s

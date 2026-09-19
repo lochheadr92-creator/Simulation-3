@@ -120,7 +120,15 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
             raise TypeError(f"expected a Proposal, got {type(proposal).__name__}")
 
     id_counts = Counter(proposal.proposal_id for proposal in submitted)
-    sequence_counts = Counter((proposal.actor, proposal.sequence) for proposal in submitted)
+    order_counts = Counter((proposal.actor, proposal.order) for proposal in submitted)
+    orders_by_actor: dict[str, set[int]] = {}
+    for proposal in submitted:
+        orders_by_actor.setdefault(proposal.actor, set()).add(proposal.order)
+    sequences = {
+        (actor, order): sequence
+        for actor, orders in orders_by_actor.items()
+        for sequence, order in enumerate(sorted(orders))
+    }
 
     verdicts: dict[int, str] = {}
     committed: dict[int, tuple[Effect, ...]] = {}
@@ -130,7 +138,7 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
         if id_counts[proposal.proposal_id] > 1:
             verdicts[index] = reasons.DENIED_DUPLICATE_PROPOSAL_ID
             continue
-        if sequence_counts[(proposal.actor, proposal.sequence)] > 1:
+        if order_counts[(proposal.actor, proposal.order)] > 1:
             verdicts[index] = reasons.DENIED_DUPLICATE_ACTOR_SEQUENCE
             continue
         if proposal.actor not in state.balances:
@@ -155,7 +163,7 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
 
     rotated = rotated_roster(state.roster, state.tick)
     ranks = actor_ranks(rotated)
-    candidates.sort(key=lambda candidate: (ranks[candidate[1].actor], candidate[1].sequence))
+    candidates.sort(key=lambda candidate: (ranks[candidate[1].actor], sequences[(candidate[1].actor, candidate[1].order)]))
 
     available = {actor_account(actor_id): amount for actor_id, amount in state.balances.items()}
     available.update(
@@ -188,7 +196,7 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
         ProposalOutcome(
             proposal_id=proposal.proposal_id,
             actor=proposal.actor,
-            sequence=proposal.sequence,
+            sequence=sequences[(proposal.actor, proposal.order)],
             operation=proposal.operation,
             reason=verdicts[index],
             effects=committed.get(index, ()),
@@ -199,6 +207,7 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
     outcomes.sort(
         key=lambda outcome: (
             ranks.get(outcome.actor, unranked),
+            outcome.actor,
             outcome.sequence,
             outcome.proposal_id,
             outcome.operation,

@@ -1,0 +1,13 @@
+{
+  "captured_ticks": 8,
+  "same_number_of_ticks": true,
+  "state_bytes_and_digests_identical": true,
+  "record_versions": [
+    [
+      "0.1.0-stage1a",
+      "0.1.1-stage1a"
+    ]
+  ],
+  "record_payloads_identical_except_engine_version": true,
+  "repaired_hash_seed_0_and_17_identical": true
+}

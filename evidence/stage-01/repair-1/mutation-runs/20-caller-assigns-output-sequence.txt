@@ -1,0 +1,62 @@
+........................................................................ [ 48%]
+.........................F.....F.F...................................... [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+_____________________ test_a_sequence_gap_is_not_an_error _____________________
+
+    def test_a_sequence_gap_is_not_an_error():
+        """Input order may be sparse; settlement assigns dense output sequences."""
+        engine = Engine(genesis(balances={"A": 2, "B": 0}))
+    
+        record = engine.tick(
+            [
+                consume("later", "A", 90, amount=1),
+                transfer("earlier", "A", 7, to="B", amount=1),
+            ]
+        )
+    
+        assert [outcome.proposal_id for outcome in record.outcomes] == ["earlier", "later"]
+>       assert [outcome.sequence for outcome in record.outcomes] == [0, 1]
+E       assert [7, 90] == [0, 1]
+E         
+E         At index 0 diff: 7 != 0
+E         Use -v to get more diff
+
+tests\test_proposal_identity.py:127: AssertionError
+___________ test_engine_sequences_do_not_copy_sparse_caller_orders ____________
+
+    def test_engine_sequences_do_not_copy_sparse_caller_orders():
+        submitted = [consume('last', 'A', 10 ** 5000, amount=1), transfer('first', 'A', 7, to='B', amount=1)]
+        seen = set()
+        for order in permutations(submitted):
+            engine = Engine(world())
+            record = engine.tick(order)
+>           assert [(o.proposal_id, o.sequence) for o in record.outcomes] == [('first', 0), ('last', 1)]
+E           AssertionError: assert <[ValueError(...0x207d274a040> == [('first', 0), ('last', 1)]
+E             
+E             At index 0 diff: ('first', 7) != ('first', 0)
+E             Use -v to get more diff
+
+tests\test_repair_boundaries.py:70: AssertionError
+___________ test_sequences_restart_at_each_tick_and_are_actor_local ___________
+
+    def test_sequences_restart_at_each_tick_and_are_actor_local():
+        engine = Engine(WorldState.genesis(balances={'A': 2, 'B': 2}))
+        for tick in (0, 1):
+            record = engine.tick([consume('a', 'A', 99, amount=1), consume('b', 'B', 500, amount=1)])
+>           assert {o.sequence for o in record.outcomes} == {0}
+E           assert {99, 500} == {0}
+E             
+E             Extra items in the left set:
+E             99
+E             500
+E             Extra items in the right set:
+E             0
+E             Use -v to get more diff
+
+tests\test_repair_boundaries.py:86: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_proposal_identity.py::test_a_sequence_gap_is_not_an_error
+FAILED tests/test_repair_boundaries.py::test_engine_sequences_do_not_copy_sparse_caller_orders
+FAILED tests/test_repair_boundaries.py::test_sequences_restart_at_each_tick_and_are_actor_local
+3 failed, 145 passed in 0.80s

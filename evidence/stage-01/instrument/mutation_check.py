@@ -64,22 +64,22 @@ MUTATIONS = [
         "order-by-arrival",
         "resolution follows the order proposals were collected in",
         "kernel/settlement.py",
-        "    candidates.sort(key=lambda candidate: (ranks[candidate[1].actor], candidate[1].sequence))",
+        "    candidates.sort(key=lambda candidate: (ranks[candidate[1].actor], sequences[(candidate[1].actor, candidate[1].order)]))",
         "    candidates.sort(key=lambda candidate: candidate[0])",
     ),
     (
         "outcome-order-by-arrival",
         "the record lists outcomes in the order proposals arrived",
         "kernel/settlement.py",
-        "            ranks.get(outcome.actor, unranked),\n            outcome.sequence,",
-        "            0 * ranks.get(outcome.actor, unranked),\n            0 * outcome.sequence,",
+        "            ranks.get(outcome.actor, unranked),\n            outcome.actor,\n            outcome.sequence,\n            outcome.proposal_id,\n            outcome.operation,",
+        "            0,",
     ),
     (
         "canonical-keys-unsorted",
         "canonical bytes follow mapping insertion order",
         "kernel/canonical.py",
-        "        sort_keys=True,",
-        "        sort_keys=False,",
+        "        for key in sorted(value)",
+        "        for key in value",
     ),
     (
         "state-mappings-writable",
@@ -113,8 +113,8 @@ MUTATIONS = [
         "duplicate-sequence-allowed",
         "one actor may declare two proposals at the same sequence",
         "kernel/settlement.py",
-        "        if sequence_counts[(proposal.actor, proposal.sequence)] > 1:",
-        "        if sequence_counts[(proposal.actor, proposal.sequence)] > 99:",
+        "        if order_counts[(proposal.actor, proposal.order)] > 1:",
+        "        if order_counts[(proposal.actor, proposal.order)] > 99:",
     ),
     (
         "balanced-effects-not-checked",
@@ -144,6 +144,41 @@ MUTATIONS = [
         "    if negatives:",
         "    if False and negatives:",
     ),
+    (
+        "tick-reentry-allowed",
+        "same-thread callbacks can reenter the active engine tick",
+        "kernel/engine.py",
+        "from threading import Lock",
+        "from threading import RLock as Lock",
+    ),
+    (
+        "unknown-actor-order-ambiguous",
+        "unknown actors share a rejected-outcome sorting key",
+        "kernel/settlement.py",
+        "            outcome.actor,\n",
+        "",
+    ),
+    (
+        "runner-errors-count-as-detection",
+        "an invalid test execution is counted as a detected mutation",
+        "evidence/stage-01/instrument/mutation_check.py",
+        "    if code ==" " 1 and failures and not any(item.startswith(\"ERROR:\") for item in failures):",
+        "    if code != 0:",
+    ),
+    (
+        "integer-encoding-uses-global-limit",
+        "accepted large quantities cannot be serialized",
+        "kernel/canonical.py",
+        '    return _encode(canonicalise(value)).encode("utf-8")',
+        '    return json.dumps(canonicalise(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")',
+    ),
+    (
+        "caller-assigns-output-sequence",
+        "a caller order is copied instead of assigning an engine sequence",
+        "kernel/settlement.py",
+        "            sequence=sequences[(proposal.actor, proposal.order)],",
+        "            sequence=proposal.order,",
+    ),
 ]
 
 # Mutations that no test can notice, with the reason. A rail whose precondition
@@ -160,6 +195,8 @@ UNREACHABLE = {
 
 def clear_bytecode() -> None:
     for cache in ROOT.rglob("__pycache__"):
+        if cache.is_symlink() or not cache.resolve().is_relative_to(ROOT.resolve()):
+            raise RuntimeError(f"refusing bytecode cleanup outside the instrument root: {cache}")
         shutil.rmtree(cache, ignore_errors=True)
 
 
@@ -178,12 +215,21 @@ def run_suite(label: str) -> tuple[int, list[str]]:
     (RUNS / f"{label}.txt").write_text(result.stdout + result.stderr, encoding="utf-8")
     failures = sorted(
         {
-            line.split(" ")[1]
+            line.split(" ")[1] if line.startswith("FAILED ") else "ERROR:" + line.split(" ")[1]
             for line in result.stdout.splitlines()
             if line.startswith(("FAILED ", "ERROR "))
         }
     )
     return result.returncode, failures
+
+
+def classify_result(code: int, failures: list[str]) -> str:
+    """A failed runner is not evidence that a test detected the mutation."""
+    if code == 0 and not failures:
+        return "survived"
+    if code == 1 and failures and not any(item.startswith("ERROR:") for item in failures):
+        return "detected"
+    return "UNKNOWN"
 
 
 def main() -> int:
@@ -194,7 +240,8 @@ def main() -> int:
         return 1
 
     blind_spots: list[str] = []
-    confirmed_unreachable: list[str] = []
+    declared_unreachable: list[str] = []
+    invalid_runs: list[str] = []
 
     for number, (name, description, relative, old, new) in enumerate(MUTATIONS, start=1):
         path = ROOT / relative
@@ -225,10 +272,14 @@ def main() -> int:
         for failure in failures:
             print(f"            {failure}")
 
-        if code == 0:
+        classification = classify_result(code, failures)
+        if classification == "UNKNOWN":
+            print("  UNKNOWN   runner/collection failure or no executed failing test")
+            invalid_runs.append(name)
+        elif classification == "survived":
             if name in UNREACHABLE:
                 print(f"  unreachable  {UNREACHABLE[name]}")
-                confirmed_unreachable.append(name)
+                declared_unreachable.append(name)
             else:
                 blind_spots.append(name)
         elif name in UNREACHABLE:
@@ -241,14 +292,18 @@ def main() -> int:
         print("the kernel was not restored cleanly")
         return 1
 
+    if invalid_runs:
+        print(f"\nUNKNOWN mutation results, not counted as detected: {invalid_runs}")
+        return 1
+
     if blind_spots:
         print(f"\nBLIND SPOTS, no test noticed: {blind_spots}")
         return 1
 
-    detected = len(MUTATIONS) - len(confirmed_unreachable)
+    detected = len(MUTATIONS) - len(declared_unreachable)
     print(f"\n{detected} of {len(MUTATIONS)} mutations were detected by at least one test")
-    for name in confirmed_unreachable:
-        print(f"declared unreachable and confirmed unreachable: {name}")
+    for name in declared_unreachable:
+        print(f"declared unreachable; survival alone does not prove unreachability: {name}")
     return 0
 
 

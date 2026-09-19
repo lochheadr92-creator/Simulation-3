@@ -197,3 +197,19 @@ observation kernel before any world, person or behaviour exists.
 exact hash cannot appear inside itself and is recorded in
 `evidence/stage-01/RECORD.md` under Identity.
 
+### OD-002 - 2026-09-20 - Resolve the Stage 1a review findings
+
+**Exact owner direction:** "resolve findings", following the adversarial review
+of `fa8be6083b31ead3c7e6aae844c0fd749927e6d0` identifying R1–R5.
+
+**Scope:** repair reentrant ticks, rejected-outcome ordering, mutation-result
+classification, unbounded-integer serialization, and engine ownership of proposal
+sequences. Preserve the original evidence and assertions, add regression proof,
+and record the repair outcome. This is Stage 1a defect repair only; it changes no
+stage gate, budget, world, contention priority, or authority for later slices.
+
+**Reason:** the review reproduced correctness and instrument failures despite the
+original passing suite. Its recorded findings remain historical evidence.
+
+**Linked revision:** the repair is identified by the changed-file hashes and source
+base in `evidence/stage-01/RECORD.md`; no acceptance or Stage 1 exit is implied.

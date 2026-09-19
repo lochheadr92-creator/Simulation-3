@@ -4,6 +4,12 @@ Authority: owner direction OD-001 of 2026-09-19, recorded in `AGENTS.md`.
 Only slice 1a is open. Slices 1b, 1c and 1d are not authorised, and the Stage 1
 exit gate is not claimed.
 
+**2026-09-20 update:** the adversarial review of `fa8be60` found R1–R5. Repair 1
+below is authorised by OD-002. Earlier declarations, guarantees and results in
+this record describe Attempt 1; they are retained as history, not a claim that the
+reviewed defects passed. R1–R5 pass repair revalidation below; independent
+post-repair review is pending and Stage 1 remains incomplete.
+
 ## Card
 
 | Field | Contents |
@@ -397,3 +403,179 @@ Exact files introduced by the slice, all of which may be deleted to remove it:
 Configuration to revert: `pyproject.toml` holds the only configuration, the
 pytest `pythonpath` and `testpaths` settings. There is no other configuration
 file, no environment variable and no installed package.
+
+## Repair 1 — declared before implementation, 2026-09-20
+
+Base: `fa8be6083b31ead3c7e6aae844c0fd749927e6d0`. Authority: OD-002.
+Scope: R1–R5 only. No reservations, worlds, new domains or stage progression.
+Whole-world/capacity runs: zero. Original results and instrument outputs stay intact.
+
+- R1: reject reentry for the complete engine tick, including collection and
+  publication; release the guard on every exit. Verify both review triggers,
+  ordinary iterators, independent engines and recovery after exceptions.
+- R2: deterministically order rejected outcomes from distinct unknown actors while
+  retaining every denial and preserving valid-actor allocation priority.
+- R3: a mutant counts as detected only on an executed failing test, never runner
+  failure or an empty failure list. Retain UNKNOWN output and test negative controls.
+- R4: retain unbounded Python integers and the existing JSON byte representation.
+  Encode integer digits locally without changing the interpreter's global limit;
+  test large positive/negative values, ordinary JSON equivalence and global inertness.
+- R5: input proposals carry an actor-local **order**, expressing intention such as
+  giving before consuming. Settlement assigns dense engine-owned **sequence** values
+  from sorted distinct orders within each actor at the boundary. Collection order
+  is irrelevant. Duplicate input orders are all denied; they retain the existing
+  `denied_duplicate_actor_sequence` reason for compatibility. Rejected proposals
+  also receive deterministic sequence values. The caller cannot supply the output
+  sequence. This implements the roadmap rather than amending its requirement.
+
+Proposal helper positional calls retain their shape; the input keyword/attribute
+`sequence` becomes `order`. There are no person/domain callers in Stage 1a. Outcomes
+keep their existing `sequence` field. Proposal IDs remain caller-supplied in this
+slice; sequence ownership is not a claim of authenticated actor provenance.
+
+Code version advances to `0.1.1-stage1a`; output schema remains `v3.kernel.1a.1`.
+Ordinary state identities must remain identical. Original fixture record payloads
+must differ only in code version. Sparse input orders intentionally produce dense
+output sequences; formerly ambiguous rejected records receive stable ordering.
+Old expected results are retained, not replaced.
+
+Validation: original suite; unchanged review assertions adapted only to locate the
+repair checkout; new boundary controls; full mutation run with equivalent updated
+anchors; native fixture comparison against the base; final changed-file inspection.
+Repair implementation is not independent acceptance of its own results.
+
+### Repair 1 result — 2026-09-20
+
+**R1–R5 are resolved in the tested repair.** This is implementation and measured
+revalidation, not independent acceptance. Stage 1 remains incomplete. No slice 1b,
+world, capacity run, pin, merge or publication is opened.
+
+The source base is `fa8be6083b31ead3c7e6aae844c0fd749927e6d0`.
+The repair is delivered as working-tree changes on `codex/kernel-first-slice`.
+File identities are in [repair-1/FILE_MANIFEST.json](repair-1/FILE_MANIFEST.json).
+The preregistration above was written before the code changes in an isolated
+repair copy. Original committed evidence and the original 107 test assertions
+are retained. The original adversarial report, failing output and test source
+are archived verbatim under [repair-1/review-before-repair/](repair-1/review-before-repair/).
+
+| Finding and existing owner | Correction | Measured proof |
+|---|---|---|
+| R1: `Engine.tick` allowed nested transitions during collection and diagnostics publication, duplicating accepted claim history or advancing canonical state from a sink. | A nonblocking per-engine lock covers collection, settlement, commit and publication. Every exit releases it. Reentry raises; a diagnostics exception is counted through the existing sink-failure path. | Both original reproductions pass; generator failure leaves the original state intact; later ticks and separate engines work. Reintroducing reentry fails four tests. |
+| R2: `settle` omitted actor identity from rejected-outcome ordering, so distinct unknown actors could tie. | Add actor identity after rotated rank in the outcome key. Preserve every denial and valid allocation priority. | Original unknown-actor duplicate-ID permutation regression passes. Removing this component fails that regression. |
+| R3: `mutation_check.main` treated any nonzero runner exit as detection. | `classify_result` requires exit 1 with named failed tests and no collection/setup/teardown error. Other unsuccessful executions are UNKNOWN. | Runner/error negative controls pass; real failing-test and surviving-mutant controls pass. Reinstating the permissive rule fails nine tests. |
+| R4: `canonical_bytes` delegated integer digits to the process-limited JSON conversion despite accepting unbounded quantities. | Local decimal chunk encoding preserves canonical JSON without changing the global interpreter limit. | Empty tick and claim/consume operations on a 5,001-digit quantity serialize; signed digit-boundary cases pass; ordinary JSON bytes match; the global limit is unchanged. Reinstating the old conversion fails five tests. |
+| R5: `Proposal` accepted the output sequence from callers despite the roadmap assigning it to the engine. | Proposal carries intended `order`; `settle` assigns dense actor-local output `sequence` values. Duplicate input orders still deny all affected proposals. | Sparse and very large input orders, both collection orders, actor-local/reset boundaries and rejected input `sequence=` keyword pass. Copying caller order to output fails three tests. |
+
+The ordering rotation, available-at-tick-start rule, transaction authority,
+indivisibility, negative-balance rail and conservation assertion remain in place.
+The guard is boundary exclusion, not a scheduler or support for nondeterministic
+parallel simulation. Python reflection/private-field tampering is not a claimed
+security boundary.
+
+### Repair validation and evidence
+
+Runtime measured here: Python 3.12.14, pytest 9.1.1. The interpreter was reused
+read-only from the existing validation environment; bytecode writing and pytest's
+cache provider were disabled. Test temporary directories were outside both actual
+repositories. The repair was exercised in the isolated copy before application.
+
+| Check | This repair's measured result | Raw evidence |
+|---|---|---|
+| Full reference plus review/boundary suite | 148 passed; original assertions retained | `repair-1/direct-suite-output.txt`; mutation `00-baseline.txt` and `99-restored.txt` |
+| Original adversarial assertions | All 11 pass within the full suite; five previously failed | `tests/test_review_regressions.py`; original failing output archived |
+| Ordinary contention matrix | 2,592 cases, each in both proposal orders; stock, conservation and record-order checks pass | Included in the adversarial regression test |
+| Full mutation instrument | 19/20 detected; one declared unreachable conservation-rail mutation excluded; no invalid run counted as detection | `repair-1/mutation-output.txt`, `repair-1/mutation-runs/` |
+| Mutation restoration | All targeted source files restored byte for byte; full suite again 148 passed | `repair-1/mutation-restoration.json` |
+| Native original fixture comparison | Eight captured ticks: state payloads/digests unchanged; record payloads differ only in `engine_version` | `repair-1/fixtures-*.json`, `repair-1/fixture-comparison.json` |
+| Hash-seed control | Repaired fixtures identical with hash seeds 0 and 17 | `repair-1/fixtures-repaired-seed17.json` |
+| File/diff checks | No whitespace errors; original committed instrument outputs unchanged; kernel source has no CRLF bytes | File manifest and the final application verification |
+
+Two environment failures were preserved/classified without behavioural inference:
+the first direct suite attempt had 137 passes and 12 fixture/teardown errors
+because pytest's default temporary directory was inaccessible (terminal summary
+only retained). An explicit writable temp directory gave 148 passes. The first
+mutation-wrapper attempt then had 137 passes and 11 fixture errors because
+`PYTEST_ADDOPTS` consumed Windows backslashes. No mutation ran. Its raw output
+is in `repair-1/invalid-mutation-wrapper-attempt/`. One wrapper correction to a
+quoted forward-slash path produced the valid mutation run above. Neither invalid
+attempt supports a pass, failure of kernel behaviour, or mutation detection.
+
+The surviving conservation mutation remains an assertion in the kernel. Its
+redundancy follows from balanced effects and account containment; survival alone
+does not prove this. The negative-balance mutant still fails because constructors
+reject the negative state with a different exception when that rail is removed.
+That kill distinguishes the rail/error path; it does not demonstrate that removing
+the rail alone permits negative state to commit.
+
+### Identity, compatibility and limits
+
+`ENGINE_VERSION` is now `0.1.1-stage1a`; schema stays `v3.kernel.1a.1`.
+Record digests therefore change. Old digests are preserved as historical output,
+not replaced as a new accepted baseline. Independent post-repair review is pending.
+
+Input helpers retain positional call shape; callers using the `sequence=`
+keyword or attribute must use `order`. Output records retain `sequence`.
+Sparse orders now map to dense sequences; formerly ambiguous invalid submissions
+produce deterministic records. Caller proposal IDs and actor claims are still
+caller supplied: this repair does not establish authenticated provenance or full
+closure of old F06.
+
+R1's duplicated accepted credits and R2–R5's tested defects are corrected in this
+new kernel. This is not a correction or oracle claim for old V1/V2/V3, Gifts,
+scarcity, or request-food-outstanding. The old project and frozen identities were
+not modified. No living-world/Gifts/scarcity counts were generated. Reservations,
+cancellation/completion boundaries, sealed replay, native decision-input capture
+and the 50-actor benchmark remain outside slice 1a and are not claimed complete.
+A separate different-model review has not accepted the repaired source.
+
+### Reproduction
+
+Use a disposable copy containing these repaired files and a separate clean copy
+of the base revision. The mutation script deliberately edits/restores files and
+writes scratch outputs, so run it in the disposable copy, preserving this evidence.
+No dependencies beyond Python and pytest are required.
+
+The actual interpreter used was:
+`C:/dev/02-Simulation-Sandbox/.worktrees/request-food-outstanding/sandbox/f01_validation_venv/Scripts/python.exe`.
+
+From the disposable repaired copy, with Python available as `python` and a new
+explicit temporary directory (the names below are placeholders):
+
+```text
+python -B -m pytest -q -p no:cacheprovider --tb=short --basetemp="<fresh-suite-temp>"
+python -B evidence/stage-01/repair-1/run_mutations.py "<repair-copy>" "<fresh-mutation-temp>"
+```
+
+The second command sets `PYTHONDONTWRITEBYTECODE=1`, `PYTHONHASHSEED=0` and
+a correctly quoted `PYTEST_ADDOPTS` temp path; it invokes the actual instrument,
+retains every raw output and verifies restoration hashes.
+
+Run `capture_fixtures.py "<base-copy>" "<output>/fixtures-base.json"` and
+`capture_fixtures.py "<repair-copy>" "<output>/fixtures-repaired.json"` under
+hash seed 0; repeat the repaired capture with seed 17 and the filename
+`fixtures-repaired-seed17.json`. Then run `compare_fixtures.py "<output>"`.
+Capture calls the existing native fixture functions and records public engine
+state and tick records. The comparison strips only the declared engine-version
+field; it does not reconstruct decisions or alter engine outputs.
+
+### Repair rollback list
+
+Rollback requires a separate owner instruction. Nothing was reverted here.
+Restore only these existing files from base `fa8be60`, after checking for later
+work:
+
+- `kernel/engine.py`
+- `kernel/settlement.py`
+- `kernel/proposals.py`
+- `kernel/canonical.py`
+- `kernel/version.py`
+- `evidence/stage-01/instrument/mutation_check.py`
+- `tests/test_proposal_identity.py`
+
+The added active tests are `tests/test_review_regressions.py` and
+`tests/test_repair_boundaries.py`; archive them if withdrawing the repair.
+Preserve `AGENTS.md` OD-002, this record's repair declaration/results, and the
+entire `evidence/stage-01/repair-1/` evidence tree, adding a dated rollback status.
+Do not reset or delete the repository, erase prior evidence, or touch the old
+project. No configuration, dependencies, canonical identity files or world
+definitions require rollback.

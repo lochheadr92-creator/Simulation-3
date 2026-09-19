@@ -1,0 +1,200 @@
+F.F.F.F.F..                                                              [100%]
+================================== FAILURES ===================================
+________ test_unknown_actors_with_duplicate_ids_are_order_independent _________
+
+    def test_unknown_actors_with_duplicate_ids_are_order_independent():
+        proposals = [consume('duplicate', 'GHOST_A', 0, amount=1), consume('duplicate', 'GHOST_B', 0, amount=1)]
+        seen = []
+        for ordering in permutations(proposals):
+            engine = Engine(basic_world())
+            record = engine.tick(ordering)
+            seen.append({'digest': record.digest(), 'actors': [o.actor for o in record.outcomes],
+                         'reasons': [o.reason for o in record.outcomes], 'state': engine.state.digest()})
+        OBSERVATIONS['unknown_duplicate_ids'] = seen
+>       assert len({x['digest'] for x in seen}) == 1, 'Rejected proposal records depend on arrival order'
+E       AssertionError: Rejected proposal records depend on arrival order
+E       assert 2 == 1
+E        +  where 2 = len({'0975e95625be270496202c76287d35c5ece4c39abfd41afb823f31a75f06f733', '57aca93f71ab89d5d0acfb8b45c01a8717e8a1a602c01ae43fafc50bbe5e0852'})
+
+..\test_adversarial.py:34: AssertionError
+_________ test_diagnostic_callback_cannot_reenter_the_public_tick_api _________
+
+    def test_diagnostic_callback_cannot_reenter_the_public_tick_api():
+        class SteppingDiagnostics:
+            engine = None
+            fired = False
+            def record(self, event, payload):
+                if not self.fired:
+                    self.fired = True
+                    self.engine.tick([consume('diagnostic-spend', 'A', 0, amount=1)])
+    
+        sink = SteppingDiagnostics()
+        observed = Engine(basic_world(), diagnostics=sink)
+        sink.engine = observed
+        quiet = Engine(basic_world())
+        quiet_record = quiet.tick()
+        observed_record = observed.tick()
+        OBSERVATIONS['reentrant_diagnostics'] = {
+            'quiet_tick': quiet.state.tick, 'observed_tick': observed.state.tick,
+            'quiet_balance': quiet.state.balances['A'], 'observed_balance': observed.state.balances['A'],
+            'returned_record_matches_current_state': observed_record.next_state_digest == observed.state.digest(),
+            'returned_records_identical': quiet_record.digest() == observed_record.digest()}
+>       assert observed.state.digest() == quiet.state.digest(), 'Diagnostics changed canonical state through public reentry'
+E       AssertionError: Diagnostics changed canonical state through public reentry
+E       assert '8aa307678064...02449f2e0c6ba' == '641a564c1022...d652d64b4053e'
+E         
+E         - 641a564c102275868191f608bf035ed29fad974122ee7faa64ad652d64b4053e
+E         + 8aa307678064db36fa7c8cc6d18d0355a08615254c7912a1a2302449f2e0c6ba
+
+..\test_adversarial.py:61: AssertionError
+___ test_proposal_iterator_reentry_cannot_duplicate_accepted_source_claims ____
+
+    def test_proposal_iterator_reentry_cannot_duplicate_accepted_source_claims():
+        engine = Engine(WorldState.genesis(balances={'A': 0}, sources={'S': Source(1, frozenset({'A'}))}))
+        records = []
+        def proposals():
+            records.append(engine.tick([claim('inner', 'A', 0, sources={'S': 1})]))
+            yield claim('outer', 'A', 0, sources={'S': 1})
+        error = None
+        try:
+            records.append(engine.tick(proposals()))
+        except RuntimeError as caught:
+            error = type(caught).__name__
+        credits = sum(e.delta for r in records for o in r.outcomes if o.accepted for e in o.effects if e.account == 'actor:A')
+        OBSERVATIONS['iterator_reentry'] = {'error': error, 'record_ticks': [r.tick for r in records],
+            'credited_in_accepted_records': credits, 'final_tick': engine.state.tick,
+            'final_balance': engine.state.balances['A'], 'final_source_stock': engine.state.sources['S'].stock}
+>       assert credits <= 1, 'Two accepted records credit the same one-unit source'
+E       AssertionError: Two accepted records credit the same one-unit source
+E       assert 2 <= 1
+
+..\test_adversarial.py:89: AssertionError
+_______ test_declared_unbounded_integer_state_has_a_canonical_identity ________
+
+    def test_declared_unbounded_integer_state_has_a_canonical_identity():
+        state = WorldState.genesis(balances={'A': 10 ** 5000})
+        engine = Engine(state)
+        try:
+>           record = engine.tick()
+                     ^^^^^^^^^^^^^
+
+..\test_adversarial.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:46: in tick
+    prior_state_digest=boundary.digest(),
+                       ^^^^^^^^^^^^^^^^^
+kernel\state.py:222: in digest
+    return canonical_digest(self.canonical())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:55: in digest
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:45: in canonical_bytes
+    return json.dumps(
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000002960F353320>
+o = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] dict object at 0x29610cf0e80>
+_one_shot = True
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+    
+        For example::
+    
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+    
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = encode_basestring_ascii
+        else:
+            _encoder = encode_basestring
+    
+        def floatstr(o, allow_nan=self.allow_nan,
+                _repr=float.__repr__, _inf=INFINITY, _neginf=-INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+    
+            if o != o:
+                text = 'NaN'
+            elif o == _inf:
+                text = 'Infinity'
+            elif o == _neginf:
+                text = '-Infinity'
+            else:
+                return _repr(o)
+    
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+    
+            return text
+    
+    
+        if (_one_shot and c_make_encoder is not None
+                and self.indent is None):
+            _iterencode = c_make_encoder(
+                markers, self.default, _encoder, self.indent,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, self.allow_nan)
+        else:
+            _iterencode = _make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+>       return _iterencode(o, 0)
+               ^^^^^^^^^^^^^^^^^
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit
+
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:258: ValueError
+_______ test_mutation_harness_must_not_count_runner_failure_as_detected _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002960F36E870>
+
+    def test_mutation_harness_must_not_count_runner_failure_as_detected(monkeypatch):
+        harness = load_mutation_harness()
+        monkeypatch.setattr(harness, 'MUTATIONS', harness.MUTATIONS[:1])
+        monkeypatch.setattr(harness, 'UNREACHABLE', {})
+        def fake_suite(label):
+            return (2, []) if label.startswith('01-') else (0, [])
+        monkeypatch.setattr(harness, 'run_suite', fake_suite)
+        result = harness.main()
+        OBSERVATIONS['harness_runner_failure'] = {'injected_mutant_exit': 2, 'identified_failed_tests': 0,
+                                                  'harness_exit': result}
+>       assert result != 0, 'Harness accepted an interrupted/failed test runner as mutation detection'
+E       AssertionError: Harness accepted an interrupted/failed test runner as mutation detection
+E       assert 0 != 0
+
+..\test_adversarial.py:131: AssertionError
+---------------------------- Captured stdout call -----------------------------
+baseline: exit 0, 0 failing
+
+rotation-frozen: the rotation always starts at the sorted roster, giving a permanent winner
+  file      kernel/ordering.py
+  exit      2
+  noticed   0 test(s)
+
+restored: exit 0
+
+1 of 1 mutations were detected by at least one test
+=========================== short test summary info ===========================
+FAILED ..\test_adversarial.py::test_unknown_actors_with_duplicate_ids_are_order_independent
+FAILED ..\test_adversarial.py::test_diagnostic_callback_cannot_reenter_the_public_tick_api
+FAILED ..\test_adversarial.py::test_proposal_iterator_reentry_cannot_duplicate_accepted_source_claims
+FAILED ..\test_adversarial.py::test_declared_unbounded_integer_state_has_a_canonical_identity
+FAILED ..\test_adversarial.py::test_mutation_harness_must_not_count_runner_failure_as_detected
+5 failed, 6 passed in 0.39s

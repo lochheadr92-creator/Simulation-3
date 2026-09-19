@@ -1,0 +1,68 @@
+.............................................................FF......... [ 48%]
+........................................................................ [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+______________ test_the_negative_balance_rail_refuses_to_commit _______________
+
+    def test_the_negative_balance_rail_refuses_to_commit():
+        state = world()
+    
+        with pytest.raises(IntegrityError, match="negative balance"):
+>           settlement._commit(state, {"actor:A": -5, "sink:consumed": 5})
+
+tests\test_integrity_rails.py:32: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\settlement.py:255: in _commit
+    next_state = WorldState(
+<string>:7: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WorldState(tick=1, balances={'A': -4, 'B': 0}, sources={'S': Source(stock=2, authorised=frozenset({'A'}))}, consumed=8)
+
+    def __post_init__(self) -> None:
+        if not is_integer(self.tick) or self.tick < 0:
+            raise ValueError(f"a tick must be an integer of zero or more, got {self.tick!r}")
+        if not is_valid_balance(self.consumed):
+            raise ValueError(f"the consumption sink must hold an integer of zero or more, got {self.consumed!r}")
+    
+        raw_balances = dict(self.balances)
+        for actor_id in raw_balances:
+            if not isinstance(actor_id, str) or not actor_id:
+                raise ValueError("an actor needs a non-empty identity")
+        balances = {actor_id: raw_balances[actor_id] for actor_id in sorted(raw_balances)}
+        for actor_id, amount in balances.items():
+            if not is_valid_balance(amount):
+>               raise ValueError(f"the balance of {actor_id!r} must be an integer of zero or more, got {amount!r}")
+E               ValueError: the balance of 'A' must be an integer of zero or more, got -4
+
+kernel\state.py:149: ValueError
+_______________ test_the_negative_stock_rail_refuses_to_commit ________________
+
+    def test_the_negative_stock_rail_refuses_to_commit():
+        state = world()
+    
+        with pytest.raises(IntegrityError, match="negative balance"):
+>           settlement._commit(state, {"source:S": -9, "actor:A": 9})
+
+tests\test_integrity_rails.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\settlement.py:259: in _commit
+    source_id: Source(stock=stocks[source_id], authorised=source.authorised)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:5: in __init__
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Source(stock=-7, authorised=frozenset({'A'}))
+
+    def __post_init__(self) -> None:
+        if not is_valid_balance(self.stock):
+>           raise ValueError(f"a source stock must be an integer of zero or more, got {self.stock!r}")
+E           ValueError: a source stock must be an integer of zero or more, got -7
+
+kernel\state.py:80: ValueError
+=========================== short test summary info ===========================
+FAILED tests/test_integrity_rails.py::test_the_negative_balance_rail_refuses_to_commit
+FAILED tests/test_integrity_rails.py::test_the_negative_stock_rail_refuses_to_commit
+2 failed, 146 passed in 0.80s

@@ -1,0 +1,46 @@
+........................................................................ [ 48%]
+......................F.F............................................... [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+_______ test_an_actor_cannot_declare_two_proposals_at_the_same_sequence _______
+
+    def test_an_actor_cannot_declare_two_proposals_at_the_same_sequence():
+        engine = Engine(genesis(balances={"A": 2, "B": 0}))
+    
+        record = engine.tick(
+            [
+                transfer("give", "A", 0, to="B", amount=1),
+                consume("eat", "A", 0, amount=1),
+            ]
+        )
+    
+>       assert reason_of(record, "give") == Reason.DENIED_DUPLICATE_ACTOR_SEQUENCE
+E       AssertionError: assert 'accepted' == 'denied_dupli...ctor_sequence'
+E         
+E         - denied_duplicate_actor_sequence
+E         + accepted
+
+tests\test_proposal_identity.py:79: AssertionError
+________ test_a_duplicate_sequence_is_rejected_whichever_arrived_first ________
+
+    def test_a_duplicate_sequence_is_rejected_whichever_arrived_first():
+        forward = Engine(genesis(balances={"A": 2, "B": 0}))
+        reverse = Engine(genesis(balances={"A": 2, "B": 0}))
+    
+        first = transfer("give", "A", 0, to="B", amount=1)
+        second = consume("eat", "A", 0, amount=1)
+    
+        forward_record = forward.tick([first, second])
+        reverse_record = reverse.tick([second, first])
+    
+>       assert accepted_ids(forward_record) == ()
+E       AssertionError: assert ('eat', 'give') == ()
+E         
+E         Left contains 2 more items, first extra item: 'eat'
+E         Use -v to get more diff
+
+tests\test_proposal_identity.py:110: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_proposal_identity.py::test_an_actor_cannot_declare_two_proposals_at_the_same_sequence
+FAILED tests/test_proposal_identity.py::test_a_duplicate_sequence_is_rejected_whichever_arrived_first
+2 failed, 146 passed in 0.79s

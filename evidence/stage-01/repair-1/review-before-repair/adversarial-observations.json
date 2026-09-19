@@ -1,0 +1,63 @@
+{
+  "unknown_duplicate_ids": [
+    {
+      "digest": "0975e95625be270496202c76287d35c5ece4c39abfd41afb823f31a75f06f733",
+      "actors": [
+        "GHOST_A",
+        "GHOST_B"
+      ],
+      "reasons": [
+        "denied_duplicate_proposal_id",
+        "denied_duplicate_proposal_id"
+      ],
+      "state": "641a564c102275868191f608bf035ed29fad974122ee7faa64ad652d64b4053e"
+    },
+    {
+      "digest": "57aca93f71ab89d5d0acfb8b45c01a8717e8a1a602c01ae43fafc50bbe5e0852",
+      "actors": [
+        "GHOST_B",
+        "GHOST_A"
+      ],
+      "reasons": [
+        "denied_duplicate_proposal_id",
+        "denied_duplicate_proposal_id"
+      ],
+      "state": "641a564c102275868191f608bf035ed29fad974122ee7faa64ad652d64b4053e"
+    }
+  ],
+  "reentrant_diagnostics": {
+    "quiet_tick": 1,
+    "observed_tick": 2,
+    "quiet_balance": 2,
+    "observed_balance": 1,
+    "returned_record_matches_current_state": false,
+    "returned_records_identical": true
+  },
+  "iterator_reentry": {
+    "error": null,
+    "record_ticks": [
+      0,
+      0
+    ],
+    "credited_in_accepted_records": 2,
+    "final_tick": 1,
+    "final_balance": 1,
+    "final_source_stock": 0
+  },
+  "large_integer": {
+    "accepted_by_genesis": true,
+    "tick_after_error": 0,
+    "error": "Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit",
+    "python_digit_limit": 4300
+  },
+  "harness_runner_failure": {
+    "injected_mutant_exit": 2,
+    "identified_failed_tests": 0,
+    "harness_exit": 0
+  },
+  "exhaustive_contention": {
+    "cases": 2592,
+    "orderings_per_case": 2,
+    "checks": "stock availability, nonnegative balances, conservation, canonical ordering"
+  }
+}

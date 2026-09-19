@@ -1,0 +1,241 @@
+.................................F...................................... [ 48%]
+..............FF....F...FF.....F.........................FF........F.... [ 97%]
+...F                                                                     [100%]
+================================== FAILURES ===================================
+_ test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend _
+
+    def test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend():
+        """B asking before or after A gives makes no difference to availability."""
+        early = Engine(genesis(balances={"A": 1, "B": 0}))
+        late = Engine(genesis(balances={"A": 1, "B": 0}))
+    
+        early_record = early.tick(
+            [
+                consume("b_first", "B", 0, amount=1),
+                transfer("a_gives", "A", 0, to="B", amount=1),
+            ]
+        )
+        late_record = late.tick(
+            [
+                transfer("a_gives", "A", 0, to="B", amount=1),
+                consume("b_first", "B", 0, amount=1),
+            ]
+        )
+    
+        assert accepted_ids(early_record) == ("a_gives",)
+        assert accepted_ids(late_record) == ("a_gives",)
+>       assert early_record.digest() == late_record.digest()
+E       AssertionError: assert '0aa56329a11b...4277d6f187825' == '65deda8bcd05...22005d533f51d'
+E         
+E         - 65deda8bcd0571743e61a8e9b7b2d0233f8ac50cd43f880099e22005d533f51d
+E         + 0aa56329a11be02e456ff2cd94059099dc601bb64f15b565c8c4277d6f187825
+
+tests\test_credit_boundary.py:142: AssertionError
+_______ test_every_permutation_of_the_inputs_gives_one_canonical_result _______
+
+    def test_every_permutation_of_the_inputs_gives_one_canonical_result():
+        results = set()
+        runs = 0
+        for balance_order in permutations(BALANCES):
+            for source_order in permutations(SOURCE_NAMES):
+                for authorised_order in permutations(AUTHORISED):
+                    for proposal_order in permutations(PROPOSAL_NAMES):
+                        results.add(run(balance_order, source_order, authorised_order, proposal_order))
+                        runs += 1
+    
+        assert runs == 6 * 2 * 2 * 24
+>       assert len(results) == 1
+E       AssertionError: assert 24 == 1
+E        +  where 24 = len({('3d55dd1c5488f64c0fdf8252570a5746a9c3bc7e9bcd4a809e3970c03d1ff672', '04f18fa807f17d60769bfeb295edc992ea478f1eb8e4171...252570a5746a9c3bc7e9bcd4a809e3970c03d1ff672', '1e4bf21398fca1b416db580dc94634a26217a5cd3c5a9d681632c64e4f48a288'), ...})
+
+tests\test_order_independence.py:59: AssertionError
+_________ test_the_recorded_outcomes_are_themselves_order_independent _________
+
+    def test_the_recorded_outcomes_are_themselves_order_independent():
+        baseline = None
+        for proposal_order in permutations(PROPOSAL_NAMES):
+            engine = Engine(build_state(BALANCES, SOURCE_NAMES, AUTHORISED))
+            record = engine.tick(build_proposals(proposal_order))
+            seen = tuple((outcome.proposal_id, outcome.reason) for outcome in record.outcomes)
+            if baseline is None:
+                baseline = seen
+>           assert seen == baseline
+E           AssertionError: assert (('p1', 'acce..., 'accepted')) == (('p1', 'acce..., 'accepted'))
+E             
+E             At index 2 diff: ('p4', 'accepted') != ('p3', 'accepted')
+E             Use -v to get more diff
+
+tests\test_order_independence.py:70: AssertionError
+________ test_a_duplicate_identity_is_rejected_whichever_arrived_first ________
+
+    def test_a_duplicate_identity_is_rejected_whichever_arrived_first():
+        forward = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")}))
+        reverse = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")}))
+    
+        first = claim("same", "A", 0, sources={"S": 1})
+        second = claim("same", "B", 0, sources={"S": 1})
+    
+        forward_record = forward.tick([first, second])
+        reverse_record = reverse.tick([second, first])
+    
+        assert accepted_ids(forward_record) == ()
+        assert accepted_ids(reverse_record) == ()
+>       assert forward_record.digest() == reverse_record.digest()
+E       AssertionError: assert '370fc7e48989...2d028a8be8f5f' == '92e2d66d1b4e...b2aa43d087733'
+E         
+E         - 92e2d66d1b4e89179b9d82bcf32ee153ae08ea6da33a9aa2b9fb2aa43d087733
+E         + 370fc7e489896583561be408b5f0b42aa2495d16e12468092ff2d028a8be8f5f
+
+tests\test_proposal_identity.py:50: AssertionError
+________ test_a_duplicate_sequence_is_rejected_whichever_arrived_first ________
+
+    def test_a_duplicate_sequence_is_rejected_whichever_arrived_first():
+        forward = Engine(genesis(balances={"A": 2, "B": 0}))
+        reverse = Engine(genesis(balances={"A": 2, "B": 0}))
+    
+        first = transfer("give", "A", 0, to="B", amount=1)
+        second = consume("eat", "A", 0, amount=1)
+    
+        forward_record = forward.tick([first, second])
+        reverse_record = reverse.tick([second, first])
+    
+        assert accepted_ids(forward_record) == ()
+        assert accepted_ids(reverse_record) == ()
+>       assert forward_record.digest() == reverse_record.digest()
+E       AssertionError: assert '1d003cb6ee3a...31f1fbb20ac96' == '64351eba5232...1785f567dee2d'
+E         
+E         - 64351eba5232ff65e073b2a5a4fcbccd6c1287a7a3f59eafb291785f567dee2d
+E         + 1d003cb6ee3a26047bb8ed122fc15048f026bbe7c822cc2b47131f1fbb20ac96
+
+tests\test_proposal_identity.py:112: AssertionError
+_____________________ test_a_sequence_gap_is_not_an_error _____________________
+
+    def test_a_sequence_gap_is_not_an_error():
+        """Input order may be sparse; settlement assigns dense output sequences."""
+        engine = Engine(genesis(balances={"A": 2, "B": 0}))
+    
+        record = engine.tick(
+            [
+                consume("later", "A", 90, amount=1),
+                transfer("earlier", "A", 7, to="B", amount=1),
+            ]
+        )
+    
+>       assert [outcome.proposal_id for outcome in record.outcomes] == ["earlier", "later"]
+E       AssertionError: assert ['later', 'earlier'] == ['earlier', 'later']
+E         
+E         At index 0 diff: 'later' != 'earlier'
+E         Use -v to get more diff
+
+tests\test_proposal_identity.py:126: AssertionError
+___________ test_engine_sequences_do_not_copy_sparse_caller_orders ____________
+
+    def test_engine_sequences_do_not_copy_sparse_caller_orders():
+        submitted = [consume('last', 'A', 10 ** 5000, amount=1), transfer('first', 'A', 7, to='B', amount=1)]
+        seen = set()
+        for order in permutations(submitted):
+            engine = Engine(world())
+            record = engine.tick(order)
+>           assert [(o.proposal_id, o.sequence) for o in record.outcomes] == [('first', 0), ('last', 1)]
+E           AssertionError: assert [('last', 1), ('first', 0)] == [('first', 0), ('last', 1)]
+E             
+E             At index 0 diff: ('last', 1) != ('first', 0)
+E             Use -v to get more diff
+
+tests\test_repair_boundaries.py:70: AssertionError
+________ test_unknown_actors_with_duplicate_ids_are_order_independent _________
+
+    def test_unknown_actors_with_duplicate_ids_are_order_independent():
+        proposals = [consume('duplicate', 'GHOST_A', 0, amount=1), consume('duplicate', 'GHOST_B', 0, amount=1)]
+        seen = []
+        for ordering in permutations(proposals):
+            engine = Engine(basic_world())
+            record = engine.tick(ordering)
+            seen.append({'digest': record.digest(), 'actors': [o.actor for o in record.outcomes],
+                         'reasons': [o.reason for o in record.outcomes], 'state': engine.state.digest()})
+        OBSERVATIONS['unknown_duplicate_ids'] = seen
+>       assert len({x['digest'] for x in seen}) == 1, 'Rejected proposal records depend on arrival order'
+E       AssertionError: Rejected proposal records depend on arrival order
+E       assert 2 == 1
+E        +  where 2 = len({'b2b5ab3858692164f78a29292ff3b58def97e68ddc9475b3d72c39690fd951e4', 'b6daccb1d7b5c2fbff20f7d603cdc045d88b275de78da9fd92b41ebdcb8fa634'})
+
+tests\test_review_regressions.py:34: AssertionError
+____________________ test_unknown_actor_unique_ids_control ____________________
+
+    def test_unknown_actor_unique_ids_control():
+        proposals = [consume('one', 'GHOST_A', 0, amount=1), consume('two', 'GHOST_B', 0, amount=1)]
+        digests = [Engine(basic_world()).tick(ordering).digest() for ordering in permutations(proposals)]
+>       assert len(set(digests)) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len({'89886892f18187557e25e311e5989b03ae0720a6543c806b39b718524739e501', '927bf7e74ff783ddc0aee6dd41a622a417d0658bcc28e6918066651a78273466'})
+E        +    where {'89886892f18187557e25e311e5989b03ae0720a6543c806b39b718524739e501', '927bf7e74ff783ddc0aee6dd41a622a417d0658bcc28e6918066651a78273466'} = set(['89886892f18187557e25e311e5989b03ae0720a6543c806b39b718524739e501', '927bf7e74ff783ddc0aee6dd41a622a417d0658bcc28e6918066651a78273466'])
+
+tests\test_review_regressions.py:39: AssertionError
+________________ test_exhaustive_small_contested_transactions _________________
+
+    def test_exhaustive_small_contested_transactions():
+        cases = 0
+        source_sets = [('S1',), ('S2',), ('S1', 'S2')]
+        for s1, s2, a, b, tick, asrc, bsrc, aq, bq in product(range(3), range(3), range(2), range(2), range(2), source_sets, source_sets, (1, 2), (1, 2)):
+            state = WorldState.genesis(tick=tick, balances={'A': a, 'B': b}, sources={
+                'S1': Source(s1, frozenset({'A', 'B'})), 'S2': Source(s2, frozenset({'A', 'B'}))})
+            proposals = [claim('a', 'A', 0, sources={s: aq for s in asrc}), claim('b', 'B', 0, sources={s: bq for s in bsrc})]
+            records = []
+            for ordered in (proposals, list(reversed(proposals))):
+                engine = Engine(state)
+                record = engine.tick(ordered)
+                assert engine.state.total() == state.total()
+                assert all(n >= 0 for n in engine.state.balances.values())
+                assert all(s.stock >= 0 for s in engine.state.sources.values())
+                spent = {}
+                for outcome in record.outcomes:
+                    assert sum(e.delta for e in outcome.effects) == 0
+                    for effect in outcome.effects:
+                        if effect.delta < 0:
+                            spent[effect.account] = spent.get(effect.account, 0) - effect.delta
+                assert spent.get('source:S1', 0) <= s1
+                assert spent.get('source:S2', 0) <= s2
+                records.append(record.digest())
+>           assert records[0] == records[1]
+E           AssertionError: assert 'bfb362f188ee...0b2d7ff1ec79f' == '64ed43767b8c...f0d1349c9444e'
+E             
+E             - 64ed43767b8c3223c1341a1e223eb3931f3b1cd1e4fb81c37b4f0d1349c9444e
+E             + bfb362f188ee4f0deb1b4e94c3ea598c88517450bd9ca1d3fb20b2d7ff1ec79f
+
+tests\test_review_regressions.py:163: AssertionError
+___________ test_rotation_does_not_reorder_one_actors_own_proposals ___________
+
+    def test_rotation_does_not_reorder_one_actors_own_proposals():
+        """An actor's declared sequence survives the rotation."""
+        engine = Engine(
+            genesis(tick=1, balances={"A": 0, "B": 0}, sources={"S": source(1, "A", "B")})
+        )
+    
+        record = engine.tick(
+            [
+                claim("second", "A", 1, sources={"S": 1}),
+                claim("first", "A", 0, sources={"S": 1}),
+                claim("theirs", "B", 0, sources={"S": 1}),
+            ]
+        )
+    
+>       assert [outcome.proposal_id for outcome in record.outcomes] == ["theirs", "first", "second"]
+E       AssertionError: assert ['second', 'first', 'theirs'] == ['theirs', 'first', 'second']
+E         
+E         At index 0 diff: 'second' != 'theirs'
+E         Use -v to get more diff
+
+tests\test_rotation.py:127: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_credit_boundary.py::test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend
+FAILED tests/test_order_independence.py::test_every_permutation_of_the_inputs_gives_one_canonical_result
+FAILED tests/test_order_independence.py::test_the_recorded_outcomes_are_themselves_order_independent
+FAILED tests/test_proposal_identity.py::test_a_duplicate_identity_is_rejected_whichever_arrived_first
+FAILED tests/test_proposal_identity.py::test_a_duplicate_sequence_is_rejected_whichever_arrived_first
+FAILED tests/test_proposal_identity.py::test_a_sequence_gap_is_not_an_error
+FAILED tests/test_repair_boundaries.py::test_engine_sequences_do_not_copy_sparse_caller_orders
+FAILED tests/test_review_regressions.py::test_unknown_actors_with_duplicate_ids_are_order_independent
+FAILED tests/test_review_regressions.py::test_unknown_actor_unique_ids_control
+FAILED tests/test_review_regressions.py::test_exhaustive_small_contested_transactions
+FAILED tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+11 failed, 137 passed in 0.38s

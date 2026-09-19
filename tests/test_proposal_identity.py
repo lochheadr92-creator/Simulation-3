@@ -113,7 +113,7 @@ def test_a_duplicate_sequence_is_rejected_whichever_arrived_first():
 
 
 def test_a_sequence_gap_is_not_an_error():
-    """Sequences declare order, not a contiguous count."""
+    """Input order may be sparse; settlement assigns dense output sequences."""
     engine = Engine(genesis(balances={"A": 2, "B": 0}))
 
     record = engine.tick(
@@ -124,6 +124,7 @@ def test_a_sequence_gap_is_not_an_error():
     )
 
     assert [outcome.proposal_id for outcome in record.outcomes] == ["earlier", "later"]
+    assert [outcome.sequence for outcome in record.outcomes] == [0, 1]
     assert accepted_ids(record) == ("earlier", "later")
     assert balances_of(engine.state) == {"A": 0, "B": 1}
     assert engine.state.consumed == 1

@@ -43,15 +43,14 @@ def _freeze(value: Any) -> Any:
 class Proposal:
     """One actor's request to run one transaction at one tick.
 
-    `sequence` is the actor-local proposal sequence. The actor declares the order
-    of its own proposals within the tick, and the engine validates that the
-    declaration is unique. Carrying it on the proposal is what keeps resolution
-    order independent of the order in which proposals happen to be collected.
+    `order` expresses the actor's intended ordering, not an assigned sequence.
+    Settlement validates unique orders and assigns dense actor-local sequences
+    from them, independently of the order proposals happen to be collected.
     """
 
     proposal_id: str
     actor: str
-    sequence: int
+    order: int
     operation: str
     params: Mapping[str, Any]
 
@@ -60,8 +59,8 @@ class Proposal:
             raise ValueError("a proposal needs a non-empty identity")
         if not isinstance(self.actor, str) or not self.actor:
             raise ValueError("a proposal needs a non-empty actor identity")
-        if not is_integer(self.sequence) or self.sequence < 0:
-            raise ValueError(f"an actor-local sequence must be an integer of zero or more, got {self.sequence!r}")
+        if not is_integer(self.order) or self.order < 0:
+            raise ValueError("an actor-local order must be an integer of zero or more")
         if not isinstance(self.operation, str) or not self.operation:
             raise ValueError("a proposal needs a non-empty operation name")
         if not isinstance(self.params, Mapping):
@@ -145,16 +144,16 @@ def expand(proposal: Proposal) -> tuple[Effect, ...]:
     return tuple(expander(proposal))
 
 
-def claim(proposal_id: str, actor: str, sequence: int, *, sources: Mapping[str, int]) -> Proposal:
+def claim(proposal_id: str, actor: str, order: int, *, sources: Mapping[str, int]) -> Proposal:
     """Take the named amounts from the named shared sources, as one transaction."""
-    return Proposal(proposal_id, actor, sequence, OP_CLAIM, {"sources": dict(sources)})
+    return Proposal(proposal_id, actor, order, OP_CLAIM, {"sources": dict(sources)})
 
 
-def transfer(proposal_id: str, actor: str, sequence: int, *, to: str, amount: int) -> Proposal:
+def transfer(proposal_id: str, actor: str, order: int, *, to: str, amount: int) -> Proposal:
     """Give `amount` of the proposer's own holding to another actor."""
-    return Proposal(proposal_id, actor, sequence, OP_TRANSFER, {"to": to, "amount": amount})
+    return Proposal(proposal_id, actor, order, OP_TRANSFER, {"to": to, "amount": amount})
 
 
-def consume(proposal_id: str, actor: str, sequence: int, *, amount: int) -> Proposal:
+def consume(proposal_id: str, actor: str, order: int, *, amount: int) -> Proposal:
     """Spend `amount` of the proposer's own holding into the consumption sink."""
-    return Proposal(proposal_id, actor, sequence, OP_CONSUME, {"amount": amount})
+    return Proposal(proposal_id, actor, order, OP_CONSUME, {"amount": amount})
