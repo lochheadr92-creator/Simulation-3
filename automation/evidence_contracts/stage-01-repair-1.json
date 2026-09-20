@@ -1,0 +1,128 @@
+{
+  "format": "v3.evidence.contract.1",
+  "packet_id": "stage-01-repair-1",
+  "milestone": "Stage 1, slice 1a",
+  "gate": "none",
+  "acceptance_claimed": false,
+  "role": "historical",
+  "recorded_revision": "fb5a8959fb6a7a23d6e3107fe32be8248cc19901",
+  "source_base": "fa8be6083b31ead3c7e6aae844c0fd749927e6d0",
+  "must_match_current_head": false,
+  "stage_record": "evidence/stage-01/RECORD.md",
+  "required_files": [
+    "evidence/stage-01/RECORD.md",
+    "evidence/stage-01/repair-1/FILE_MANIFEST.json",
+    "evidence/stage-01/repair-1/application-verification.json",
+    "evidence/stage-01/repair-1/applied-suite-output.txt",
+    "evidence/stage-01/repair-1/direct-suite-output.txt",
+    "evidence/stage-01/repair-1/fixture-comparison.json",
+    "evidence/stage-01/repair-1/fixtures-base.json",
+    "evidence/stage-01/repair-1/fixtures-repaired.json",
+    "evidence/stage-01/repair-1/fixtures-repaired-seed17.json",
+    "evidence/stage-01/repair-1/mutation-output.txt",
+    "evidence/stage-01/repair-1/mutation-restoration.json",
+    "evidence/stage-01/repair-1/run_mutations.py",
+    "evidence/stage-01/repair-1/capture_fixtures.py",
+    "evidence/stage-01/repair-1/compare_fixtures.py",
+    "evidence/stage-01/repair-1/review-before-repair/REVIEW.md",
+    "evidence/stage-01/repair-1/review-before-repair/adversarial-pytest.txt",
+    "evidence/stage-01/repair-1/review-before-repair/adversarial-observations.json"
+  ],
+  "file_manifest": "evidence/stage-01/repair-1/FILE_MANIFEST.json",
+  "hash_compare_exclude": [
+    "AGENTS.md",
+    "evidence/stage-01/RECORD.md"
+  ],
+  "receipts": {
+    "test_suite": [
+      "evidence/stage-01/repair-1/direct-suite-output.txt",
+      "evidence/stage-01/repair-1/applied-suite-output.txt"
+    ],
+    "determinism": [
+      "evidence/stage-01/repair-1/fixture-comparison.json",
+      "evidence/stage-01/repair-1/fixtures-repaired.json",
+      "evidence/stage-01/repair-1/fixtures-repaired-seed17.json"
+    ],
+    "mutation": [
+      "evidence/stage-01/repair-1/mutation-output.txt",
+      "evidence/stage-01/repair-1/mutation-restoration.json"
+    ],
+    "replay": []
+  },
+  "replay_required": false,
+  "json_receipts": [
+    {
+      "path": "evidence/stage-01/repair-1/application-verification.json",
+      "required_keys": [
+        "applied",
+        "file_count",
+        "head",
+        "stage_1_exit_claimed",
+        "independent_post_repair_acceptance",
+        "final_suite"
+      ],
+      "expected_values": {
+        "stage_1_exit_claimed": false,
+        "independent_post_repair_acceptance": false
+      },
+      "head_field": "head",
+      "head_equals": "source_base",
+      "artifact": {
+        "path_from": ["final_suite", "artifact"],
+        "sha256_from": ["final_suite", "sha256"]
+      }
+    },
+    {
+      "path": "evidence/stage-01/repair-1/fixture-comparison.json",
+      "required_keys": [
+        "captured_ticks",
+        "same_number_of_ticks",
+        "state_bytes_and_digests_identical",
+        "record_payloads_identical_except_engine_version",
+        "repaired_hash_seed_0_and_17_identical"
+      ],
+      "expected_values": {
+        "captured_ticks": 8,
+        "same_number_of_ticks": true,
+        "state_bytes_and_digests_identical": true,
+        "record_payloads_identical_except_engine_version": true,
+        "repaired_hash_seed_0_and_17_identical": true
+      }
+    },
+    {
+      "path": "evidence/stage-01/repair-1/mutation-restoration.json",
+      "required_keys": [
+        "exit_code",
+        "files_restored_exactly",
+        "python_hash_seed"
+      ],
+      "expected_values": {
+        "files_restored_exactly": true,
+        "python_hash_seed": "0"
+      }
+    }
+  ],
+  "command_phrases": [
+    "python -B -m pytest -q -p no:cacheprovider --tb=short --basetemp=",
+    "python -B evidence/stage-01/repair-1/run_mutations.py",
+    "capture_fixtures.py",
+    "compare_fixtures.py"
+  ],
+  "recorded_seeds": [
+    {
+      "id": "PYTHONHASHSEED",
+      "values": ["0", "17"],
+      "evidence_files": [
+        "evidence/stage-01/repair-1/fixtures-repaired-seed17.json",
+        "evidence/stage-01/repair-1/mutation-restoration.json"
+      ]
+    }
+  ],
+  "recorded_horizons": [
+    {
+      "id": "whole_world_executions_authorised",
+      "phrase": "Whole-world executions authorised: 0",
+      "in": "evidence/stage-01/RECORD.md"
+    }
+  ]
+}

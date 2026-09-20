@@ -232,3 +232,27 @@ complete evidence in the owner-created repository.
 **Linked revision:** repair commit
 `fb5a8959fb6a7a23d6e3107fe32be8248cc19901`; this entry is committed as
 `docs(stage-1a): record publication authority (OD-003)`.
+
+### OD-004 - 2026-09-20 - Freeze and commit Phase 1-3 automation
+
+**Exact owner direction.** Recorded from the owner's message of 2026-09-20:
+
+> Phase 4: audit, freeze, and commit the Phase 1–3 automation foundation
+> without changing simulation behaviour or scientific acceptance state.
+> Ensure generated automation-run evidence cannot contaminate the commit,
+> run the complete verification stack from the final candidate tree, and
+> report the exact commit contents and evidence. Do not begin Slice 1b and
+> do not infer Stage 1a acceptance.
+
+**Affected scope or rule.** Authorises committing the Phase 1–3 automation
+tooling, its focused tests, `SIM3_STATE.md`, and ignore rules for generated
+`evidence/automation-runs/` packages. Changes no Stage 1a scientific claim,
+stage gate, budget, kernel behaviour, or authority for slice 1b or later
+stages. Generated runner packages remain unaccepted local receipts.
+
+**Reason.** Preserve a frozen, reviewable automation foundation without
+treating a green suite or a packaged run as Stage 1a or Stage 1 acceptance.
+
+**Linked revision.** The automation freeze commit on `codex/kernel-first-slice`.
+Its exact hash cannot appear inside this entry and is reported after the
+commit.
