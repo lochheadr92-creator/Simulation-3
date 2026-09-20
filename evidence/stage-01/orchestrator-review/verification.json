@@ -1,0 +1,189 @@
+{
+  "base_head": "b915aa0c179d4e19c954f8b05eb107c4cd34d475",
+  "branch": "codex/orchestrator-phases-1-3-freeze",
+  "interpreter": "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+  "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "source_sha256": {
+    "automation/__init__.py": "11b32592659674f969e7e5f72484b27d0e6a0f6bed89f616d0215f0f9ac3902a",
+    "automation/orchestrator.py": "9feff04ec01d6946b23ce006a3b4a6c1b74f5b6d4b7271678d83fb4fec5181b3",
+    "tests/test_orchestrator.py": "04ad9ac2f1e95fef7ed57676dc287e00aabafbf33a3d361e43eccf53e9b712da"
+  },
+  "commands": [
+    {
+      "name": "preflight",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/preflight.py"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "3edf3c2c8d69ea86765ea7edc989482e1e9e687a0987fa32b8d75b5e101246a3"
+    },
+    {
+      "name": "verify-evidence",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/verify_evidence.py"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "0b4c8f1f2ac3dce6e74549bedd822df98e2fa8b4fb8963e9adea3763980d1372"
+    },
+    {
+      "name": "full-suite",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--tb=short",
+        "--basetemp=C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\test-tmp\\full-stack"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "33d55fb527e2537be432792c8f4eca9a84791dcbdf88b7a0e8b14b63b81f868d"
+    },
+    {
+      "name": "status",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--status"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "704b530a220ca1f64a728fbfe562e81287e711a3f65dd635550a1520e554d920"
+    },
+    {
+      "name": "explain",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--explain"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "f556de6ffdd5959018f20c65c037a7f546b6db2442a914de763515c0a29daf3b"
+    },
+    {
+      "name": "next",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--next"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "2c1ee508543baf33509d02b2ba33a113006e3218ca8f11244992c18796f428bc"
+    },
+    {
+      "name": "dry-reference",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--dry-run",
+        "--run",
+        "stage-01a-reference-suite"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "52915b1490862e0c91a738f07c7eca813aa0e0995c3da02987aa401d21420975"
+    },
+    {
+      "name": "dry-digests",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--dry-run",
+        "--run",
+        "stage-01a-fixture-digests"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "161239020cd0357637467a5ee18689b4be4eb0406888abafb949dd291976053f"
+    },
+    {
+      "name": "dry-allow-dirty",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--dry-run",
+        "--run",
+        "stage-01a-fixture-digests",
+        "--allow-dirty"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "output_sha256": "5c8b6b7006937a5fcdf236a19bd0d850864df5e1b07f0c1196e44e7f271deb9f"
+    },
+    {
+      "name": "bare-run-refusal",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--run",
+        "stage-01a-fixture-digests"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "output_sha256": "23efee3aa30e6218c8a25ed99a465862f1d6cdca7585713cf90dba55325784de"
+    },
+    {
+      "name": "unsafe-refusal",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--dry-run",
+        "--run",
+        "stage-01a-mutation-instrument",
+        "--allow-dirty"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "output_sha256": "6d0b402e9062ad00c5b5624e2d502d632af8eb577cbff6f3fc3b1eb9b592d469"
+    },
+    {
+      "name": "unknown-refusal",
+      "argv": [
+        "C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_venv\\Scripts\\python.exe",
+        "-B",
+        "automation/orchestrator.py",
+        "--dry-run",
+        "--run",
+        "unknown"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "output_sha256": "4a0def2e3d1b20b23605b75a27facfc234da40bffdc24d955cb855cb178a0b4f"
+    }
+  ],
+  "checks": {
+    "all_expected_exit_codes": true,
+    "git_status_unchanged": true,
+    "all_repository_file_bytes_unchanged": true,
+    "receipt_paths_and_bytes_unchanged": true,
+    "orchestrator_registered_gate_executed": false,
+    "scientific_acceptance_inferred": false
+  },
+  "git_status_before": " M AGENTS.md\n M automation/__init__.py\n M evidence/stage-01/RECORD.md\n?? automation/orchestrator.py\n?? evidence/stage-01/orchestrator-review/\n?? tests/test_orchestrator.py\n",
+  "git_status_after": " M AGENTS.md\n M automation/__init__.py\n M evidence/stage-01/RECORD.md\n?? automation/orchestrator.py\n?? evidence/stage-01/orchestrator-review/\n?? tests/test_orchestrator.py\n",
+  "receipt_files_before": {
+    "evidence/automation-runs/README.md": "eb20b82e4490fc80818a5bc7025580d3249cd208d3e07ebad7823c680821b365"
+  },
+  "receipt_files_after": {
+    "evidence/automation-runs/README.md": "eb20b82e4490fc80818a5bc7025580d3249cd208d3e07ebad7823c680821b365"
+  }
+}

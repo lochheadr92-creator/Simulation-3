@@ -1,0 +1,63 @@
+{
+  "format": "v3.evidence.contract.1",
+  "packet_id": "stage-01-attempt-1",
+  "milestone": "Stage 1, slice 1a",
+  "gate": "none",
+  "acceptance_claimed": false,
+  "role": "historical",
+  "recorded_revision": "fa8be6083b31ead3c7e6aae844c0fd749927e6d0",
+  "source_base": "b48542b3567bfba9f0fa7a831ab8ace0eb6ddc1f",
+  "must_match_current_head": false,
+  "stage_record": "evidence/stage-01/RECORD.md",
+  "required_files": [
+    "evidence/stage-01/RECORD.md",
+    "evidence/stage-01/instrument/pytest_verbose_output.txt",
+    "evidence/stage-01/instrument/mutation_check_output.txt",
+    "evidence/stage-01/instrument/fixture_digests_output.txt",
+    "evidence/stage-01/instrument/mutation_check.py",
+    "evidence/stage-01/instrument/fixture_digests.py",
+    "evidence/stage-01/instrument/runs/00-baseline.txt",
+    "evidence/stage-01/instrument/runs/01-rotation-frozen.txt",
+    "evidence/stage-01/instrument/runs/02-credit-spendable-immediately.txt",
+    "evidence/stage-01/instrument/runs/03-authority-not-checked.txt",
+    "evidence/stage-01/instrument/runs/04-order-by-arrival.txt",
+    "evidence/stage-01/instrument/runs/05-outcome-order-by-arrival.txt",
+    "evidence/stage-01/instrument/runs/06-canonical-keys-unsorted.txt",
+    "evidence/stage-01/instrument/runs/07-state-mappings-writable.txt",
+    "evidence/stage-01/instrument/runs/08-view-shares-the-live-mapping.txt",
+    "evidence/stage-01/instrument/runs/09-shortfall-checks-one-leg.txt",
+    "evidence/stage-01/instrument/runs/10-duplicate-identity-allowed.txt",
+    "evidence/stage-01/instrument/runs/11-duplicate-sequence-allowed.txt",
+    "evidence/stage-01/instrument/runs/12-balanced-effects-not-checked.txt",
+    "evidence/stage-01/instrument/runs/13-amounts-may-be-fractional.txt",
+    "evidence/stage-01/instrument/runs/14-conservation-rail-off.txt",
+    "evidence/stage-01/instrument/runs/15-negative-balance-rail-off.txt",
+    "evidence/stage-01/instrument/runs/99-restored.txt"
+  ],
+  "receipts": {
+    "test_suite": [
+      "evidence/stage-01/instrument/pytest_verbose_output.txt"
+    ],
+    "determinism": [
+      "evidence/stage-01/instrument/fixture_digests_output.txt"
+    ],
+    "mutation": [
+      "evidence/stage-01/instrument/mutation_check_output.txt"
+    ],
+    "replay": []
+  },
+  "replay_required": false,
+  "command_phrases": [
+    "py -3 -m pytest",
+    "py -3 evidence/stage-01/instrument/mutation_check.py",
+    "py -3 evidence/stage-01/instrument/fixture_digests.py"
+  ],
+  "recorded_seeds": [],
+  "recorded_horizons": [
+    {
+      "id": "whole_world_executions_authorised",
+      "phrase": "Whole-world executions authorised: 0",
+      "in": "evidence/stage-01/RECORD.md"
+    }
+  ]
+}

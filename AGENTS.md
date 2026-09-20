@@ -232,3 +232,88 @@ complete evidence in the owner-created repository.
 **Linked revision:** repair commit
 `fb5a8959fb6a7a23d6e3107fe32be8248cc19901`; this entry is committed as
 `docs(stage-1a): record publication authority (OD-003)`.
+
+### OD-004 - 2026-09-20 - Freeze and commit Phase 1-3 automation
+
+**Exact owner direction.** Recorded from the owner's message of 2026-09-20:
+
+> Phase 4: audit, freeze, and commit the Phase 1–3 automation foundation
+> without changing simulation behaviour or scientific acceptance state.
+> Ensure generated automation-run evidence cannot contaminate the commit,
+> run the complete verification stack from the final candidate tree, and
+> report the exact commit contents and evidence. Do not begin Slice 1b and
+> do not infer Stage 1a acceptance.
+
+**Affected scope or rule.** Authorises committing the Phase 1–3 automation
+tooling, its focused tests, `SIM3_STATE.md`, and ignore rules for generated
+`evidence/automation-runs/` packages. Changes no Stage 1a scientific claim,
+stage gate, budget, kernel behaviour, or authority for slice 1b or later
+stages. Generated runner packages remain unaccepted local receipts.
+
+**Reason.** Preserve a frozen, reviewable automation foundation without
+treating a green suite or a packaged run as Stage 1a or Stage 1 acceptance.
+
+**Linked revision.** The automation freeze commit on `codex/kernel-first-slice`.
+Its exact hash cannot appear inside this entry and is reported after the
+commit.
+
+### OD-005 - 2026-09-20 - Verify and freeze orchestrator Phases 1-3
+
+**Exact owner direction:**
+
+> Finish verifying orchestrator Phases 1–3, fix any demonstrated defects,
+> review the safety boundaries, and commit the result. Stop before
+> implementing actual execution.
+
+**Scope.** Verify and repair the read-only orchestrator, its focused tests,
+and its verification record; commit the result. This does not authorise
+orchestrator gate execution, Phase 4 implementation, scientific acceptance,
+later slices, a merge, or publication.
+
+**Reason.** Freeze the inspected and tested control plane before execution
+capability. Newer uncommitted Phase 4 work found in the original checkout is
+preserved there. This bounded freeze uses a separate worktree and branch,
+`codex/orchestrator-phases-1-3-freeze`, based on `b915aa0`.
+
+**Linked revision.** The commit containing this entry and
+`evidence/stage-01/orchestrator-review/REVIEW.md`; its resulting identity is
+reported on completion. This is tooling review, not the separate different-model
+Stage 1a exit review, which remains pending.
+
+### OD-006 - 2026-09-20 - Repair the reviewed Phase 4 orchestrator defects
+
+**Exact owner direction:** "Fix issues", following the Phase 4 readiness review
+that returned NEEDS FIXES and identified F1-F9.
+
+**Scope.** Repair those tooling defects in an isolated checkout and run focused
+tests with harmless commands in disposable repositories. This supersedes
+OD-005's implementation restriction only for this bounded Phase 4 repair.
+Preserve both original checkouts, local receipts and failed review evidence.
+No real registered project gate, pilot, implementation commit, merge, push,
+scientific acceptance or later engine slice is authorised by this sitting.
+
+**Reason.** Restore the verified inspection boundaries and make execution
+ownership, cleanup, identity, receipts and audit provenance testable.
+
+**Linked work.** Branch codex/orchestrator-phase4-repair, based on
+6591629029ac5cfedbb16279e2c62888894fb44b. The uncommitted candidate and focused
+verification are identified in evidence/stage-01/orchestrator-phase4-repair/REVIEW.md.
+Stage 1a independent acceptance remains pending; Slice 1b remains unauthorised.
+
+### OD-007 - 2026-09-21 - Commit and publish the verified orchestrator
+
+**Exact owner direction:** "Commit and push", following confirmation of the
+completed Phase 4 repair 2, its 191 focused / 365 whole-tree tests and one
+successful controlled fixture pilot.
+
+**Scope.** Commit and publish the verified automation snapshot and its bounded
+publication record to Simulation-3 on codex/kernel-first-slice. This supersedes
+the earlier no-commit/no-push restrictions for this publication only. Preserve
+existing checkouts, local receipts and failed evidence. No new project gate,
+merge, force push, scientific acceptance or later slice is authorised.
+
+**Linked work.** evidence/stage-01/orchestrator-publication/RECORD.md identifies
+the source, retained tests, local pilot and publication method. The published
+commit incorporates previously unpublished automation based on local revisions
+b915aa0 and 6591629 as one snapshot atop the existing GitHub branch. Those local
+source revisions and their checkouts remain preserved.

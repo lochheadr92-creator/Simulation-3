@@ -1,0 +1,48 @@
+{
+  "format": "v3.gate.registry.1",
+  "note": "These entries are recorded Stage 1a commands from evidence/stage-01/RECORD.md. None is an accepted stage gate. Execution success is not milestone acceptance, capability, reachability, or measurement.",
+  "gates": [
+    {
+      "id": "stage-01a-reference-suite",
+      "milestone": "Stage 1, slice 1a",
+      "gate": "none",
+      "acceptance_claimed": false,
+      "source": "evidence/stage-01/RECORD.md command table: py -3 -m pytest",
+      "recorded_command": "py -3 -m pytest",
+      "argv": ["py", "-3", "-m", "pytest"],
+      "timeout_s": 300,
+      "unsafe": [],
+      "required_checks": [],
+      "watched_prefixes": ["kernel/", "tests/", "pyproject.toml"]
+    },
+    {
+      "id": "stage-01a-fixture-digests",
+      "milestone": "Stage 1, slice 1a",
+      "gate": "none",
+      "acceptance_claimed": false,
+      "source": "evidence/stage-01/RECORD.md command table: py -3 evidence/stage-01/instrument/fixture_digests.py",
+      "recorded_command": "py -3 evidence/stage-01/instrument/fixture_digests.py",
+      "argv": ["py", "-3", "evidence/stage-01/instrument/fixture_digests.py"],
+      "timeout_s": 60,
+      "unsafe": [],
+      "required_checks": [],
+      "watched_prefixes": ["kernel/", "evidence/stage-01/instrument/fixture_digests.py"]
+    },
+    {
+      "id": "stage-01a-mutation-instrument",
+      "milestone": "Stage 1, slice 1a",
+      "gate": "none",
+      "acceptance_claimed": false,
+      "source": "evidence/stage-01/RECORD.md command table: py -3 evidence/stage-01/instrument/mutation_check.py",
+      "recorded_command": "py -3 evidence/stage-01/instrument/mutation_check.py",
+      "argv": ["py", "-3", "evidence/stage-01/instrument/mutation_check.py"],
+      "timeout_s": 600,
+      "unsafe": [
+        "mutates_working_tree",
+        "overwrites_historical_instrument_runs"
+      ],
+      "required_checks": [],
+      "watched_prefixes": ["kernel/", "evidence/stage-01/instrument/"]
+    }
+  ]
+}

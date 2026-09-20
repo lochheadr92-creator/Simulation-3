@@ -1,0 +1,11 @@
+.........F.............................................................. [ 85%]
+............                                                             [100%]
+================================== FAILURES ===================================
+_____________ test_missing_status_or_explain_does_not_run_a_gate ______________
+tests\test_orchestrator.py:283: in test_missing_status_or_explain_does_not_run_a_gate
+    assert "is required" in proc.stderr
+E   AssertionError: assert 'is required' in 'usage: orchestrator.py [-h] [--status] [--explain] [--next] [--dry-run]\n                       [--run REGISTRY_ID] [...rty] [--root ROOT]\norchestrator.py: error: choose exactly one of --status, --explain, --next, or --dry-run --run ID\n'
+E    +  where 'usage: orchestrator.py [-h] [--status] [--explain] [--next] [--dry-run]\n                       [--run REGISTRY_ID] [...rty] [--root ROOT]\norchestrator.py: error: choose exactly one of --status, --explain, --next, or --dry-run --run ID\n' = CompletedProcess(args=['C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_...ty] [--root ROOT]\norchestrator.py: error: choose exactly one of --status, --explain, --next, or --dry-run --run ID\n').stderr
+=========================== short test summary info ===========================
+FAILED tests/test_orchestrator.py::test_missing_status_or_explain_does_not_run_a_gate
+1 failed, 83 passed in 15.93s

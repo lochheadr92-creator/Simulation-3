@@ -1,0 +1,100 @@
+{
+  "artifact_sha256": {
+    "SCOPE.md": "f0f3f822a2f5ae80c6d433715800694959afb3cf50788cd238636000ccfb6978",
+    "candidate-manifest-before.json": "5a268353b5fb15568d0fbe69b263581a5a01dc24c0cbcaf57aedf9b5de64b72d",
+    "copy-manifest.json": "301192a79930850d3a6493fae1b5f092b6ed87a2ad6fcc2bcd2156bd0ac1f82d",
+    "copy.json": "fb520248b7eda77e76f0f81efe9de21053f2908c92dc025cf972efd071d32d0b",
+    "fifth.txt": "9f6f4d2f7f4102d246a56336a3e4d077bd093952f8cf42181e8bd43c33619c11",
+    "fifth.xml": "903d9e732303d9829ce76e0d859fbee8c8f6f03f8778883efe148e1803269738",
+    "final-source.json": "61e3cb3d44f662161cb16336abe4cd42ff6ec174286a46451dbeee73aa135801",
+    "first.txt": "c9032594648d428fb00810734ad67a164bf805ff13c1444b83bb745460b09378",
+    "first.xml": "6fc67e564a9c9e6a9b74a26fb0270ab68960228f73f932d18c307da27cae885b",
+    "fourth.txt": "590f41f18e11b2dca2f59604dc573d2de0dea340d94c9e3ee0f93a1f621c569c",
+    "fourth.xml": "7b805276c66ed413a3156a895fdd6f8849c8e185ac0e941c2f279ff201ddc98a",
+    "make_copy.py": "203bb1d3ce04d1c2c3088e675c3cb51234741dd58b118c61bbf156aaa72cb91d",
+    "make_copy.stdout.txt": "3fb4ff83e879ef0f627969daa4774417db9070b9bf22ae8ff6c49a695de4874e",
+    "post-record-source.json": "1147d9237c765796a4c09e3473dfd2bb303561e63988a4fe9da49edbdaf5227e",
+    "repair2-against-candidate.patch": "1fcd3c04ff6433f4fb42f74a0f42296ecc5a05e1425119a1a17ce97345b92da1",
+    "second.txt": "f6f488aa8daacd3d89bca0fb767c2535cd4270244479f6f691ed6bb476442390",
+    "second.xml": "102ba778689b530f0f087f6bd0e0fc7c57fab68b501f7ee5bd19cc2befe58908",
+    "snapshot_source.py": "fec636fe64fb27c5b1c12313c4afe111b753c1b1978ef628bc407de01bb6ee15",
+    "snapshot_source.stdout.txt": "1ca5c7d195440abf4f2e6e6db06dc43670e0f2f1b2504daa79032b7fa3c32a60",
+    "source-verification-before.json": "5ef967168c156b575add5130f960898643aa96bcd8a0d06d2820d6d73fd932d4",
+    "third.txt": "1e987491e3433ccf1eb19a822cd48c5a101a779ce21380d19cd2277ca880123a",
+    "third.xml": "24281ae344f3fa50a30141aaadaf773999f8feac7e612e10470645b3ca65e865",
+    "verify_source.py": "b6df334bf9590e630906a6d0530bb07a41279521f49479329a28a09e64ba7e73",
+    "verify_source.stdout.txt": "26abca68f38198496a260feb8609bf7d894e9d4e619d2a7daede175a3e31c1ab"
+  },
+  "doc_files_added_or_changed_after_tests": [
+    "evidence/stage-01/RECORD.md"
+  ],
+  "global_git_config_changed": false,
+  "implementation_commits": 0,
+  "launcher_shim": false,
+  "merges": 0,
+  "path_modified": false,
+  "pilot_checks": {
+    "all_pass": true,
+    "count": 38,
+    "failed": []
+  },
+  "pilot_run_id": "b07c6bec612c44a091afa4e314c6b57b",
+  "prechecks_all_pass": true,
+  "preserved_git_unchanged": {
+    "baseline": true,
+    "candidate": true,
+    "original": true,
+    "pilot1_copy": true,
+    "pilot_retry_copy": true,
+    "repair2_copy": true
+  },
+  "preserved_trees_unchanged": {
+    "baseline": true,
+    "candidate": true,
+    "original": true,
+    "pilot1_copy": true,
+    "pilot1_evidence": true,
+    "pilot_retry_copy": true,
+    "pilot_retry_evidence": true,
+    "repair2_copy": true,
+    "repair_evidence": true,
+    "review_evidence": true
+  },
+  "pushes": 0,
+  "registered_gate_attempts": 1,
+  "retries": 0,
+  "software_installed": false,
+  "tested_python_files_unchanged_after_tests": true,
+  "tests": {
+    "fifth": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 365
+    },
+    "first": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 168
+    },
+    "fourth": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 191
+    },
+    "second": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 23
+    },
+    "third": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 191
+    }
+  }
+}

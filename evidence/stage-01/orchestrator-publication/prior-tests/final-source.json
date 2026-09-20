@@ -1,0 +1,117 @@
+{
+  "as_tested_sha256": {
+    "AGENTS.md": "394c82525e2849e884aec17e6b6760cef7ab1e38d6d215e5484f713419ff30f7",
+    "DOCTRINE.md": "3cf74071169d874478c09d18fc9c6e2fe4ddb970c6548a410b6c653a54f0c5db",
+    "ROADMAP.md": "2b996d1bd79c90f04bc11c55c2e4f384fb54f8af63c08d940e77ebc60587c4bd",
+    "automation/ORCHESTRATOR_EXECUTION.md": "0c92148656883c94f14e224742e536334b760087da75aec3c03a21d3a57b6f07",
+    "automation/__init__.py": "11b32592659674f969e7e5f72484b27d0e6a0f6bed89f616d0215f0f9ac3902a",
+    "automation/controller_io.py": "9dc72f58d4aab6d74b1d546b5a5f666737b9e87b1278e95a005711d7aa29de68",
+    "automation/gate_registry.json": "13eff6636bec9aa3804086caa32ba74bf74d2618b51f5bd1b4c7a3554359f388",
+    "automation/orchestrator.py": "90ad4717ef7eb83a7971aa13a9f4457f2d4d61af1f186ae189ca37eda80ac8a9",
+    "automation/orchestrator_execution.py": "c92380d545927708f7e7e63d383fb5bc45fda09f21911cce6bcdfc5bf779c68c",
+    "automation/orchestrator_worker.py": "6a8d861e485ad67730ef71faa1ee5f41ebbdc10c52796d44836a35d758b18174",
+    "automation/owned_process.py": "551fd21a7961d599e6a694685f323fe977fb3e166e6ce890d7f9c919a5612456",
+    "automation/preflight.py": "47884efbff1e0ad67fe062874ae49a49c1bcdeaff2c303f5e1f3582c01809abd",
+    "automation/process_bootstrap.py": "b0505e99f8a160f74ba286b86dcc5b08ad4027827f99c689beee010ef3f63740",
+    "automation/run_gate.py": "acd43f9549639217b9c8d2b7890744edb3e22bd6222f71e802ef4561dab1f40e",
+    "automation/runtime_policy.py": "7bb1273bd16a43a626c96eb095db54ec2daadf049a8a8eb494daafe10d0eff13",
+    "automation/verify_evidence.py": "da3266a61194a7d219e25c19a6130a7bbc29184b666fcd657d9745017d06b3d3",
+    "evidence/stage-01/RECORD.md": "c51029f0f0248387d3eac621d5f6d8a99083b9b0f1c43674b75c81a2b66a2587",
+    "pyproject.toml": "d245a2973593f938e1f8442c0637862ac8bb12a4ba0e9da58352d4b8200ce9a6",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/support.py": "3c718d023e7c78f17c76c43603e8c5cb68b7aad397f34d77bd58dac5ad277bd3",
+    "tests/test_atomicity.py": "02d08fba18105195a2a3cb6a0dff02d9ce88287d9532538364e9db91a501246b",
+    "tests/test_contention.py": "663fa792ff610fedc4f031445ec37b91103f4cea3ac8cdac5674529ced3e72fb",
+    "tests/test_credit_boundary.py": "a6ad8fc687d3eca3bfd187a23d56f2faadcc49bdbd4bacac8371f9fbf3a252d4",
+    "tests/test_dependency_direction.py": "cfd63cd609dac6552a0352399a2b7ef4ad7cb87f5bc09d153b3960db0cfa9120",
+    "tests/test_determinism.py": "509ff023d5ba5049bfa31fe47f7b30921dece7eba3d716cc319a0e9ec9c60db8",
+    "tests/test_indivisibility.py": "c23bc728b610861f829148c598375153bb194dfa97ef268f584c1ed574725352",
+    "tests/test_integrity_rails.py": "f5d011edef9d6e4dbc1d7d0be305b6ce709249b974587383799d84d3ebc42b90",
+    "tests/test_observation.py": "5b3e339296a5fa41443f78df41a78b994ebc3b5f8b91a438f4d9cdbd57872a4b",
+    "tests/test_orchestrator.py": "591a1c3cdf2a95e3bcccafd64f5a4dd54c354a36b61924bb7ea99d7749725d46",
+    "tests/test_orchestrator_audit.py": "d22e9a21e26cdbfc629eb7c460ad40dcd9b975e9e3229d085fed66dc0066baad",
+    "tests/test_orchestrator_execution.py": "a845f486ecb84b2aa358cb28b0778c6f810948e4e7f297e9e98acc5d57c1a15f",
+    "tests/test_order_independence.py": "daf829547eaccc83864174062ad61bb5d28309f3ab363fca11aab8b842d8bb18",
+    "tests/test_preflight.py": "a5758cf6721c51e42e7ed0722fc544ea9bfc764a78a09e14075871e7100577d8",
+    "tests/test_proposal_identity.py": "ae3852402b99f0b7a07c444556554e78aac7adf4013e96b04211c01feddd8df6",
+    "tests/test_repair_boundaries.py": "0f161062759f4bd64161d960c0d9131f083ac4bef9c7b62f34d964b5e536694b",
+    "tests/test_review_regressions.py": "a9c1ecb0aaceca65612a0e449dad0c83989fade589114c9690c0d4d46131b69e",
+    "tests/test_rotation.py": "50047b4fa09d1963284d37014a75a826ca73b6d78a5f922c1beb439362fef38a",
+    "tests/test_run_gate.py": "2ab268e156a5f4f01800de00631e368aa0002d61af7e73b273f19f1767c1462c",
+    "tests/test_runtime_and_startup.py": "bad567ac55c9a0f5d8f6ebf9c80c9597ebd55aca8fe74746e07a6e5d57356bdc",
+    "tests/test_verify_evidence.py": "87462b0d96b756d9234cd5fd45cc4f318823303d66cc0f0c29242b45a031ecfd"
+  },
+  "candidate_sha256_of_changed": {
+    "automation/ORCHESTRATOR_EXECUTION.md": "7ea388dcb431d9e569216a1344e54f287cf11e2af9a895108218b187f254ad0f",
+    "automation/orchestrator.py": "fc9439386ed7908e905863d970d18bdcb6b2dae29351e8dd901a06bf4ece82d3",
+    "automation/orchestrator_execution.py": "40fedb48e4881eb8223c72ee92f6be1d931e099060d95d80ab61e43ae609ba84",
+    "automation/orchestrator_worker.py": "a30c295d880fd07cd220c7c611405038b37832720d728ce88596b8e76285f20f",
+    "automation/run_gate.py": "29da1e1f0f3b28cb6a2b164c06d326bd6b074027a56122c3e67b982d974d14a4",
+    "automation/runtime_policy.py": null,
+    "tests/test_runtime_and_startup.py": null
+  },
+  "changed_against_candidate": [
+    "automation/ORCHESTRATOR_EXECUTION.md",
+    "automation/orchestrator.py",
+    "automation/orchestrator_execution.py",
+    "automation/orchestrator_worker.py",
+    "automation/run_gate.py",
+    "automation/runtime_policy.py",
+    "tests/test_runtime_and_startup.py"
+  ],
+  "copy": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\work\\orchestrator-phase4-repair2",
+  "copy_branch": "codex/orchestrator-phase4-repair",
+  "copy_head": "6591629029ac5cfedbb16279e2c62888894fb44b",
+  "copy_status": [
+    " M AGENTS.md",
+    " M automation/orchestrator.py",
+    " M automation/run_gate.py",
+    " M evidence/stage-01/RECORD.md",
+    " M tests/test_orchestrator.py",
+    "?? automation/ORCHESTRATOR_EXECUTION.md",
+    "?? automation/controller_io.py",
+    "?? automation/orchestrator_execution.py",
+    "?? automation/orchestrator_worker.py",
+    "?? automation/owned_process.py",
+    "?? automation/process_bootstrap.py",
+    "?? automation/runtime_policy.py",
+    "?? evidence/stage-01/orchestrator-phase4-repair/REVIEW.md",
+    "?? tests/test_orchestrator_audit.py",
+    "?? tests/test_orchestrator_execution.py",
+    "?? tests/test_runtime_and_startup.py"
+  ],
+  "junit": {
+    "fifth": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 365
+    },
+    "first": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 168
+    },
+    "fourth": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 191
+    },
+    "second": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 23
+    },
+    "third": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 191
+    }
+  },
+  "python": "C:\\Users\\RJLoc\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+  "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]"
+}
