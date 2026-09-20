@@ -1,0 +1,251 @@
+.....................................FFFFFFFF...FFFFFFFFFFFFFFFFFFFFFFFF [ 85%]
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:745: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:745: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:745: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:745: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:745: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:753: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:753: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:753: AssertionError: assert 'yes' == 'no'
+E   AttributeError: 'list' object has no attribute 'get'
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\automation\orchestrator.py:151: AttributeError: 'list' object has no attribute 'get'
+E   AttributeError: 'NoneType' object has no attribute 'get'
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\automation\orchestrator.py:151: AttributeError: 'NoneType' object has no attribute 'get'
+E   AttributeError: 'int' object has no attribute 'get'
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\automation\orchestrator.py:151: AttributeError: 'int' object has no attribute 'get'
+E   AttributeError: 'str' object has no attribute 'get'
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\automation\orchestrator.py:151: AttributeError: 'str' object has no attribute 'get'
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+<frozen codecs>:322: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+E   AssertionError: assert 'OK' == 'BLOCKED'
+      
+      - BLOCKED
+      + OK
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:772: AssertionError: assert 'OK' == 'BLOCKED'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:779: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:779: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:779: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:779: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:779: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:779: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:790: AssertionError: assert 'yes' == 'no'
+E   IndexError: list index out of range
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\automation\orchestrator.py:266: IndexError: list index out of range
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+<frozen codecs>:322: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+E   assert []
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:800: assert []
+E   AssertionError: assert 'no' == 'yes'
+      
+      - yes
+      + no
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:812: AssertionError: assert 'no' == 'yes'
+E   AssertionError: assert not True
+     +  where True = exists()
+     +    where exists = (WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/test-tmp/defects-before/test_inspection_root_cannot_re0') / 'unexpected-execution').exists
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:823: AssertionError: assert not True
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:837: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:837: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:837: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:837: AssertionError: assert 'yes' == 'no'
+E   AssertionError: assert 'yes' == 'no'
+      
+      - no
+      + yes
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:844: AssertionError: assert 'yes' == 'no'
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 1470: invalid start byte
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:852: UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 1470: invalid start byte
+E   AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+     +  where WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') = resolve()
+     +    where resolve = WindowsPath('--root').resolve
+     +      where WindowsPath('--root') = Path('--root')
+     +  and   WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py') = resolve()
+     +    where resolve = (WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze') / 'automation/preflight.py').resolve
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:866: AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+E   AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+     +  where WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') = resolve()
+     +    where resolve = WindowsPath('--root').resolve
+     +      where WindowsPath('--root') = Path('--root')
+     +  and   WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py') = resolve()
+     +    where resolve = (WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze') / 'automation/preflight.py').resolve
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:866: AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+E   AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+     +  where WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') = resolve()
+     +    where resolve = WindowsPath('--root').resolve
+     +      where WindowsPath('--root') = Path('--root')
+     +  and   WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py') = resolve()
+     +    where resolve = (WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze') / 'automation/preflight.py').resolve
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:866: AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+E   AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+     +  where WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') = resolve()
+     +    where resolve = WindowsPath('--root').resolve
+     +      where WindowsPath('--root') = Path('--root')
+     +  and   WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py') = resolve()
+     +    where resolve = (WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze') / 'automation/preflight.py').resolve
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:866: AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+E   AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+     +  where WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') = resolve()
+     +    where resolve = WindowsPath('--root').resolve
+     +      where WindowsPath('--root') = Path('--root')
+     +  and   WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py') = resolve()
+     +    where resolve = (WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze') / 'automation/preflight.py').resolve
+C:\Users\RJLoc\Documents\Codex\2026-09-20\how-the-orchestrator-looking\work\orchestrator-freeze\tests\test_orchestrator.py:866: AssertionError: assert WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/--root') == WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze/automation/preflight.py')
+=========================== short test summary info ===========================
+FAILED tests/test_orchestrator.py::test_falsey_unsafe_metadata_cannot_become_safe[None]
+FAILED tests/test_orchestrator.py::test_falsey_unsafe_metadata_cannot_become_safe[False]
+FAILED tests/test_orchestrator.py::test_falsey_unsafe_metadata_cannot_become_safe[0]
+FAILED tests/test_orchestrator.py::test_falsey_unsafe_metadata_cannot_become_safe[]
+FAILED tests/test_orchestrator.py::test_falsey_unsafe_metadata_cannot_become_safe[value4]
+FAILED tests/test_orchestrator.py::test_acceptance_requires_explicit_boolean_false[None]
+FAILED tests/test_orchestrator.py::test_acceptance_requires_explicit_boolean_false[0]
+FAILED tests/test_orchestrator.py::test_acceptance_requires_explicit_boolean_false[false]
+FAILED tests/test_orchestrator.py::test_non_object_registry_is_blocked_without_traceback[payload0]
+FAILED tests/test_orchestrator.py::test_non_object_registry_is_blocked_without_traceback[None]
+FAILED tests/test_orchestrator.py::test_non_object_registry_is_blocked_without_traceback[0]
+FAILED tests/test_orchestrator.py::test_non_object_registry_is_blocked_without_traceback[registry]
+FAILED tests/test_orchestrator.py::test_invalid_utf8_registry_is_blocked - Un...
+FAILED tests/test_orchestrator.py::test_duplicate_registry_ids_fail_closed - ...
+FAILED tests/test_orchestrator.py::test_invalid_registry_identity_fails_closed[42]
+FAILED tests/test_orchestrator.py::test_invalid_registry_identity_fails_closed[gate_id1]
+FAILED tests/test_orchestrator.py::test_invalid_registry_identity_fails_closed[../gate]
+FAILED tests/test_orchestrator.py::test_invalid_registry_identity_fails_closed[gate;echo]
+FAILED tests/test_orchestrator.py::test_invalid_registry_identity_fails_closed[gate\naccepted: yes]
+FAILED tests/test_orchestrator.py::test_invalid_registry_identity_fails_closed[--status]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes0]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes1]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes2]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes3]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes4]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes5]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes6]
+FAILED tests/test_orchestrator.py::test_malformed_execution_metadata_is_not_eligible[changes7]
+FAILED tests/test_orchestrator.py::test_corrupt_receipt_blocks_future_resolution_without_crashing[]
+FAILED tests/test_orchestrator.py::test_corrupt_receipt_blocks_future_resolution_without_crashing[\xff]
+FAILED tests/test_orchestrator.py::test_corrupt_receipt_blocks_future_resolution_without_crashing[EVIDENCE_COMPLETE\nIN_PROGRESS\n]
+FAILED tests/test_orchestrator.py::test_in_progress_receipt_blocks_even_with_dirty_override
+FAILED tests/test_orchestrator.py::test_inspection_root_cannot_replace_trusted_preflight
+FAILED tests/test_orchestrator.py::test_preflight_pass_does_not_override_authority_or_integrity_conflict[sim3_state_milestone_mismatch recorded=Stage 2 actual=Stage 1]
+FAILED tests/test_orchestrator.py::test_preflight_pass_does_not_override_authority_or_integrity_conflict[sim3_state_claims_accepted_gate fabricated]
+FAILED tests/test_orchestrator.py::test_preflight_pass_does_not_override_authority_or_integrity_conflict[file_manifest_hash_mismatch kernel/engine.py]
+FAILED tests/test_orchestrator.py::test_preflight_pass_does_not_override_authority_or_integrity_conflict[unopened_stage_record_present evidence/stage-02/RECORD.md]
+FAILED tests/test_orchestrator.py::test_missing_authoritative_milestone_is_not_eligible
+FAILED tests/test_orchestrator.py::test_cli_utf8_output_does_not_depend_on_parent_encoding
+FAILED tests/test_orchestrator.py::test_all_inspection_modes_only_spawn_pinned_preflight[flags0]
+FAILED tests/test_orchestrator.py::test_all_inspection_modes_only_spawn_pinned_preflight[flags1]
+FAILED tests/test_orchestrator.py::test_all_inspection_modes_only_spawn_pinned_preflight[flags2]
+FAILED tests/test_orchestrator.py::test_all_inspection_modes_only_spawn_pinned_preflight[flags3]
+FAILED tests/test_orchestrator.py::test_all_inspection_modes_only_spawn_pinned_preflight[flags4]
+44 failed, 40 passed in 15.76s

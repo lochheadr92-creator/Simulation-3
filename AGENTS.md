@@ -256,3 +256,26 @@ treating a green suite or a packaged run as Stage 1a or Stage 1 acceptance.
 **Linked revision.** The automation freeze commit on `codex/kernel-first-slice`.
 Its exact hash cannot appear inside this entry and is reported after the
 commit.
+
+### OD-005 - 2026-09-20 - Verify and freeze orchestrator Phases 1-3
+
+**Exact owner direction:**
+
+> Finish verifying orchestrator Phases 1–3, fix any demonstrated defects,
+> review the safety boundaries, and commit the result. Stop before
+> implementing actual execution.
+
+**Scope.** Verify and repair the read-only orchestrator, its focused tests,
+and its verification record; commit the result. This does not authorise
+orchestrator gate execution, Phase 4 implementation, scientific acceptance,
+later slices, a merge, or publication.
+
+**Reason.** Freeze the inspected and tested control plane before execution
+capability. Newer uncommitted Phase 4 work found in the original checkout is
+preserved there. This bounded freeze uses a separate worktree and branch,
+`codex/orchestrator-phases-1-3-freeze`, based on `b915aa0`.
+
+**Linked revision.** The commit containing this entry and
+`evidence/stage-01/orchestrator-review/REVIEW.md`; its resulting identity is
+reported on completion. This is tooling review, not the separate different-model
+Stage 1a exit review, which remains pending.

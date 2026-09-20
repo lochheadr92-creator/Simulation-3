@@ -1,0 +1,250 @@
+V3 evidence verification
+========================
+evidence_verification: OK
+milestone_acceptance_inferred: no
+capability_proven: no
+reachability_proven: no
+measurement_proven: no
+repository_root: C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze
+head: b915aa0c179d4e19c954f8b05eb107c4cd34d475
+packet_count: 2
+error_count: 0
+note: OK means declared receipts exist and recorded identities match; it is not milestone acceptance and does not prove capability, reachability, or measurement
+packet stage-01-attempt-1: OK
+  contract: automation/evidence_contracts/stage-01-attempt-1.json
+  milestone: Stage 1, slice 1a
+  gate: none
+  role: historical
+  recorded_revision: fa8be6083b31ead3c7e6aae844c0fd749927e6d0
+  must_match_current_head: False
+  checks: 41 errors: 0
+  - OK contract_loaded packet=stage-01-attempt-1 automation/evidence_contracts/stage-01-attempt-1.json
+  - OK milestone packet=stage-01-attempt-1 Stage 1, slice 1a
+  - OK gate packet=stage-01-attempt-1 none
+  - OK acceptance_claimed packet=stage-01-attempt-1 False
+  - OK recorded_revision_present packet=stage-01-attempt-1 fa8be6083b31ead3c7e6aae844c0fd749927e6d0
+  - OK source_base_present packet=stage-01-attempt-1 b48542b3567bfba9f0fa7a831ab8ace0eb6ddc1f
+  - OK historical_revision_not_required_to_be_head packet=stage-01-attempt-1 recorded=fa8be6083b31ead3c7e6aae844c0fd749927e6d0 current=b915aa0c179d4e19c954f8b05eb107c4cd34d475
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/RECORD.md
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/pytest_verbose_output.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/mutation_check_output.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/fixture_digests_output.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/mutation_check.py
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/fixture_digests.py
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/00-baseline.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/01-rotation-frozen.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/02-credit-spendable-immediately.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/03-authority-not-checked.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/04-order-by-arrival.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/05-outcome-order-by-arrival.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/06-canonical-keys-unsorted.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/07-state-mappings-writable.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/08-view-shares-the-live-mapping.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/09-shortfall-checks-one-leg.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/10-duplicate-identity-allowed.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/11-duplicate-sequence-allowed.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/12-balanced-effects-not-checked.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/13-amounts-may-be-fractional.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/14-conservation-rail-off.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/15-negative-balance-rail-off.txt
+  - OK required_file packet=stage-01-attempt-1 evidence/stage-01/instrument/runs/99-restored.txt
+  - OK file_manifest packet=stage-01-attempt-1 none declared
+  - OK receipt_exists packet=stage-01-attempt-1 test_suite evidence/stage-01/instrument/pytest_verbose_output.txt
+  - OK receipt_exists packet=stage-01-attempt-1 determinism evidence/stage-01/instrument/fixture_digests_output.txt
+  - OK receipt_exists packet=stage-01-attempt-1 mutation evidence/stage-01/instrument/mutation_check_output.txt
+  - OK replay_not_required packet=stage-01-attempt-1 no sealed replay in this slice
+  - OK command_phrase packet=stage-01-attempt-1 py -3 -m pytest
+  - OK command_phrase packet=stage-01-attempt-1 py -3 evidence/stage-01/instrument/mutation_check.py
+  - OK command_phrase packet=stage-01-attempt-1 py -3 evidence/stage-01/instrument/fixture_digests.py
+  - OK milestone_associated packet=stage-01-attempt-1 evidence/stage-01/RECORD.md
+  - OK seeds_none_declared packet=stage-01-attempt-1
+  - OK horizon_recorded packet=stage-01-attempt-1 whole_world_executions_authorised
+packet stage-01-repair-1: OK
+  contract: automation/evidence_contracts/stage-01-repair-1.json
+  milestone: Stage 1, slice 1a
+  gate: none
+  role: historical
+  recorded_revision: fb5a8959fb6a7a23d6e3107fe32be8248cc19901
+  must_match_current_head: False
+  checks: 181 errors: 0
+  - OK contract_loaded packet=stage-01-repair-1 automation/evidence_contracts/stage-01-repair-1.json
+  - OK milestone packet=stage-01-repair-1 Stage 1, slice 1a
+  - OK gate packet=stage-01-repair-1 none
+  - OK acceptance_claimed packet=stage-01-repair-1 False
+  - OK recorded_revision_present packet=stage-01-repair-1 fb5a8959fb6a7a23d6e3107fe32be8248cc19901
+  - OK source_base_present packet=stage-01-repair-1 fa8be6083b31ead3c7e6aae844c0fd749927e6d0
+  - OK historical_revision_not_required_to_be_head packet=stage-01-repair-1 recorded=fb5a8959fb6a7a23d6e3107fe32be8248cc19901 current=b915aa0c179d4e19c954f8b05eb107c4cd34d475
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/RECORD.md
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/FILE_MANIFEST.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/applied-suite-output.txt
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/direct-suite-output.txt
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-base.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired-seed17.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-output.txt
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/run_mutations.py
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/capture_fixtures.py
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/compare_fixtures.py
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/REVIEW.md
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/adversarial-pytest.txt
+  - OK required_file packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/adversarial-observations.json
+  - OK file_manifest_readable packet=stage-01-repair-1 evidence/stage-01/repair-1/FILE_MANIFEST.json
+  - OK manifest_path_exists packet=stage-01-repair-1 AGENTS.md
+  - OK manifest_hash_skipped packet=stage-01-repair-1 AGENTS.md excluded (amended after the snapshot)
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/RECORD.md
+  - OK manifest_hash_skipped packet=stage-01-repair-1 evidence/stage-01/RECORD.md excluded (amended after the snapshot)
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/instrument/mutation_check.py
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/instrument/mutation_check.py
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/applied-suite-output.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/applied-suite-output.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/capture_fixtures.py
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/capture_fixtures.py
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/checkout-line-endings.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/checkout-line-endings.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/compare_fixtures.py
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/compare_fixtures.py
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/direct-suite-output.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/direct-suite-output.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-base.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-base.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-base.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-base.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired-seed17.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired-seed17.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired-seed17.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired-seed17.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/fixtures-repaired.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-output.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-output.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-restoration.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-restoration.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-runs/00-baseline.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-runs/00-baseline.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-output.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-output.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/00-baseline.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/00-baseline.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/01-rotation-frozen.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/01-rotation-frozen.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/02-credit-spendable-immediately.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/02-credit-spendable-immediately.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/03-authority-not-checked.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/03-authority-not-checked.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/04-order-by-arrival.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/04-order-by-arrival.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/05-outcome-order-by-arrival.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/05-outcome-order-by-arrival.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/06-canonical-keys-unsorted.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/06-canonical-keys-unsorted.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/07-state-mappings-writable.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/07-state-mappings-writable.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/08-view-shares-the-live-mapping.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/08-view-shares-the-live-mapping.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/09-shortfall-checks-one-leg.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/09-shortfall-checks-one-leg.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/10-duplicate-identity-allowed.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/10-duplicate-identity-allowed.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/11-duplicate-sequence-allowed.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/11-duplicate-sequence-allowed.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/12-balanced-effects-not-checked.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/12-balanced-effects-not-checked.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/13-amounts-may-be-fractional.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/13-amounts-may-be-fractional.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/14-conservation-rail-off.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/14-conservation-rail-off.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/15-negative-balance-rail-off.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/15-negative-balance-rail-off.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/16-tick-reentry-allowed.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/16-tick-reentry-allowed.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/17-unknown-actor-order-ambiguous.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/17-unknown-actor-order-ambiguous.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/18-runner-errors-count-as-detection.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/18-runner-errors-count-as-detection.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/19-integer-encoding-uses-global-limit.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/19-integer-encoding-uses-global-limit.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/20-caller-assigns-output-sequence.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/20-caller-assigns-output-sequence.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/99-restored.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-runs/99-restored.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/REVIEW.md
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/REVIEW.md
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/adversarial-observations.json
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/adversarial-observations.json
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/adversarial-pytest.txt
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/adversarial-pytest.txt
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/test_adversarial.py
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/review-before-repair/test_adversarial.py
+  - OK manifest_path_exists packet=stage-01-repair-1 evidence/stage-01/repair-1/run_mutations.py
+  - OK manifest_hash_match packet=stage-01-repair-1 evidence/stage-01/repair-1/run_mutations.py
+  - OK manifest_path_exists packet=stage-01-repair-1 kernel/canonical.py
+  - OK manifest_hash_match packet=stage-01-repair-1 kernel/canonical.py
+  - OK manifest_path_exists packet=stage-01-repair-1 kernel/engine.py
+  - OK manifest_hash_match packet=stage-01-repair-1 kernel/engine.py
+  - OK manifest_path_exists packet=stage-01-repair-1 kernel/proposals.py
+  - OK manifest_hash_match packet=stage-01-repair-1 kernel/proposals.py
+  - OK manifest_path_exists packet=stage-01-repair-1 kernel/settlement.py
+  - OK manifest_hash_match packet=stage-01-repair-1 kernel/settlement.py
+  - OK manifest_path_exists packet=stage-01-repair-1 kernel/version.py
+  - OK manifest_hash_match packet=stage-01-repair-1 kernel/version.py
+  - OK manifest_path_exists packet=stage-01-repair-1 tests/test_proposal_identity.py
+  - OK manifest_hash_match packet=stage-01-repair-1 tests/test_proposal_identity.py
+  - OK manifest_path_exists packet=stage-01-repair-1 tests/test_repair_boundaries.py
+  - OK manifest_hash_match packet=stage-01-repair-1 tests/test_repair_boundaries.py
+  - OK manifest_path_exists packet=stage-01-repair-1 tests/test_review_regressions.py
+  - OK manifest_hash_match packet=stage-01-repair-1 tests/test_review_regressions.py
+  - OK receipt_exists packet=stage-01-repair-1 test_suite evidence/stage-01/repair-1/direct-suite-output.txt
+  - OK receipt_exists packet=stage-01-repair-1 test_suite evidence/stage-01/repair-1/applied-suite-output.txt
+  - OK receipt_exists packet=stage-01-repair-1 determinism evidence/stage-01/repair-1/fixture-comparison.json
+  - OK receipt_exists packet=stage-01-repair-1 determinism evidence/stage-01/repair-1/fixtures-repaired.json
+  - OK receipt_exists packet=stage-01-repair-1 determinism evidence/stage-01/repair-1/fixtures-repaired-seed17.json
+  - OK receipt_exists packet=stage-01-repair-1 mutation evidence/stage-01/repair-1/mutation-output.txt
+  - OK receipt_exists packet=stage-01-repair-1 mutation evidence/stage-01/repair-1/mutation-restoration.json
+  - OK replay_not_required packet=stage-01-repair-1 no sealed replay in this slice
+  - OK json_receipt_readable packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json applied
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json file_count
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json head
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json stage_1_exit_claimed
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json independent_post_repair_acceptance
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json final_suite
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json independent_post_repair_acceptance=False
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json stage_1_exit_claimed=False
+  - OK json_receipt_head packet=stage-01-repair-1 evidence/stage-01/repair-1/application-verification.json head=fa8be6083b31ead3c7e6aae844c0fd749927e6d0 equals source_base
+  - OK artifact_hash_match packet=stage-01-repair-1 applied-suite-output.txt
+  - OK json_receipt_readable packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json captured_ticks
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json same_number_of_ticks
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json state_bytes_and_digests_identical
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json record_payloads_identical_except_engine_version
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json repaired_hash_seed_0_and_17_identical
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json captured_ticks=8
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json record_payloads_identical_except_engine_version=True
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json repaired_hash_seed_0_and_17_identical=True
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json same_number_of_ticks=True
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/fixture-comparison.json state_bytes_and_digests_identical=True
+  - OK json_receipt_readable packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json exit_code
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json files_restored_exactly
+  - OK json_receipt_key packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json python_hash_seed
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json files_restored_exactly=True
+  - OK json_receipt_value packet=stage-01-repair-1 evidence/stage-01/repair-1/mutation-restoration.json python_hash_seed='0'
+  - OK command_phrase packet=stage-01-repair-1 python -B -m pytest -q -p no:cacheprovider --tb=short --basetemp=
+  - OK command_phrase packet=stage-01-repair-1 python -B evidence/stage-01/repair-1/run_mutations.py
+  - OK command_phrase packet=stage-01-repair-1 capture_fixtures.py
+  - OK command_phrase packet=stage-01-repair-1 compare_fixtures.py
+  - OK milestone_associated packet=stage-01-repair-1 evidence/stage-01/RECORD.md
+  - OK seed_evidence packet=stage-01-repair-1 PYTHONHASHSEED evidence/stage-01/repair-1/fixtures-repaired-seed17.json
+  - OK seed_evidence packet=stage-01-repair-1 PYTHONHASHSEED evidence/stage-01/repair-1/mutation-restoration.json
+  - OK horizon_recorded packet=stage-01-repair-1 whole_world_executions_authorised

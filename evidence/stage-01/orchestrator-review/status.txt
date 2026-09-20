@@ -1,0 +1,50 @@
+V3 orchestrator
+===============
+orchestrator_mode: read-only
+orchestrator_phase: 1
+this_phase_executes_registered_commands: no
+writes: no
+invokes_registered_command: no
+
+WORKFLOW / MECHANICAL STATE
+---------------------------
+repository_root: C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze
+branch: codex/orchestrator-phases-1-3-freeze
+head: b915aa0c179d4e19c954f8b05eb107c4cd34d475
+preflight_result: PASS
+preflight_ok: yes
+dirty_files: AGENTS.md, automation/__init__.py, evidence/stage-01/RECORD.md
+untracked_files: automation/orchestrator.py, evidence/stage-01/orchestrator-review/REVIEW.md, tests/test_orchestrator.py
+mechanical_workflow_condition: idle
+mechanical_workflow_authority: none (derived observation only)
+registry_status: OK
+registered_command_count: 3
+safe_registered_command_count: 2
+unsafe_registered_command_count: 1
+local_receipts_authority: none
+local_receipts_non_authoritative: yes
+local_receipts_exist: no
+local_receipt_count: 0
+in_progress_receipt_visible: no
+local_receipts: (none)
+
+SCIENTIFIC / PROJECT STATE — OBSERVED ONLY
+------------------------------------------
+scientific_plane: observed_only
+snapshot_is_not_governing_authority: yes
+observed_current_milestone: Stage 1, slice 1a
+observed_milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; independent post-repair review pending
+observed_stage_1a_exit: unclaimed
+observed_independent_review: pending
+observed_slice_1b_authorised: no
+observed_last_accepted_gate: none
+observed_proven: none independently accepted
+observed_scientific_next: independent post-repair review of the Stage 1a repaired source
+observed_scientific_next_executable: no
+observed_scientific_next_is_registry_id: no
+milestone_acceptance_inferred: no
+capability_proven: no
+reachability_proven: no
+measurement_proven: no
+note: preflight_result PASS is inspection only; it is not an independent-review verdict, not Stage 1a completion, and not milestone acceptance
+note: local automation receipts are not accepted scientific evidence

@@ -1,0 +1,105 @@
+V3 preflight
+============
+preflight_result: PASS
+milestone_completion_inferred: no
+blocking_failures: (none)
+repository_root: C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze
+branch: codex/orchestrator-phases-1-3-freeze
+head: b915aa0c179d4e19c954f8b05eb107c4cd34d475
+git_status:
+  -  M AGENTS.md
+  -  M automation/__init__.py
+  -  M evidence/stage-01/RECORD.md
+  - ?? automation/orchestrator.py
+  - ?? evidence/stage-01/orchestrator-review/REVIEW.md
+  - ?? tests/test_orchestrator.py
+dirty_files:
+  - AGENTS.md
+  - automation/__init__.py
+  - evidence/stage-01/RECORD.md
+untracked_files:
+  - automation/orchestrator.py
+  - evidence/stage-01/orchestrator-review/REVIEW.md
+  - tests/test_orchestrator.py
+recent_commits:
+  - b915aa0c179d4e19c954f8b05eb107c4cd34d475 chore(automation): freeze Phase 1-3 development automation (OD-004)
+  - 53f42de1229401db1eeca2ca52390c3356c2a30f docs(stage-1a): record publication authority (OD-003)
+  - fb5a8959fb6a7a23d6e3107fe32be8248cc19901 fix(stage-1a): resolve adversarial review findings (OD-002)
+  - fa8be6083b31ead3c7e6aae844c0fd749927e6d0 evidence(stage-1a): record actual results, instrument checks and rollback
+  - b48542b3567bfba9f0fa7a831ab8ace0eb6ddc1f kernel(stage-1a): contested transaction, atomic settlement, inert observation
+  - bbbf142f1399c1642c567d3d9c78792610b2df0b declare(stage-1a): open the Stage 1 record and fix the 1a declarations
+  - 2bf08e9e4629022adb508b5c6db53a144bb355b4 adopt(v3): adopt AGENTS, DOCTRINE and ROADMAP as governing documents
+authoritative_documents_found:
+  - AGENTS.md
+  - DOCTRINE.md
+  - ROADMAP.md
+  - evidence/stage-01/RECORD.md
+authoritative_documents_missing: (none)
+current_milestone: Stage 1, slice 1a
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; independent post-repair review pending
+engine_version: 0.1.1-stage1a
+schema_version: v3.kernel.1a.1
+canonical_file_hashes:
+  - AGENTS.md  sha256:05893d855ceb914fbd8cde23b4786044f5551b73c524828e5b8e7a6d436775aa
+  - DOCTRINE.md  sha256:3cf74071169d874478c09d18fc9c6e2fe4ddb970c6548a410b6c653a54f0c5db
+  - ROADMAP.md  sha256:2b996d1bd79c90f04bc11c55c2e4f384fb54f8af63c08d940e77ebc60587c4bd
+  - SIM3_STATE.md  sha256:52ac6318ee4da34f1989cb9ebf99d5adfe012593668ace98ae46425de5ec6166
+  - kernel/__init__.py  sha256:5244a715a62d53695504d744ed954e115a304f4bfa80deee38986a6f3a875ff8
+  - kernel/canonical.py  sha256:20fa4781f240854b3eb04bdabd0b750c6e60be12d59798a2179b41b4893a8de0
+  - kernel/diagnostics.py  sha256:d2c657bb82882f34ca93ab922bcbe0b178e030c64bff1473b938e6f9b45b9640
+  - kernel/engine.py  sha256:e5a3bedbf7ec6662ad7a1c39875759e560d0e0c19e2296fbaa62f3338863eaac
+  - kernel/ordering.py  sha256:bf3a6d0220334ccdaf7d10daf048bca7fd0d1874171aa2f9421ceaa93af88487
+  - kernel/outcomes.py  sha256:6675a3c304c2ba18c407e1641bc18183c3c1505561426fb2d02aa71c71ec52b6
+  - kernel/proposals.py  sha256:41c4ccd01d181aa48b6eeaabf1a3078962ae8599707bce9d3207769824c88a92
+  - kernel/reasons.py  sha256:4b66d04d49b859352dd299f7a6e866d3f9cbb9b491042379d99690a80212cc11
+  - kernel/settlement.py  sha256:a6e92c26a0c5f727fb4e1c86ff58cd95be765897b6d9526c84da8a13d9965947
+  - kernel/state.py  sha256:9a65cfd1e2fde009ca403e518d9cfd1f00d7596ba56495629ffe9fd252c4f897
+  - kernel/units.py  sha256:aa8b04387d1c4f3662e4a412ccf46699c0c8976602b68093d821a7ec1e89580a
+  - kernel/version.py  sha256:883c9979a9b2f801dcd66f3cfb6933ebf49fc7b17def76f26244324f03a7ad39
+file_manifest_path: evidence/stage-01/repair-1/FILE_MANIFEST.json
+file_manifest_present: yes
+file_manifest_source_base: fa8be6083b31ead3c7e6aae844c0fd749927e6d0
+file_manifest_compared_subset: kernel/*, tests/*, evidence/stage-01/instrument/mutation_check.py from the Repair 1 sha256 map (repaired file bytes). source_base is the pre-repair revision the repair was applied to, not HEAD and not a review verdict. Other manifest entries, including AGENTS.md and RECORD.md, are not compared.
+file_manifest_compared: 9
+file_manifest_matched: 9
+configured_seeds: none discovered
+configured_horizons: none discovered
+active_slice_whole_world_executions_authorised: 0
+experiments_directory: none
+test_commands:
+  - py -3 -m pytest
+  - py -3 evidence/stage-01/instrument/fixture_digests.py
+  - py -3 evidence/stage-01/instrument/mutation_check.py  # mutates working tree; not part of preflight
+pytest_present: yes
+pytest_testpaths: tests
+pytest_pythonpath: .
+evidence_directories:
+  - evidence/
+  - evidence/automation-runs/
+  - evidence/stage-01/
+  - evidence/stage-01/instrument/
+  - evidence/stage-01/instrument/runs/
+  - evidence/stage-01/orchestrator-review/
+  - evidence/stage-01/repair-1/
+  - evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/
+  - evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-runs/
+  - evidence/stage-01/repair-1/mutation-runs/
+  - evidence/stage-01/repair-1/review-before-repair/
+sim3_state_present: yes
+sim3_state.authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
+sim3_state.authoritative_head: 53f42de1229401db1eeca2ca52390c3356c2a30f
+sim3_state.blockers: independent post-repair review of the Stage 1a repair is pending; no owner direction opens slice 1b or Stage 1 exit
+sim3_state.current_hypothesis: Two authorised claimants compete for one resource unit; settlement is atomic; observation is immutable.
+sim3_state.current_milestone: Stage 1, slice 1a
+sim3_state.last_accepted_evidence: none
+sim3_state.last_accepted_gate: none
+sim3_state.last_updated: 2026-09-20
+sim3_state.milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; independent post-repair review pending
+sim3_state.next_gate: independent post-repair review of the Stage 1a repaired source
+sim3_state.not_proven: Stage 1 exit; independent post-repair acceptance; slices 1b, 1c, 1d; reservations; replay; sealed evidence stream; instance isolation; 50-actor cost envelope; any world, person, need, movement, memory, or social behaviour
+sim3_state.parked: Stages 2-6; slices 1b-1d (not authorised); six-person starter world; 50-person behavioural demonstration
+sim3_state.proven: none independently accepted
+inconsistencies:
+  - record_rollback_describes_no_remote evidence/stage-01/RECORD.md rollback text still describes a repository with no remote
+  - stage_card_review_status_stale card still says no independent review was held; evidence/stage-01/repair-1/review-before-repair/REVIEW.md exists
+note: passing tests are not milestone completion; this report does not run the simulation

@@ -602,3 +602,15 @@ This follow-up changes only the owner-direction register and this publication
 note. Engine/test content remains the validated repair. Independent post-repair
 acceptance and Stage 1 completion remain pending. Publication does not change
 that status.
+
+### Read-only orchestrator freeze — 2026-09-20
+
+OD-005 authorises verification, demonstrated-defect repair, safety review, and
+commit of orchestrator Phases 1-3. The result and reproduction commands are in
+[`orchestrator-review/REVIEW.md`](orchestrator-review/REVIEW.md). This work is
+isolated from newer uncommitted execution work in the original checkout.
+
+No kernel, simulation rule, registry command, evidence contract, or scientific
+acceptance state is changed. Whole-world executions used remain zero. This is
+a tooling verification record, not independent post-repair acceptance of Stage
+1a. Slice 1b remains unauthorised and the Stage 1 exit remains unclaimed.
