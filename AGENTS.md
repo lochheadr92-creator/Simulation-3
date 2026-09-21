@@ -277,3 +277,45 @@ this checkout's existing automation work is deliberately left untouched.
 
 **Linked work.** The dated Stage 1b card and evidence/stage-01/slice-1b/ identify
 the source, tests and rollback. Local source base: b915aa0.
+
+### OD-009 - 2026-09-21 - Checkpoint cadence: visible world before acceptance machinery
+
+**Exact owner direction:** "Prove the engine can create a varied, repeated,
+readable living world before building acceptance machinery. Work in declared
+exploration: determinism and reproducibility stay; frozen baselines,
+provenance packages and adversarial acceptance return only when something is
+worth preserving. Backend work never gets more than two legs ahead of
+something I can see and inspect." Recorded from the owner's messages of
+2026-09-21 ("ok", "can u implement") accepting the drafted direction.
+
+**Scope.** Amends the Stage 1 slice plan and Stage 2 entry, nothing in
+DOCTRINE.md.
+1. Slice 1b is committed first, after resolving the evidence-verifier
+   manifest mismatch and removing the stale untracked orchestrator files.
+2. Slice 1c is re-scoped to a record stream: tick records written to an
+   append-only file per run, plus a plain text or HTML viewer that renders
+   from that file, never from live state. Sealing, replay and recovery are
+   deferred. This is checkpoint 1.
+3. Slice 1d (capacity envelope) is deferred; a per-tick timing line stays in
+   the run output so drift is visible.
+4. Stage 2 opens after checkpoint 1 in this order: position and movement, one
+   renewable food source, hunger (checkpoint 2, a map over time); then
+   perception radius and bounded views (checkpoint 3). The Stage 2
+   opportunity-counting instrument and confirmation floors are not opened by
+   this direction.
+5. Every leg keeps: seeded run-twice-same-digest, the existing rails and
+   reference tests, one record file per run. No frozen hashes, no evidence
+   contracts, no independent acceptance until the owner names a result worth
+   ratifying.
+6. No orchestrator work. The Phase 4 repair branches remain parked.
+
+**Reason.** Five tooling sittings advanced the kernel by zero slices; 1a and
+1b are reviewed and correct, and the next risk is building a world nobody can
+look at. Readable records are the one piece of 1c the checkpoints depend on,
+so they stay; the rest of 1c and 1d cost more than they prove right now.
+Checkpoint output is exploration, not evidence: anything worth keeping is
+re-run under the ratification rules before it is cited as a result.
+
+**Linked revision.** Slice 1b landed in `9d1542d` on `codex/kernel-first-slice`
+after `1858e96`; checkpoint legs are recorded beneath the Stage 1 and Stage 2
+cards as they run.

@@ -748,3 +748,11 @@ review workspace. Whole tree with plain `pytest`: 254 passed. F3 (mutation
 instrument update for 1b) remains open and is not a blocker. This commit
 contains the slice 1b kernel, tests, evidence and both review records. No
 push, merge, acceptance or later slice.
+
+### OD-009 recorded — 2026-09-21
+
+Slice 1b is landed (`9d1542d`). Under OD-009, slice 1c is re-scoped to a
+record stream plus a viewer that renders from the stream (checkpoint 1);
+slice 1d is deferred with a per-tick timing line kept visible; Stage 2 opens in
+checkpoint order once checkpoint 1 exists. Checkpoint output is exploration,
+not evidence. Stage 1 exit remains unclaimed.
