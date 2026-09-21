@@ -59,6 +59,7 @@ class Observation:
     food: int                 # own free units at tick start
     source: Position
     source_food: int | None   # free stock if the source cell is in view; else None
+    yield_at: int = 99        # own trait; visible to self, not recorded about others
     others: tuple[SeenPerson, ...] = field(default_factory=tuple)
 
     @property
@@ -107,5 +108,6 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         food=view.own_available,
         source=source,
         source_food=source_food,
+        yield_at=overlay.yield_at[actor],
         others=others,
     )

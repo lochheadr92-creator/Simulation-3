@@ -64,7 +64,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         if hunger[actor] >= config.death_at:
             died_at[actor] = settled.tick
             died.append(actor)
-    next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger, died_at=died_at)
+    next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
+                           yield_at=overlay.yield_at, died_at=died_at)
 
     production: list[dict[str, Any]] = []
     ledger = settled

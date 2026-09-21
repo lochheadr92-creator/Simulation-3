@@ -50,12 +50,13 @@ def test_genesis_is_seeded_saved_and_identity_neutral():
     assert len(set(homes.values())) == len(homes) and small().source_position not in homes.values()
     ledger, overlay = a
     assert overlay.positions == overlay.homes and all(h == 0 for h in overlay.hunger.values())
+    assert set(overlay.yield_at) == set(overlay.homes) and all(v >= 1 for v in overlay.yield_at.values())
     assert ledger.sources[FOOD_SOURCE].authorised == frozenset(ledger.roster)
 
 
 @pytest.mark.parametrize("bad", [dict(actors=49), dict(source_cap=1, source_stock=4), dict(death_at=5, emergency_at=10),
                                  dict(claim_amount=0), dict(renewal_every=0), dict(satiation=0),
-                                 dict(perception_radius=-1)])
+                                 dict(perception_radius=-1), dict(yield_set=()), dict(yield_set=(0, 1))])
 def test_configuration_rejects_incoherent_levers(bad):
     with pytest.raises(ValueError):
         small(**bad)

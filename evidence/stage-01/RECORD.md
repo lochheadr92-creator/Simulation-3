@@ -928,3 +928,51 @@ that must reproduce `9d354414` decisions byte-for-byte; tests; and a stop
 condition. No social action, no retained facts, no kernel change. The
 claim-then-eat latency rule is held constant for this leg. Nothing is
 implemented by this entry. Stage 1 exit remains unclaimed.
+
+### Exploration leg 5 — crowd-yield trait, visual checkpoint B — 2026-09-21
+
+Crowd-yield under OD-010. Overlay gains immutable per-person `yield_at`,
+drawn after the home sample from the same `random.Random(seed)` so seed-7
+homes stay `p01 (11,6), p02 (2,3), p03 (6,8), p04 (0,1), p05 (6,1), p06
+(6,11)`. Generator name `homes-uniform-v1+yield-v1`. Default set `{1,2,3}`;
+`--yield off` assigns `actors+1`. Crowd is derived in `decide.py` from seen
+others on the source cell; it is not stored. YIELD sits above GO and below
+EAT/CLAIM/WAIT. A yield stays put and proposes nothing. `process.py` only
+copies the trait onto the next overlay; no process rule changed. Kernel
+untouched. STREAM_FORMAT unchanged. `dead people are neither seen nor
+counted` is in `describe()`.
+
+Declared: Chebyshev radius 3, yield set (1, 2, 3), yield on by default,
+reason `hungry, saw {crowd} on source, stock {stock}, yield_at {n}`.
+
+Checkpoint, 300 ticks, `--html` on the ON arms (`py -3 -B -m world.run`):
+
+| seed | mode | survivors | deaths | denied claims | emergency person-ticks | yield events | trail |
+|---|---|---:|---:|---:|---:|---:|---|
+| 7 | on (twice identical) | 3 | 3 (p04 t22, p02 t46, p06 t58) | 5 | 106 (by yield_at 1:23, 2:40, 3:43) | 5 | `9405ee6f63146e034dcc4bb63f68b1072ffafba14f7b96ae4c0efe46ffbb070a` |
+| 7 | off | 3 | 3 (p04 t22, p06 t46, p03 t58) | 6 | 144 | 0 | `ca4ac02841061007357893df5de580983698645811b12675472be53d0ec3eff4` |
+| 3 | on | 3 | 3 (p05 t22, p03 t34, p04 t34) | 8 | 163 (1:15, 2:48, 3:100) | 3 | `44d4e974d7743da5…` |
+| 3 | off | 3 | 3 (p05 t22, p03 t34, p06 t34) | 9 | 163 | 0 | `72c49fd877795101…` |
+| 11 | on | 4 | 2 (p02 t22, p06 t22) | 2 | 271 (1:90, 2:136, 3:45) | 13 | `f1dc48ea06e6117c…` |
+| 11 | off | 4 | 2 (p02 t22, p06 t22) | 2 | 245 | 0 | `a20797f1c66f43be…` |
+
+Seed 7 ON tick_ms mean 0.135 / p95 0.212 / max 0.369. OFF 80-tick
+decisions matched HEAD `b305783` / `9d354414` byte-for-byte.
+`tests/test_yield.py` adds ten tests; whole tree 308 passed. Viewer:
+yield_at on the marker and table, hollow ring for yield, crowd line and
+yield dots, deaths and emergency broken down by trait.
+
+Observations, a picture of a difference, not a claim:
+- Seed 7 ON has five yields. First at tick 38: p02 and p06 (`yield_at` 1)
+  hold at the rim because they saw 2 on the source with stock 0; p05
+  (`yield_at` 3) keeps walking. Same survivor count as OFF, different
+  deaths (p02/p06 die instead of p03).
+- Seed 11 yields 13 times and still the same two deaths at t22. Yielding
+  does not by itself rewrite the claim-then-eat latency (held constant).
+- The trait is a model assumption (DOCTRINE 8). People notice a crowd on
+  the source, not a particular person.
+
+Stop condition met: checkpoint B renders from the run file; seed-7 ON has
+yield events; ON/OFF is recorded here. Leg 6 is not opened. No
+orchestrator, no frozen hashes, no acceptance claimed. Stage 1 exit remains
+unclaimed.

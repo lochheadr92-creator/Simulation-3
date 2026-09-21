@@ -9,6 +9,8 @@ Priority, highest first:
   eat    hungry and holding a free unit
   claim  hungry, standing on the source, source has free stock
   wait   hungry, standing on the source, source empty (stay; hunger continues)
+  yield  hungry, not emergency, off the source, source in view, crowd on the
+         source >= yield_at and observed stock < crowd (stay; hunger continues)
   go     hungry, elsewhere: one step toward the source
   home   not hungry, away from home: one step toward home
   rest   not hungry, at home
@@ -18,8 +20,11 @@ CLAIM requires the source to be in view. Standing on the source is
 distance 0, so the requirement is always met there; it is stated so the
 rule stays honest if the radius changes. The claim amount is
 min(claim_amount, observed stock). If stock is not observed the person
-cannot be at the source; that is asserted, not defaulted. No new
-candidate kinds.
+cannot be at the source; that is asserted, not defaulted.
+
+YIELD uses only the observation: crowd is the number of seen others whose
+position equals the source cell. Dead people are neither seen nor counted.
+Emergency never yields. A yield proposes nothing and does not step.
 """
 
 from __future__ import annotations
@@ -31,7 +36,9 @@ from world.config import WorldConfig
 from world.observe import Observation
 from world.overlay import Position
 
-EAT, CLAIM, WAIT, GO, HOME, REST, DEAD = "eat", "claim", "wait", "go", "home", "rest", "dead"
+EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
+    "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
+)
 
 
 @dataclass(frozen=True)
@@ -62,6 +69,22 @@ def step_toward(origin: Position, target: Position) -> Position:
     return (origin[0], origin[1] + (1 if dy > 0 else -1))
 
 
+def crowd_on_source(observation: Observation) -> int:
+    """Living others this person can see who are standing on the source cell."""
+    return sum(1 for seen in observation.others if seen.position == observation.source)
+
+
+def yield_eligible(observation: Observation, config: WorldConfig) -> bool:
+    if not observation.alive:
+        return False
+    if observation.hunger < config.hungry_at or observation.hunger >= config.emergency_at:
+        return False
+    if observation.at_source or observation.source_food is None:
+        return False
+    crowd = crowd_on_source(observation)
+    return crowd >= observation.yield_at and observation.source_food < crowd
+
+
 def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]:
     if not observation.alive:
         return ()
@@ -74,6 +97,8 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             raise AssertionError(f"{observation.actor} is at the source but did not observe its stock")
         found.append(CLAIM if observation.source_food >= 1 else WAIT)
     if hungry and not observation.at_source:
+        if yield_eligible(observation, config):
+            found.append(YIELD)
         found.append(GO)
     if not hungry:
         found.append(REST if observation.at_home else HOME)
@@ -96,6 +121,13 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
         return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount)
     if WAIT in options:
         return Decision(actor, WAIT, f"{urgency}, source empty", options)
+    if YIELD in options:
+        crowd = crowd_on_source(observation)
+        return Decision(
+            actor, YIELD,
+            f"{urgency}, saw {crowd} on source, stock {observation.source_food}, yield_at {observation.yield_at}",
+            options,
+        )
     if GO in options:
         return Decision(actor, GO, f"{urgency}, walking to source", options,
                         step=step_toward(observation.position, observation.source))

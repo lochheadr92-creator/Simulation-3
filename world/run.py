@@ -40,7 +40,8 @@ DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
 
 def run_id_for(config: WorldConfig, ticks: int) -> str:
-    return f"{config.name}-seed{config.seed}-ticks{ticks}"
+    mode = "on" if config.yield_on else "off"
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}"
 
 
 def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
@@ -118,6 +119,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ticks", type=int, default=300)
     for lever in LEVERS:
         parser.add_argument(f"--{lever.replace('_', '-')}", type=int, default=None, help=f"world lever (default from WorldConfig)")
+    parser.add_argument("--yield", dest="yield_mode", choices=("on", "off"), default="on",
+                        help="crowd-yield trait on (default) or off (every yield_at = actors+1)")
     parser.add_argument("--out", default=None, help="Run file path. Default: runs/<run_id>.jsonl")
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
     parser.add_argument("--html", action="store_true", help="Render the map viewer next to the run file.")
@@ -126,6 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def config_from(args: argparse.Namespace) -> WorldConfig:
     levers: dict[str, Any] = {lever: getattr(args, lever) for lever in LEVERS if getattr(args, lever) is not None}
+    levers["yield_on"] = args.yield_mode == "on"
     return WorldConfig(seed=args.seed, **levers)
 
 
@@ -155,6 +159,8 @@ def main(argv: list[str] | None = None) -> int:
         f"final_state_digest: {result.final_state_digest}",
         f"final_overlay_digest: {result.final_overlay_digest}",
         f"survivors: {result.survivors}  deaths: {result.deaths}",
+        f"yield: {config.describe()['yield']}",
+        f"yield_events: {sum(1 for tick in checked.ticks for d in tick.get('decisions', {}).values() if d.get('kind') == 'yield')}",
         f"file_verifies: {'yes' if checked.complete else 'no'}",
         f"tick_ms_mean: {result.tick_ms_mean:.3f}",
         f"tick_ms_p95: {result.tick_ms_p95:.3f}",

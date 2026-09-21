@@ -1,11 +1,11 @@
-"""Stage 2 world on top of the kernel ledger (OD-009 checkpoints 2 and 3).
+"""Stage 2 world on top of the kernel ledger (OD-009 / OD-010).
 
 The kernel stays the only authority over food units: claims, eating and
 contention settle there and nothing here writes a balance. This package adds
 what the kernel does not know about: where each person is, how hungry they
 are, one renewable food source at a fixed place, a bounded perception radius,
-and the world processes that move people, advance hunger, let people die, and
-renew the source.
+a per-person crowd-yield trait, and the world processes that move people,
+advance hunger, let people die, and renew the source.
 
 Ownership, in the order a tick runs (world/run.py):
   observe.py   the bounded tick-start view each person decides from

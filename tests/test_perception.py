@@ -55,6 +55,7 @@ def placed(positions: dict[str, tuple[int, int]], *, radius: int, stock: int = 4
         homes=positions,
         positions=positions,
         hunger={actor: 0 for actor in actors},
+        yield_at={actor: 99 for actor in actors},
         died_at=died_at or {},
     )
     return ledger, overlay, cfg
@@ -133,7 +134,7 @@ def test_source_stock_absent_out_of_view_and_equal_when_in_view():
 def test_unrestricted_radius_decisions_match_head_b305783(tmp_path: Path):
     fixture = json.loads(HEAD_FIXTURE.read_text(encoding="utf-8"))
     assert fixture["head"].startswith("b305783")
-    cfg = WorldConfig(seed=fixture["seed"], perception_radius=12)
+    cfg = WorldConfig(seed=fixture["seed"], perception_radius=12, yield_on=False)
     run_world(cfg, fixture["ticks"], tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     got = [tick["decisions"] for tick in run.ticks]

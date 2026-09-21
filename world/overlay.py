@@ -26,12 +26,23 @@ def _positions(raw: Mapping[str, Any]) -> Mapping[str, Position]:
     return MappingProxyType(out)
 
 
+def _positive_ints(raw: Mapping[str, Any], *, roster: set[str], name: str) -> Mapping[str, int]:
+    if set(raw) != roster:
+        raise ValueError(f"{name} must name the same people as homes")
+    out = {actor: raw[actor] for actor in sorted(raw)}
+    for actor, value in out.items():
+        if type(value) is not int or value < 1:
+            raise ValueError(f"{name} of {actor!r} must be a positive integer, got {value!r}")
+    return MappingProxyType(out)
+
+
 @dataclass(frozen=True)
 class Overlay:
     tick: int
     homes: Mapping[str, Position]
     positions: Mapping[str, Position]
     hunger: Mapping[str, int]
+    yield_at: Mapping[str, int]
     died_at: Mapping[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -49,10 +60,12 @@ class Overlay:
         for actor, when in died.items():
             if actor not in positions or type(when) is not int or when < 0 or when > self.tick:
                 raise ValueError(f"death of {actor!r} must name a known person and an earlier tick")
+        yield_at = _positive_ints(self.yield_at, roster=set(homes), name="yield_at")
         object.__setattr__(self, "homes", homes)
         object.__setattr__(self, "positions", positions)
         object.__setattr__(self, "hunger", MappingProxyType(hunger))
         object.__setattr__(self, "died_at", MappingProxyType(died))
+        object.__setattr__(self, "yield_at", yield_at)
 
     @property
     def roster(self) -> tuple[str, ...]:
@@ -71,6 +84,7 @@ class Overlay:
             "homes": {actor: list(pos) for actor, pos in self.homes.items()},
             "positions": {actor: list(pos) for actor, pos in self.positions.items()},
             "hunger": dict(self.hunger),
+            "yield_at": dict(self.yield_at),
             "died_at": dict(self.died_at),
         }
 
