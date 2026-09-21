@@ -1,0 +1,74 @@
+........................................................................ [ 48%]
+...................FFF.................................................. [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+_____________ test_all_proposals_sharing_an_identity_are_rejected _____________
+
+    def test_all_proposals_sharing_an_identity_are_rejected():
+        state = genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")})
+        engine = Engine(state)
+    
+        record = engine.tick(
+            [
+                claim("same", "A", 0, sources={"S": 1}),
+                claim("same", "B", 0, sources={"S": 1}),
+            ]
+        )
+    
+        outcomes = record.outcomes_for("same")
+        assert len(outcomes) == 2
+>       assert {outcome.reason for outcome in outcomes} == {Reason.DENIED_DUPLICATE_PROPOSAL_ID}
+E       AssertionError: assert {'accepted'} == {'denied_dupl..._proposal_id'}
+E         
+E         Extra items in the left set:
+E         'accepted'
+E         Extra items in the right set:
+E         'denied_duplicate_proposal_id'
+E         Use -v to get more diff
+
+tests\test_proposal_identity.py:33: AssertionError
+________ test_a_duplicate_identity_is_rejected_whichever_arrived_first ________
+
+    def test_a_duplicate_identity_is_rejected_whichever_arrived_first():
+        forward = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")}))
+        reverse = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(2, "A", "B")}))
+    
+        first = claim("same", "A", 0, sources={"S": 1})
+        second = claim("same", "B", 0, sources={"S": 1})
+    
+        forward_record = forward.tick([first, second])
+        reverse_record = reverse.tick([second, first])
+    
+>       assert accepted_ids(forward_record) == ()
+E       AssertionError: assert ('same', 'same') == ()
+E         
+E         Left contains 2 more items, first extra item: 'same'
+E         Use -v to get more diff
+
+tests\test_proposal_identity.py:48: AssertionError
+____ test_a_duplicate_identity_does_not_take_an_unrelated_proposal_with_it ____
+
+    def test_a_duplicate_identity_does_not_take_an_unrelated_proposal_with_it():
+        engine = Engine(genesis(balances={"A": 0, "B": 0}, sources={"S": source(3, "A", "B")}))
+    
+        record = engine.tick(
+            [
+                claim("same", "A", 0, sources={"S": 1}),
+                claim("same", "A", 1, sources={"S": 1}),
+                claim("distinct", "B", 0, sources={"S": 1}),
+            ]
+        )
+    
+>       assert accepted_ids(record) == ("distinct",)
+E       AssertionError: assert ('same', 'same', 'distinct') == ('distinct',)
+E         
+E         At index 0 diff: 'same' != 'distinct'
+E         Left contains 2 more items, first extra item: 'same'
+E         Use -v to get more diff
+
+tests\test_proposal_identity.py:64: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_proposal_identity.py::test_all_proposals_sharing_an_identity_are_rejected
+FAILED tests/test_proposal_identity.py::test_a_duplicate_identity_is_rejected_whichever_arrived_first
+FAILED tests/test_proposal_identity.py::test_a_duplicate_identity_does_not_take_an_unrelated_proposal_with_it
+3 failed, 145 passed in 0.78s

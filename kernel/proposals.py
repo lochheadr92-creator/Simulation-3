@@ -24,6 +24,9 @@ from kernel.units import is_integer, is_valid_transaction_amount
 OP_CLAIM = "claim"
 OP_TRANSFER = "transfer"
 OP_CONSUME = "consume"
+OP_RESERVE = "reserve"
+OP_COMPLETE = "complete"
+OP_CANCEL = "cancel"
 
 
 def _freeze(value: Any) -> Any:
@@ -157,3 +160,38 @@ def transfer(proposal_id: str, actor: str, order: int, *, to: str, amount: int) 
 def consume(proposal_id: str, actor: str, order: int, *, amount: int) -> Proposal:
     """Spend `amount` of the proposer's own holding into the consumption sink."""
     return Proposal(proposal_id, actor, order, OP_CONSUME, {"amount": amount})
+
+
+def reserve(proposal_id: str, actor: str, order: int, *, operation: str, params: Mapping[str, Any]) -> Proposal:
+    """Hold a claim, transfer or consumption plan for a later tick."""
+    return Proposal(proposal_id, actor, order, OP_RESERVE, {"operation": operation, "params": params})
+
+
+def complete(proposal_id: str, actor: str, order: int, *, action_id: str) -> Proposal:
+    """Commit the owner's previously reserved plan exactly once."""
+    return Proposal(proposal_id, actor, order, OP_COMPLETE, {"action_id": action_id})
+
+
+def cancel(proposal_id: str, actor: str, order: int, *, action_id: str) -> Proposal:
+    """Cancel the owner's reserved plan; its stock is free next tick."""
+    return Proposal(proposal_id, actor, order, OP_CANCEL, {"action_id": action_id})
+
+
+def reserved_plan(proposal: Proposal) -> Proposal:
+    """Validate the wrapper before using the existing operation expanders."""
+    operation = proposal.params.get("operation")
+    params = proposal.params.get("params")
+    if set(proposal.params) != {"operation", "params"} or not isinstance(params, Mapping):
+        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
+    if not isinstance(operation, str) or operation not in (OP_CLAIM, OP_TRANSFER, OP_CONSUME):
+        raise reasons.Rejected(reasons.DENIED_UNKNOWN_OPERATION)
+    if any(not isinstance(key, str) for key in params):
+        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
+    return Proposal(proposal.proposal_id, proposal.actor, proposal.order, operation, params)
+
+
+def requested_action(proposal: Proposal) -> str:
+    action_id = proposal.params.get("action_id")
+    if set(proposal.params) != {"action_id"} or not isinstance(action_id, str) or not action_id:
+        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
+    return action_id

@@ -1,8 +1,9 @@
 # V3 — development roadmap
 
-**ADOPTED 2026-09-19. No stage has passed. Stage 1 is open at slice 1a under
-owner direction OD-001 in AGENTS.md; no other stage or slice is authorised, and
-this document by itself authorises no execution.**
+**ADOPTED 2026-09-19; scope updated 2026-09-21 under OD-008. No stage has
+passed. Stage 1 is open through slice 1b under OD-001 and OD-008 in AGENTS.md.
+Slices 1c and 1d and later stages remain unauthorised. This document by itself
+authorises no execution.**
 
 The behavioural starter world has six people. The engineering target is 50 people.
 The order below follows dependencies, not the old project's feature sequence.

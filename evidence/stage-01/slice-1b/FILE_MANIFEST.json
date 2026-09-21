@@ -1,0 +1,30 @@
+{
+  "source_base": "b915aa0c179d4e19c954f8b05eb107c4cd34d475",
+  "before": {
+    "AGENTS.md": "0ab575c8e9777bc19c429f1848d80172cfbfb3c6d4b102df32083dc3ba2f2bdb",
+    "ROADMAP.md": "2b996d1bd79c90f04bc11c55c2e4f384fb54f8af63c08d940e77ebc60587c4bd",
+    "evidence/stage-01/RECORD.md": "8d1bc8a744105fe5804c644ed1cb3514a4d53b4cb3d812abb5cd40bcb9bb88a1",
+    "kernel/__init__.py": "5244a715a62d53695504d744ed954e115a304f4bfa80deee38986a6f3a875ff8",
+    "kernel/outcomes.py": "6675a3c304c2ba18c407e1641bc18183c3c1505561426fb2d02aa71c71ec52b6",
+    "kernel/proposals.py": "41c4ccd01d181aa48b6eeaabf1a3078962ae8599707bce9d3207769824c88a92",
+    "kernel/reasons.py": "4b66d04d49b859352dd299f7a6e866d3f9cbb9b491042379d99690a80212cc11",
+    "kernel/settlement.py": "a6e92c26a0c5f727fb4e1c86ff58cd95be765897b6d9526c84da8a13d9965947",
+    "kernel/state.py": "9a65cfd1e2fde009ca403e518d9cfd1f00d7596ba56495629ffe9fd252c4f897",
+    "kernel/version.py": "883c9979a9b2f801dcd66f3cfb6933ebf49fc7b17def76f26244324f03a7ad39",
+    "tests/test_dependency_direction.py": "cfd63cd609dac6552a0352399a2b7ef4ad7cb87f5bc09d153b3960db0cfa9120"
+  },
+  "after": {
+    "AGENTS.md": "b0d384f323afb75a96f2ed7ebefb60a400eaa16d89e370d65ba09c5339c0747b",
+    "ROADMAP.md": "61874071c68113c00c12048316733ab7bd107e9a73168a6173677ff209705647",
+    "evidence/stage-01/RECORD.md": "397b0b1566a91d8e00b6d11162d1e4f42d2149a6f84af815df9cb14ca8cb8b48",
+    "kernel/__init__.py": "08b9e6c6cd5c2026e36f264f422b183da12d02486f95d4a5d783d2d88e1c081d",
+    "kernel/outcomes.py": "ff17c25a360b393a7c4ff1052ce12f66634b0acbea94a60f876a73a12126fc32",
+    "kernel/proposals.py": "b59402e7d3654208ab7e2ab710e07799e8edc7a70f4b909a3e41dad2bd1f05ce",
+    "kernel/reasons.py": "2642e3d3b17cd4b4ea0c22c8a9f1bc70f0fd70a2fa05d2282d0ce41f50bc9f52",
+    "kernel/settlement.py": "9fef6f414c851a6218b2614f7678570f5b28062927be8955953bcfaba4dc0a3b",
+    "kernel/state.py": "2c7f95e7885439f1ef5072bc34f2fa603432208a75961ff4a8e12a210d7aaad8",
+    "kernel/version.py": "967d874c73455648ee91b902aef0e8c4dcf134644de7b8d659ec7d7f683e71a9",
+    "tests/test_dependency_direction.py": "ccf8e725724d855fefacbd592d3d7ba1249d000913deb0542c7bd8164a878881",
+    "tests/test_reservations.py": "28114bf441fd1832574c9483565c096cba192991e433c38387ab67e89510316e"
+  }
+}

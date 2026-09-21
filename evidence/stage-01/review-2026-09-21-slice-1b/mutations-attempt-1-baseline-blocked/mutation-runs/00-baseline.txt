@@ -1,0 +1,53 @@
+........................................................................ [ 28%]
+........................................................................ [ 57%]
+........................................................................ [ 86%]
+.......................F.F.......F                                       [100%]
+================================== FAILURES ===================================
+_____ test_representative_packets_are_mechanically_ok_and_not_acceptance ______
+
+    def test_representative_packets_are_mechanically_ok_and_not_acceptance():
+        first = verify(REPO_ROOT)
+        second = verify(REPO_ROOT)
+        assert render(first) == render(second)
+>       assert first["evidence_verification"] == "OK"
+E       AssertionError: assert 'ERROR' == 'OK'
+E         
+E         - OK
+E         + ERROR
+
+tests\test_verify_evidence.py:119: AssertionError
+_______ test_repair_contract_skips_amended_docs_and_still_checks_kernel _______
+
+    def test_repair_contract_skips_amended_docs_and_still_checks_kernel():
+        data = verify(REPO_ROOT, REPO_ROOT / REPAIR_CONTRACT)
+        codes = [(status, code) for status, code, _detail in data["packets"][0]["checks"]]
+        assert ("OK", "manifest_hash_skipped") in codes
+        assert ("OK", "manifest_hash_match") in codes
+>       assert ("ERROR", "manifest_hash_mismatch") not in codes
+E       AssertionError: assert ('ERROR', 'manifest_hash_mismatch') not in [('OK', 'contract_loaded'), ('OK', 'milestone'), ('OK', 'gate'), ('OK', 'acceptance_claimed'), ('OK', 'recorded_revision_present'), ('OK', 'source_base_present'), ...]
+
+tests\test_verify_evidence.py:146: AssertionError
+________________________ test_cli_from_repository_root ________________________
+
+    def test_cli_from_repository_root():
+        before = _kernel_hashes()
+        proc = subprocess.run(
+            [sys.executable, "-B", str(VERIFIER_PATH)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        assert before == _kernel_hashes()
+>       assert proc.returncode == 0, proc.stderr
+E       AssertionError: 
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\dev\\02-Simulation-Sandbox\\.worktrees\\request-food-outstanding\\sandbox\\f01_validation_...ion-restoration.json\n  - OK horizon_recorded packet=stage-01-repair-1 whole_world_executions_authorised\n", stderr='').returncode
+
+tests\test_verify_evidence.py:328: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_verify_evidence.py::test_representative_packets_are_mechanically_ok_and_not_acceptance
+FAILED tests/test_verify_evidence.py::test_repair_contract_skips_amended_docs_and_still_checks_kernel
+FAILED tests/test_verify_evidence.py::test_cli_from_repository_root - Asserti...
+3 failed, 247 passed in 11.48s

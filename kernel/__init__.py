@@ -1,8 +1,8 @@
-"""The V3 kernel, slice 1a.
+"""The V3 kernel, slices 1a and 1b.
 
 Immutable state, validated proposals, deterministic resolution, atomic
-settlement and immutable observation. There are no reservations, no multi-tick
-actions, no replay platform, no needs, movement, memory, social behaviour,
+settlement, owned reservations and immutable observation. There is no replay
+platform, no needs, movement, memory, social behaviour,
 construction, viewer, plugins or general scheduler here. Those belong to later
 slices and stages.
 """
@@ -14,9 +14,9 @@ from kernel.diagnostics import CollectingDiagnostics, DiagnosticsSink, NullDiagn
 from kernel.engine import Engine
 from kernel.ordering import actor_ranks, rotated_roster, sorted_roster
 from kernel.outcomes import ProposalOutcome, TickRecord
-from kernel.proposals import Proposal, claim, consume, transfer
+from kernel.proposals import Proposal, cancel, claim, complete, consume, reserve, transfer
 from kernel.settlement import IntegrityError, Settlement, effects_are_balanced, settle
-from kernel.state import Effect, Source, SourceView, WorldState, WorldView
+from kernel.state import Effect, Reservation, Source, SourceView, WorldState, WorldView
 from kernel.units import RESOURCE_UNIT
 from kernel.version import ENGINE_VERSION, SCHEMA_VERSION
 
@@ -50,6 +50,7 @@ __all__ = [
     "Proposal",
     "ProposalOutcome",
     "RESOURCE_UNIT",
+    "Reservation",
     "Reason",
     "SCHEMA_VERSION",
     "Settlement",
@@ -62,7 +63,9 @@ __all__ = [
     "canonical",
     "canonical_bytes",
     "canonicalise",
+    "cancel",
     "claim",
+    "complete",
     "consume",
     "diagnostics",
     "digest",
@@ -72,6 +75,7 @@ __all__ = [
     "outcomes",
     "proposals",
     "reasons",
+    "reserve",
     "rotated_roster",
     "settle",
     "settlement",

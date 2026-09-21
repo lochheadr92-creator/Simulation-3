@@ -1,0 +1,316 @@
+F.F.F.....F.F.F......................................................... [ 30%]
+........................................................................ [ 60%]
+...................F.................................................... [ 90%]
+......................                                                   [100%]
+================================== FAILURES ===================================
+____ test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing _____
+
+    def test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing():
+        state = two_source_world()
+        engine = Engine(state)
+    
+        record = engine.tick([claim("grab", "A", 0, sources={"OPEN": 1, "CLOSED": 1})])
+    
+>       assert reason_of(record, "grab") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:35: AssertionError
+_____________ test_a_denied_transaction_stages_no_effects_at_all ______________
+
+    def test_a_denied_transaction_stages_no_effects_at_all():
+        engine = Engine(two_source_world())
+    
+        record = engine.tick([claim("grab", "A", 0, sources={"OPEN": 1, "CLOSED": 1})])
+    
+>       assert record.outcomes[0].effects == ()
+E       AssertionError: assert (Effect(accou...N', delta=-1)) == ()
+E         
+E         Left contains 3 more items, first extra item: Effect(account='actor:A', delta=2)
+E         Use -v to get more diff
+
+tests\test_atomicity.py:57: AssertionError
+__________ test_an_unauthorised_single_source_claim_changes_nothing ___________
+
+    def test_an_unauthorised_single_source_claim_changes_nothing():
+        state = two_source_world()
+        engine = Engine(state)
+    
+        record = engine.tick([claim("grab", "A", 0, sources={"CLOSED": 1})])
+    
+>       assert reason_of(record, "grab") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:109: AssertionError
+_________________ test_nothing_may_debit_the_consumption_sink _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002B649E71B80>
+
+    def test_nothing_may_debit_the_consumption_sink(monkeypatch):
+        """The sink is credit only: units leave circulation and never come back."""
+    
+        def raid(proposal):
+            amount = proposal.params["amount"]
+            return (Effect("sink:consumed", -amount), Effect("actor:" + proposal.actor, amount))
+    
+        monkeypatch.setitem(proposals.EXPANDERS, "raid", raid)
+    
+        state = genesis(balances={"A": 0}, consumed=5)
+        engine = Engine(state)
+    
+        record = engine.tick([Proposal("raid", "A", 0, "raid", {"amount": 3})])
+    
+>       assert reason_of(record, "raid") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'denied_insufficient_balance' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + denied_insufficient_balance
+
+tests\test_atomicity.py:183: AssertionError
+_ test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002B649E72C90>
+
+    def test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied(monkeypatch):
+        """Adversarial case: an operation that spends an account it does not own."""
+    
+        def steal(proposal):
+            amount = proposal.params["amount"]
+            victim = proposal.params["from"]
+            return (Effect("actor:" + victim, -amount), Effect("actor:" + proposal.actor, amount))
+    
+        monkeypatch.setitem(proposals.EXPANDERS, "steal", steal)
+    
+        state = genesis(balances={"A": 0, "B": 4})
+        engine = Engine(state)
+    
+        record = engine.tick([Proposal("steal", "A", 0, "steal", {"amount": 4, "from": "B"})])
+    
+>       assert reason_of(record, "steal") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:221: AssertionError
+___ test_a_denied_transaction_does_not_consume_availability_for_a_later_one ___
+
+    def test_a_denied_transaction_does_not_consume_availability_for_a_later_one():
+        """Rejection leaves availability unchanged, so the next proposal still fits."""
+        engine = Engine(genesis(balances={"A": 0}, sources={"OPEN": source(1, "A"), "CLOSED": source(1, "B")}))
+    
+        record = engine.tick(
+            [
+                claim("doomed", "A", 0, sources={"OPEN": 1, "CLOSED": 1}),
+                claim("modest", "A", 1, sources={"OPEN": 1}),
+            ]
+        )
+    
+>       assert reason_of(record, "doomed") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:252: AssertionError
+_ test_multi_source_reservation_acquires_all_or_none[second_source1-denied_unauthorised] _
+
+state = WorldState(tick=0, balances=mappingproxy({'A': 0, 'B': 0}), sources=mappingproxy({'S1': Source(stock=1, authorised=frozenset({'A'})), 'S2': Source(stock=1, authorised=frozenset({'B'}))}), consumed=0, reservations=mappingproxy({}))
+staged = {}
+reservations = {'action:0128c8111c3624947b4202f688085ceade6b2cc325a7439ac7e779e2dc58d35a': Reservation(action_id='action:0128c8111c36...ts=(Effect(account='actor:A', delta=2), Effect(account='source:S1', delta=-1), Effect(account='source:S2', delta=-1)))}
+
+    def _commit(
+        state: WorldState, staged: dict[str, int],
+        reservations: Mapping[str, Reservation] | None = None,
+    ) -> WorldState:
+        """Apply the staged effects together, after the declared rails pass."""
+        known = (
+            {actor_account(actor_id) for actor_id in state.balances}
+            | {source_account(source_id) for source_id in state.sources}
+            | {SINK_ACCOUNT}
+        )
+        stray = set(staged) - known
+        if stray:
+            raise IntegrityError(f"settlement touched accounts outside the world: {sorted(stray)}")
+        if sum(staged.values()) != 0:
+            raise IntegrityError("committed effects do not sum to zero")
+    
+        balances = {
+            actor_id: amount + staged.get(actor_account(actor_id), 0)
+            for actor_id, amount in state.balances.items()
+        }
+        stocks = {
+            source_id: source.stock + staged.get(source_account(source_id), 0)
+            for source_id, source in state.sources.items()
+        }
+        consumed = state.consumed + staged.get(SINK_ACCOUNT, 0)
+    
+        negatives = (
+            [f"actor {actor_id}" for actor_id, amount in balances.items() if amount < 0]
+            + [f"source {source_id}" for source_id, stock in stocks.items() if stock < 0]
+            + (["the consumption sink"] if consumed < 0 else [])
+        )
+        if negatives:
+            raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
+    
+        try:
+>           next_state = WorldState(
+                tick=state.tick + 1,
+                balances=balances,
+                sources={
+                    source_id: Source(stock=stocks[source_id], authorised=source.authorised)
+                    for source_id, source in state.sources.items()
+                },
+                consumed=consumed,
+                reservations=state.reservations if reservations is None else reservations,
+            )
+
+kernel\settlement.py:316: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WorldState(tick=1, balances=mappingproxy({'A': 0, 'B': 0}), sources=mappingproxy({'S1': Source(stock=1, authorised=fro...s=(Effect(account='actor:A', delta=2), Effect(account='source:S1', delta=-1), Effect(account='source:S2', delta=-1)))})
+
+    def __post_init__(self) -> None:
+        if not is_integer(self.tick) or self.tick < 0:
+            raise ValueError(f"a tick must be an integer of zero or more, got {self.tick!r}")
+        if not is_valid_balance(self.consumed):
+            raise ValueError(f"the consumption sink must hold an integer of zero or more, got {self.consumed!r}")
+    
+        raw_balances = dict(self.balances)
+        for actor_id in raw_balances:
+            if not isinstance(actor_id, str) or not actor_id:
+                raise ValueError("an actor needs a non-empty identity")
+        balances = {actor_id: raw_balances[actor_id] for actor_id in sorted(raw_balances)}
+        for actor_id, amount in balances.items():
+            if not is_valid_balance(amount):
+                raise ValueError(f"the balance of {actor_id!r} must be an integer of zero or more, got {amount!r}")
+    
+        raw_sources = dict(self.sources)
+        for source_id in raw_sources:
+            if not isinstance(source_id, str) or not source_id:
+                raise ValueError("a source needs a non-empty identity")
+        sources = {source_id: raw_sources[source_id] for source_id in sorted(raw_sources)}
+        for source_id, source in sources.items():
+            if not isinstance(source, Source):
+                raise ValueError(f"{source_id!r} is not a Source")
+    
+        object.__setattr__(self, "balances", MappingProxyType(balances))
+        object.__setattr__(self, "sources", MappingProxyType(sources))
+        reservations = dict(self.reservations)
+        for action_id, reservation in reservations.items():
+            if not isinstance(reservation, Reservation) or action_id != reservation.action_id:
+                raise ValueError("reservation key must match its action identity")
+            if reservation.actor not in balances or reservation.created_tick >= self.tick:
+                raise ValueError("a reservation needs an existing actor and an earlier creation tick")
+            for effect in reservation.effects:
+                account = effect.account
+                if account == SINK_ACCOUNT:
+                    if effect.delta < 0:
+                        raise ValueError("a reservation cannot debit consumed stock")
+                elif is_actor_account(account):
+                    if actor_of(account) not in balances:
+                        raise ValueError("a reservation names an unknown actor")
+                    if effect.delta < 0 and actor_of(account) != reservation.actor:
+                        raise ValueError("a reservation cannot debit another actor")
+                elif is_source_account(account):
+                    if source_of(account) not in sources:
+                        raise ValueError("a reservation names an unknown source")
+                    if effect.delta < 0 and not sources[source_of(account)].permits(reservation.actor):
+>                       raise ValueError("a reservation needs source authority")
+E                       ValueError: a reservation needs source authority
+
+kernel\state.py:234: ValueError
+
+The above exception was the direct cause of the following exception:
+
+second_source = Source(stock=1, authorised=frozenset({'B'}))
+reason = 'denied_unauthorised'
+
+    @pytest.mark.parametrize("second_source,reason", [
+        (Source(0, {"A"}), Reason.DENIED_INSUFFICIENT_SOURCE),
+        (Source(1, {"B"}), Reason.DENIED_UNAUTHORISED),
+    ])
+    def test_multi_source_reservation_acquires_all_or_none(second_source, reason):
+        engine = Engine(WorldState.genesis(balances={"A": 0, "B": 0},
+                        sources={"S1": Source(1, {"A"}), "S2": second_source}))
+>       record = engine.tick([reserve("hold", "A", 0, operation="claim", params={"sources": {"S1": 1, "S2": 1}}),
+                              claim("free", "A", 1, sources={"S1": 1})])
+
+tests\test_reservations.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:48: in tick
+    settlement = settle(boundary, proposals)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\settlement.py:246: in settle
+    next_state = _commit(state, staged, reservations)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+state = WorldState(tick=0, balances=mappingproxy({'A': 0, 'B': 0}), sources=mappingproxy({'S1': Source(stock=1, authorised=frozenset({'A'})), 'S2': Source(stock=1, authorised=frozenset({'B'}))}), consumed=0, reservations=mappingproxy({}))
+staged = {}
+reservations = {'action:0128c8111c3624947b4202f688085ceade6b2cc325a7439ac7e779e2dc58d35a': Reservation(action_id='action:0128c8111c36...ts=(Effect(account='actor:A', delta=2), Effect(account='source:S1', delta=-1), Effect(account='source:S2', delta=-1)))}
+
+    def _commit(
+        state: WorldState, staged: dict[str, int],
+        reservations: Mapping[str, Reservation] | None = None,
+    ) -> WorldState:
+        """Apply the staged effects together, after the declared rails pass."""
+        known = (
+            {actor_account(actor_id) for actor_id in state.balances}
+            | {source_account(source_id) for source_id in state.sources}
+            | {SINK_ACCOUNT}
+        )
+        stray = set(staged) - known
+        if stray:
+            raise IntegrityError(f"settlement touched accounts outside the world: {sorted(stray)}")
+        if sum(staged.values()) != 0:
+            raise IntegrityError("committed effects do not sum to zero")
+    
+        balances = {
+            actor_id: amount + staged.get(actor_account(actor_id), 0)
+            for actor_id, amount in state.balances.items()
+        }
+        stocks = {
+            source_id: source.stock + staged.get(source_account(source_id), 0)
+            for source_id, source in state.sources.items()
+        }
+        consumed = state.consumed + staged.get(SINK_ACCOUNT, 0)
+    
+        negatives = (
+            [f"actor {actor_id}" for actor_id, amount in balances.items() if amount < 0]
+            + [f"source {source_id}" for source_id, stock in stocks.items() if stock < 0]
+            + (["the consumption sink"] if consumed < 0 else [])
+        )
+        if negatives:
+            raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
+    
+        try:
+            next_state = WorldState(
+                tick=state.tick + 1,
+                balances=balances,
+                sources={
+                    source_id: Source(stock=stocks[source_id], authorised=source.authorised)
+                    for source_id, source in state.sources.items()
+                },
+                consumed=consumed,
+                reservations=state.reservations if reservations is None else reservations,
+            )
+        except ValueError as error:
+>           raise IntegrityError(f"settlement produced invalid reservation state: {error}") from error
+E           kernel.settlement.IntegrityError: settlement produced invalid reservation state: a reservation needs source authority
+
+kernel\settlement.py:327: IntegrityError
+=========================== short test summary info ===========================
+FAILED tests/test_atomicity.py::test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing
+FAILED tests/test_atomicity.py::test_a_denied_transaction_stages_no_effects_at_all
+FAILED tests/test_atomicity.py::test_an_unauthorised_single_source_claim_changes_nothing
+FAILED tests/test_atomicity.py::test_nothing_may_debit_the_consumption_sink
+FAILED tests/test_atomicity.py::test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied
+FAILED tests/test_atomicity.py::test_a_denied_transaction_does_not_consume_availability_for_a_later_one
+FAILED tests/test_reservations.py::test_multi_source_reservation_acquires_all_or_none[second_source1-denied_unauthorised]
+7 failed, 231 passed in 8.38s

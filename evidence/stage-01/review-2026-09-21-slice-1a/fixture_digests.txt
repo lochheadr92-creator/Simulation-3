@@ -1,0 +1,55 @@
+﻿engine 0.1.1-stage1a   schema v3.kernel.1a.1
+
+A1 contention, one unit, two authorised claimants, tick 0
+  rotated roster   ('A', 'B')
+  outcomes         [('pA', 'accepted'), ('pB', 'denied_insufficient_source')]
+  balances         {'A': 1, 'B': 0}
+  source S         0
+  total before     1
+  total after      1
+  record digest    ed5b3c311474ed00d27fb2d4a15b9272376e22bf36c4ceb94af542d60b0f6d91
+  state digest     9b5e304618d0711c0bbd5da7dbca8e6622b717e433b6cb3871a468ac529d4ee8
+
+A1 contention, one unit, two authorised claimants, tick 1
+  rotated roster   ('B', 'A')
+  outcomes         [('pB', 'accepted'), ('pA', 'denied_insufficient_source')]
+  balances         {'A': 0, 'B': 1}
+  source S         0
+  total before     1
+  total after      1
+  record digest    e21e80db4efdae24a5e1e4c3ed0c2004ccf0dc1ddbbc4b8530cce58690f965b7
+  state digest     9c823e763f79c37d7b588045e86e38a38207d94ac650174191dd3fa865396f94
+
+A6 roadmap credit fixture, A to B then consume, starting at tick 0
+  rotated roster   ('A', 'B')
+  tick 0 outcomes  [('a_gives', 'accepted'), ('a_spends_again', 'denied_insufficient_balance'), ('b_spends_early', 'denied_insufficient_balance')]
+  tick 0 balances  {'A': 0, 'B': 1}
+  tick 1 outcomes  [('b_spends_later', 'accepted')]
+  tick 1 balances  {'A': 0, 'B': 0}
+  consumed         1
+  total before     1
+  total after      1
+  tick 0 digest    d0a765569ff23c46d59547ae17747f01e1e4fe542eecb9c5931b9156b9bb4cd1
+  tick 1 digest    b7933d7675376bf04ed2c86bbecab2adbb4f2b7242fa99e6d9e2f5c45db18dfa
+  state digest     5ad833ff5f469934b6b60f5aed53e69a97d146aee0c6465df043db2ad9467b05
+
+A6 roadmap credit fixture, A to B then consume, starting at tick 1
+  rotated roster   ('B', 'A')
+  tick 1 outcomes  [('b_spends_early', 'denied_insufficient_balance'), ('a_gives', 'accepted'), ('a_spends_again', 'denied_insufficient_balance')]
+  tick 1 balances  {'A': 0, 'B': 1}
+  tick 2 outcomes  [('b_spends_later', 'accepted')]
+  tick 2 balances  {'A': 0, 'B': 0}
+  consumed         1
+  total before     1
+  total after      1
+  tick 1 digest    c35000a01e7f3f1de41af7836ea36f7dac04c3af418331237ff69c15c26339e4
+  tick 2 digest    d244806f6d34947fc47f6949f65624e04a1095dae22f072d117fd00359de6043
+  state digest     51eb9f3b41f2f0826c0e6a5bac1a6d08e5bbde0d3cac5dc8cd6e267bc19ae7b0
+
+A8 diagnostics on against diagnostics off, same fixture
+  diagnostics off record  ed5b3c311474ed00d27fb2d4a15b9272376e22bf36c4ceb94af542d60b0f6d91
+  diagnostics on record   ed5b3c311474ed00d27fb2d4a15b9272376e22bf36c4ceb94af542d60b0f6d91
+  diagnostics off state   9b5e304618d0711c0bbd5da7dbca8e6622b717e433b6cb3871a468ac529d4ee8
+  diagnostics on state    9b5e304618d0711c0bbd5da7dbca8e6622b717e433b6cb3871a468ac529d4ee8
+  sink events captured    1
+  identical               True

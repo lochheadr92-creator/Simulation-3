@@ -1,0 +1,457 @@
+........................................................................ [ 48%]
+............................................FFFF...............F........ [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+____ test_large_signed_integer_digits_without_changing_global_policy[4300] ____
+
+digits = 4300
+
+    @pytest.mark.parametrize('digits', [639, 640, 4299, 4300, 5000, 10000])
+    def test_large_signed_integer_digits_without_changing_global_policy(digits):
+        limit = sys.get_int_max_str_digits()
+        value = 10 ** digits
+        expected = b'1' + b'0' * digits
+>       assert canonical_bytes(value) == expected
+               ^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_repair_boundaries.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\canonical.py:72: in canonical_bytes
+    return json.dumps(canonicalise(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000012EF1DC48F0>
+o = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] int object at 0x12eef58cc00>
+_one_shot = True
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+    
+        For example::
+    
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+    
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = encode_basestring_ascii
+        else:
+            _encoder = encode_basestring
+    
+        def floatstr(o, allow_nan=self.allow_nan,
+                _repr=float.__repr__, _inf=INFINITY, _neginf=-INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+    
+            if o != o:
+                text = 'NaN'
+            elif o == _inf:
+                text = 'Infinity'
+            elif o == _neginf:
+                text = '-Infinity'
+            else:
+                return _repr(o)
+    
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+    
+            return text
+    
+    
+        if (_one_shot and c_make_encoder is not None
+                and self.indent is None):
+            _iterencode = c_make_encoder(
+                markers, self.default, _encoder, self.indent,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, self.allow_nan)
+        else:
+            _iterencode = _make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+>       return _iterencode(o, 0)
+               ^^^^^^^^^^^^^^^^^
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit
+
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:258: ValueError
+____ test_large_signed_integer_digits_without_changing_global_policy[5000] ____
+
+digits = 5000
+
+    @pytest.mark.parametrize('digits', [639, 640, 4299, 4300, 5000, 10000])
+    def test_large_signed_integer_digits_without_changing_global_policy(digits):
+        limit = sys.get_int_max_str_digits()
+        value = 10 ** digits
+        expected = b'1' + b'0' * digits
+>       assert canonical_bytes(value) == expected
+               ^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_repair_boundaries.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\canonical.py:72: in canonical_bytes
+    return json.dumps(canonicalise(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000012EF1DC5550>
+o = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] int object at 0x12eef521350>
+_one_shot = True
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+    
+        For example::
+    
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+    
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = encode_basestring_ascii
+        else:
+            _encoder = encode_basestring
+    
+        def floatstr(o, allow_nan=self.allow_nan,
+                _repr=float.__repr__, _inf=INFINITY, _neginf=-INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+    
+            if o != o:
+                text = 'NaN'
+            elif o == _inf:
+                text = 'Infinity'
+            elif o == _neginf:
+                text = '-Infinity'
+            else:
+                return _repr(o)
+    
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+    
+            return text
+    
+    
+        if (_one_shot and c_make_encoder is not None
+                and self.indent is None):
+            _iterencode = c_make_encoder(
+                markers, self.default, _encoder, self.indent,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, self.allow_nan)
+        else:
+            _iterencode = _make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+>       return _iterencode(o, 0)
+               ^^^^^^^^^^^^^^^^^
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit
+
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:258: ValueError
+___ test_large_signed_integer_digits_without_changing_global_policy[10000] ____
+
+digits = 10000
+
+    @pytest.mark.parametrize('digits', [639, 640, 4299, 4300, 5000, 10000])
+    def test_large_signed_integer_digits_without_changing_global_policy(digits):
+        limit = sys.get_int_max_str_digits()
+        value = 10 ** digits
+        expected = b'1' + b'0' * digits
+>       assert canonical_bytes(value) == expected
+               ^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_repair_boundaries.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\canonical.py:72: in canonical_bytes
+    return json.dumps(canonicalise(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000012EF1DC6630>
+o = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] int object at 0x12eef65af30>
+_one_shot = True
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+    
+        For example::
+    
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+    
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = encode_basestring_ascii
+        else:
+            _encoder = encode_basestring
+    
+        def floatstr(o, allow_nan=self.allow_nan,
+                _repr=float.__repr__, _inf=INFINITY, _neginf=-INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+    
+            if o != o:
+                text = 'NaN'
+            elif o == _inf:
+                text = 'Infinity'
+            elif o == _neginf:
+                text = '-Infinity'
+            else:
+                return _repr(o)
+    
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+    
+            return text
+    
+    
+        if (_one_shot and c_make_encoder is not None
+                and self.indent is None):
+            _iterencode = c_make_encoder(
+                markers, self.default, _encoder, self.indent,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, self.allow_nan)
+        else:
+            _iterencode = _make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+>       return _iterencode(o, 0)
+               ^^^^^^^^^^^^^^^^^
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit
+
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:258: ValueError
+__ test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary ___
+
+    def test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary():
+        amount = 10 ** 5000
+        engine = Engine(WorldState.genesis(balances={'A': 0}, sources={'S': Source(amount, frozenset({'A'}))}))
+>       first = engine.tick([claim('claim', 'A', 0, sources={'S': amount}), consume('early', 'A', 1, amount=amount)])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_repair_boundaries.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:51: in tick
+    prior_state_digest=boundary.digest(),
+                       ^^^^^^^^^^^^^^^^^
+kernel\state.py:222: in digest
+    return canonical_digest(self.canonical())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:76: in digest
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:72: in canonical_bytes
+    return json.dumps(canonicalise(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000012EF1DC7A40>
+o = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] dict object at 0x12ef1f70040>
+_one_shot = True
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+    
+        For example::
+    
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+    
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = encode_basestring_ascii
+        else:
+            _encoder = encode_basestring
+    
+        def floatstr(o, allow_nan=self.allow_nan,
+                _repr=float.__repr__, _inf=INFINITY, _neginf=-INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+    
+            if o != o:
+                text = 'NaN'
+            elif o == _inf:
+                text = 'Infinity'
+            elif o == _neginf:
+                text = '-Infinity'
+            else:
+                return _repr(o)
+    
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+    
+            return text
+    
+    
+        if (_one_shot and c_make_encoder is not None
+                and self.indent is None):
+            _iterencode = c_make_encoder(
+                markers, self.default, _encoder, self.indent,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, self.allow_nan)
+        else:
+            _iterencode = _make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+>       return _iterencode(o, 0)
+               ^^^^^^^^^^^^^^^^^
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit
+
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:258: ValueError
+_______ test_declared_unbounded_integer_state_has_a_canonical_identity ________
+
+    def test_declared_unbounded_integer_state_has_a_canonical_identity():
+        state = WorldState.genesis(balances={'A': 10 ** 5000})
+        engine = Engine(state)
+        try:
+>           record = engine.tick()
+                     ^^^^^^^^^^^^^
+
+tests\test_review_regressions.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:51: in tick
+    prior_state_digest=boundary.digest(),
+                       ^^^^^^^^^^^^^^^^^
+kernel\state.py:222: in digest
+    return canonical_digest(self.canonical())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:76: in digest
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:72: in canonical_bytes
+    return json.dumps(canonicalise(value), sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+          ^^^^^^^^^^^
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:200: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000012EF1DCBDA0>
+o = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] dict object at 0x12ef1f19e00>
+_one_shot = True
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string
+        representation as available.
+    
+        For example::
+    
+            for chunk in JSONEncoder().iterencode(bigobject):
+                mysocket.write(chunk)
+    
+        """
+        if self.check_circular:
+            markers = {}
+        else:
+            markers = None
+        if self.ensure_ascii:
+            _encoder = encode_basestring_ascii
+        else:
+            _encoder = encode_basestring
+    
+        def floatstr(o, allow_nan=self.allow_nan,
+                _repr=float.__repr__, _inf=INFINITY, _neginf=-INFINITY):
+            # Check for specials.  Note that this type of test is processor
+            # and/or platform-specific, so do tests which don't depend on the
+            # internals.
+    
+            if o != o:
+                text = 'NaN'
+            elif o == _inf:
+                text = 'Infinity'
+            elif o == _neginf:
+                text = '-Infinity'
+            else:
+                return _repr(o)
+    
+            if not allow_nan:
+                raise ValueError(
+                    "Out of range float values are not JSON compliant: " +
+                    repr(o))
+    
+            return text
+    
+    
+        if (_one_shot and c_make_encoder is not None
+                and self.indent is None):
+            _iterencode = c_make_encoder(
+                markers, self.default, _encoder, self.indent,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, self.allow_nan)
+        else:
+            _iterencode = _make_iterencode(
+                markers, self.default, _encoder, self.indent, floatstr,
+                self.key_separator, self.item_separator, self.sort_keys,
+                self.skipkeys, _one_shot)
+>       return _iterencode(o, 0)
+               ^^^^^^^^^^^^^^^^^
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit
+
+C:\Users\RJLoc\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\json\encoder.py:258: ValueError
+=========================== short test summary info ===========================
+FAILED tests/test_repair_boundaries.py::test_large_signed_integer_digits_without_changing_global_policy[4300]
+FAILED tests/test_repair_boundaries.py::test_large_signed_integer_digits_without_changing_global_policy[5000]
+FAILED tests/test_repair_boundaries.py::test_large_signed_integer_digits_without_changing_global_policy[10000]
+FAILED tests/test_repair_boundaries.py::test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary
+FAILED tests/test_review_regressions.py::test_declared_unbounded_integer_state_has_a_canonical_identity
+5 failed, 143 passed in 0.67s

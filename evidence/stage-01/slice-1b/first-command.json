@@ -1,0 +1,29 @@
+{
+  "cwd": "C:\\dev\\03-Living-World-V3",
+  "argv": [
+    "C:/dev/02-Simulation-Sandbox/.worktrees/request-food-outstanding/sandbox/f01_validation_venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "tests/test_atomicity.py",
+    "tests/test_contention.py",
+    "tests/test_credit_boundary.py",
+    "tests/test_dependency_direction.py",
+    "tests/test_determinism.py",
+    "tests/test_indivisibility.py",
+    "tests/test_integrity_rails.py",
+    "tests/test_observation.py",
+    "tests/test_order_independence.py",
+    "tests/test_proposal_identity.py",
+    "tests/test_rotation.py",
+    "tests/test_review_regressions.py",
+    "tests/test_repair_boundaries.py",
+    "tests/test_reservations.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--tb=short",
+    "--basetemp=C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\stage1b-20260921\\first-temp",
+    "--junitxml=C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\stage1b-20260921\\first.xml"
+  ]
+}

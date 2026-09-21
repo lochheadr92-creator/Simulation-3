@@ -1,0 +1,24 @@
+........................................................................ [ 48%]
+.........................................................F.............. [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+________ test_unknown_actors_with_duplicate_ids_are_order_independent _________
+
+    def test_unknown_actors_with_duplicate_ids_are_order_independent():
+        proposals = [consume('duplicate', 'GHOST_A', 0, amount=1), consume('duplicate', 'GHOST_B', 0, amount=1)]
+        seen = []
+        for ordering in permutations(proposals):
+            engine = Engine(basic_world())
+            record = engine.tick(ordering)
+            seen.append({'digest': record.digest(), 'actors': [o.actor for o in record.outcomes],
+                         'reasons': [o.reason for o in record.outcomes], 'state': engine.state.digest()})
+        OBSERVATIONS['unknown_duplicate_ids'] = seen
+>       assert len({x['digest'] for x in seen}) == 1, 'Rejected proposal records depend on arrival order'
+E       AssertionError: Rejected proposal records depend on arrival order
+E       assert 2 == 1
+E        +  where 2 = len({'b2b5ab3858692164f78a29292ff3b58def97e68ddc9475b3d72c39690fd951e4', 'b6daccb1d7b5c2fbff20f7d603cdc045d88b275de78da9fd92b41ebdcb8fa634'})
+
+tests\test_review_regressions.py:34: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_review_regressions.py::test_unknown_actors_with_duplicate_ids_are_order_independent
+1 failed, 147 passed in 0.78s

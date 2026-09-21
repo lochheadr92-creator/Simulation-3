@@ -1,0 +1,33 @@
+{
+  "original_head": "b915aa0c179d4e19c954f8b05eb107c4cd34d475",
+  "original_unchanged_since_snapshot": true,
+  "files": {
+    "bare-pytest-snapshot.txt": "c414a2e3707b92e59d43b0e27b340cf9890fe34725defbf5ea85ab8ff506f884",
+    "debug_mutations.py": "c539b2bc84bef9538215adfc282a93b2e841beaa48edac64eae8d87889821b61",
+    "fixture_digests.txt": "599a333d9de6e08414b842de0834371c0e6b7c764b878ce82546158e1e0faf15",
+    "fixtures-review.json": "22614b046f996b61c3555d31ccb5f31cb76063b759928d5c55ceb4983a169a37",
+    "fixtures-review.txt": "9ae263ff798090778e82c3201c551bd5f38df60ed781ce3d02efa42f462808b9",
+    "legacy-test_orchestrator-alone.txt": "f7a7d66d4ac508e0d29a141eedab85995b861c85c43a5bca2f0f4e0d6ed9efca",
+    "mutations/mutation-output.txt": "f5db62dc70fa43cd469d77edef5308e32e02434c41b3968bacdecdfb41ad1c5d",
+    "mutations/mutation-restoration.json": "288484a45b94bcee3c3f2fa01823bc32fc5c80dd338d768886054effbf46c4c9",
+    "mutations/mutation-runs/00-baseline.txt": "cb10dd9309a51f68e6c08db8a52dfcc166f025c0a56683879d4ba72d255c54c4",
+    "mutations/mutation-runs/01-rotation-frozen.txt": "0f41fed18c9168da7571a9b0096c75060c4546a9de18242317bd2df5c36e3889",
+    "mutations/mutation-runs/02-credit-spendable-immediately.txt": "dda2ce5782c917aa3f3a7dbbe4b496edc03b4b628c20e6a1ffe6e033470b9ef3",
+    "mutations/mutation-runs/03-authority-not-checked.txt": "00609481e2bb343c361584ca8d1fb476d9dfad539dbbf79e7124edd9d5fc738a",
+    "mutations-attempt-1-baseline-blocked/mutation-output.txt": "56989e40c2a658d31373b1f6c75fbf395513f9aac39fdc52b856c84668a9ea68",
+    "mutations-attempt-1-baseline-blocked/mutation-restoration.json": "288484a45b94bcee3c3f2fa01823bc32fc5c80dd338d768886054effbf46c4c9",
+    "mutations-attempt-1-baseline-blocked/mutation-runs/00-baseline.txt": "e8b175ebc8464853dc5488d2dd230bf0df28fded406f1eaed129750042e914b0",
+    "preflight-on-1b-tree.txt": "d183fc916a54cbd67285633790613ca7061e3506d7887071ff10a38955630bea",
+    "probes-attempt-1.txt": "e7d817de36c57b3fdca7708fbf636c09b67d2475e09dbd2449aabf2f96ac031e",
+    "probes-attempt-2.txt": "9782ea8aad6a71f84f096d569660d62ddb6016e533bf46c71ed26cd62fb9b274",
+    "probes.xml": "d3d89cfcd1e5e3bc0ac21a3a29dacdc3a577c2b8e49d0e50416c9793773c8195",
+    "run_mutations_review.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run_mutations_review.stdout.txt": "5c22ec0b5d24ed1f36f44e63ea2f0ec511914107b77618f0a7216bb1319f8ee4",
+    "snapshot.json": "978033675b129d54ede1e6d2ec4835fc322dd7fdc2b7e85de485a68d72121f06",
+    "suite.txt": "d6c9162b253a11ad3f4610a4a92725c4c64e4f5aadfadb5b58cbc4a58de80acf",
+    "suite.xml": "6240fc5e4bcaf2974b647d9efa5c3a830869b358cf879ef1d932b55743f8b50e",
+    "test_review_probes_1b.py": "539d73d09e0e8107e46bb567116b808ac250b208a3b90b01a7e37965019d91bb",
+    "verify-evidence-on-1b-tree.txt": "25b9a4273c7657acdf215302ec1bc7dd84409cfeb1958754f6ae05f434ad5e9f",
+    "working-tree-vs-b915aa0.patch": "863843859cd4f89db647be23aec9359a3596e610a4a7742efd10bca40ef1784c"
+  }
+}

@@ -256,3 +256,24 @@ treating a green suite or a packaged run as Stage 1a or Stage 1 acceptance.
 **Linked revision.** The automation freeze commit on `codex/kernel-first-slice`.
 Its exact hash cannot appear inside this entry and is reported after the
 commit.
+
+### OD-008 - 2026-09-21 - Resume simulation development at Stage 1b
+
+**Exact owner direction:** "stage 1b", immediately after directing that
+orchestrator work stop because it had drifted away from the simulation.
+
+**Scope.** Implement and test Stage 1, slice 1b: reserve stock, then complete or
+cancel and release, with exactly-once settlement. Record the declarations and
+results in evidence/stage-01/RECORD.md. This supersedes the earlier slice-1b
+restriction for this bounded simulation work. Preserve the existing tooling,
+uncommitted files and historical evidence; do not resume orchestrator work.
+No Stage 1c, capacity/world runs, scientific acceptance, commit or publication
+is implied. Stage 1's independent exit review remains pending.
+
+**Reason.** Return to the simulation's next kernel slice. The roadmap defines
+1a–1d as internal slices with one Stage 1 exit, not separate stage exit gates.
+The earlier publication direction is OD-007 in published revision 810ab25;
+this checkout's existing automation work is deliberately left untouched.
+
+**Linked work.** The dated Stage 1b card and evidence/stage-01/slice-1b/ identify
+the source, tests and rollback. Local source base: b915aa0.

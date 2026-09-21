@@ -1,0 +1,90 @@
+........................................................................ [ 48%]
+...........................F..F............................F.F.......... [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+________ test_generator_reentry_preserves_boundary_and_releases_guard _________
+
+    def test_generator_reentry_preserves_boundary_and_releases_guard():
+        engine = Engine(world())
+        before = engine.state.digest()
+        def proposals():
+            engine.tick([consume('nested', 'A', 0, amount=1)])
+            yield consume('outer', 'A', 0, amount=1)
+>       with pytest.raises(RuntimeError, match='already in progress'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE RuntimeError
+
+tests\test_repair_boundaries.py:22: Failed
+_______ test_diagnostics_reentry_is_counted_and_later_ticks_still_work ________
+
+    def test_diagnostics_reentry_is_counted_and_later_ticks_still_work():
+        class Sink:
+            def record(self, event, payload):
+                engine.tick()
+        engine = Engine(world(), diagnostics=Sink())
+        for tick in (1, 2):
+            record = engine.tick()
+>           assert engine.state.tick == tick
+E           AssertionError: assert 319 == 1
+E            +  where 319 = WorldState(tick=319, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({}), consumed=0).tick
+E            +    where WorldState(tick=319, balances=mappingproxy({'A': 2, 'B': 0}), sources=mappingproxy({}), consumed=0) = <kernel.engine.Engine object at 0x000001AA749A4D10>.state
+
+tests\test_repair_boundaries.py:59: AssertionError
+_________ test_diagnostic_callback_cannot_reenter_the_public_tick_api _________
+
+    def test_diagnostic_callback_cannot_reenter_the_public_tick_api():
+        class SteppingDiagnostics:
+            engine = None
+            fired = False
+            def record(self, event, payload):
+                if not self.fired:
+                    self.fired = True
+                    self.engine.tick([consume('diagnostic-spend', 'A', 0, amount=1)])
+    
+        sink = SteppingDiagnostics()
+        observed = Engine(basic_world(), diagnostics=sink)
+        sink.engine = observed
+        quiet = Engine(basic_world())
+        quiet_record = quiet.tick()
+        observed_record = observed.tick()
+        OBSERVATIONS['reentrant_diagnostics'] = {
+            'quiet_tick': quiet.state.tick, 'observed_tick': observed.state.tick,
+            'quiet_balance': quiet.state.balances['A'], 'observed_balance': observed.state.balances['A'],
+            'returned_record_matches_current_state': observed_record.next_state_digest == observed.state.digest(),
+            'returned_records_identical': quiet_record.digest() == observed_record.digest()}
+>       assert observed.state.digest() == quiet.state.digest(), 'Diagnostics changed canonical state through public reentry'
+E       AssertionError: Diagnostics changed canonical state through public reentry
+E       assert '8aa307678064...02449f2e0c6ba' == '641a564c1022...d652d64b4053e'
+E         
+E         - 641a564c102275868191f608bf035ed29fad974122ee7faa64ad652d64b4053e
+E         + 8aa307678064db36fa7c8cc6d18d0355a08615254c7912a1a2302449f2e0c6ba
+
+tests\test_review_regressions.py:61: AssertionError
+___ test_proposal_iterator_reentry_cannot_duplicate_accepted_source_claims ____
+
+    def test_proposal_iterator_reentry_cannot_duplicate_accepted_source_claims():
+        engine = Engine(WorldState.genesis(balances={'A': 0}, sources={'S': Source(1, frozenset({'A'}))}))
+        records = []
+        def proposals():
+            records.append(engine.tick([claim('inner', 'A', 0, sources={'S': 1})]))
+            yield claim('outer', 'A', 0, sources={'S': 1})
+        error = None
+        try:
+            records.append(engine.tick(proposals()))
+        except RuntimeError as caught:
+            error = type(caught).__name__
+        credits = sum(e.delta for r in records for o in r.outcomes if o.accepted for e in o.effects if e.account == 'actor:A')
+        OBSERVATIONS['iterator_reentry'] = {'error': error, 'record_ticks': [r.tick for r in records],
+            'credited_in_accepted_records': credits, 'final_tick': engine.state.tick,
+            'final_balance': engine.state.balances['A'], 'final_source_stock': engine.state.sources['S'].stock}
+>       assert credits <= 1, 'Two accepted records credit the same one-unit source'
+E       AssertionError: Two accepted records credit the same one-unit source
+E       assert 2 <= 1
+
+tests\test_review_regressions.py:89: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_repair_boundaries.py::test_generator_reentry_preserves_boundary_and_releases_guard
+FAILED tests/test_repair_boundaries.py::test_diagnostics_reentry_is_counted_and_later_ticks_still_work
+FAILED tests/test_review_regressions.py::test_diagnostic_callback_cannot_reenter_the_public_tick_api
+FAILED tests/test_review_regressions.py::test_proposal_iterator_reentry_cannot_duplicate_accepted_source_claims
+4 failed, 144 passed in 0.80s

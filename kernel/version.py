@@ -7,5 +7,5 @@ an old digest means.
 
 from __future__ import annotations
 
-ENGINE_VERSION = "0.1.1-stage1a"
-SCHEMA_VERSION = "v3.kernel.1a.1"
+ENGINE_VERSION = "0.2.0-stage1b"
+SCHEMA_VERSION = "v3.kernel.1b.1"

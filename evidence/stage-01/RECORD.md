@@ -1,5 +1,115 @@
 # Stage 1 record — kernel only
 
+## Active card — Stage 1b, 2026-09-21
+
+| Field | Contents |
+|---|---|
+| State | Stage 1, slice 1b under AGENTS.md OD-008. Add two-tick reservations and exactly-once completion/cancellation to the repaired 1a kernel. Stage 1 exit and independent post-repair acceptance remain pending. |
+| Scope | Immutable reservation state, reserve/complete/cancel proposals, settlement phases, native lifecycle outcomes, focused kernel tests. No orchestrator work, replay/recovery, world, scheduler, capacity run or later slice. |
+| Identity | Actual checkout C:/dev/03-Living-World-V3, base b915aa0c179d4e19c954f8b05eb107c4cd34d475. Kernel version advances from 0.1.1-stage1a to 0.2.0-stage1b; schema from v3.kernel.1a.1 to v3.kernel.1b.1. |
+| Claim | Reserved units cannot be spent twice; atomic acquisition and settlement; owner-only cancellation/completion; cancellation wins same-boundary races; completion/release happens at most once; credits and released holds become ordinarily spendable only next tick; ordering, immutable observation and conservation remain valid. |
+| Definitions | See the preregistered Stage 1b declarations immediately below. No scientific counting predicate or budget changes. |
+| Instrument | Native state, reservations and tick outcomes. Existing kernel reference/review tests, explicit lifecycle negatives, exhaustive small permutations, diagnostics controls and conservation checks. Baseline before changes: 148 passed. |
+| Budget and attempt | Focused deterministic correctness tests only. Whole-world and capacity runs: 0 authorised, 0 used. No exploration or confirmation run. |
+| Evidence and rollback | Results and exact commands appended below; raw outputs and file identities in slice-1b/. Restore only this slice's listed files after checking for later work; retain its evidence and unrelated dirty tooling. |
+
+### Stage 1b declarations — fixed before implementation
+
+- `reserve` wraps one existing `claim`, `transfer` or `consume` operation. The
+  existing shape, authority, balanced-effect and affordability checks apply to
+  its whole frozen plan. Nested reservations and arbitrary effects are excluded.
+- A hold encumbers the plan's debit accounts without moving their stock.
+  Balances/source stocks include held units; the conserved total counts each
+  unit once. Free availability is tick-start stock minus all existing holds.
+  Accepting a new reservation immediately reduces remaining free availability.
+- Settlement assigns each accepted reservation an action ID from the canonical
+  digest of its creation tick, actor and engine-assigned sequence. Callers use
+  the returned ID for completion/cancellation. IDs cannot be reused at later
+  ticks. There is no unbounded collection of completed-action tombstones.
+- A reservation created at T is first eligible for completion/cancellation at
+  T+1. It remains held until its owner explicitly completes or cancels it;
+  empty ticks do not invent an action or timeout. The sole cancellation cause
+  in this slice is the owner's explicit request. No death/interrupt scheduler.
+- Validate every submitted identity/order and authority first. Then process
+  cancellations, completions, and new transactions/reservations in that order.
+  Within each phase use rotated actor rank and dense actor-local sequence.
+  Malformed/unauthorised cancellations cannot suppress a valid completion.
+- Completion commits exactly the frozen balanced effects against its own hold,
+  never against ordinary free availability. Cancellation removes only its hold.
+  Neither returns debit availability to ordinary proposals during that tick.
+  Completion credits and released stock are spendable at the next tick start.
+- Duplicate proposal IDs/orders retain the existing deny-all rule. Distinct
+  terminal requests for one action resolve in phase/sequence order; after the
+  first valid close, further requests are denied as `denied_unknown_action`.
+  A rejected unrelated transaction cannot cancel a reservation. New holds
+  cannot be completed in their creation tick, even with a guessed action ID.
+- State/views include immutable reservations. Accepted reserve outcomes expose
+  the frozen plan and ID; terminal outcomes carry its ID and committed effects
+  (none for cancellation). Every submission retains an explicit outcome.
+- The new schema adds reservation state and action fields. Legacy no-action
+  balances, effects, reasons and priority must remain unchanged. Canonical
+  digests intentionally change with the schema; historical references remain
+  intact and no new accepted baseline is inferred from self-verification.
+
+### Stage 1b result — 2026-09-21
+
+Implemented in the main simulation checkout at `C:/dev/03-Living-World-V3`,
+as uncommitted changes on `codex/kernel-first-slice` based on `b915aa0`.
+There is no new isolated implementation checkout to synchronize. Existing
+dirty automation files, historical evidence and receipts were preserved.
+
+`kernel/state.py` owns immutable reservations and free-stock observation;
+`proposals.py` supplies reserve/complete/cancel requests; `settlement.py` owns
+validation, phased resolution, hold acquisition/release and atomic effects.
+`outcomes.py` records the generated action ID and frozen plan at reservation,
+and the target ID and effects on closure. Ordinary account totals include held
+units once. No action history accumulates after closure.
+
+| Check | Measured result | Evidence |
+|---|---|---|
+| Before changes | 148 existing kernel/reference/review tests passed | [baseline.txt](slice-1b/baseline.txt) |
+| First implementation run | 209 tests passed | [first.txt](slice-1b/first.txt) |
+| Final kernel run | 212 passed, 0 failures/errors/skips; includes 64 lifecycle cases and all prior 148 tests | [final.txt](slice-1b/final.txt), [JUnit](slice-1b/final.xml) |
+| Prior no-action fixtures | Eight ticks retain identical economic state, effects, reasons, actor sequence and ordering after removing only the declared schema/version additions and their derived digests | [current capture](slice-1b/fixtures-stage1b.json), [retained 1a capture](repair-1/fixtures-repaired.json) |
+| Preservation and diff | 164 pre-existing files outside the declared edit set unchanged, including tooling and receipts; HEAD unchanged; nothing staged; whitespace check passed | [verification](slice-1b/verification.json), [source hashes](slice-1b/FILE_MANIFEST.json) |
+
+The new tests exercise both terminal paths, repeat requests within/across ticks,
+cancellation precedence, invalid cancellations, duplicate identities/orders,
+owner checks, atomic multi-source acquisition and completion, source/holding
+contention, next-tick release/credit rules, multiple simultaneous holds, frozen
+observation, diagnostics failures, interrupted collection, commit failure,
+unbounded integers and permuted input collections. No assertion or expected
+historical result was weakened. The dependency declaration adds only the
+lower-level canonical digest helper for engine-generated action IDs; settlement
+still cannot import diagnostics or the engine.
+
+Reproduction: [the exact final command](slice-1b/final-command.json) lists the
+14 kernel test files and the existing Python 3.12 validation interpreter. Run
+with `PYTHONUTF8=1`, `PYTHONDONTWRITEBYTECODE=1`, bytecode/cache writes disabled,
+and a new writable `--basetemp`. The registered orchestrator gates and tooling
+suite were not invoked. The eight native fixture ticks were captured with
+`python -B evidence/stage-01/repair-1/capture_fixtures.py <repo> <fresh-output.json>`.
+All actual raw results are retained; this sitting had no failing test run.
+
+**Limits and review.** This is implemented and self-tested Stage 1b, not Stage 1
+exit acceptance. Actor identity is still supplied by the caller. Cancellation
+is an explicit owner request; there is no automatic deadline, death system or
+scheduler. Plans may remain pending across empty ticks. Persistence, sealed
+replay/recovery, capacity limits and independent acceptance remain untested or
+pending in their declared later scope. Whole-world/capacity runs remain zero.
+No Stage 1c work, orchestrator development, commit or push occurred.
+
+**Rollback list, if separately requested.** Restore only the seven changed
+kernel files (`__init__.py`, `state.py`, `proposals.py`, `settlement.py`,
+`outcomes.py`, `reasons.py`, `version.py`) and
+`tests/test_dependency_direction.py` from the recorded base, after checking
+for later work. Archive the added `tests/test_reservations.py`. Retain the
+OD-008 direction, this record and `slice-1b/` evidence with an appended rollback
+status, and revise the roadmap's current-scope notice if needed. Do not reset
+the repository or touch the pre-existing tooling changes. Nothing was reverted.
+
+## Historical Stage 1a record (retained verbatim below)
+
 Authority: owner direction OD-001 of 2026-09-19, recorded in `AGENTS.md`.
 Only slice 1a is open. Slices 1b, 1c and 1d are not authorised, and the Stage 1
 exit gate is not claimed.
@@ -602,3 +712,39 @@ This follow-up changes only the owner-direction register and this publication
 note. Engine/test content remains the validated repair. Independent post-repair
 acceptance and Stage 1 completion remain pending. Publication does not change
 that status.
+
+### Independent post-repair review of slice 1a — 2026-09-21
+
+Reviewer: Claude (`claude-fable-5-1`), a different model from the builder.
+Source `fb5a8959fb6a7a23d6e3107fe32be8248cc19901` in a fresh clone; suite 148
+passed, fixture digests and the 19/20 mutation result reproduced, 21 reviewer
+probes passed. Verdict PASS on every essential slice 1a condition; R1–R5
+closed. Stage 1 remains incomplete (1c–1d unbuilt); the exit gate is not
+claimed. Evidence: [review-2026-09-21-slice-1a/REVIEW.md](review-2026-09-21-slice-1a/REVIEW.md).
+Note: the "Proposal identity and the actor-local sequence" declaration above
+describes Attempt 1 and is superseded by Repair 1 (R5): callers supply
+`order`, the engine assigns `sequence`.
+
+### Independent review of slice 1b — 2026-09-21
+
+Reviewer: Claude (`claude-fable-5-1`). Snapshot of the uncommitted tree on
+`b915aa0`; 212 kernel tests and both fixture claims reproduced; nine reviewer
+probes including a 300-tick lifecycle fuzz passed. Kernel verdict PASS on
+every 1b claim. Two integration findings before commit: F1, the repair-1
+evidence contract compared its manifest against the live tree (three
+`manifest_hash_mismatch` errors); F2, the stale untracked pre-freeze
+orchestrator killed any bare `pytest` run. F3, the 1a mutation instrument's
+anchors no longer match the phased settlement. Evidence:
+[review-2026-09-21-slice-1b/REVIEW.md](review-2026-09-21-slice-1b/REVIEW.md).
+Stage 1 exit not claimed.
+
+### Slice 1b landed — 2026-09-21
+
+F1 resolved in commit `1858e96` (historical manifests are checked at their
+recorded revision; working-tree drift is reported as superseded). F2 resolved
+in the same commit: the two stale files were removed from this checkout and
+archived with SHA-256 (`947954d0…` orchestrator, `9a78d5a3…` test) in the
+review workspace. Whole tree with plain `pytest`: 254 passed. F3 (mutation
+instrument update for 1b) remains open and is not a blocker. This commit
+contains the slice 1b kernel, tests, evidence and both review records. No
+push, merge, acceptance or later slice.

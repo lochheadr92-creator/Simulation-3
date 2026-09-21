@@ -1,0 +1,127 @@
+.....................................................F.................. [ 48%]
+...................................................................F.... [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+_________ test_a_partly_available_multi_source_claim_is_denied_whole __________
+
+    def test_a_partly_available_multi_source_claim_is_denied_whole():
+        state = genesis(
+            balances={"A": 0},
+            sources={"FULL": source(5, "A"), "THIN": source(1, "A")},
+        )
+        engine = Engine(state)
+    
+>       record = engine.tick([claim("sweep", "A", 0, sources={"FULL": 1, "THIN": 2})])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_indivisibility.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:48: in tick
+    settlement = settle(boundary, proposals)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\settlement.py:193: in settle
+    next_state = _commit(state, staged)
+                 ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+state = WorldState(tick=0, balances=mappingproxy({'A': 0}), sources=mappingproxy({'FULL': Source(stock=5, authorised=frozenset({'A'})), 'THIN': Source(stock=1, authorised=frozenset({'A'}))}), consumed=0)
+staged = {'actor:A': 3, 'source:FULL': -1, 'source:THIN': -2}
+
+    def _commit(state: WorldState, staged: dict[str, int]) -> WorldState:
+        """Apply the staged effects together, after the declared rails pass."""
+        known = (
+            {actor_account(actor_id) for actor_id in state.balances}
+            | {source_account(source_id) for source_id in state.sources}
+            | {SINK_ACCOUNT}
+        )
+        stray = set(staged) - known
+        if stray:
+            raise IntegrityError(f"settlement touched accounts outside the world: {sorted(stray)}")
+        if sum(staged.values()) != 0:
+            raise IntegrityError("committed effects do not sum to zero")
+    
+        balances = {
+            actor_id: amount + staged.get(actor_account(actor_id), 0)
+            for actor_id, amount in state.balances.items()
+        }
+        stocks = {
+            source_id: source.stock + staged.get(source_account(source_id), 0)
+            for source_id, source in state.sources.items()
+        }
+        consumed = state.consumed + staged.get(SINK_ACCOUNT, 0)
+    
+        negatives = (
+            [f"actor {actor_id}" for actor_id, amount in balances.items() if amount < 0]
+            + [f"source {source_id}" for source_id, stock in stocks.items() if stock < 0]
+            + (["the consumption sink"] if consumed < 0 else [])
+        )
+        if negatives:
+>           raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
+E           kernel.settlement.IntegrityError: settlement would leave a negative balance: ['source THIN']
+
+kernel\settlement.py:253: IntegrityError
+________________ test_exhaustive_small_contested_transactions _________________
+
+    def test_exhaustive_small_contested_transactions():
+        cases = 0
+        source_sets = [('S1',), ('S2',), ('S1', 'S2')]
+        for s1, s2, a, b, tick, asrc, bsrc, aq, bq in product(range(3), range(3), range(2), range(2), range(2), source_sets, source_sets, (1, 2), (1, 2)):
+            state = WorldState.genesis(tick=tick, balances={'A': a, 'B': b}, sources={
+                'S1': Source(s1, frozenset({'A', 'B'})), 'S2': Source(s2, frozenset({'A', 'B'}))})
+            proposals = [claim('a', 'A', 0, sources={s: aq for s in asrc}), claim('b', 'B', 0, sources={s: bq for s in bsrc})]
+            records = []
+            for ordered in (proposals, list(reversed(proposals))):
+                engine = Engine(state)
+>               record = engine.tick(ordered)
+                         ^^^^^^^^^^^^^^^^^^^^
+
+tests\test_review_regressions.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:48: in tick
+    settlement = settle(boundary, proposals)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\settlement.py:193: in settle
+    next_state = _commit(state, staged)
+                 ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+state = WorldState(tick=0, balances=mappingproxy({'A': 0, 'B': 0}), sources=mappingproxy({'S1': Source(stock=1, authorised=frozenset({'B', 'A'})), 'S2': Source(stock=0, authorised=frozenset({'B', 'A'}))}), consumed=0)
+staged = {'actor:B': 2, 'source:S1': -1, 'source:S2': -1}
+
+    def _commit(state: WorldState, staged: dict[str, int]) -> WorldState:
+        """Apply the staged effects together, after the declared rails pass."""
+        known = (
+            {actor_account(actor_id) for actor_id in state.balances}
+            | {source_account(source_id) for source_id in state.sources}
+            | {SINK_ACCOUNT}
+        )
+        stray = set(staged) - known
+        if stray:
+            raise IntegrityError(f"settlement touched accounts outside the world: {sorted(stray)}")
+        if sum(staged.values()) != 0:
+            raise IntegrityError("committed effects do not sum to zero")
+    
+        balances = {
+            actor_id: amount + staged.get(actor_account(actor_id), 0)
+            for actor_id, amount in state.balances.items()
+        }
+        stocks = {
+            source_id: source.stock + staged.get(source_account(source_id), 0)
+            for source_id, source in state.sources.items()
+        }
+        consumed = state.consumed + staged.get(SINK_ACCOUNT, 0)
+    
+        negatives = (
+            [f"actor {actor_id}" for actor_id, amount in balances.items() if amount < 0]
+            + [f"source {source_id}" for source_id, stock in stocks.items() if stock < 0]
+            + (["the consumption sink"] if consumed < 0 else [])
+        )
+        if negatives:
+>           raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
+E           kernel.settlement.IntegrityError: settlement would leave a negative balance: ['source S2']
+
+kernel\settlement.py:253: IntegrityError
+=========================== short test summary info ===========================
+FAILED tests/test_indivisibility.py::test_a_partly_available_multi_source_claim_is_denied_whole
+FAILED tests/test_review_regressions.py::test_exhaustive_small_contested_transactions
+2 failed, 146 passed in 0.50s

@@ -1,0 +1,506 @@
+[
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "9bb8caec07a0f7bf4131066a244183eda1428b76b9fb770c48ff08e19d4cdf34",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "A",
+          "effects": [
+            {
+              "account": "actor:A",
+              "delta": 1
+            },
+            {
+              "account": "source:S",
+              "delta": -1
+            }
+          ],
+          "operation": "claim",
+          "proposal_id": "pA",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "B",
+          "effects": [],
+          "operation": "claim",
+          "proposal_id": "pB",
+          "reason": "denied_insufficient_source",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "04f129ead6615c9cf5f90e30c8029a27c561912ceb3b9ecd9310ad0adf131a87",
+      "rotated_roster": [
+        "A",
+        "B"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 0
+    },
+    "record_digest": "fccc7700cb52c107adb61f66638088541b707336b52f07727a09ae1fcde83fb0",
+    "state": {
+      "balances": {
+        "A": 1,
+        "B": 0
+      },
+      "consumed": 0,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {
+        "S": {
+          "authorised": [
+            "A",
+            "B"
+          ],
+          "stock": 0
+        }
+      },
+      "tick": 1
+    },
+    "state_digest": "9bb8caec07a0f7bf4131066a244183eda1428b76b9fb770c48ff08e19d4cdf34"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "be611cd939f1600e6482068814004d0adef6ddf42324e6ffbc4c7d40f50f563d",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "B",
+          "effects": [
+            {
+              "account": "actor:B",
+              "delta": 1
+            },
+            {
+              "account": "source:S",
+              "delta": -1
+            }
+          ],
+          "operation": "claim",
+          "proposal_id": "pB",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "A",
+          "effects": [],
+          "operation": "claim",
+          "proposal_id": "pA",
+          "reason": "denied_insufficient_source",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "50fa1853e9a5f14181751d765065c1e3196013fd09e999a9596d700ad3ff814c",
+      "rotated_roster": [
+        "B",
+        "A"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 1
+    },
+    "record_digest": "ef27eee17b18581225702636d00ddd1d8917c0e0e6213fcbbbdf22b132942482",
+    "state": {
+      "balances": {
+        "A": 0,
+        "B": 1
+      },
+      "consumed": 0,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {
+        "S": {
+          "authorised": [
+            "A",
+            "B"
+          ],
+          "stock": 0
+        }
+      },
+      "tick": 2
+    },
+    "state_digest": "be611cd939f1600e6482068814004d0adef6ddf42324e6ffbc4c7d40f50f563d"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "656d8916e968b7be0171ebc05d166c30c15a6be2cf3178f0412599d98f1d3d6f",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "A",
+          "effects": [
+            {
+              "account": "actor:A",
+              "delta": -1
+            },
+            {
+              "account": "actor:B",
+              "delta": 1
+            }
+          ],
+          "operation": "transfer",
+          "proposal_id": "a_gives",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "A",
+          "effects": [],
+          "operation": "consume",
+          "proposal_id": "a_spends_again",
+          "reason": "denied_insufficient_balance",
+          "reservation": null,
+          "sequence": 1
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "B",
+          "effects": [],
+          "operation": "consume",
+          "proposal_id": "b_spends_early",
+          "reason": "denied_insufficient_balance",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "f01e166fadc0ce267b2cce43d4ec8ab08965ee9385e5d173b0a276c6d113c297",
+      "rotated_roster": [
+        "A",
+        "B"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 0
+    },
+    "record_digest": "afaedb7e5bfef2747274308898f8754fe96ddfe111e45f002af87b6cbe815f97",
+    "state": {
+      "balances": {
+        "A": 0,
+        "B": 1
+      },
+      "consumed": 0,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {},
+      "tick": 1
+    },
+    "state_digest": "656d8916e968b7be0171ebc05d166c30c15a6be2cf3178f0412599d98f1d3d6f"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "b05901cd115b4e1f8c46dd542ba5ef24b528702fb70842d7af1dd03caae63e4e",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "B",
+          "effects": [
+            {
+              "account": "actor:B",
+              "delta": -1
+            },
+            {
+              "account": "sink:consumed",
+              "delta": 1
+            }
+          ],
+          "operation": "consume",
+          "proposal_id": "b_spends_later",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "656d8916e968b7be0171ebc05d166c30c15a6be2cf3178f0412599d98f1d3d6f",
+      "rotated_roster": [
+        "B",
+        "A"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 1
+    },
+    "record_digest": "5316c252c31e84d691e0c2c0a476d2107a3cf45a7c6926a52c6462e32d0f32f2",
+    "state": {
+      "balances": {
+        "A": 0,
+        "B": 0
+      },
+      "consumed": 1,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {},
+      "tick": 2
+    },
+    "state_digest": "b05901cd115b4e1f8c46dd542ba5ef24b528702fb70842d7af1dd03caae63e4e"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "e38ab2883b3ce450f1b8f8c394259f67f8e8a3137f6e98ee9f1d0242971cef70",
+      "outcomes": [
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "B",
+          "effects": [],
+          "operation": "consume",
+          "proposal_id": "b_spends_early",
+          "reason": "denied_insufficient_balance",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "A",
+          "effects": [
+            {
+              "account": "actor:A",
+              "delta": -1
+            },
+            {
+              "account": "actor:B",
+              "delta": 1
+            }
+          ],
+          "operation": "transfer",
+          "proposal_id": "a_gives",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "A",
+          "effects": [],
+          "operation": "consume",
+          "proposal_id": "a_spends_again",
+          "reason": "denied_insufficient_balance",
+          "reservation": null,
+          "sequence": 1
+        }
+      ],
+      "prior_state_digest": "eaabd5a6a3af8232e37af1ee82ae53626c710338d6bdaa1d874feade03f217bd",
+      "rotated_roster": [
+        "B",
+        "A"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 1
+    },
+    "record_digest": "e98342e3b97115434c8b5525f127220d8b625a662f59b9f673a3ae5037a15c0f",
+    "state": {
+      "balances": {
+        "A": 0,
+        "B": 1
+      },
+      "consumed": 0,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {},
+      "tick": 2
+    },
+    "state_digest": "e38ab2883b3ce450f1b8f8c394259f67f8e8a3137f6e98ee9f1d0242971cef70"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "41ec9aec7c252c693c39657f82b48b8c02513cc32e794979e92f80418b69dda5",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "B",
+          "effects": [
+            {
+              "account": "actor:B",
+              "delta": -1
+            },
+            {
+              "account": "sink:consumed",
+              "delta": 1
+            }
+          ],
+          "operation": "consume",
+          "proposal_id": "b_spends_later",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "e38ab2883b3ce450f1b8f8c394259f67f8e8a3137f6e98ee9f1d0242971cef70",
+      "rotated_roster": [
+        "A",
+        "B"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 2
+    },
+    "record_digest": "348a47e55b5ac2382edada32c5114a825e4e1e333a9976bc6fc1635fec85f26d",
+    "state": {
+      "balances": {
+        "A": 0,
+        "B": 0
+      },
+      "consumed": 1,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {},
+      "tick": 3
+    },
+    "state_digest": "41ec9aec7c252c693c39657f82b48b8c02513cc32e794979e92f80418b69dda5"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "9bb8caec07a0f7bf4131066a244183eda1428b76b9fb770c48ff08e19d4cdf34",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "A",
+          "effects": [
+            {
+              "account": "actor:A",
+              "delta": 1
+            },
+            {
+              "account": "source:S",
+              "delta": -1
+            }
+          ],
+          "operation": "claim",
+          "proposal_id": "pA",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "B",
+          "effects": [],
+          "operation": "claim",
+          "proposal_id": "pB",
+          "reason": "denied_insufficient_source",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "04f129ead6615c9cf5f90e30c8029a27c561912ceb3b9ecd9310ad0adf131a87",
+      "rotated_roster": [
+        "A",
+        "B"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 0
+    },
+    "record_digest": "fccc7700cb52c107adb61f66638088541b707336b52f07727a09ae1fcde83fb0",
+    "state": {
+      "balances": {
+        "A": 1,
+        "B": 0
+      },
+      "consumed": 0,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {
+        "S": {
+          "authorised": [
+            "A",
+            "B"
+          ],
+          "stock": 0
+        }
+      },
+      "tick": 1
+    },
+    "state_digest": "9bb8caec07a0f7bf4131066a244183eda1428b76b9fb770c48ff08e19d4cdf34"
+  },
+  {
+    "record": {
+      "engine_version": "0.2.0-stage1b",
+      "next_state_digest": "9bb8caec07a0f7bf4131066a244183eda1428b76b9fb770c48ff08e19d4cdf34",
+      "outcomes": [
+        {
+          "accepted": 1,
+          "action_id": null,
+          "actor": "A",
+          "effects": [
+            {
+              "account": "actor:A",
+              "delta": 1
+            },
+            {
+              "account": "source:S",
+              "delta": -1
+            }
+          ],
+          "operation": "claim",
+          "proposal_id": "pA",
+          "reason": "accepted",
+          "reservation": null,
+          "sequence": 0
+        },
+        {
+          "accepted": 0,
+          "action_id": null,
+          "actor": "B",
+          "effects": [],
+          "operation": "claim",
+          "proposal_id": "pB",
+          "reason": "denied_insufficient_source",
+          "reservation": null,
+          "sequence": 0
+        }
+      ],
+      "prior_state_digest": "04f129ead6615c9cf5f90e30c8029a27c561912ceb3b9ecd9310ad0adf131a87",
+      "rotated_roster": [
+        "A",
+        "B"
+      ],
+      "schema_version": "v3.kernel.1b.1",
+      "tick": 0
+    },
+    "record_digest": "fccc7700cb52c107adb61f66638088541b707336b52f07727a09ae1fcde83fb0",
+    "state": {
+      "balances": {
+        "A": 1,
+        "B": 0
+      },
+      "consumed": 0,
+      "reservations": {},
+      "schema_version": "v3.kernel.1b.1",
+      "sources": {
+        "S": {
+          "authorised": [
+            "A",
+            "B"
+          ],
+          "stock": 0
+        }
+      },
+      "tick": 1
+    },
+    "state_digest": "9bb8caec07a0f7bf4131066a244183eda1428b76b9fb770c48ff08e19d4cdf34"
+  }
+]

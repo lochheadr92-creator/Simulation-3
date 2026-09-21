@@ -1,0 +1,119 @@
+..........................F...FF.F...................................... [ 30%]
+.............................................................F.......... [ 60%]
+........................................................................ [ 90%]
+......................                                                   [100%]
+================================== FAILURES ===================================
+_____________________ test_the_roadmap_credit_fixture[0] ______________________
+
+start_tick = 0
+
+    @pytest.mark.parametrize("start_tick", [0, 1])
+    def test_the_roadmap_credit_fixture(start_tick):
+        state = genesis(tick=start_tick, balances={"A": 1, "B": 0})
+        engine = Engine(state)
+    
+        record = engine.tick(
+            [
+                transfer("a_gives", "A", 0, to="B", amount=1),
+                consume("a_spends_again", "A", 1, amount=1),
+                consume("b_spends_early", "B", 0, amount=1),
+            ]
+        )
+    
+        assert reason_of(record, "a_gives") == Reason.ACCEPTED
+        assert reason_of(record, "a_spends_again") == Reason.DENIED_INSUFFICIENT_BALANCE
+>       assert reason_of(record, "b_spends_early") == Reason.DENIED_INSUFFICIENT_BALANCE
+E       AssertionError: assert 'accepted' == 'denied_insufficient_balance'
+E         
+E         - denied_insufficient_balance
+E         + accepted
+
+tests\test_credit_boundary.py:36: AssertionError
+_________ test_the_recipient_cannot_pass_on_a_unit_received_this_tick _________
+
+    def test_the_recipient_cannot_pass_on_a_unit_received_this_tick():
+        engine = Engine(genesis(balances={"A": 1, "B": 0, "C": 0}))
+    
+        record = engine.tick(
+            [
+                transfer("a_to_b", "A", 0, to="B", amount=1),
+                transfer("b_to_c", "B", 0, to="C", amount=1),
+            ]
+        )
+    
+        assert reason_of(record, "a_to_b") == Reason.ACCEPTED
+>       assert reason_of(record, "b_to_c") == Reason.DENIED_INSUFFICIENT_BALANCE
+E       AssertionError: assert 'accepted' == 'denied_insufficient_balance'
+E         
+E         - denied_insufficient_balance
+E         + accepted
+
+tests\test_credit_boundary.py:76: AssertionError
+______ test_a_unit_claimed_this_tick_is_not_spendable_until_the_next_one ______
+
+    def test_a_unit_claimed_this_tick_is_not_spendable_until_the_next_one():
+        """The same availability boundary applies to a credit taken from a source."""
+        state = genesis(balances={"A": 0}, sources={"S": source(1, "A")})
+        engine = Engine(state)
+    
+        record = engine.tick(
+            [
+                claim("take", "A", 0, sources={"S": 1}),
+                consume("eat", "A", 1, amount=1),
+            ]
+        )
+    
+        assert reason_of(record, "take") == Reason.ACCEPTED
+>       assert reason_of(record, "eat") == Reason.DENIED_INSUFFICIENT_BALANCE
+E       AssertionError: assert 'accepted' == 'denied_insufficient_balance'
+E         
+E         - denied_insufficient_balance
+E         + accepted
+
+tests\test_credit_boundary.py:98: AssertionError
+_ test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend _
+
+    def test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend():
+        """B asking before or after A gives makes no difference to availability."""
+        early = Engine(genesis(balances={"A": 1, "B": 0}))
+        late = Engine(genesis(balances={"A": 1, "B": 0}))
+    
+        early_record = early.tick(
+            [
+                consume("b_first", "B", 0, amount=1),
+                transfer("a_gives", "A", 0, to="B", amount=1),
+            ]
+        )
+        late_record = late.tick(
+            [
+                transfer("a_gives", "A", 0, to="B", amount=1),
+                consume("b_first", "B", 0, amount=1),
+            ]
+        )
+    
+>       assert accepted_ids(early_record) == ("a_gives",)
+E       AssertionError: assert ('a_gives', 'b_first') == ('a_gives',)
+E         
+E         Left contains one more item: 'b_first'
+E         Use -v to get more diff
+
+tests\test_credit_boundary.py:140: AssertionError
+__ test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary ___
+
+    def test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary():
+        amount = 10 ** 5000
+        engine = Engine(WorldState.genesis(balances={'A': 0}, sources={'S': Source(amount, frozenset({'A'}))}))
+        first = engine.tick([claim('claim', 'A', 0, sources={'S': amount}), consume('early', 'A', 1, amount=amount)])
+        assert first.outcomes[0].accepted
+>       assert not first.outcomes[1].accepted
+E       AssertionError: assert not True
+E        +  where True = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] ProposalOutcome object at 0x1f4e0c612e0>.accepted
+
+tests\test_repair_boundaries.py:112: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_credit_boundary.py::test_the_roadmap_credit_fixture[0] - As...
+FAILED tests/test_credit_boundary.py::test_the_recipient_cannot_pass_on_a_unit_received_this_tick
+FAILED tests/test_credit_boundary.py::test_a_unit_claimed_this_tick_is_not_spendable_until_the_next_one
+FAILED tests/test_credit_boundary.py::test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend
+FAILED tests/test_repair_boundaries.py::test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary
+5 failed, 233 passed in 8.07s

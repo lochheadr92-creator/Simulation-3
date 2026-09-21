@@ -9,30 +9,33 @@ The order of work follows the roadmap's tick algorithm:
 1. the caller freezes the tick-start state and collects proposals against it;
 2. shape, identity, authority and precondition validation, rejecting all
    proposals that share a duplicate identity regardless of arrival order;
-3. cancellation of reserved work, which does not exist until slice 1b;
-4. resolution in the declared total order;
+3. authorised cancellation of reserved work;
+4. surviving reserved completions, then new transactions and reservations;
 5. validation of each whole transaction against remaining tick-start
    availability, staging balanced effects and committing all or none of each;
 6. commit of the next state.
 
 The roadmap's total key is (phase, rotated actor rank, actor-local sequence).
-The phase term is constant here because reserved completions arrive in slice 1b,
-so the key below carries its two remaining components.
+Cancellation is phase 0, completion phase 1, and new work phase 2.
 """
 
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from kernel import reasons
+from kernel.canonical import digest as canonical_digest
 from kernel.ordering import actor_ranks, rotated_roster
 from kernel.outcomes import ProposalOutcome
-from kernel.proposals import Proposal, expand
+from kernel.proposals import (
+    OP_CANCEL, OP_COMPLETE, OP_RESERVE, Proposal, expand, requested_action, reserved_plan,
+)
 from kernel.state import (
     SINK_ACCOUNT,
     Effect,
+    Reservation,
     Source,
     WorldState,
     actor_account,
@@ -113,6 +116,10 @@ def _shortfall(effects: Iterable[Effect], available: dict[str, int]) -> str | No
     return None
 
 
+def _phase(operation: str) -> int:
+    return {OP_CANCEL: 0, OP_COMPLETE: 1}.get(operation, 2)
+
+
 def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
     submitted = tuple(proposals)
     for proposal in submitted:
@@ -132,9 +139,16 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
 
     verdicts: dict[int, str] = {}
     committed: dict[int, tuple[Effect, ...]] = {}
+    action_ids: dict[int, str] = {}
+    reserved: dict[int, Reservation] = {}
+    plans: dict[int, Proposal] = {}
     candidates: list[tuple[int, Proposal, tuple[Effect, ...]]] = []
 
     for index, proposal in enumerate(submitted):
+        if proposal.operation in (OP_CANCEL, OP_COMPLETE):
+            target = proposal.params.get("action_id")
+            if isinstance(target, str) and target:
+                action_ids[index] = target
         if id_counts[proposal.proposal_id] > 1:
             verdicts[index] = reasons.DENIED_DUPLICATE_PROPOSAL_ID
             continue
@@ -145,7 +159,18 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
             verdicts[index] = reasons.DENIED_UNKNOWN_ACTOR
             continue
         try:
-            effects = expand(proposal)
+            if proposal.operation in (OP_CANCEL, OP_COMPLETE):
+                action_id = requested_action(proposal)
+                reservation = state.reservations.get(action_id)
+                if reservation is None:
+                    raise reasons.Rejected(reasons.DENIED_UNKNOWN_ACTION)
+                if reservation.actor != proposal.actor:
+                    raise reasons.Rejected(reasons.DENIED_UNAUTHORISED)
+                effects = reservation.effects if proposal.operation == OP_COMPLETE else ()
+            else:
+                plan = reserved_plan(proposal) if proposal.operation == OP_RESERVE else proposal
+                plans[index] = plan
+                effects = expand(plan)
         except reasons.Rejected as rejection:
             verdicts[index] = rejection.reason
             continue
@@ -163,16 +188,30 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
 
     rotated = rotated_roster(state.roster, state.tick)
     ranks = actor_ranks(rotated)
-    candidates.sort(key=lambda candidate: (ranks[candidate[1].actor], sequences[(candidate[1].actor, candidate[1].order)]))
+    candidates.sort(key=lambda candidate: (
+        _phase(candidate[1].operation), ranks[candidate[1].actor],
+        sequences[(candidate[1].actor, candidate[1].order)],
+    ))
 
-    available = {actor_account(actor_id): amount for actor_id, amount in state.balances.items()}
-    available.update(
-        {source_account(source_id): source.stock for source_id, source in state.sources.items()}
-    )
-    available[SINK_ACCOUNT] = 0
+    # Capture free stock before any release. Cancelling a hold cannot enable
+    # an ordinary spend until the next tick, even though cancellation runs first.
+    available = state.availability()
+    reservations = dict(state.reservations)
 
     staged: dict[str, int] = {}
     for index, proposal, effects in candidates:
+        if proposal.operation in (OP_CANCEL, OP_COMPLETE):
+            action_id = action_ids[index]
+            if action_id not in reservations:
+                verdicts[index] = reasons.DENIED_UNKNOWN_ACTION
+                continue
+            del reservations[action_id]
+            for effect in effects:
+                staged[effect.account] = staged.get(effect.account, 0) + effect.delta
+            verdicts[index] = reasons.ACCEPTED
+            committed[index] = effects
+            continue
+
         short = _shortfall(effects, available)
         if short is not None:
             verdicts[index] = (
@@ -186,11 +225,25 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
         for effect in effects:
             if effect.delta < 0:
                 available[effect.account] += effect.delta
-            staged[effect.account] = staged.get(effect.account, 0) + effect.delta
+        if proposal.operation == OP_RESERVE:
+            action_id = "action:" + canonical_digest({
+                "tick": state.tick, "actor": proposal.actor,
+                "sequence": sequences[(proposal.actor, proposal.order)],
+            })
+            if action_id in reservations:
+                raise IntegrityError("reservation action identity collided")
+            reservation = Reservation(action_id, proposal.actor, state.tick, plans[index].operation, effects)
+            reservations[action_id] = reservation
+            action_ids[index] = action_id
+            reserved[index] = reservation
+            committed[index] = ()
+        else:
+            for effect in effects:
+                staged[effect.account] = staged.get(effect.account, 0) + effect.delta
+            committed[index] = effects
         verdicts[index] = reasons.ACCEPTED
-        committed[index] = effects
 
-    next_state = _commit(state, staged)
+    next_state = _commit(state, staged, reservations)
 
     outcomes = [
         ProposalOutcome(
@@ -200,17 +253,21 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
             operation=proposal.operation,
             reason=verdicts[index],
             effects=committed.get(index, ()),
+            action_id=action_ids.get(index),
+            reservation=reserved.get(index),
         )
         for index, proposal in enumerate(submitted)
     ]
     unranked = len(rotated)
     outcomes.sort(
         key=lambda outcome: (
+            _phase(outcome.operation),
             ranks.get(outcome.actor, unranked),
             outcome.actor,
             outcome.sequence,
             outcome.proposal_id,
             outcome.operation,
+            outcome.action_id or "",
         )
     )
 
@@ -221,7 +278,10 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
     )
 
 
-def _commit(state: WorldState, staged: dict[str, int]) -> WorldState:
+def _commit(
+    state: WorldState, staged: dict[str, int],
+    reservations: Mapping[str, Reservation] | None = None,
+) -> WorldState:
     """Apply the staged effects together, after the declared rails pass."""
     known = (
         {actor_account(actor_id) for actor_id in state.balances}
@@ -252,19 +312,23 @@ def _commit(state: WorldState, staged: dict[str, int]) -> WorldState:
     if negatives:
         raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
 
-    next_state = WorldState(
-        tick=state.tick + 1,
-        balances=balances,
-        sources={
-            source_id: Source(stock=stocks[source_id], authorised=source.authorised)
-            for source_id, source in state.sources.items()
-        },
-        consumed=consumed,
-    )
+    try:
+        next_state = WorldState(
+            tick=state.tick + 1,
+            balances=balances,
+            sources={
+                source_id: Source(stock=stocks[source_id], authorised=source.authorised)
+                for source_id, source in state.sources.items()
+            },
+            consumed=consumed,
+            reservations=state.reservations if reservations is None else reservations,
+        )
+    except ValueError as error:
+        raise IntegrityError(f"settlement produced invalid reservation state: {error}") from error
     if next_state.total() != state.total():
         raise IntegrityError(
             f"settlement did not conserve the declared total: {state.total()} became {next_state.total()}"
         )
     if next_state.roster != state.roster:
-        raise IntegrityError("settlement changed the roster, which slice 1a does not do")
+        raise IntegrityError("settlement changed the roster, which slices 1a/1b do not do")
     return next_state

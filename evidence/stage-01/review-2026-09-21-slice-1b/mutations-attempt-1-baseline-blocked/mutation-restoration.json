@@ -1,0 +1,15 @@
+{
+  "exit_code": 1,
+  "mutated_files": [
+    "evidence\\stage-01\\instrument\\mutation_check.py",
+    "kernel\\canonical.py",
+    "kernel\\engine.py",
+    "kernel\\ordering.py",
+    "kernel\\settlement.py",
+    "kernel\\state.py",
+    "kernel\\units.py"
+  ],
+  "clone_files_restored_exactly": true,
+  "changed": [],
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]"
+}

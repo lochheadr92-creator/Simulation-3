@@ -1,0 +1,127 @@
+F.F.F.....F.F.F......................................................... [ 48%]
+........................................................................ [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+____ test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing _____
+
+    def test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing():
+        state = two_source_world()
+        engine = Engine(state)
+    
+        record = engine.tick([claim("grab", "A", 0, sources={"OPEN": 1, "CLOSED": 1})])
+    
+>       assert reason_of(record, "grab") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:35: AssertionError
+_____________ test_a_denied_transaction_stages_no_effects_at_all ______________
+
+    def test_a_denied_transaction_stages_no_effects_at_all():
+        engine = Engine(two_source_world())
+    
+        record = engine.tick([claim("grab", "A", 0, sources={"OPEN": 1, "CLOSED": 1})])
+    
+>       assert record.outcomes[0].effects == ()
+E       AssertionError: assert (Effect(accou...N', delta=-1)) == ()
+E         
+E         Left contains 3 more items, first extra item: Effect(account='actor:A', delta=2)
+E         Use -v to get more diff
+
+tests\test_atomicity.py:57: AssertionError
+__________ test_an_unauthorised_single_source_claim_changes_nothing ___________
+
+    def test_an_unauthorised_single_source_claim_changes_nothing():
+        state = two_source_world()
+        engine = Engine(state)
+    
+        record = engine.tick([claim("grab", "A", 0, sources={"CLOSED": 1})])
+    
+>       assert reason_of(record, "grab") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:109: AssertionError
+_________________ test_nothing_may_debit_the_consumption_sink _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025A3CA25AC0>
+
+    def test_nothing_may_debit_the_consumption_sink(monkeypatch):
+        """The sink is credit only: units leave circulation and never come back."""
+    
+        def raid(proposal):
+            amount = proposal.params["amount"]
+            return (Effect("sink:consumed", -amount), Effect("actor:" + proposal.actor, amount))
+    
+        monkeypatch.setitem(proposals.EXPANDERS, "raid", raid)
+    
+        state = genesis(balances={"A": 0}, consumed=5)
+        engine = Engine(state)
+    
+        record = engine.tick([Proposal("raid", "A", 0, "raid", {"amount": 3})])
+    
+>       assert reason_of(record, "raid") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'denied_insufficient_balance' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + denied_insufficient_balance
+
+tests\test_atomicity.py:183: AssertionError
+_ test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025A3CA27B60>
+
+    def test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied(monkeypatch):
+        """Adversarial case: an operation that spends an account it does not own."""
+    
+        def steal(proposal):
+            amount = proposal.params["amount"]
+            victim = proposal.params["from"]
+            return (Effect("actor:" + victim, -amount), Effect("actor:" + proposal.actor, amount))
+    
+        monkeypatch.setitem(proposals.EXPANDERS, "steal", steal)
+    
+        state = genesis(balances={"A": 0, "B": 4})
+        engine = Engine(state)
+    
+        record = engine.tick([Proposal("steal", "A", 0, "steal", {"amount": 4, "from": "B"})])
+    
+>       assert reason_of(record, "steal") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:221: AssertionError
+___ test_a_denied_transaction_does_not_consume_availability_for_a_later_one ___
+
+    def test_a_denied_transaction_does_not_consume_availability_for_a_later_one():
+        """Rejection leaves availability unchanged, so the next proposal still fits."""
+        engine = Engine(genesis(balances={"A": 0}, sources={"OPEN": source(1, "A"), "CLOSED": source(1, "B")}))
+    
+        record = engine.tick(
+            [
+                claim("doomed", "A", 0, sources={"OPEN": 1, "CLOSED": 1}),
+                claim("modest", "A", 1, sources={"OPEN": 1}),
+            ]
+        )
+    
+>       assert reason_of(record, "doomed") == Reason.DENIED_UNAUTHORISED
+E       AssertionError: assert 'accepted' == 'denied_unauthorised'
+E         
+E         - denied_unauthorised
+E         + accepted
+
+tests\test_atomicity.py:252: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_atomicity.py::test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing
+FAILED tests/test_atomicity.py::test_a_denied_transaction_stages_no_effects_at_all
+FAILED tests/test_atomicity.py::test_an_unauthorised_single_source_claim_changes_nothing
+FAILED tests/test_atomicity.py::test_nothing_may_debit_the_consumption_sink
+FAILED tests/test_atomicity.py::test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied
+FAILED tests/test_atomicity.py::test_a_denied_transaction_does_not_consume_availability_for_a_later_one
+6 failed, 142 passed in 0.79s

@@ -1,0 +1,115 @@
+.........................................................FFF............ [ 48%]
+........................................................................ [ 97%]
+....                                                                     [100%]
+================================== FAILURES ===================================
+___________ test_a_fractional_amount_is_denied_rather_than_rounded ____________
+
+    def test_a_fractional_amount_is_denied_rather_than_rounded():
+        state = genesis(balances={"A": 3})
+        engine = Engine(state)
+    
+>       record = engine.tick([consume("half", "A", 0, amount=1.5)])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_indivisibility.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:52: in tick
+    next_state_digest=settlement.next_state.digest(),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\state.py:222: in digest
+    return canonical_digest(self.canonical())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:76: in digest
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:72: in canonical_bytes
+    return _encode(canonicalise(value)).encode("utf-8")
+                   ^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:37: in canonicalise
+    canonical_map[key] = canonicalise(item)
+                         ^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:37: in canonicalise
+    canonical_map[key] = canonicalise(item)
+                         ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = 1.5
+
+    def canonicalise(value: Any) -> Any:
+        """Return a JSON-safe copy of `value`, refusing anything without a canonical form."""
+        if value is None or isinstance(value, str):
+            return value
+        if isinstance(value, bool):
+            raise CanonicalError("booleans have no canonical form; the kernel carries integers")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+>           raise CanonicalError("floating point values have no canonical form")
+E           kernel.canonical.CanonicalError: floating point values have no canonical form
+
+kernel\canonical.py:31: CanonicalError
+__________________ test_a_whole_valued_float_is_still_denied __________________
+
+    def test_a_whole_valued_float_is_still_denied():
+        """1.0 is not an integer unit count; accepting it would admit float arithmetic."""
+        engine = Engine(genesis(balances={"A": 3}))
+    
+>       record = engine.tick([consume("one_point_oh", "A", 0, amount=1.0)])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_indivisibility.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+kernel\engine.py:52: in tick
+    next_state_digest=settlement.next_state.digest(),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\state.py:222: in digest
+    return canonical_digest(self.canonical())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:76: in digest
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:72: in canonical_bytes
+    return _encode(canonicalise(value)).encode("utf-8")
+                   ^^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:37: in canonicalise
+    canonical_map[key] = canonicalise(item)
+                         ^^^^^^^^^^^^^^^^^^
+kernel\canonical.py:37: in canonicalise
+    canonical_map[key] = canonicalise(item)
+                         ^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = 2.0
+
+    def canonicalise(value: Any) -> Any:
+        """Return a JSON-safe copy of `value`, refusing anything without a canonical form."""
+        if value is None or isinstance(value, str):
+            return value
+        if isinstance(value, bool):
+            raise CanonicalError("booleans have no canonical form; the kernel carries integers")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+>           raise CanonicalError("floating point values have no canonical form")
+E           kernel.canonical.CanonicalError: floating point values have no canonical form
+
+kernel\canonical.py:31: CanonicalError
+___ test_a_boolean_amount_is_denied_even_though_python_calls_it_an_integer ____
+
+    def test_a_boolean_amount_is_denied_even_though_python_calls_it_an_integer():
+        engine = Engine(genesis(balances={"A": 3}))
+    
+        record = engine.tick([consume("truthy", "A", 0, amount=True)])
+    
+>       assert reason_of(record, "truthy") == Reason.DENIED_NON_INTEGER_AMOUNT
+E       AssertionError: assert 'accepted' == 'denied_non_integer_amount'
+E         
+E         - denied_non_integer_amount
+E         + accepted
+
+tests\test_indivisibility.py:126: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_indivisibility.py::test_a_fractional_amount_is_denied_rather_than_rounded
+FAILED tests/test_indivisibility.py::test_a_whole_valued_float_is_still_denied
+FAILED tests/test_indivisibility.py::test_a_boolean_amount_is_denied_even_though_python_calls_it_an_integer
+3 failed, 145 passed in 0.80s

@@ -1,0 +1,227 @@
+...F.................................................................... [ 48%]
+..............FF...................................................F...F [ 97%]
+F.FF                                                                     [100%]
+================================== FAILURES ===================================
+______ test_losing_one_leg_to_contention_leaves_the_other_leg_untouched _______
+
+    def test_losing_one_leg_to_contention_leaves_the_other_leg_untouched():
+        """B takes the only CLOSED unit first, so A's two-source claim fails whole."""
+        state = genesis(
+            tick=0,
+            balances={"A": 0, "B": 0},
+            sources={"OPEN": source(1, "A", "B"), "CLOSED": source(1, "A", "B")},
+        )
+        engine = Engine(state)
+    
+        record = engine.tick(
+            [
+                # A resolves first at tick 0 and asks for both units.
+                claim("wide", "A", 0, sources={"OPEN": 1, "CLOSED": 1}),
+                claim("narrow", "B", 0, sources={"CLOSED": 1}),
+            ]
+        )
+    
+        assert reason_of(record, "wide") == Reason.ACCEPTED
+        assert reason_of(record, "narrow") == Reason.DENIED_INSUFFICIENT_SOURCE
+    
+        # Now the same contention with the rotation reversed: B wins CLOSED first,
+        # and A's wide claim must leave OPEN alone rather than half-commit.
+        engine = Engine(
+            genesis(
+                tick=1,
+                balances={"A": 0, "B": 0},
+                sources={"OPEN": source(1, "A", "B"), "CLOSED": source(1, "A", "B")},
+            )
+        )
+    
+        record = engine.tick(
+            [
+                claim("wide", "A", 0, sources={"OPEN": 1, "CLOSED": 1}),
+                claim("narrow", "B", 0, sources={"CLOSED": 1}),
+            ]
+        )
+    
+>       assert reason_of(record, "narrow") == Reason.ACCEPTED
+E       AssertionError: assert 'denied_insufficient_source' == 'accepted'
+E         
+E         - accepted
+E         + denied_insufficient_source
+
+tests\test_atomicity.py:97: AssertionError
+_______ test_every_permutation_of_the_inputs_gives_one_canonical_result _______
+
+    def test_every_permutation_of_the_inputs_gives_one_canonical_result():
+        results = set()
+        runs = 0
+        for balance_order in permutations(BALANCES):
+            for source_order in permutations(SOURCE_NAMES):
+                for authorised_order in permutations(AUTHORISED):
+                    for proposal_order in permutations(PROPOSAL_NAMES):
+                        results.add(run(balance_order, source_order, authorised_order, proposal_order))
+                        runs += 1
+    
+        assert runs == 6 * 2 * 2 * 24
+>       assert len(results) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len({('3d55dd1c5488f64c0fdf8252570a5746a9c3bc7e9bcd4a809e3970c03d1ff672', '68c4942a22e725683321a3509ec622974e5cd8f9d43f7e4...29923f1b1b028cf40d46597baf00758fdcf9e7719ed877ea', '6770bf0cbca38a4941ccb9b11b4aa8f57b4c688970846a7be838fd2d5d9f7b95')})
+
+tests\test_order_independence.py:59: AssertionError
+_________ test_the_recorded_outcomes_are_themselves_order_independent _________
+
+    def test_the_recorded_outcomes_are_themselves_order_independent():
+        baseline = None
+        for proposal_order in permutations(PROPOSAL_NAMES):
+            engine = Engine(build_state(BALANCES, SOURCE_NAMES, AUTHORISED))
+            record = engine.tick(build_proposals(proposal_order))
+            seen = tuple((outcome.proposal_id, outcome.reason) for outcome in record.outcomes)
+            if baseline is None:
+                baseline = seen
+>           assert seen == baseline
+E           AssertionError: assert (('p1', 'deni..., 'accepted')) == (('p1', 'acce..., 'accepted'))
+E             
+E             At index 0 diff: ('p1', 'denied_insufficient_source') != ('p1', 'accepted')
+E             Use -v to get more diff
+
+tests\test_order_independence.py:70: AssertionError
+________________ test_exhaustive_small_contested_transactions _________________
+
+    def test_exhaustive_small_contested_transactions():
+        cases = 0
+        source_sets = [('S1',), ('S2',), ('S1', 'S2')]
+        for s1, s2, a, b, tick, asrc, bsrc, aq, bq in product(range(3), range(3), range(2), range(2), range(2), source_sets, source_sets, (1, 2), (1, 2)):
+            state = WorldState.genesis(tick=tick, balances={'A': a, 'B': b}, sources={
+                'S1': Source(s1, frozenset({'A', 'B'})), 'S2': Source(s2, frozenset({'A', 'B'}))})
+            proposals = [claim('a', 'A', 0, sources={s: aq for s in asrc}), claim('b', 'B', 0, sources={s: bq for s in bsrc})]
+            records = []
+            for ordered in (proposals, list(reversed(proposals))):
+                engine = Engine(state)
+                record = engine.tick(ordered)
+                assert engine.state.total() == state.total()
+                assert all(n >= 0 for n in engine.state.balances.values())
+                assert all(s.stock >= 0 for s in engine.state.sources.values())
+                spent = {}
+                for outcome in record.outcomes:
+                    assert sum(e.delta for e in outcome.effects) == 0
+                    for effect in outcome.effects:
+                        if effect.delta < 0:
+                            spent[effect.account] = spent.get(effect.account, 0) - effect.delta
+                assert spent.get('source:S1', 0) <= s1
+                assert spent.get('source:S2', 0) <= s2
+                records.append(record.digest())
+>           assert records[0] == records[1]
+E           AssertionError: assert '8c15a5bd26f2...fd823af534072' == '8a5a0b4fcc48...f751a522d6902'
+E             
+E             - 8a5a0b4fcc4883e08e39023d96a3ac34968076755b5731eda7ef751a522d6902
+E             + 8c15a5bd26f20fdb879a20545166dc8b8af9c22d90863ac8d3afd823af534072
+
+tests\test_review_regressions.py:163: AssertionError
+_ test_equivalent_contention_has_no_permanent_winner_across_successive_ticks __
+
+    def test_equivalent_contention_has_no_permanent_winner_across_successive_ticks():
+        winners = []
+        for tick in range(6):
+            engine = Engine(
+                genesis(tick=tick, balances={"A": 0, "B": 0}, sources={"S": source(1, "A", "B")})
+            )
+            record = engine.tick(
+                [
+                    claim("pA", "A", 0, sources={"S": 1}),
+                    claim("pB", "B", 0, sources={"S": 1}),
+                ]
+            )
+            assert len(accepted_ids(record)) == 1
+            winners.append(accepted_ids(record)[0])
+    
+>       assert winners == ["pA", "pB", "pA", "pB", "pA", "pB"]
+E       AssertionError: assert ['pA', 'pA', ...', 'pA', 'pA'] == ['pA', 'pB', ...', 'pA', 'pB']
+E         
+E         At index 1 diff: 'pA' != 'pB'
+E         Use -v to get more diff
+
+tests\test_rotation.py:55: AssertionError
+_____ test_three_way_equivalent_contention_cycles_across_successive_ticks _____
+
+    def test_three_way_equivalent_contention_cycles_across_successive_ticks():
+        winners = []
+        for tick in range(6):
+            engine = Engine(
+                genesis(
+                    tick=tick,
+                    balances={"A": 0, "B": 0, "C": 0},
+                    sources={"S": source(1, "A", "B", "C")},
+                )
+            )
+            record = engine.tick(
+                [
+                    claim("pA", "A", 0, sources={"S": 1}),
+                    claim("pB", "B", 0, sources={"S": 1}),
+                    claim("pC", "C", 0, sources={"S": 1}),
+                ]
+            )
+            winners.append(accepted_ids(record)[0])
+    
+>       assert winners == ["pA", "pB", "pC", "pA", "pB", "pC"]
+E       AssertionError: assert ['pA', 'pA', ...', 'pA', 'pA'] == ['pA', 'pB', ...', 'pB', 'pC']
+E         
+E         At index 1 diff: 'pA' != 'pB'
+E         Use -v to get more diff
+
+tests\test_rotation.py:78: AssertionError
+_______ test_a_later_identity_does_not_win_by_being_lower_in_sort_order _______
+
+    def test_a_later_identity_does_not_win_by_being_lower_in_sort_order():
+        """The sorted roster stabilises ordering; it must not confer priority."""
+        winners = []
+        for tick in range(4):
+            engine = Engine(
+                genesis(tick=tick, balances={"aaa": 0, "zzz": 0}, sources={"S": source(1, "aaa", "zzz")})
+            )
+            record = engine.tick(
+                [
+                    claim("low", "aaa", 0, sources={"S": 1}),
+                    claim("high", "zzz", 0, sources={"S": 1}),
+                ]
+            )
+            winners.append(accepted_ids(record)[0])
+    
+>       assert winners == ["low", "high", "low", "high"]
+E       AssertionError: assert ['low', 'low', 'low', 'low'] == ['low', 'high', 'low', 'high']
+E         
+E         At index 1 diff: 'low' != 'high'
+E         Use -v to get more diff
+
+tests\test_rotation.py:110: AssertionError
+___________ test_rotation_does_not_reorder_one_actors_own_proposals ___________
+
+    def test_rotation_does_not_reorder_one_actors_own_proposals():
+        """An actor's declared sequence survives the rotation."""
+        engine = Engine(
+            genesis(tick=1, balances={"A": 0, "B": 0}, sources={"S": source(1, "A", "B")})
+        )
+    
+        record = engine.tick(
+            [
+                claim("second", "A", 1, sources={"S": 1}),
+                claim("first", "A", 0, sources={"S": 1}),
+                claim("theirs", "B", 0, sources={"S": 1}),
+            ]
+        )
+    
+        assert [outcome.proposal_id for outcome in record.outcomes] == ["theirs", "first", "second"]
+>       assert accepted_ids(record) == ("theirs",)
+E       AssertionError: assert ('second',) == ('theirs',)
+E         
+E         At index 0 diff: 'second' != 'theirs'
+E         Use -v to get more diff
+
+tests\test_rotation.py:128: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_atomicity.py::test_losing_one_leg_to_contention_leaves_the_other_leg_untouched
+FAILED tests/test_order_independence.py::test_every_permutation_of_the_inputs_gives_one_canonical_result
+FAILED tests/test_order_independence.py::test_the_recorded_outcomes_are_themselves_order_independent
+FAILED tests/test_review_regressions.py::test_exhaustive_small_contested_transactions
+FAILED tests/test_rotation.py::test_equivalent_contention_has_no_permanent_winner_across_successive_ticks
+FAILED tests/test_rotation.py::test_three_way_equivalent_contention_cycles_across_successive_ticks
+FAILED tests/test_rotation.py::test_a_later_identity_does_not_win_by_being_lower_in_sort_order
+FAILED tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+8 failed, 140 passed in 0.41s

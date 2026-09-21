@@ -23,7 +23,7 @@ ALLOWED = {
     "state": {"version", "canonical", "units"},
     "proposals": {"units", "reasons", "state"},
     "outcomes": {"version", "canonical", "reasons", "state"},
-    "settlement": {"units", "reasons", "ordering", "state", "proposals", "outcomes"},
+    "settlement": {"units", "reasons", "ordering", "state", "proposals", "outcomes", "canonical"},
     "engine": {"version", "canonical", "state", "proposals", "outcomes", "settlement", "diagnostics"},
 }
 

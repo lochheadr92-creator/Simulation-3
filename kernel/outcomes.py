@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from kernel import reasons
 from kernel.canonical import digest as canonical_digest
-from kernel.state import Effect
+from kernel.state import Effect, Reservation
 from kernel.version import ENGINE_VERSION, SCHEMA_VERSION
 
 
@@ -30,6 +30,8 @@ class ProposalOutcome:
     operation: str
     reason: str
     effects: tuple[Effect, ...] = ()
+    action_id: str | None = None
+    reservation: Reservation | None = None
 
     def __post_init__(self) -> None:
         if self.reason not in reasons.ALL:
@@ -49,6 +51,8 @@ class ProposalOutcome:
             "reason": self.reason,
             "accepted": 1 if self.accepted else 0,
             "effects": [effect.canonical() for effect in self.effects],
+            "action_id": self.action_id,
+            "reservation": self.reservation.canonical() if self.reservation is not None else None,
         }
 
 

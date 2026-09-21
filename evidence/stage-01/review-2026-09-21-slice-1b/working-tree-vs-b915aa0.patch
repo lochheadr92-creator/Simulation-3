@@ -1,0 +1,769 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index a9a25dd..a208cf5 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -256,3 +256,24 @@ treating a green suite or a packaged run as Stage 1a or Stage 1 acceptance.
+ **Linked revision.** The automation freeze commit on `codex/kernel-first-slice`.
+ Its exact hash cannot appear inside this entry and is reported after the
+ commit.
++
++### OD-008 - 2026-09-21 - Resume simulation development at Stage 1b
++
++**Exact owner direction:** "stage 1b", immediately after directing that
++orchestrator work stop because it had drifted away from the simulation.
++
++**Scope.** Implement and test Stage 1, slice 1b: reserve stock, then complete or
++cancel and release, with exactly-once settlement. Record the declarations and
++results in evidence/stage-01/RECORD.md. This supersedes the earlier slice-1b
++restriction for this bounded simulation work. Preserve the existing tooling,
++uncommitted files and historical evidence; do not resume orchestrator work.
++No Stage 1c, capacity/world runs, scientific acceptance, commit or publication
++is implied. Stage 1's independent exit review remains pending.
++
++**Reason.** Return to the simulation's next kernel slice. The roadmap defines
++1a–1d as internal slices with one Stage 1 exit, not separate stage exit gates.
++The earlier publication direction is OD-007 in published revision 810ab25;
++this checkout's existing automation work is deliberately left untouched.
++
++**Linked work.** The dated Stage 1b card and evidence/stage-01/slice-1b/ identify
++the source, tests and rollback. Local source base: b915aa0.
+diff --git a/ROADMAP.md b/ROADMAP.md
+index 7469cdf..8efd36d 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -1,8 +1,9 @@
+ # V3 — development roadmap
+ 
+-**ADOPTED 2026-09-19. No stage has passed. Stage 1 is open at slice 1a under
+-owner direction OD-001 in AGENTS.md; no other stage or slice is authorised, and
+-this document by itself authorises no execution.**
++**ADOPTED 2026-09-19; scope updated 2026-09-21 under OD-008. No stage has
++passed. Stage 1 is open through slice 1b under OD-001 and OD-008 in AGENTS.md.
++Slices 1c and 1d and later stages remain unauthorised. This document by itself
++authorises no execution.**
+ 
+ The behavioural starter world has six people. The engineering target is 50 people.
+ The order below follows dependencies, not the old project's feature sequence.
+diff --git a/automation/__init__.py b/automation/__init__.py
+index e8c7f44..785d4d2 100644
+--- a/automation/__init__.py
++++ b/automation/__init__.py
+@@ -1 +1 @@
+-"""V3 development automation: preflight, evidence verification, and gate runner."""
++"""V3 development automation: preflight, evidence verification, gate runner, orchestrator."""
+diff --git a/evidence/stage-01/RECORD.md b/evidence/stage-01/RECORD.md
+index 939a24e..76438e9 100644
+--- a/evidence/stage-01/RECORD.md
++++ b/evidence/stage-01/RECORD.md
+@@ -1,5 +1,115 @@
+ # Stage 1 record — kernel only
+ 
++## Active card — Stage 1b, 2026-09-21
++
++| Field | Contents |
++|---|---|
++| State | Stage 1, slice 1b under AGENTS.md OD-008. Add two-tick reservations and exactly-once completion/cancellation to the repaired 1a kernel. Stage 1 exit and independent post-repair acceptance remain pending. |
++| Scope | Immutable reservation state, reserve/complete/cancel proposals, settlement phases, native lifecycle outcomes, focused kernel tests. No orchestrator work, replay/recovery, world, scheduler, capacity run or later slice. |
++| Identity | Actual checkout C:/dev/03-Living-World-V3, base b915aa0c179d4e19c954f8b05eb107c4cd34d475. Kernel version advances from 0.1.1-stage1a to 0.2.0-stage1b; schema from v3.kernel.1a.1 to v3.kernel.1b.1. |
++| Claim | Reserved units cannot be spent twice; atomic acquisition and settlement; owner-only cancellation/completion; cancellation wins same-boundary races; completion/release happens at most once; credits and released holds become ordinarily spendable only next tick; ordering, immutable observation and conservation remain valid. |
++| Definitions | See the preregistered Stage 1b declarations immediately below. No scientific counting predicate or budget changes. |
++| Instrument | Native state, reservations and tick outcomes. Existing kernel reference/review tests, explicit lifecycle negatives, exhaustive small permutations, diagnostics controls and conservation checks. Baseline before changes: 148 passed. |
++| Budget and attempt | Focused deterministic correctness tests only. Whole-world and capacity runs: 0 authorised, 0 used. No exploration or confirmation run. |
++| Evidence and rollback | Results and exact commands appended below; raw outputs and file identities in slice-1b/. Restore only this slice's listed files after checking for later work; retain its evidence and unrelated dirty tooling. |
++
++### Stage 1b declarations — fixed before implementation
++
++- `reserve` wraps one existing `claim`, `transfer` or `consume` operation. The
++  existing shape, authority, balanced-effect and affordability checks apply to
++  its whole frozen plan. Nested reservations and arbitrary effects are excluded.
++- A hold encumbers the plan's debit accounts without moving their stock.
++  Balances/source stocks include held units; the conserved total counts each
++  unit once. Free availability is tick-start stock minus all existing holds.
++  Accepting a new reservation immediately reduces remaining free availability.
++- Settlement assigns each accepted reservation an action ID from the canonical
++  digest of its creation tick, actor and engine-assigned sequence. Callers use
++  the returned ID for completion/cancellation. IDs cannot be reused at later
++  ticks. There is no unbounded collection of completed-action tombstones.
++- A reservation created at T is first eligible for completion/cancellation at
++  T+1. It remains held until its owner explicitly completes or cancels it;
++  empty ticks do not invent an action or timeout. The sole cancellation cause
++  in this slice is the owner's explicit request. No death/interrupt scheduler.
++- Validate every submitted identity/order and authority first. Then process
++  cancellations, completions, and new transactions/reservations in that order.
++  Within each phase use rotated actor rank and dense actor-local sequence.
++  Malformed/unauthorised cancellations cannot suppress a valid completion.
++- Completion commits exactly the frozen balanced effects against its own hold,
++  never against ordinary free availability. Cancellation removes only its hold.
++  Neither returns debit availability to ordinary proposals during that tick.
++  Completion credits and released stock are spendable at the next tick start.
++- Duplicate proposal IDs/orders retain the existing deny-all rule. Distinct
++  terminal requests for one action resolve in phase/sequence order; after the
++  first valid close, further requests are denied as `denied_unknown_action`.
++  A rejected unrelated transaction cannot cancel a reservation. New holds
++  cannot be completed in their creation tick, even with a guessed action ID.
++- State/views include immutable reservations. Accepted reserve outcomes expose
++  the frozen plan and ID; terminal outcomes carry its ID and committed effects
++  (none for cancellation). Every submission retains an explicit outcome.
++- The new schema adds reservation state and action fields. Legacy no-action
++  balances, effects, reasons and priority must remain unchanged. Canonical
++  digests intentionally change with the schema; historical references remain
++  intact and no new accepted baseline is inferred from self-verification.
++
++### Stage 1b result — 2026-09-21
++
++Implemented in the main simulation checkout at `C:/dev/03-Living-World-V3`,
++as uncommitted changes on `codex/kernel-first-slice` based on `b915aa0`.
++There is no new isolated implementation checkout to synchronize. Existing
++dirty automation files, historical evidence and receipts were preserved.
++
++`kernel/state.py` owns immutable reservations and free-stock observation;
++`proposals.py` supplies reserve/complete/cancel requests; `settlement.py` owns
++validation, phased resolution, hold acquisition/release and atomic effects.
++`outcomes.py` records the generated action ID and frozen plan at reservation,
++and the target ID and effects on closure. Ordinary account totals include held
++units once. No action history accumulates after closure.
++
++| Check | Measured result | Evidence |
++|---|---|---|
++| Before changes | 148 existing kernel/reference/review tests passed | [baseline.txt](slice-1b/baseline.txt) |
++| First implementation run | 209 tests passed | [first.txt](slice-1b/first.txt) |
++| Final kernel run | 212 passed, 0 failures/errors/skips; includes 64 lifecycle cases and all prior 148 tests | [final.txt](slice-1b/final.txt), [JUnit](slice-1b/final.xml) |
++| Prior no-action fixtures | Eight ticks retain identical economic state, effects, reasons, actor sequence and ordering after removing only the declared schema/version additions and their derived digests | [current capture](slice-1b/fixtures-stage1b.json), [retained 1a capture](repair-1/fixtures-repaired.json) |
++| Preservation and diff | 164 pre-existing files outside the declared edit set unchanged, including tooling and receipts; HEAD unchanged; nothing staged; whitespace check passed | [verification](slice-1b/verification.json), [source hashes](slice-1b/FILE_MANIFEST.json) |
++
++The new tests exercise both terminal paths, repeat requests within/across ticks,
++cancellation precedence, invalid cancellations, duplicate identities/orders,
++owner checks, atomic multi-source acquisition and completion, source/holding
++contention, next-tick release/credit rules, multiple simultaneous holds, frozen
++observation, diagnostics failures, interrupted collection, commit failure,
++unbounded integers and permuted input collections. No assertion or expected
++historical result was weakened. The dependency declaration adds only the
++lower-level canonical digest helper for engine-generated action IDs; settlement
++still cannot import diagnostics or the engine.
++
++Reproduction: [the exact final command](slice-1b/final-command.json) lists the
++14 kernel test files and the existing Python 3.12 validation interpreter. Run
++with `PYTHONUTF8=1`, `PYTHONDONTWRITEBYTECODE=1`, bytecode/cache writes disabled,
++and a new writable `--basetemp`. The registered orchestrator gates and tooling
++suite were not invoked. The eight native fixture ticks were captured with
++`python -B evidence/stage-01/repair-1/capture_fixtures.py <repo> <fresh-output.json>`.
++All actual raw results are retained; this sitting had no failing test run.
++
++**Limits and review.** This is implemented and self-tested Stage 1b, not Stage 1
++exit acceptance. Actor identity is still supplied by the caller. Cancellation
++is an explicit owner request; there is no automatic deadline, death system or
++scheduler. Plans may remain pending across empty ticks. Persistence, sealed
++replay/recovery, capacity limits and independent acceptance remain untested or
++pending in their declared later scope. Whole-world/capacity runs remain zero.
++No Stage 1c work, orchestrator development, commit or push occurred.
++
++**Rollback list, if separately requested.** Restore only the seven changed
++kernel files (`__init__.py`, `state.py`, `proposals.py`, `settlement.py`,
++`outcomes.py`, `reasons.py`, `version.py`) and
++`tests/test_dependency_direction.py` from the recorded base, after checking
++for later work. Archive the added `tests/test_reservations.py`. Retain the
++OD-008 direction, this record and `slice-1b/` evidence with an appended rollback
++status, and revise the roadmap's current-scope notice if needed. Do not reset
++the repository or touch the pre-existing tooling changes. Nothing was reverted.
++
++## Historical Stage 1a record (retained verbatim below)
++
+ Authority: owner direction OD-001 of 2026-09-19, recorded in `AGENTS.md`.
+ Only slice 1a is open. Slices 1b, 1c and 1d are not authorised, and the Stage 1
+ exit gate is not claimed.
+diff --git a/kernel/__init__.py b/kernel/__init__.py
+index 883b08f..2da9e63 100644
+--- a/kernel/__init__.py
++++ b/kernel/__init__.py
+@@ -1,8 +1,8 @@
+-"""The V3 kernel, slice 1a.
++"""The V3 kernel, slices 1a and 1b.
+ 
+ Immutable state, validated proposals, deterministic resolution, atomic
+-settlement and immutable observation. There are no reservations, no multi-tick
+-actions, no replay platform, no needs, movement, memory, social behaviour,
++settlement, owned reservations and immutable observation. There is no replay
++platform, no needs, movement, memory, social behaviour,
+ construction, viewer, plugins or general scheduler here. Those belong to later
+ slices and stages.
+ """
+@@ -14,9 +14,9 @@ from kernel.diagnostics import CollectingDiagnostics, DiagnosticsSink, NullDiagn
+ from kernel.engine import Engine
+ from kernel.ordering import actor_ranks, rotated_roster, sorted_roster
+ from kernel.outcomes import ProposalOutcome, TickRecord
+-from kernel.proposals import Proposal, claim, consume, transfer
++from kernel.proposals import Proposal, cancel, claim, complete, consume, reserve, transfer
+ from kernel.settlement import IntegrityError, Settlement, effects_are_balanced, settle
+-from kernel.state import Effect, Source, SourceView, WorldState, WorldView
++from kernel.state import Effect, Reservation, Source, SourceView, WorldState, WorldView
+ from kernel.units import RESOURCE_UNIT
+ from kernel.version import ENGINE_VERSION, SCHEMA_VERSION
+ 
+@@ -50,6 +50,7 @@ __all__ = [
+     "Proposal",
+     "ProposalOutcome",
+     "RESOURCE_UNIT",
++    "Reservation",
+     "Reason",
+     "SCHEMA_VERSION",
+     "Settlement",
+@@ -62,7 +63,9 @@ __all__ = [
+     "canonical",
+     "canonical_bytes",
+     "canonicalise",
++    "cancel",
+     "claim",
++    "complete",
+     "consume",
+     "diagnostics",
+     "digest",
+@@ -72,6 +75,7 @@ __all__ = [
+     "outcomes",
+     "proposals",
+     "reasons",
++    "reserve",
+     "rotated_roster",
+     "settle",
+     "settlement",
+diff --git a/kernel/outcomes.py b/kernel/outcomes.py
+index 0e7de52..b4932b0 100644
+--- a/kernel/outcomes.py
++++ b/kernel/outcomes.py
+@@ -18,7 +18,7 @@ from dataclasses import dataclass
+ 
+ from kernel import reasons
+ from kernel.canonical import digest as canonical_digest
+-from kernel.state import Effect
++from kernel.state import Effect, Reservation
+ from kernel.version import ENGINE_VERSION, SCHEMA_VERSION
+ 
+ 
+@@ -30,6 +30,8 @@ class ProposalOutcome:
+     operation: str
+     reason: str
+     effects: tuple[Effect, ...] = ()
++    action_id: str | None = None
++    reservation: Reservation | None = None
+ 
+     def __post_init__(self) -> None:
+         if self.reason not in reasons.ALL:
+@@ -49,6 +51,8 @@ class ProposalOutcome:
+             "reason": self.reason,
+             "accepted": 1 if self.accepted else 0,
+             "effects": [effect.canonical() for effect in self.effects],
++            "action_id": self.action_id,
++            "reservation": self.reservation.canonical() if self.reservation is not None else None,
+         }
+ 
+ 
+diff --git a/kernel/proposals.py b/kernel/proposals.py
+index 897d5e7..11ad9a6 100644
+--- a/kernel/proposals.py
++++ b/kernel/proposals.py
+@@ -24,6 +24,9 @@ from kernel.units import is_integer, is_valid_transaction_amount
+ OP_CLAIM = "claim"
+ OP_TRANSFER = "transfer"
+ OP_CONSUME = "consume"
++OP_RESERVE = "reserve"
++OP_COMPLETE = "complete"
++OP_CANCEL = "cancel"
+ 
+ 
+ def _freeze(value: Any) -> Any:
+@@ -157,3 +160,38 @@ def transfer(proposal_id: str, actor: str, order: int, *, to: str, amount: int)
+ def consume(proposal_id: str, actor: str, order: int, *, amount: int) -> Proposal:
+     """Spend `amount` of the proposer's own holding into the consumption sink."""
+     return Proposal(proposal_id, actor, order, OP_CONSUME, {"amount": amount})
++
++
++def reserve(proposal_id: str, actor: str, order: int, *, operation: str, params: Mapping[str, Any]) -> Proposal:
++    """Hold a claim, transfer or consumption plan for a later tick."""
++    return Proposal(proposal_id, actor, order, OP_RESERVE, {"operation": operation, "params": params})
++
++
++def complete(proposal_id: str, actor: str, order: int, *, action_id: str) -> Proposal:
++    """Commit the owner's previously reserved plan exactly once."""
++    return Proposal(proposal_id, actor, order, OP_COMPLETE, {"action_id": action_id})
++
++
++def cancel(proposal_id: str, actor: str, order: int, *, action_id: str) -> Proposal:
++    """Cancel the owner's reserved plan; its stock is free next tick."""
++    return Proposal(proposal_id, actor, order, OP_CANCEL, {"action_id": action_id})
++
++
++def reserved_plan(proposal: Proposal) -> Proposal:
++    """Validate the wrapper before using the existing operation expanders."""
++    operation = proposal.params.get("operation")
++    params = proposal.params.get("params")
++    if set(proposal.params) != {"operation", "params"} or not isinstance(params, Mapping):
++        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
++    if not isinstance(operation, str) or operation not in (OP_CLAIM, OP_TRANSFER, OP_CONSUME):
++        raise reasons.Rejected(reasons.DENIED_UNKNOWN_OPERATION)
++    if any(not isinstance(key, str) for key in params):
++        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
++    return Proposal(proposal.proposal_id, proposal.actor, proposal.order, operation, params)
++
++
++def requested_action(proposal: Proposal) -> str:
++    action_id = proposal.params.get("action_id")
++    if set(proposal.params) != {"action_id"} or not isinstance(action_id, str) or not action_id:
++        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
++    return action_id
+diff --git a/kernel/reasons.py b/kernel/reasons.py
+index 485ba2b..4259f5f 100644
+--- a/kernel/reasons.py
++++ b/kernel/reasons.py
+@@ -22,6 +22,7 @@ DENIED_INSUFFICIENT_SOURCE = "denied_insufficient_source"
+ DENIED_INSUFFICIENT_BALANCE = "denied_insufficient_balance"
+ DENIED_UNBALANCED_EFFECTS = "denied_unbalanced_effects"
+ DENIED_SELF_TRANSFER = "denied_self_transfer"
++DENIED_UNKNOWN_ACTION = "denied_unknown_action"
+ 
+ ALL = frozenset(
+     {
+@@ -39,6 +40,7 @@ ALL = frozenset(
+         DENIED_INSUFFICIENT_BALANCE,
+         DENIED_UNBALANCED_EFFECTS,
+         DENIED_SELF_TRANSFER,
++        DENIED_UNKNOWN_ACTION,
+     }
+ )
+ 
+diff --git a/kernel/settlement.py b/kernel/settlement.py
+index 50d2406..361bff5 100644
+--- a/kernel/settlement.py
++++ b/kernel/settlement.py
+@@ -9,30 +9,33 @@ The order of work follows the roadmap's tick algorithm:
+ 1. the caller freezes the tick-start state and collects proposals against it;
+ 2. shape, identity, authority and precondition validation, rejecting all
+    proposals that share a duplicate identity regardless of arrival order;
+-3. cancellation of reserved work, which does not exist until slice 1b;
+-4. resolution in the declared total order;
++3. authorised cancellation of reserved work;
++4. surviving reserved completions, then new transactions and reservations;
+ 5. validation of each whole transaction against remaining tick-start
+    availability, staging balanced effects and committing all or none of each;
+ 6. commit of the next state.
+ 
+ The roadmap's total key is (phase, rotated actor rank, actor-local sequence).
+-The phase term is constant here because reserved completions arrive in slice 1b,
+-so the key below carries its two remaining components.
++Cancellation is phase 0, completion phase 1, and new work phase 2.
+ """
+ 
+ from __future__ import annotations
+ 
+ from collections import Counter
+-from collections.abc import Iterable
++from collections.abc import Iterable, Mapping
+ from dataclasses import dataclass
+ 
+ from kernel import reasons
++from kernel.canonical import digest as canonical_digest
+ from kernel.ordering import actor_ranks, rotated_roster
+ from kernel.outcomes import ProposalOutcome
+-from kernel.proposals import Proposal, expand
++from kernel.proposals import (
++    OP_CANCEL, OP_COMPLETE, OP_RESERVE, Proposal, expand, requested_action, reserved_plan,
++)
+ from kernel.state import (
+     SINK_ACCOUNT,
+     Effect,
++    Reservation,
+     Source,
+     WorldState,
+     actor_account,
+@@ -113,6 +116,10 @@ def _shortfall(effects: Iterable[Effect], available: dict[str, int]) -> str | No
+     return None
+ 
+ 
++def _phase(operation: str) -> int:
++    return {OP_CANCEL: 0, OP_COMPLETE: 1}.get(operation, 2)
++
++
+ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+     submitted = tuple(proposals)
+     for proposal in submitted:
+@@ -132,9 +139,16 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+ 
+     verdicts: dict[int, str] = {}
+     committed: dict[int, tuple[Effect, ...]] = {}
++    action_ids: dict[int, str] = {}
++    reserved: dict[int, Reservation] = {}
++    plans: dict[int, Proposal] = {}
+     candidates: list[tuple[int, Proposal, tuple[Effect, ...]]] = []
+ 
+     for index, proposal in enumerate(submitted):
++        if proposal.operation in (OP_CANCEL, OP_COMPLETE):
++            target = proposal.params.get("action_id")
++            if isinstance(target, str) and target:
++                action_ids[index] = target
+         if id_counts[proposal.proposal_id] > 1:
+             verdicts[index] = reasons.DENIED_DUPLICATE_PROPOSAL_ID
+             continue
+@@ -145,7 +159,18 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+             verdicts[index] = reasons.DENIED_UNKNOWN_ACTOR
+             continue
+         try:
+-            effects = expand(proposal)
++            if proposal.operation in (OP_CANCEL, OP_COMPLETE):
++                action_id = requested_action(proposal)
++                reservation = state.reservations.get(action_id)
++                if reservation is None:
++                    raise reasons.Rejected(reasons.DENIED_UNKNOWN_ACTION)
++                if reservation.actor != proposal.actor:
++                    raise reasons.Rejected(reasons.DENIED_UNAUTHORISED)
++                effects = reservation.effects if proposal.operation == OP_COMPLETE else ()
++            else:
++                plan = reserved_plan(proposal) if proposal.operation == OP_RESERVE else proposal
++                plans[index] = plan
++                effects = expand(plan)
+         except reasons.Rejected as rejection:
+             verdicts[index] = rejection.reason
+             continue
+@@ -163,16 +188,30 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+ 
+     rotated = rotated_roster(state.roster, state.tick)
+     ranks = actor_ranks(rotated)
+-    candidates.sort(key=lambda candidate: (ranks[candidate[1].actor], sequences[(candidate[1].actor, candidate[1].order)]))
++    candidates.sort(key=lambda candidate: (
++        _phase(candidate[1].operation), ranks[candidate[1].actor],
++        sequences[(candidate[1].actor, candidate[1].order)],
++    ))
+ 
+-    available = {actor_account(actor_id): amount for actor_id, amount in state.balances.items()}
+-    available.update(
+-        {source_account(source_id): source.stock for source_id, source in state.sources.items()}
+-    )
+-    available[SINK_ACCOUNT] = 0
++    # Capture free stock before any release. Cancelling a hold cannot enable
++    # an ordinary spend until the next tick, even though cancellation runs first.
++    available = state.availability()
++    reservations = dict(state.reservations)
+ 
+     staged: dict[str, int] = {}
+     for index, proposal, effects in candidates:
++        if proposal.operation in (OP_CANCEL, OP_COMPLETE):
++            action_id = action_ids[index]
++            if action_id not in reservations:
++                verdicts[index] = reasons.DENIED_UNKNOWN_ACTION
++                continue
++            del reservations[action_id]
++            for effect in effects:
++                staged[effect.account] = staged.get(effect.account, 0) + effect.delta
++            verdicts[index] = reasons.ACCEPTED
++            committed[index] = effects
++            continue
++
+         short = _shortfall(effects, available)
+         if short is not None:
+             verdicts[index] = (
+@@ -186,11 +225,25 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+         for effect in effects:
+             if effect.delta < 0:
+                 available[effect.account] += effect.delta
+-            staged[effect.account] = staged.get(effect.account, 0) + effect.delta
++        if proposal.operation == OP_RESERVE:
++            action_id = "action:" + canonical_digest({
++                "tick": state.tick, "actor": proposal.actor,
++                "sequence": sequences[(proposal.actor, proposal.order)],
++            })
++            if action_id in reservations:
++                raise IntegrityError("reservation action identity collided")
++            reservation = Reservation(action_id, proposal.actor, state.tick, plans[index].operation, effects)
++            reservations[action_id] = reservation
++            action_ids[index] = action_id
++            reserved[index] = reservation
++            committed[index] = ()
++        else:
++            for effect in effects:
++                staged[effect.account] = staged.get(effect.account, 0) + effect.delta
++            committed[index] = effects
+         verdicts[index] = reasons.ACCEPTED
+-        committed[index] = effects
+ 
+-    next_state = _commit(state, staged)
++    next_state = _commit(state, staged, reservations)
+ 
+     outcomes = [
+         ProposalOutcome(
+@@ -200,17 +253,21 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+             operation=proposal.operation,
+             reason=verdicts[index],
+             effects=committed.get(index, ()),
++            action_id=action_ids.get(index),
++            reservation=reserved.get(index),
+         )
+         for index, proposal in enumerate(submitted)
+     ]
+     unranked = len(rotated)
+     outcomes.sort(
+         key=lambda outcome: (
++            _phase(outcome.operation),
+             ranks.get(outcome.actor, unranked),
+             outcome.actor,
+             outcome.sequence,
+             outcome.proposal_id,
+             outcome.operation,
++            outcome.action_id or "",
+         )
+     )
+ 
+@@ -221,7 +278,10 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
+     )
+ 
+ 
+-def _commit(state: WorldState, staged: dict[str, int]) -> WorldState:
++def _commit(
++    state: WorldState, staged: dict[str, int],
++    reservations: Mapping[str, Reservation] | None = None,
++) -> WorldState:
+     """Apply the staged effects together, after the declared rails pass."""
+     known = (
+         {actor_account(actor_id) for actor_id in state.balances}
+@@ -252,19 +312,23 @@ def _commit(state: WorldState, staged: dict[str, int]) -> WorldState:
+     if negatives:
+         raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
+ 
+-    next_state = WorldState(
+-        tick=state.tick + 1,
+-        balances=balances,
+-        sources={
+-            source_id: Source(stock=stocks[source_id], authorised=source.authorised)
+-            for source_id, source in state.sources.items()
+-        },
+-        consumed=consumed,
+-    )
++    try:
++        next_state = WorldState(
++            tick=state.tick + 1,
++            balances=balances,
++            sources={
++                source_id: Source(stock=stocks[source_id], authorised=source.authorised)
++                for source_id, source in state.sources.items()
++            },
++            consumed=consumed,
++            reservations=state.reservations if reservations is None else reservations,
++        )
++    except ValueError as error:
++        raise IntegrityError(f"settlement produced invalid reservation state: {error}") from error
+     if next_state.total() != state.total():
+         raise IntegrityError(
+             f"settlement did not conserve the declared total: {state.total()} became {next_state.total()}"
+         )
+     if next_state.roster != state.roster:
+-        raise IntegrityError("settlement changed the roster, which slice 1a does not do")
++        raise IntegrityError("settlement changed the roster, which slices 1a/1b do not do")
+     return next_state
+diff --git a/kernel/state.py b/kernel/state.py
+index ed86e83..1057d24 100644
+--- a/kernel/state.py
++++ b/kernel/state.py
+@@ -14,7 +14,7 @@ can never be confused with leakage.
+ from __future__ import annotations
+ 
+ from collections.abc import Mapping
+-from dataclasses import dataclass
++from dataclasses import dataclass, field
+ from types import MappingProxyType
+ from typing import Any
+ 
+@@ -98,11 +98,54 @@ class SourceView:
+     source_id: str
+     stock: int
+     authorised: tuple[str, ...]
++    reserved: int = 0
++
++    @property
++    def available_stock(self) -> int:
++        return self.stock - self.reserved
+ 
+     def permits(self, actor_id: str) -> bool:
+         return actor_id in self.authorised
+ 
+ 
++@dataclass(frozen=True)
++class Reservation:
++    """A frozen balanced plan; its debits are held inside existing accounts."""
++
++    action_id: str
++    actor: str
++    created_tick: int
++    operation: str
++    effects: tuple[Effect, ...]
++
++    def __post_init__(self) -> None:
++        for value in (self.action_id, self.actor, self.operation):
++            if not isinstance(value, str) or not value:
++                raise ValueError("a reservation needs non-empty identities and operation")
++        if not is_integer(self.created_tick) or self.created_tick < 0:
++            raise ValueError("a reservation creation tick must be a nonnegative integer")
++        effects = tuple(self.effects)
++        if not effects or any(not isinstance(effect, Effect) for effect in effects):
++            raise ValueError("a reservation needs effects")
++        if sum(effect.delta for effect in effects) != 0 or not any(effect.delta < 0 for effect in effects):
++            raise ValueError("a reservation needs a balanced plan with debits")
++        object.__setattr__(self, "effects", tuple(sorted(effects, key=lambda e: (e.account, e.delta))))
++
++    def held(self) -> dict[str, int]:
++        amounts: dict[str, int] = {}
++        for effect in self.effects:
++            if effect.delta < 0:
++                amounts[effect.account] = amounts.get(effect.account, 0) - effect.delta
++        return amounts
++
++    def canonical(self) -> dict[str, Any]:
++        return {
++            "action_id": self.action_id, "actor": self.actor,
++            "created_tick": self.created_tick, "operation": self.operation,
++            "effects": [effect.canonical() for effect in self.effects],
++        }
++
++
+ @dataclass(frozen=True)
+ class WorldView:
+     """One actor's read-only view of the tick-start state.
+@@ -118,11 +161,19 @@ class WorldView:
+     balances: Mapping[str, int]
+     sources: Mapping[str, SourceView]
+     roster: tuple[str, ...]
++    reservations: Mapping[str, Reservation] = field(default_factory=lambda: MappingProxyType({}))
+ 
+     @property
+     def own_balance(self) -> int:
+         return self.balances[self.actor]
+ 
++    @property
++    def own_available(self) -> int:
++        return self.own_balance - sum(
++            reservation.held().get(actor_account(self.actor), 0)
++            for reservation in self.reservations.values()
++        )
++
+ 
+ @dataclass(frozen=True)
+ class WorldState:
+@@ -132,6 +183,7 @@ class WorldState:
+     balances: Mapping[str, int]
+     sources: Mapping[str, Source]
+     consumed: int = 0
++    reservations: Mapping[str, Reservation] = field(default_factory=dict)
+ 
+     def __post_init__(self) -> None:
+         if not is_integer(self.tick) or self.tick < 0:
+@@ -159,6 +211,32 @@ class WorldState:
+ 
+         object.__setattr__(self, "balances", MappingProxyType(balances))
+         object.__setattr__(self, "sources", MappingProxyType(sources))
++        reservations = dict(self.reservations)
++        for action_id, reservation in reservations.items():
++            if not isinstance(reservation, Reservation) or action_id != reservation.action_id:
++                raise ValueError("reservation key must match its action identity")
++            if reservation.actor not in balances or reservation.created_tick >= self.tick:
++                raise ValueError("a reservation needs an existing actor and an earlier creation tick")
++            for effect in reservation.effects:
++                account = effect.account
++                if account == SINK_ACCOUNT:
++                    if effect.delta < 0:
++                        raise ValueError("a reservation cannot debit consumed stock")
++                elif is_actor_account(account):
++                    if actor_of(account) not in balances:
++                        raise ValueError("a reservation names an unknown actor")
++                    if effect.delta < 0 and actor_of(account) != reservation.actor:
++                        raise ValueError("a reservation cannot debit another actor")
++                elif is_source_account(account):
++                    if source_of(account) not in sources:
++                        raise ValueError("a reservation names an unknown source")
++                    if effect.delta < 0 and not sources[source_of(account)].permits(reservation.actor):
++                        raise ValueError("a reservation needs source authority")
++                else:
++                    raise ValueError("a reservation names an unknown account")
++        object.__setattr__(self, "reservations", MappingProxyType(dict(sorted(reservations.items()))))
++        if any(amount < 0 for amount in self.availability().values()):
++            raise ValueError("reserved stock exceeds its account balance")
+ 
+     @classmethod
+     def genesis(
+@@ -168,12 +246,14 @@ class WorldState:
+         balances: Mapping[str, int] | None = None,
+         sources: Mapping[str, Source] | None = None,
+         consumed: int = 0,
++        reservations: Mapping[str, Reservation] | None = None,
+     ) -> "WorldState":
+         return cls(
+             tick=tick,
+             balances=dict(balances or {}),
+             sources=dict(sources or {}),
+             consumed=consumed,
++            reservations=dict(reservations or {}),
+         )
+ 
+     @property
+@@ -189,9 +269,20 @@ class WorldState:
+             + self.consumed
+         )
+ 
++    def availability(self) -> dict[str, int]:
++        """A detached account map of free stock; holds are counted only once."""
++        available = {actor_account(actor): amount for actor, amount in self.balances.items()}
++        available.update({source_account(name): source.stock for name, source in self.sources.items()})
++        available[SINK_ACCOUNT] = 0
++        for reservation in self.reservations.values():
++            for account, amount in reservation.held().items():
++                available[account] -= amount
++        return available
++
+     def view_for(self, actor_id: str) -> WorldView:
+         if actor_id not in self.balances:
+             raise KeyError(f"no such actor: {actor_id!r}")
++        available = self.availability()
+         return WorldView(
+             actor=actor_id,
+             tick=self.tick,
+@@ -202,11 +293,13 @@ class WorldState:
+                         source_id=source_id,
+                         stock=source.stock,
+                         authorised=tuple(sorted(source.authorised)),
++                        reserved=source.stock - available[source_account(source_id)],
+                     )
+                     for source_id, source in self.sources.items()
+                 }
+             ),
+             roster=self.roster,
++            reservations=MappingProxyType(dict(self.reservations)),
+         )
+ 
+     def canonical(self) -> dict[str, Any]:
+@@ -216,6 +309,7 @@ class WorldState:
+             "balances": dict(self.balances),
+             "sources": {source_id: source.canonical() for source_id, source in self.sources.items()},
+             "consumed": self.consumed,
++            "reservations": {action_id: reservation.canonical() for action_id, reservation in self.reservations.items()},
+         }
+ 
+     def digest(self) -> str:
+diff --git a/kernel/version.py b/kernel/version.py
+index 0154a5d..a460502 100644
+--- a/kernel/version.py
++++ b/kernel/version.py
+@@ -7,5 +7,5 @@ an old digest means.
+ 
+ from __future__ import annotations
+ 
+-ENGINE_VERSION = "0.1.1-stage1a"
+-SCHEMA_VERSION = "v3.kernel.1a.1"
++ENGINE_VERSION = "0.2.0-stage1b"
++SCHEMA_VERSION = "v3.kernel.1b.1"
+diff --git a/tests/test_dependency_direction.py b/tests/test_dependency_direction.py
+index 6b216d6..c04d7a0 100644
+--- a/tests/test_dependency_direction.py
++++ b/tests/test_dependency_direction.py
+@@ -23,7 +23,7 @@ ALLOWED = {
+     "state": {"version", "canonical", "units"},
+     "proposals": {"units", "reasons", "state"},
+     "outcomes": {"version", "canonical", "reasons", "state"},
+-    "settlement": {"units", "reasons", "ordering", "state", "proposals", "outcomes"},
++    "settlement": {"units", "reasons", "ordering", "state", "proposals", "outcomes", "canonical"},
+     "engine": {"version", "canonical", "state", "proposals", "outcomes", "settlement", "diagnostics"},
+ }
+ 

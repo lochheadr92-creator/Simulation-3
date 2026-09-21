@@ -1,0 +1,38 @@
+baseline: exit 0, 0 failing
+
+rotation-frozen: the rotation always starts at the sorted roster, giving a permanent winner
+  file      kernel/ordering.py
+  exit      1
+  noticed   9 test(s)
+            tests/test_atomicity.py::test_losing_one_leg_to_contention_leaves_the_other_leg_untouched
+            tests/test_reservations.py::test_reservation_contends_with_new_transactions_in_same_phase
+            tests/test_rotation.py::test_a_later_identity_does_not_win_by_being_lower_in_sort_order
+            tests/test_rotation.py::test_equivalent_contention_has_no_permanent_winner_across_successive_ticks
+            tests/test_rotation.py::test_rotated_roster_matches_the_declared_rule
+            tests/test_rotation.py::test_rotation_does_not_reorder_one_actors_own_proposals
+            tests/test_rotation.py::test_rotation_sorts_by_identity_and_ignores_insertion_order
+            tests/test_rotation.py::test_the_engine_rotates_tick_over_tick_within_one_continuous_run
+            tests/test_rotation.py::test_three_way_equivalent_contention_cycles_across_successive_ticks
+
+credit-spendable-immediately: a unit credited this tick becomes spendable this tick
+  file      kernel/settlement.py
+  exit      1
+  noticed   5 test(s)
+            tests/test_credit_boundary.py::test_a_unit_claimed_this_tick_is_not_spendable_until_the_next_one
+            tests/test_credit_boundary.py::test_the_order_of_the_recipients_own_proposals_does_not_rescue_an_early_spend
+            tests/test_credit_boundary.py::test_the_recipient_cannot_pass_on_a_unit_received_this_tick
+            tests/test_credit_boundary.py::test_the_roadmap_credit_fixture[0]
+            tests/test_repair_boundaries.py::test_huge_claim_and_consume_preserve_conservation_and_next_tick_boundary
+
+authority-not-checked: authority over a debited account is never checked
+  file      kernel/settlement.py
+  exit      1
+  noticed   7 test(s)
+            tests/test_atomicity.py::test_a_balanced_but_unauthorised_transfer_of_another_actors_stock_is_denied
+            tests/test_atomicity.py::test_a_denied_transaction_does_not_consume_availability_for_a_later_one
+            tests/test_atomicity.py::test_a_denied_transaction_stages_no_effects_at_all
+            tests/test_atomicity.py::test_an_unauthorised_leg_prevents_the_authorised_leg_from_committing
+            tests/test_atomicity.py::test_an_unauthorised_single_source_claim_changes_nothing
+            tests/test_atomicity.py::test_nothing_may_debit_the_consumption_sink
+            tests/test_reservations.py::test_multi_source_reservation_acquires_all_or_none[second_source1-denied_unauthorised]
+order-by-arrival: anchor text not found exactly once in kernel/settlement.py

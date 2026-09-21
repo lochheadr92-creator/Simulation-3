@@ -1,0 +1,28 @@
+{
+  "source_base": "b915aa0c179d4e19c954f8b05eb107c4cd34d475",
+  "source_state": "uncommitted Stage 1b in the main simulation checkout",
+  "baseline_tests": 148,
+  "first_combined_tests": 209,
+  "final_combined_tests": 212,
+  "new_lifecycle_test_cases": 64,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "legacy_fixture_ticks_compared": 8,
+  "legacy_behaviour_unchanged": true,
+  "intentional_canonical_changes": [
+    "schema_version",
+    "engine_version",
+    "empty reservations map",
+    "null action_id/reservation outcome fields",
+    "derived digests"
+  ],
+  "prior_unmodified_files_checked": 164,
+  "prior_files_and_receipts_preserved": true,
+  "orchestrator_work": "stopped; no files changed or orchestrator commands run",
+  "whole_world_runs": 0,
+  "capacity_runs": 0,
+  "stage_1_exit": "pending independent review",
+  "committed": false,
+  "pushed": false
+}

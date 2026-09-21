@@ -14,7 +14,7 @@ can never be confused with leakage.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any
 
@@ -98,9 +98,52 @@ class SourceView:
     source_id: str
     stock: int
     authorised: tuple[str, ...]
+    reserved: int = 0
+
+    @property
+    def available_stock(self) -> int:
+        return self.stock - self.reserved
 
     def permits(self, actor_id: str) -> bool:
         return actor_id in self.authorised
+
+
+@dataclass(frozen=True)
+class Reservation:
+    """A frozen balanced plan; its debits are held inside existing accounts."""
+
+    action_id: str
+    actor: str
+    created_tick: int
+    operation: str
+    effects: tuple[Effect, ...]
+
+    def __post_init__(self) -> None:
+        for value in (self.action_id, self.actor, self.operation):
+            if not isinstance(value, str) or not value:
+                raise ValueError("a reservation needs non-empty identities and operation")
+        if not is_integer(self.created_tick) or self.created_tick < 0:
+            raise ValueError("a reservation creation tick must be a nonnegative integer")
+        effects = tuple(self.effects)
+        if not effects or any(not isinstance(effect, Effect) for effect in effects):
+            raise ValueError("a reservation needs effects")
+        if sum(effect.delta for effect in effects) != 0 or not any(effect.delta < 0 for effect in effects):
+            raise ValueError("a reservation needs a balanced plan with debits")
+        object.__setattr__(self, "effects", tuple(sorted(effects, key=lambda e: (e.account, e.delta))))
+
+    def held(self) -> dict[str, int]:
+        amounts: dict[str, int] = {}
+        for effect in self.effects:
+            if effect.delta < 0:
+                amounts[effect.account] = amounts.get(effect.account, 0) - effect.delta
+        return amounts
+
+    def canonical(self) -> dict[str, Any]:
+        return {
+            "action_id": self.action_id, "actor": self.actor,
+            "created_tick": self.created_tick, "operation": self.operation,
+            "effects": [effect.canonical() for effect in self.effects],
+        }
 
 
 @dataclass(frozen=True)
@@ -118,10 +161,18 @@ class WorldView:
     balances: Mapping[str, int]
     sources: Mapping[str, SourceView]
     roster: tuple[str, ...]
+    reservations: Mapping[str, Reservation] = field(default_factory=lambda: MappingProxyType({}))
 
     @property
     def own_balance(self) -> int:
         return self.balances[self.actor]
+
+    @property
+    def own_available(self) -> int:
+        return self.own_balance - sum(
+            reservation.held().get(actor_account(self.actor), 0)
+            for reservation in self.reservations.values()
+        )
 
 
 @dataclass(frozen=True)
@@ -132,6 +183,7 @@ class WorldState:
     balances: Mapping[str, int]
     sources: Mapping[str, Source]
     consumed: int = 0
+    reservations: Mapping[str, Reservation] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not is_integer(self.tick) or self.tick < 0:
@@ -159,6 +211,32 @@ class WorldState:
 
         object.__setattr__(self, "balances", MappingProxyType(balances))
         object.__setattr__(self, "sources", MappingProxyType(sources))
+        reservations = dict(self.reservations)
+        for action_id, reservation in reservations.items():
+            if not isinstance(reservation, Reservation) or action_id != reservation.action_id:
+                raise ValueError("reservation key must match its action identity")
+            if reservation.actor not in balances or reservation.created_tick >= self.tick:
+                raise ValueError("a reservation needs an existing actor and an earlier creation tick")
+            for effect in reservation.effects:
+                account = effect.account
+                if account == SINK_ACCOUNT:
+                    if effect.delta < 0:
+                        raise ValueError("a reservation cannot debit consumed stock")
+                elif is_actor_account(account):
+                    if actor_of(account) not in balances:
+                        raise ValueError("a reservation names an unknown actor")
+                    if effect.delta < 0 and actor_of(account) != reservation.actor:
+                        raise ValueError("a reservation cannot debit another actor")
+                elif is_source_account(account):
+                    if source_of(account) not in sources:
+                        raise ValueError("a reservation names an unknown source")
+                    if effect.delta < 0 and not sources[source_of(account)].permits(reservation.actor):
+                        raise ValueError("a reservation needs source authority")
+                else:
+                    raise ValueError("a reservation names an unknown account")
+        object.__setattr__(self, "reservations", MappingProxyType(dict(sorted(reservations.items()))))
+        if any(amount < 0 for amount in self.availability().values()):
+            raise ValueError("reserved stock exceeds its account balance")
 
     @classmethod
     def genesis(
@@ -168,12 +246,14 @@ class WorldState:
         balances: Mapping[str, int] | None = None,
         sources: Mapping[str, Source] | None = None,
         consumed: int = 0,
+        reservations: Mapping[str, Reservation] | None = None,
     ) -> "WorldState":
         return cls(
             tick=tick,
             balances=dict(balances or {}),
             sources=dict(sources or {}),
             consumed=consumed,
+            reservations=dict(reservations or {}),
         )
 
     @property
@@ -189,9 +269,20 @@ class WorldState:
             + self.consumed
         )
 
+    def availability(self) -> dict[str, int]:
+        """A detached account map of free stock; holds are counted only once."""
+        available = {actor_account(actor): amount for actor, amount in self.balances.items()}
+        available.update({source_account(name): source.stock for name, source in self.sources.items()})
+        available[SINK_ACCOUNT] = 0
+        for reservation in self.reservations.values():
+            for account, amount in reservation.held().items():
+                available[account] -= amount
+        return available
+
     def view_for(self, actor_id: str) -> WorldView:
         if actor_id not in self.balances:
             raise KeyError(f"no such actor: {actor_id!r}")
+        available = self.availability()
         return WorldView(
             actor=actor_id,
             tick=self.tick,
@@ -202,11 +293,13 @@ class WorldState:
                         source_id=source_id,
                         stock=source.stock,
                         authorised=tuple(sorted(source.authorised)),
+                        reserved=source.stock - available[source_account(source_id)],
                     )
                     for source_id, source in self.sources.items()
                 }
             ),
             roster=self.roster,
+            reservations=MappingProxyType(dict(self.reservations)),
         )
 
     def canonical(self) -> dict[str, Any]:
@@ -216,6 +309,7 @@ class WorldState:
             "balances": dict(self.balances),
             "sources": {source_id: source.canonical() for source_id, source in self.sources.items()},
             "consumed": self.consumed,
+            "reservations": {action_id: reservation.canonical() for action_id, reservation in self.reservations.items()},
         }
 
     def digest(self) -> str:
