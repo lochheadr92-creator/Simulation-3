@@ -756,3 +756,40 @@ record stream plus a viewer that renders from the stream (checkpoint 1);
 slice 1d is deferred with a per-tick timing line kept visible; Stage 2 opens in
 checkpoint order once checkpoint 1 exists. Checkpoint output is exploration,
 not evidence. Stage 1 exit remains unclaimed.
+
+### Slice 1c (re-scoped) — checkpoint 1 — 2026-09-21
+
+Record stream and viewer landed under OD-009. `stream/run_file.py` writes an
+append-only JSONL run (`v3.stream.1`): a header, one canonical content line per
+tick (record, next-state digest, chained), a separate timing line per tick,
+and an end line carrying the trail digest; `read_run` recomputes every digest
+and chain link and lists problems. `stream/scenario.py` is a seeded
+contention-and-holds proposal generator over the 1b kernel; `stream/run.py`
+runs it (`--twice` re-runs and byte-compares); `stream/viewer.py` renders a
+self-contained HTML page (inline CSS/JS, no external resources) and a text
+render from the run file alone. `tests/test_stream.py` adds ten tests
+(determinism, verification, overwrite refusal, tamper detection, viewer
+self-containment, kernel→stream import direction). Whole tree: 264 passed.
+
+Checkpoint run: `py -3 -B -m stream.run --seed 7 --ticks 200 --twice --html`
+→ 200 ticks, trail
+`094e03795b77c6574c82baca33d3a0fe8d8f9daae5e24585e894f047bc90689b`, final
+state `00076b2d…`, second run byte-identical; tick_ms mean 0.233 / p95 0.333 /
+max 0.424. Run files live under `runs/` (gitignored); checkpoint output is
+exploration, not evidence.
+
+Observations from the viewer: reservations never expire (a 1b declaration),
+so holds accumulate over a long run and availability drains even where stock
+remains; the economy has no production, so it is a pure depletion picture.
+Both are inputs to Stage 2 scoping, not defects.
+
+Tooling notes: `automation/preflight.py` recognises the milestone line by
+fixed phrases, so the updated `SIM3_STATE.md` snapshot reports
+`sim3_state_milestone_mismatch` (and `sim3_state_head_mismatch`, because the
+head line carries an annotation rather than a bare hash) as informational
+inconsistencies alongside the two pre-existing ones; per OD-009 this is
+recorded rather than fixed. The copied review evidence files under
+`review-2026-09-21-slice-1a/` and `-1b/` were CRLF-normalised to LF on
+commit, so their `artifact-sha256.json` hashes describe the workspace copies,
+not the committed blobs. Stage 1 exit remains unclaimed; the first Stage 2 step
+(position, movement, food source, hunger) is next.

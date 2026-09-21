@@ -7,3 +7,7 @@ __pycache__/
 evidence/automation-runs/*
 !evidence/automation-runs/README.md
 
+
+# Checkpoint run streams (exploration output under OD-009, not evidence)
+runs/
+
