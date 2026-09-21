@@ -5,8 +5,8 @@
 
 The page embeds the run file's content and reads nothing else: no network,
 no scripts from elsewhere, no live engine. Every number shown is a value the
-run recorded (positions, hunger, balances, stocks, decisions, outcomes) or a
-count of those values. It is a way to look, not a second scorer.
+run recorded (positions, hunger, balances, stocks, decisions, observations,
+outcomes) or a count of those values. It is a way to look, not a second scorer.
 
 View k shows the world after tick k-1 (view 0 is genesis) together with the
 decisions and outcomes of tick k-1, the ones that produced it.
@@ -63,12 +63,14 @@ function food(k, p) { if (k === 0) return H.genesis.balances[p]; const a = ticks
 function stock(k) { if (k === 0) return H.genesis.sources[C.source].stock; const t = ticks[k - 1]; let s = t.state.sources[C.source].stock; for (const e of (t.production || [])) s += e.amount; return s; }
 function outcomeOf(t, p) { for (const o of t.record.outcomes) if (o.actor === p) return o; return null; }
 const series = { stock: [], alive: [], hunger: {} }; for (const p of people) series.hunger[p] = [];
-const totals = { claimsOk: 0, claimsNo: 0, eats: 0, emergencyTicks: 0, deaths: [] };
+const totals = { claimsOk: 0, claimsNo: 0, eats: 0, emergencyTicks: 0, deaths: [], sawOther: 0, sawSource: 0 };
 for (let k = 0; k <= n; k++) {
   const w = world(k); series.stock.push(stock(k)); let alive = 0;
   for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; series.hunger[p].push(dead ? null : w.hunger[p]); if (!dead && w.hunger[p] >= C.emergency_at) totals.emergencyTicks++; }
   series.alive.push(alive);
-  if (k >= 1) { for (const o of ticks[k - 1].record.outcomes) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; } }
+  if (k >= 1) { for (const o of ticks[k - 1].record.outcomes) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
+    const block = ticks[k - 1].observations || {};
+    for (const p of Object.keys(block)) { if ((block[p].others || []).length) totals.sawOther++; if (Object.prototype.hasOwnProperty.call(block[p], 'source_food')) totals.sawSource++; } }
 }
 for (const p of people) { const w = world(n); if (p in w.died_at) totals.deaths.push([p, w.died_at[p]]); }
 totals.deaths.sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
@@ -77,6 +79,14 @@ function drawMap(k) {
   let s = `<svg class="map" viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">`;
   for (let y = 0; y < C.height; y++) for (let x = 0; x < C.width; x++) s += `<rect x="${x*cell}" y="${y*cell}" width="${cell}" height="${cell}" fill="var(--cell)" stroke="var(--bg)"/>`;
   for (const p of people) { const [hx, hy] = w.homes[p]; s += `<rect x="${hx*cell+4}" y="${hy*cell+4}" width="${cell-8}" height="${cell-8}" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`; }
+  const radius = C.perception_radius;
+  if (typeof radius === 'number') for (const p of people) {
+    if (p in w.died_at) continue;
+    const [x, y] = w.positions[p];
+    const x0 = Math.max(0, x - radius) * cell, y0 = Math.max(0, y - radius) * cell;
+    const x1 = (Math.min(C.width - 1, x + radius) + 1) * cell, y1 = (Math.min(C.height - 1, y + radius) + 1) * cell;
+    s += `<rect x="${x0+0.5}" y="${y0+0.5}" width="${x1-x0-1}" height="${y1-y0-1}" fill="none" stroke="var(--fg)" stroke-opacity="0.18"/>`;
+  }
   const [sx, sy] = C.source_position; const st = stock(k);
   s += `<rect x="${sx*cell+2}" y="${sy*cell+2}" width="${cell-4}" height="${cell-4}" fill="var(--sourcebg)" stroke="var(--source)" stroke-width="2"/>`;
   s += `<text x="${sx*cell+cell/2}" y="${sy*cell+cell/2+5}" text-anchor="middle" font-size="15" font-weight="600" fill="var(--source)">${st}</text>`;
@@ -108,7 +118,11 @@ function show(k) {
   v = Math.max(0, Math.min(n, k)); $('slider').value = v; $('tick').textContent = `view ${v} / ${n}`; $('map').innerHTML = drawMap(v);
   const w = world(v), t = v >= 1 ? ticks[v - 1] : null; let alive = 0; let rows = '';
   for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
+    const ob = t && t.observations && t.observations[p];
+    let sees = '';
+    if (ob) { const names = (ob.others || []).map(x => x.id); if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S'); sees = names.join(', '); }
     rows += `<tr><td>${p}</td><td class="mono">${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td><td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>`
+          + `<td class="mono">${esc(sees)}</td>`
           + `<td>${d ? esc(d.kind) + (d.amount ? ' ' + d.amount : '') + ' <span class="meta">' + esc(d.reason) + '</span>' : ''}</td>`
           + `<td>${o ? `<span class="${o.accepted ? 'ok' : 'no'}">${esc(o.reason)}</span>` : ''}</td></tr>`; }
   $('people').innerHTML = rows;
@@ -123,7 +137,7 @@ $('play').addEventListener('click', play); $('prev').addEventListener('click', (
 $('trails').addEventListener('change', e => { trails = e.target.checked; show(v); });
 document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') show(v - 1); else if (e.key === 'ArrowRight') show(v + 1); else if (e.key === ' ') { e.preventDefault(); play(); } else if (e.key === 'Home') show(0); else if (e.key === 'End') show(n); });
 $('chart').innerHTML = drawChart();
-$('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten <b>${totals.eats}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.map(d => d[0] + ' t' + d[1]).join(', ') + ')' : ''}</span>`;
+$('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten <b>${totals.eats}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b></span><span>person-ticks with another in view <b>${totals.sawOther}</b></span><span>person-ticks with source in view <b>${totals.sawSource}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.map(d => d[0] + ' t' + d[1]).join(', ') + ')' : ''}</span>`;
 show(0);
 """
 
@@ -154,7 +168,7 @@ def render_html(run: Run) -> str:
 <h1>{html.escape(run.run_id or run.path.name)}</h1>
 <div class="meta">{html.escape(scenario.get('name', ''))} · seed {html.escape(str(scenario.get('seed', '')))} · {len(run.ticks)} ticks · engine {html.escape(str(run.header.get('engine_version', '')))} · {html.escape(str(run.header.get('format', '')))} · file {status}</div>
 <div class="meta">{html.escape(levers)}</div>
-<div class="meta">movement: {html.escape(str(scenario.get('movement', '')))}<br>decision: {html.escape(str(scenario.get('decision', '')))}</div>
+<div class="meta">movement: {html.escape(str(scenario.get('movement', '')))}<br>decision: {html.escape(str(scenario.get('decision', '')))}<br>perception: {html.escape(str(scenario.get('distance_metric', '')))} radius {html.escape(str(scenario.get('perception_radius', '')))} ({html.escape(str(scenario.get('perception_boundary', '')))}) {html.escape(str(scenario.get('perception', '')))}</div>
 {f'<ul>{problems}</ul>' if problems else ''}
 <div class="controls">
   <button id="prev">&#8592;</button><button id="play">play</button><button id="next">&#8594;</button>
@@ -165,10 +179,10 @@ def render_html(run: Run) -> str:
 <div class="stats" id="summary"></div>
 <div class="grid">
   <div class="panel"><h2>Map</h2><div id="map"></div>
-    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span><span>dashed square: home</span></div></div>
+    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span></div></div>
   <div class="panel"><h2>People after this tick</h2>
-    <table><thead><tr><th>person</th><th>at</th><th class="num">hunger</th><th>state</th><th class="num">food</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
-    <p class="meta">Decision and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick.</p></div>
+    <table><thead><tr><th>person</th><th>at</th><th class="num">hunger</th><th>state</th><th class="num">food</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
+    <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start.</p></div>
 </div>
 <div class="panel" style="margin-top:12px"><h2>Over time: hunger per person (grey), source stock (blue), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
 <p class="meta">Exploration output under OD-009. Rendered from the run file alone; nothing here is a second calculation of what the engine decided.</p>
@@ -193,14 +207,31 @@ def render_text(run: Run, view: int) -> str:
         x, y = world["positions"][actor]
         mark = "x" if actor in world["died_at"] else actor[-1]
         grid[y][x] = mark if grid[y][x] in ".S" else "+"
-    lines = [f"{run.run_id} view {view}/{len(run.ticks)}  source S at ({sx}, {sy}) stock {stock}", *(" ".join(row) for row in grid), "",
-             "positions and hunger after the tick; decision and outcome are the tick's that produced them"]
+    saw_other = saw_source = 0
+    for entry in run.ticks:
+        for observation in entry.get("observations", {}).values():
+            if observation.get("others"):
+                saw_other += 1
+            if "source_food" in observation:
+                saw_source += 1
+    lines = [f"{run.run_id} view {view}/{len(run.ticks)}  source S at ({sx}, {sy}) stock {stock}",
+             f"person-ticks with another in view {saw_other}; with source in view {saw_source}",
+             *(" ".join(row) for row in grid), "",
+             "positions and hunger after the tick; sees, decision and outcome are the tick's that produced them"]
     tick = run.ticks[view - 1] if view else None
     for actor in sorted(world["positions"]):
         decision = tick["decisions"].get(actor) if tick else None
         outcome = next((o for o in tick["record"]["outcomes"] if o["actor"] == actor), None) if tick else None
         dead = f" dead t{world['died_at'][actor]}" if actor in world["died_at"] else ""
+        observation = tick.get("observations", {}).get(actor) if tick else None
+        seen = ""
+        if observation is not None:
+            names = [entry["id"] for entry in observation.get("others", [])]
+            if "source_food" in observation:
+                names.append(f"S={observation['source_food']}")
+            seen = f"  sees {', '.join(names) if names else 'none'}"
         lines.append(f"{actor} at {tuple(world['positions'][actor])} hunger {world['hunger'][actor]}{dead}"
+                     + seen
                      + (f"  {decision['kind']} ({decision['reason']})" if decision else "")
                      + (f"  -> {outcome['reason']}" if outcome else ""))
     return "\n".join(lines)

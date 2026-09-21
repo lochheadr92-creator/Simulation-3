@@ -1,8 +1,9 @@
 """The declared world levers and the seeded genesis.
 
 Levers are the ones ROADMAP Stage 2 allows: geometry, distribution, renewal,
-initial supplies, consumption rates. Changing one is a new configuration, and
-every value is written into the run header so a run is readable on its own.
+initial supplies, perception radius, and consumption rates. Changing one is a
+new configuration, and every value is written into the run header so a run is
+readable on its own.
 
 Genesis uses one named deterministic generator, `homes-uniform-v1`: homes are
 drawn without replacement from every cell except the source cell using
@@ -22,6 +23,8 @@ from world.overlay import Overlay
 
 GENESIS_GENERATOR = "homes-uniform-v1"
 FOOD_SOURCE = "food"
+DISTANCE_METRIC = "chebyshev"
+PERCEPTION_BOUNDARY = "distance <= radius"
 
 
 @dataclass(frozen=True)
@@ -41,6 +44,7 @@ class WorldConfig:
     hungry_at: int = 5            # hunger at which a person seeks food
     emergency_at: int = 10        # hunger at which the state is an emergency
     death_at: int = 16            # hunger at which a person dies
+    perception_radius: int = 3    # Chebyshev cells; self is always in view
 
     def __post_init__(self) -> None:
         checks = {
@@ -51,6 +55,7 @@ class WorldConfig:
             "hunger_rate": self.hunger_rate >= 0, "satiation": self.satiation >= 1,
             "hungry_at": 0 <= self.hungry_at, "emergency_at": self.hungry_at <= self.emergency_at,
             "death_at": self.emergency_at < self.death_at,
+            "perception_radius": self.perception_radius >= 0,
             "capacity": self.actors <= self.width * self.height - 1,
         }
         bad = [name for name, ok in checks.items() if not ok]
@@ -80,6 +85,14 @@ class WorldConfig:
             "renewal_amount": self.renewal_amount, "claim_amount": self.claim_amount,
             "hunger_rate": self.hunger_rate, "satiation": self.satiation,
             "hungry_at": self.hungry_at, "emergency_at": self.emergency_at, "death_at": self.death_at,
+            "distance_metric": DISTANCE_METRIC,
+            "perception_radius": self.perception_radius,
+            "perception_boundary": PERCEPTION_BOUNDARY,
+            "perception": (
+                "self always; others in radius: identity, position, free food "
+                "(not hunger, home, or decision); source position is a known landmark; "
+                "source stock only when the source cell is in view (absent otherwise, never stale)"
+            ),
             "movement": "one step per tick along the longer axis (x on ties), four neighbours, co-location allowed",
             "decision": "eat if hungry and holding; claim if hungry at the source; walk to the source if hungry; else walk home",
         }

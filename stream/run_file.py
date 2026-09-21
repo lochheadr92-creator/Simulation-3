@@ -12,11 +12,17 @@ lines are the only non-deterministic bytes and are kept separate on purpose.
 
 Format v3.stream.2 adds optional blocks a world run needs, each verified by
 the reader: a `world` overlay (positions, needs) with its own digest on the
-header and on every tick; `decisions` (what each actor chose and why); and
+header and on every tick; `decisions` (what each actor chose and why);
+`observations` (what each living person saw at tick start: others inside the
+perception radius, and source stock if the source cell is in view); and
 `production`, the renewal applied to sources after the tick, with the digest
 of the state that results. When production is present the next tick chains
 from that produced state, and the reader recomputes it from the stored state
 rather than trusting the digest. v3.stream.1 files remain readable.
+
+STREAM_FORMAT stays v3.stream.2: `observations` is an optional block verified
+the same way as `decisions` (canonical bytes of the tick line, in the trail).
+That is not a new digest field and does not change the reader's rules.
 """
 
 from __future__ import annotations
@@ -100,6 +106,7 @@ class RunWriter:
 
     def record(self, record: TickRecord, next_state: WorldState, *, elapsed_ns: int | None = None,
                world: dict[str, Any] | None = None, decisions: dict[str, Any] | None = None,
+               observations: dict[str, Any] | None = None,
                production: list[dict[str, Any]] | None = None, produced_state: WorldState | None = None) -> None:
         """Append one tick. `next_state` is what settlement committed. When a
         world process then produced stock, pass `production` (the rule's
@@ -124,6 +131,8 @@ class RunWriter:
             payload["world_digest"] = digest(world)
         if decisions is not None:
             payload["decisions"] = decisions
+        if observations is not None:
+            payload["observations"] = observations
         if production:
             if produced_state is None:
                 raise RunFileError("production needs the produced state")

@@ -13,6 +13,13 @@ Priority, highest first:
   home   not hungry, away from home: one step toward home
   rest   not hungry, at home
 A dead person has no candidates and decides nothing.
+
+CLAIM requires the source to be in view. Standing on the source is
+distance 0, so the requirement is always met there; it is stated so the
+rule stays honest if the radius changes. The claim amount is
+min(claim_amount, observed stock). If stock is not observed the person
+cannot be at the source; that is asserted, not defaulted. No new
+candidate kinds.
 """
 
 from __future__ import annotations
@@ -63,6 +70,8 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if hungry and observation.food >= 1:
         found.append(EAT)
     if hungry and observation.at_source:
+        if observation.source_food is None:
+            raise AssertionError(f"{observation.actor} is at the source but did not observe its stock")
         found.append(CLAIM if observation.source_food >= 1 else WAIT)
     if hungry and not observation.at_source:
         found.append(GO)
@@ -80,8 +89,11 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
     if EAT in options:
         return Decision(actor, EAT, f"{urgency}, holding {observation.food}", options, amount=1)
     if CLAIM in options:
-        amount = min(config.claim_amount, observation.source_food)
-        return Decision(actor, CLAIM, f"{urgency}, at source with {observation.source_food} free", options, amount=amount)
+        seen = observation.source_food
+        if seen is None:
+            raise AssertionError("claim selected without observed source stock")
+        amount = min(config.claim_amount, seen)
+        return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount)
     if WAIT in options:
         return Decision(actor, WAIT, f"{urgency}, source empty", options)
     if GO in options:

@@ -11,7 +11,8 @@ One tick:
   3. the kernel settles the proposals: this is the only place food moves
   4. world processes run (world/process.py): movement, hunger, death, renewal
   5. the tick line records the kernel record and state, the overlay, every
-     decision, and any production; a timing line records wall-clock cost
+     decision, every observation, and any production; a timing line records
+     wall-clock cost
 
 Output goes to runs/<run_id>.jsonl (and .html). runs/ is ignored by git: a
 checkpoint run is exploration output under OD-009, not evidence.
@@ -77,7 +78,8 @@ def run_world(config: WorldConfig, ticks: int, path: Path) -> WorldRun:
         for _ in range(ticks):
             started = time.perf_counter_ns()
             state = engine.state
-            decisions = {actor: decide(observe(actor, state, overlay, config), config) for actor in overlay.living}
+            views = {actor: observe(actor, state, overlay, config) for actor in overlay.living}
+            decisions = {actor: decide(views[actor], config) for actor in overlay.living}
             record = engine.tick(proposals_for(decisions, state.tick))
             processed = advance(overlay, decisions, record, engine.state, config)
             cost = time.perf_counter_ns() - started
@@ -86,6 +88,7 @@ def run_world(config: WorldConfig, ticks: int, path: Path) -> WorldRun:
                 record, engine.state, elapsed_ns=cost,
                 world=processed.overlay.canonical(),
                 decisions={actor: d.canonical() for actor, d in decisions.items()},
+                observations={actor: view.compact() for actor, view in views.items()},
                 production=list(processed.production) or None,
                 produced_state=processed.ledger,
             )
@@ -105,7 +108,8 @@ def run_world(config: WorldConfig, ticks: int, path: Path) -> WorldRun:
 
 
 LEVERS = ("width", "height", "actors", "starting_food", "source_stock", "source_cap", "renewal_every",
-          "renewal_amount", "claim_amount", "hunger_rate", "satiation", "hungry_at", "emergency_at", "death_at")
+          "renewal_amount", "claim_amount", "hunger_rate", "satiation", "hungry_at", "emergency_at", "death_at",
+          "perception_radius")
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -54,7 +54,8 @@ def test_genesis_is_seeded_saved_and_identity_neutral():
 
 
 @pytest.mark.parametrize("bad", [dict(actors=49), dict(source_cap=1, source_stock=4), dict(death_at=5, emergency_at=10),
-                                 dict(claim_amount=0), dict(renewal_every=0), dict(satiation=0)])
+                                 dict(claim_amount=0), dict(renewal_every=0), dict(satiation=0),
+                                 dict(perception_radius=-1)])
 def test_configuration_rejects_incoherent_levers(bad):
     with pytest.raises(ValueError):
         small(**bad)
@@ -253,6 +254,15 @@ def test_world_is_downstream_of_the_kernel_and_the_kernel_knows_nothing_of_it():
     # only run.py talks to the engine and the run file; observe/decide/process are pure rules
     for name in ("observe", "decide", "process", "overlay", "config"):
         assert "stream" not in imports(ROOT / "world" / f"{name}.py"), name
+    observe_tree = ast.parse((ROOT / "world" / "observe.py").read_text(encoding="utf-8"))
+    observe_modules = {
+        node.module for node in ast.walk(observe_tree)
+        if isinstance(node, ast.ImportFrom) and node.module
+    } | {
+        alias.name for node in ast.walk(observe_tree) if isinstance(node, ast.Import) for alias in node.names
+    }
+    assert "stream" not in {name.split(".")[0] for name in observe_modules}
+    assert "world.run" not in observe_modules and "run" not in observe_modules
 
 
 def test_food_only_moves_through_the_kernel(tmp_path: Path):

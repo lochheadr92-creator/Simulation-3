@@ -844,3 +844,61 @@ Tooling note: `tests/test_preflight.py` now sets `PYTHONIOENCODING=utf-8`
 for the preflight child process; the previous commit's em dash in a subject
 line made the pipe's ANSI code page decode fail on Windows. No orchestrator,
 no frozen hashes, no acceptance claimed. Stage 1 exit remains unclaimed.
+
+### Stage 2, second step — checkpoint 3, perception radius and bounded views — 2026-09-21
+
+Perception radius and bounded views, under OD-009 point 4. Each living person
+now observes the tick-start world inside a Chebyshev radius: other living
+people as identity, position and free food (not hunger, home or decision);
+the source position remains a known landmark; source stock is present only
+when the source cell is in view, otherwise absent, never stale and never
+zero-as-unknown. Self is always in view. Observations are recorded per
+person on the tick line in an optional `observations` block, verified the
+same way as `decisions` (canonical bytes, in the trail). STREAM_FORMAT stays
+`v3.stream.2`: adding that optional block does not change the reader's rules.
+`world/process.py` is unchanged. CLAIM still requires standing on the source
+(hence in view) and uses the observed stock, asserted rather than defaulted;
+no new candidate kinds.
+
+Declared values (in the run header via `WorldConfig.describe()`): distance
+metric Chebyshev; default perception radius 3 (`--perception-radius`);
+boundary inclusive (`distance <= radius`); others leak identity, position,
+free food only; source stock only when the source cell is in view.
+
+Checkpoint runs, seed 7, 300 ticks (`py -3 -B -m world.run`):
+- radius 3 (default, `--twice --html`): trail
+  `ac95126572ed0ce787042df116c4ec8715ad62d3939ff53af8995043bf89c43d`,
+  second run byte-identical; survivors 3, deaths 3 (p04 t22, p06 t46, p03
+  t58); tick_ms mean 0.127 / p95 0.201 / max 0.301; person-ticks with
+  another in view 861, with source in view 836.
+- radius 12 (whole grid): trail
+  `1608c71acba9227310ba973f214a6c670e29ada8de986be9679460f14a3dc045`;
+  survivors 3, deaths 3; tick_ms mean 0.135 / p95 0.221 / max 0.334;
+  1026 / 1026 (every living person-tick).
+- radius 1: trail
+  `76886afdb38868f05d417ca823342d15cdd111bd4d637e2d34a52d78c8e96e38`;
+  survivors 3, deaths 3; tick_ms mean 0.115 / p95 0.179 / max 0.263;
+  433 / 481.
+
+Radius-12 decisions matched HEAD `b305783` byte-for-byte on the 300-tick
+seed-7 run (and on the 80-tick fixture in `tests/fixtures/`). Radius 1 and 3
+produced the same decisions and the same deaths: the selection rule still
+does not act on other people, and CLAIM only happens on the source cell,
+which is always in view. `tests/test_perception.py` adds nine tests; whole
+tree 296 passed. Viewer: Chebyshev squares on the map, a sees column, and
+the two whole-run counts.
+
+Observations, inputs to whatever comes next, not results:
+- Bounded views are now native records, but they do not change who walks,
+  who claims, or who dies. The world still looks like checkpoint 2 until
+  someone can act on a person they can see.
+- At radius 3 a person approaching from a home on the rim often cannot
+  yet see source stock; they still walk to the landmark. At the source
+  they see the crowd and still only eat, claim or wait.
+- The claim-then-eat latency (two deaths at the source holding food)
+  is unchanged; it remains the owner decision pending from checkpoint 2.
+
+Tooling note: `automation/preflight.py` will report
+`sim3_state_milestone_mismatch` and `sim3_state_head_mismatch` against the
+updated snapshot; recorded, not fixed (OD-009). No orchestrator, no frozen
+hashes, no acceptance claimed. Stage 1 exit remains unclaimed.
