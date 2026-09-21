@@ -917,3 +917,14 @@ checkpoint A, decision-time observations); next undelivered item is leg 5
 (inter-agent and population state, visual checkpoint B), which is not
 authorised to start. No implementation in this sitting. Stage 1 exit remains
 unclaimed.
+
+### OD-010 recorded - 2026-09-21
+
+The owner opened exploration leg 5 (inter-agent and population state, visual
+checkpoint B) with the pre-code declaration OD-009 Revision 3 requires: a
+seeded per-person trait `yield_at`; a crowd-yield rule that acts on the
+checkpoint 3 observation of who is standing on the source; an OFF control
+that must reproduce `9d354414` decisions byte-for-byte; tests; and a stop
+condition. No social action, no retained facts, no kernel change. The
+claim-then-eat latency rule is held constant for this leg. Nothing is
+implemented by this entry. Stage 1 exit remains unclaimed.

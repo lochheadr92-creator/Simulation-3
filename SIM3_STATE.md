@@ -7,7 +7,7 @@ milestone completion. Values that cannot be established from the repository are
 UNKNOWN.
 
 ```
-current_milestone: exploration lane open under OD-009 Revision 3; visual checkpoint C not accepted
+current_milestone: exploration leg 5 open under OD-010 (inter-agent state, visual checkpoint B); not started; visual checkpoint C not accepted
 milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane open; ratification lane holds 1c/1d/Stage 1 exit; slices 1a and 1b independently reviewed PASS (2026-09-21)
 authoritative_head: 9d354414 (checkpoint 3); kernel 0.2.0-stage1b at 9d1542d, unchanged by Stage 2 work
 last_accepted_gate: none
@@ -16,8 +16,8 @@ current_hypothesis: A grid world with movement, one renewable source, hunger and
 proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
 not_proven: Stage 1 exit; sealed evidence and replay (ratification-lane 1c); instance isolation; 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; visual checkpoints B and C; memory or social behaviour; perception as an accepted result
 parked: Stage 3 re-entry; Stage 4; Stages 5-6; slice 1d and Stage 1 exit (ratification lane); orchestrator Phase 4 branches; six-person starter world as confirmation
-blockers: next exploration leg (5, inter-agent and population state, visual checkpoint B) is not opened; it needs its own owner direction and a pre-code declaration
-next_gate: wait for owner direction opening the next exploration leg; this revision does not open one
+blockers: none for leg 5; OD-010 carries its pre-code declaration; leg 6 stays closed until leg 5 reaches its stop condition
+next_gate: visual checkpoint B (leg 5 stop condition: a rendered map with at least one yield event and its ON/OFF comparison recorded)
 authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
 last_updated: 2026-09-21
 ```

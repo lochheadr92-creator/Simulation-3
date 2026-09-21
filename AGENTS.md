@@ -402,3 +402,77 @@ exploration and ratification, before any scientific acceptance machinery.
 **Linked revision.** Recorded on `codex/kernel-first-slice` after checkpoint 3
 (`9d354414`). The amendment commit's hash cannot appear inside this entry and
 is reported after the commit.
+
+### OD-010 - 2026-09-21 - Open exploration leg 5: inter-agent state, visual checkpoint B
+
+**Exact owner direction.** Recorded from the owner's message of 2026-09-21
+("ok") accepting the drafted declaration below in full.
+
+**Behaviour targeted.** A hungry person walking to the source who can see it
+crowded holds back instead of stepping on, unless in emergency. Whether they
+hold back depends on a trait, so people with the same view act differently.
+No social action: nobody requests, gives, follows or avoids a particular
+person. The trait is a model assumption (DOCTRINE 8), declared and recorded,
+not a finding.
+
+**Canonical state it changes.** The overlay gains one immutable per-person
+trait assigned at genesis: `yield_at`, an integer drawn by the seeded genesis
+generator from a declared set (default {1, 2, 3}), written to the run header.
+Nothing else in canonical state changes. The kernel is untouched. No new
+stored population state: crowd counts are derived from positions already
+recorded.
+
+**Rule (exact).** At tick start, a person who is hungry, not in emergency,
+not on the source, and who can see the source cell, counts the living people
+standing on it. If that count is >= their `yield_at` and the observed source
+stock is < that count, the person's decision is `yield`: stay where they are
+this tick. Otherwise the existing rule applies unchanged. Emergency (hunger
+>= emergency_at) never yields. Hunger keeps rising while yielding (DOCTRINE
+1). Dead people are not counted and, as already implemented, not seen; that
+becomes a declared line in the config description.
+
+**What becomes visible (checkpoint B).** On the map: people holding position
+at the rim of the source with their trait shown; a `yield` decision with its
+reason (for example "saw 3 on source, stock 2, yield_at 2"). Over time: crowd
+on the source cell per tick, yield events, and deaths and emergency
+person-ticks broken down by trait value.
+
+**Control.** `--yield off` sets every `yield_at` beyond the actor count so no
+one ever yields; that run must match `9d354414` decisions byte-for-byte
+(extending the existing fixture test). The checkpoint reports seed 7 and two
+more seeds ON and OFF side by side: survivors, deaths, emergency
+person-ticks, denied claims. This is a picture of a difference, not a claim
+about it.
+
+**Tests.** OFF byte-identity against the HEAD fixture; yield occurs only when
+the recorded observation satisfies the rule, checked from the run file;
+emergency never yields; trait assignment is seeded, identity-neutral, from
+the declared set, and present in the header; determinism; tamper on the trait
+block fails verification; ownership unchanged (kernel imports nothing from
+world).
+
+**Stop condition.** The leg closes when checkpoint B renders from the run
+file and the seed-7 ON run contains at least one yield event with its ON/OFF
+comparison recorded in evidence/stage-01/RECORD.md. It halts and reports if
+implementing it would need a social action, a retained fact or observation
+age, or any kernel change.
+
+**Held constant.** The claim-then-eat latency rule (two deaths at the source
+holding food, checkpoint 2) stays as it is for this leg so the ON/OFF
+comparison is not confounded; it is a separate owner decision after
+checkpoint B.
+
+**Standing.** Exploration lane only under OD-009 Revision 3; no ratification,
+no Stage exit; one active leg. Local commit, no push. Alternatives set aside
+at drafting: a trait that does not use perception (speed, appetite)
+differentiates people but does not make them notice each other; moving
+toward a seen food-holder makes them notice each other but is a request-food
+precursor, which is Stage 3 and parked.
+
+**Reason.** Leg 5 is the next undelivered item in the Revision 3 order and
+requires an owner direction with a pre-code declaration. Crowd-yielding uses
+the perception delivered at checkpoint 3 without opening a social action, a
+memory, or a kernel change.
+
+**Linked revision.** Recorded on `codex/kernel-first-slice` after
+`aef393fd`. The recording commit's hash cannot appear inside this entry.
