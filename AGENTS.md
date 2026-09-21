@@ -476,3 +476,113 @@ memory, or a kernel change.
 
 **Linked revision.** Recorded on `codex/kernel-first-slice` after
 `aef393fd`. The recording commit's hash cannot appear inside this entry.
+
+### OD-011 - 2026-09-21 - Open exploration leg 6: scored actions, checkpoint C
+
+**Exact owner direction.** "next stage", followed by "your best decision"
+when asked whether to score a person's actions or competing food claimants.
+This opens the next exploration leg, not a roadmap Stage exit. The concrete
+choice and modelling declarations below are the agent's implementation design
+under that delegation, not a quotation or independent owner acceptance.
+
+**Behaviour targeted.** Score existing eligible actions using the person's
+tick-start observation. When yielding is eligible, increasing hunger can
+outweigh crowd pressure before emergency. Food allocation still uses the
+existing kernel rotation; action scores confer no priority over other people.
+
+**Pre-code declaration.** In opt-in `--scoring on`, compare integer pairs
+`(tier, pressure)` lexicographically, greatest first: EAT `(2,0)`;
+CLAIM/WAIT `(1,0)`; GO `(0,2*(hunger-hungry_at)+1)`;
+YIELD `(0,2*(seen_crowd-yield_at+1))`; HOME/REST `(0,0)`.
+Eligibility is unchanged, including emergency exclusion of YIELD. EAT always
+wins when eligible. GO/YIELD pressures have opposite parity, so these
+competing actions cannot tie; CLAIM/WAIT and HOME/REST are mutually exclusive.
+No new action tie policy is needed. Equivalent food claims continue to resolve
+by the sorted tick-start kernel roster rotated by `tick mod actor_count`,
+including ledger actors who have died; dead people make no decisions or claims.
+Do not substitute claimant-count or living-count rotation. These scores are
+authored assumptions, not findings or a new allocation policy.
+
+**Canonical state.** No new retained state, trait or kernel schema. Changed
+choices may change ordinary positions, hunger, food and deaths. Scored decisions
+record their actual eligible score pairs at selection time in the existing
+decision block. `process.py` and the kernel are unchanged. The header declares
+the scoring mode and formula. Default/OFF retains the leg-5 decisions exactly.
+
+**Visible checkpoint.** Show each eligible action's native score and selected
+action; show the kernel's recorded rotation, claim requests, accepted/denied
+outcomes and effects. Provide a jump to a contested claim and a scored
+GO-versus-YIELD choice. Render HTML and text from saved run files only.
+
+**Control and budget.** Fixed leg-5 seed-7 world, 300 ticks, yield ON: scoring
+ON twice and OFF once, at most three whole-world executions for this leg.
+No tuning, seed search, horizon extension or capacity runs. OFF decisions and
+physical trajectory must match the existing leg-5 run. Keep prior artifacts.
+Focused tests are not whole-world exploration slots; no stage budget is reset.
+
+**Tests and stop.** Existing reference suite unchanged; focused checks for
+score crossover, EAT/emergency safety, observation bounds, input-order
+independence, native score tampering, unchanged atomic settlement, and exact
+rotation including inactive actors. Stop when the saved seed-7 ON file shows
+a GO/YIELD scored choice, contains contested food claims resolved by recorded
+rotation, renders checkpoint C, and the fixed comparison/determinism result
+is recorded. A missing demonstration is reported, not tuned into a pass.
+
+**Standing.** Local only, exploration only. Claim-then-eat latency and world
+levers stay fixed. No social action, memory, orchestrator, ratification or
+Stage exit. Checkpoint C acceptance remains the owner's; leg 7 is not opened.
+Base revision: `768a454951bb2ec82ceb224a9065ecb785b31516`.
+
+#### OD-011 revised implementation direction — 2026-09-22, before code
+
+The owner's detailed leg-6 instruction revises the declaration above. The
+preceding declaration remains history; its local-only standing is superseded
+only by the conditional push authority below. The formula remains the previous
+agent's delegated design, not a verbatim owner specification or accepted finding.
+
+**Scale and crossover.** One additional hunger point and one additional observed
+person each add two pressure units. This equal weighting is a modelling
+assumption, not an empirically established scale. For simultaneously eligible
+GO and YIELD, GO wins exactly when
+`hunger >= hungry_at + seen_crowd - yield_at + 1`; at `hungry_at = 5`,
+`hunger >= seen_crowd - yield_at + 6`. Record both forms in the run header and
+stage record. Test immediately below and at the boundary, and directly assert
+GO odd, YIELD even and never equal across the eligible domain. This establishes
+a possible crossover, not occurrence in the fixed run, better survival or fewer
+whole-run yields. A yield episode can shorten under fixed conditions; trajectory
+feedback may change total yields in either direction.
+
+**Preserved boundaries.** Scores use only bounded tick-start observations and
+declared configuration. The one live selector records actual eligible pairs in
+the existing decision block. Default/OFF keeps exact leg-5 decision shape and
+values. Personal scores never rank food claims. The unchanged kernel rotates
+the sorted full tick-start roster, including inactive ledger actors, by
+`tick mod actor_count`. Observation rules, overlay, process.py, claim-then-eat
+latency and every world lever remain unchanged. No retained population state,
+memory, social action or new trait. Viewer HTML and text read saved native
+scores, decisions, rotation, requests and settlement effects without rescoring.
+
+**Fixed comparison and stop.** Three whole-world executions maximum: seed 7,
+300 ticks, yield ON, scoring ON, identical ON repetition, then scoring OFF.
+Declare commands/configuration/remaining budget before execution; fresh names,
+all attempts retained, no tuning, extra seeds, horizon extension or capacity
+runs. Compare OFF decisions and physical trajectory to saved leg 5, repeated ON
+canonical content excluding timing, and ON/OFF survivors, identified/timed deaths,
+denied claims, tick-start emergency person-ticks and yields. Report native
+GO/YIELD scores and consequences and explicitly whether GO actually wins while
+YIELD is eligible. Timings stand separately; changed digests are not behavioural
+evidence. Missing demonstrations must be reported without another run or a
+completion claim. Keep old reference assertions; focused fixtures are distinct
+from whole-world exploration executions.
+
+**Revised commit/push authority.** Commit on `codex/kernel-first-slice` and push
+only to the existing verified private origin. Verify both destination and private
+visibility before pushing. No remote creation, visibility change, merge or public
+release. If privacy cannot be verified, keep the local commit and report the
+blocker. This supersedes earlier no-push directions for this bounded work only.
+
+**Immediate next decision after C.** Present the recorded consequences of
+claim-then-eat latency and a bounded owner decision before ratification. Do not
+silently defer it into another behaviour leg or alter it during leg 6. C remains
+exploration output, not owner acceptance. No leg 7, orchestrator, social/memory
+work, ratification or Stage exit is opened.

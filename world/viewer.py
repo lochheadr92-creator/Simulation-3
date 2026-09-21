@@ -47,6 +47,7 @@ svg.map { width:100%; height:auto; display:block; max-height:70vh; } svg.chart {
 .legend { font-size:12px; color:var(--muted); } .legend span { display:inline-block; margin-right:12px; }
 .mono { font-family:ui-monospace, Consolas, monospace; font-size:12px; } .problem { color:var(--no); }
 .stats { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; } .stats b { font-variant-numeric:tabular-nums; }
+pre.native { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; margin:0; }
 """
 
 JS = r"""
@@ -68,7 +69,7 @@ const series = { stock: [], alive: [], hunger: {}, crowd: [] }; for (const p of 
 const totals = { claimsOk: 0, claimsNo: 0, eats: 0, emergencyTicks: 0, deaths: [], sawOther: 0, sawSource: 0, yields: 0, emergencyBy: {}, deathsBy: {}, yieldTicks: [] };
 for (let k = 0; k <= n; k++) {
   const w = world(k); series.stock.push(stock(k)); series.crowd.push(crowdAt(k)); let alive = 0;
-  for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; series.hunger[p].push(dead ? null : w.hunger[p]); if (!dead && w.hunger[p] >= C.emergency_at) { totals.emergencyTicks++; const tr = traitOf(p); if (tr !== null) totals.emergencyBy[tr] = (totals.emergencyBy[tr] || 0) + 1; } }
+  for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; series.hunger[p].push(dead ? null : w.hunger[p]); if (k < n && !dead && w.hunger[p] >= C.emergency_at) { totals.emergencyTicks++; const tr = traitOf(p); if (tr !== null) totals.emergencyBy[tr] = (totals.emergencyBy[tr] || 0) + 1; } }
   series.alive.push(alive);
   if (k >= 1) { for (const o of ticks[k - 1].record.outcomes) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
     const block = ticks[k - 1].observations || {};
@@ -139,6 +140,8 @@ function show(k) {
           + `<td>${kindCell}</td>`
           + `<td>${o ? `<span class="${o.accepted ? 'ok' : 'no'}">${esc(o.reason)}</span>` : ''}</td></tr>`; }
   $('people').innerHTML = rows;
+  $('selection').textContent = RUN.details[v].selection;
+  $('settlement').textContent = RUN.details[v].settlement;
   const prod = t && t.production ? t.production.map(e => `+${e.amount} ${e.source}`).join(', ') : '';
   $('summary').innerHTML = `<span>alive <b>${alive}</b>/${people.length}</span><span>source stock <b>${stock(v)}</b>/${C.source_cap}</span><span>consumed <b>${v ? t.state.consumed : H.genesis.consumed}</b></span><span>renewal this tick <b>${prod || 'none'}</b></span>`;
   const cur = document.getElementById('cursor'); if (cur) { const x = 28 + (800 - 36) * (n ? v / n : 0); cur.setAttribute('x1', x); cur.setAttribute('x2', x); }
@@ -148,11 +151,70 @@ function play() { if (timer) { clearInterval(timer); timer = null; $('play').tex
 $('slider').max = n; $('slider').addEventListener('input', e => show(Number(e.target.value)));
 $('play').addEventListener('click', play); $('prev').addEventListener('click', () => show(v - 1)); $('next').addEventListener('click', () => show(v + 1));
 $('trails').addEventListener('change', e => { trails = e.target.checked; show(v); });
+for (const name of ['scored', 'crossover', 'contested']) {
+  const views = RUN.checkpoints[name];
+  $(name).disabled = !views.length;
+  $(name).title = views.length ? 'views ' + views.join(', ') : 'absent from this saved run';
+  $(name).addEventListener('click', () => show(views.find(k => k > v) || views[0]));
+}
 document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') show(v - 1); else if (e.key === 'ArrowRight') show(v + 1); else if (e.key === ' ') { e.preventDefault(); play(); } else if (e.key === 'Home') show(0); else if (e.key === 'End') show(n); });
 $('chart').innerHTML = drawChart();
 $('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten <b>${totals.eats}</b></span><span>yield events <b>${totals.yields}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b>${traitKeys.length ? ' (by yield_at ' + fmtBy(totals.emergencyBy) + ')' : ''}</span><span>person-ticks with another in view <b>${totals.sawOther}</b></span><span>person-ticks with source in view <b>${totals.sawSource}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.map(d => d[0] + ' t' + d[1]).join(', ') + ')' : ''}${traitKeys.length ? '; by yield_at ' + fmtBy(totals.deathsBy) : ''}</span>`;
 show(0);
 """
+
+
+def _checkpoints(run: Run) -> dict[str, list[int]]:
+    """Index saved native choices/outcomes, never reconstruct a score or winner."""
+    found: dict[str, list[int]] = {"scored": [], "crossover": [], "contested": []}
+    for view, tick in enumerate(run.ticks, 1):
+        choices = [d for d in tick.get("decisions", {}).values()
+                   if "go" in d.get("scores", {}) and "yield" in d.get("scores", {})]
+        if choices:
+            found["scored"].append(view)
+        if any(d["kind"] == "go" for d in choices):
+            found["crossover"].append(view)
+        if sum(o["operation"] == "claim" for o in tick["record"]["outcomes"]) >= 2:
+            found["contested"].append(view)
+    return found
+
+
+def _tick_details(run: Run, view: int) -> dict[str, str]:
+    """Shared HTML/text presentation of native fields, with boundary labels."""
+    if not view:
+        return {"selection": "Genesis: no decisions yet.", "settlement": "Genesis: no settlement yet."}
+    tick = run.ticks[view - 1]
+    prior = run.header["world"] if view == 1 else run.ticks[view - 2]["world"]
+    cfg = run.header["scenario"]
+    selection = [f"Tick {tick['tick']} — personal selection from tick-start inputs"]
+    for actor, d in sorted(tick.get("decisions", {}).items()):
+        ob = tick.get("observations", {}).get(actor, {})
+        crowd = sum(person["at"] == cfg["source_position"] for person in ob.get("others", []))
+        scores = d.get("scores")
+        pairs = "; ".join(f"{action} {tuple(scores[action])}" if scores is not None and action in scores
+                          else f"{action} (score not recorded)" for action in d["candidates"])
+        selection.append(
+            f"{actor}: tick-start at {tuple(prior['positions'][actor])}, hunger {prior['hunger'][actor]}, "
+            f"yield_at {prior.get('yield_at', {}).get(actor, 'not recorded')}, "
+            f"seen crowd {crowd}, seen source stock {ob.get('source_food', 'not observed')}; "
+            f"eligible: {pairs}; selected {d['kind']}"
+        )
+    settlement = [f"Tick {tick['tick']} — kernel settlement (personal scores confer no priority)",
+                  "Recorded rotation: " + " -> ".join(tick["record"]["rotated_roster"])]
+    for actor, d in sorted(tick.get("decisions", {}).items()):
+        if d["kind"] == "claim":
+            settlement.append(f"Food claim request: {actor}, {d['amount']} from {cfg['source']}")
+    for o in tick["record"]["outcomes"]:
+        effects = ", ".join(f"{e['account']} {e['delta']:+d}" for e in o["effects"]) or "none"
+        settlement.append(f"{o['proposal_id']}: {o['actor']} {o['operation']} "
+                          f"{'accepted' if o['accepted'] else 'denied'} ({o['reason']}); effects: {effects}")
+    if not tick["record"]["outcomes"]:
+        settlement.append("No kernel transactions this tick.")
+    settlement.append(f"After settlement: source stock {tick['state']['sources'][cfg['source']]['stock']}; "
+                      f"subsequent renewal: {tick.get('production', [])}")
+    settlement.append("Post-tick positions, hunger, deaths and food appear in the map/people view. "
+                      "Claimed food becomes available at the next tick; it was not eaten by claiming.")
+    return {"selection": "\n".join(selection), "settlement": "\n".join(settlement)}
 
 
 def _run_payload(run: Run) -> dict[str, Any]:
@@ -162,6 +224,8 @@ def _run_payload(run: Run) -> dict[str, Any]:
         "timings": {str(tick): ns for tick, ns in run.timings.items()},
         "end": run.end,
         "problems": list(run.problems),
+        "checkpoints": _checkpoints(run),
+        "details": [_tick_details(run, view) for view in range(len(run.ticks) + 1)],
     }
 
 
@@ -181,6 +245,8 @@ def render_html(run: Run) -> str:
 <h1>{html.escape(run.run_id or run.path.name)}</h1>
 <div class="meta">{html.escape(scenario.get('name', ''))} · seed {html.escape(str(scenario.get('seed', '')))} · {len(run.ticks)} ticks · engine {html.escape(str(run.header.get('engine_version', '')))} · {html.escape(str(run.header.get('format', '')))} · file {status}</div>
 <div class="meta">{html.escape(levers)}</div>
+<details><summary>Scoring: {html.escape(str(scenario.get('scoring', 'off (legacy file)')))} — recorded model declarations</summary>
+<pre class="native mono">{html.escape(json.dumps({k: v for k, v in scenario.items() if k.startswith('scoring') or k == 'food_allocation'}, indent=2))}</pre></details>
 <div class="meta">movement: {html.escape(str(scenario.get('movement', '')))}<br>decision: {html.escape(str(scenario.get('decision', '')))}<br>perception: {html.escape(str(scenario.get('distance_metric', '')))} radius {html.escape(str(scenario.get('perception_radius', '')))} ({html.escape(str(scenario.get('perception_boundary', '')))}) {html.escape(str(scenario.get('perception', '')))}<br>yield: {html.escape(str(scenario.get('yield', '')))} set {html.escape(str(scenario.get('yield_set', '')))} · {html.escape(str(scenario.get('dead_are_not_seen', '')))}</div>
 {f'<ul>{problems}</ul>' if problems else ''}
 <div class="controls">
@@ -188,6 +254,9 @@ def render_html(run: Run) -> str:
   <input id="slider" type="range" min="0" max="0" value="0"><span id="tick" class="tick"></span>
   <label class="toggle"><input id="trails" type="checkbox" checked> trails (last 12 views)</label>
   <span id="timing" class="meta"></span>
+  <button id="scored">Next GO/YIELD scored choice</button>
+  <button id="crossover">Next GO over eligible YIELD</button>
+  <button id="contested">Next contested food claim</button>
 </div>
 <div class="stats" id="summary"></div>
 <div class="grid">
@@ -197,8 +266,10 @@ def render_html(run: Run) -> str:
     <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th>state</th><th class="num">food</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
     <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start. yield_at is the person's own crowd-yield trait.</p></div>
 </div>
+<div class="panel" style="margin-top:12px"><h2>Personal selection — tick-start inputs and recorded scores</h2><pre id="selection" class="native mono"></pre></div>
+<div class="panel" style="margin-top:12px"><h2>Resource settlement — recorded kernel order and effects</h2><pre id="settlement" class="native mono"></pre></div>
 <div class="panel" style="margin-top:12px"><h2>Over time: hunger per person (grey), source stock (blue), crowd on source (purple dashed), yield events (dots), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
-<p class="meta">Exploration output under OD-009. Rendered from the run file alone; nothing here is a second calculation of what the engine decided.</p>
+<p class="meta">Emergency person-ticks count living tick-start people, excluding the final post-tick boundary. Exploration output under OD-009. Rendered from the run file alone; nothing here is a second calculation of what the engine decided. Checkpoint C is not owner acceptance.</p>
 <script id="run-data" type="application/json">{data}</script>
 <script>{JS}</script>
 </body></html>
@@ -250,6 +321,12 @@ def render_text(run: Run, view: int) -> str:
                      + seen
                      + (f"  {decision['kind']} ({decision['reason']})" if decision else "")
                      + (f"  -> {outcome['reason']}" if outcome else ""))
+    lines.extend(["", f"Scoring: {cfg.get('scoring', 'off (legacy file)')}"])
+    lines.extend(f"{key}: {value}" for key, value in cfg.items() if key.startswith("scoring_") or key == "food_allocation")
+    lines.append("Navigation (view = tick + 1; use --text VIEW): " + "; ".join(
+        f"{name} views {views or 'absent'}" for name, views in _checkpoints(run).items()))
+    details = _tick_details(run, view)
+    lines.extend(["", details["selection"], "", details["settlement"]])
     return "\n".join(lines)
 
 

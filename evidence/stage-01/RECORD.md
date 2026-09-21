@@ -1,5 +1,228 @@
 # Stage 1 record — kernel only
 
+## Active card — exploration leg 6, revised 2026-09-22 before code
+
+| Field | Contents |
+|---|---|
+| State | OD-011 revised owner direction; leg 6 implemented and checkpoint C generated from saved files. Demonstrations and comparison recorded below. Browser visual inspection blocked; no owner acceptance, ratification, leg 7 or Stage exit. |
+| Scope | world decision/config/CLI/viewer, focused checks, this record and snapshot. Kernel, observations, overlay, process.py, latency and world levers fixed. |
+| Identity | Inspected branch codex/kernel-first-slice at 768a454951bb2ec82ceb224a9065ecb785b31516. Only pre-existing changes: OD-011 and preceding card, preserved below. |
+| Claim | Saved native GO/YIELD scored choice, recorded rotating contested settlement, saved-file HTML/text checkpoint, fixed comparison and determinism. Actual GO-over-YIELD occurrence is a separate reported result; no survival/fairness claim. |
+| Definitions | OD-011 integer pairs. GO wins against eligible YIELD iff hunger >= hungry_at + seen_crowd - yield_at + 1; configured hunger >= seen_crowd - yield_at + 6. Equal pressure increment 2 for one hunger point and one seen person is an authored assumption. GO odd, YIELD even, never equal; no additional tie policy. Full kernel roster rotation includes inactive ledger actors. |
+| Instrument | One live selector records actual pairs; viewer reads native scores and settlement. Focused boundary/parity, EAT/emergency, bounded/dead, order, score-tamper, atomic/roster and viewer checks; old suite/expectations intact. Previous agent's baseline report below: 308 passed in 19.06s, not rerun by this agent yet. |
+| Budget and attempt | Maximum 3 whole-world runs; 3 used, 0 remaining at delivery. Seed 7, 300 ticks, yield ON: scoring ON, identical ON, OFF. Exact pre-execution declaration and attempt ledger below. Focused fixtures are not exploration runs. No tuning, additional seeds, horizon, capacity runs or reset of prior stage budgets. |
+| Evidence and rollback | Append attempts/results below; preserve old files. Local commit plus push only to verified private origin under revised authority. Existing origin https://github.com/lochheadr92-creator/Simulation-3.git was reported public by GitHub get_repo on 2026-09-22: push blocked, no visibility change. Revert bounded implementation only while retaining this history. Immediate follow-up after C: owner decision on claim-then-eat latency before ratification. |
+
+Possible crossover is not an observed finding. Scoring may shorten a yield
+episode with other conditions fixed; feedback may increase or decrease whole-run
+yields. Counting uses tick-start living people with hunger >= emergency_at,
+native denied claim outcomes, selected yields, and saved death identities/ticks.
+Timings are separate from behaviour; digest changes are not behavioural evidence.
+
+### Leg 6 fixed execution declaration — 2026-09-22, before any exploration run
+
+Configuration: seed 7; horizon 300; width/height 12/12; 6 people;
+starting food 1 each; source at (6,6), stock 4, cap 8; renew 2 every 3 ticks;
+claim at most 2; hunger +1/tick; satiation 6; hungry/emergency/death 5/10/16;
+Chebyshev perception radius 3; yield ON, trait set (1,2,3), existing
+homes-uniform-v1+yield-v1 generator. No lever changes between arms. Claiming
+and eating remain separate actions across tick boundaries. Only scoring varies.
+
+Budget immediately before execution: **0 of 3 used; 3 remaining**. In the exact
+order below, each invocation consumes one slot, even if it fails. Existing stage
+budgets stay as recorded; these commands are not confirmation or capacity work.
+Fresh paths must not exist. All old files and all new attempts are retained.
+
+Working directory for every command: `C:/dev/03-Living-World-V3`.
+
+```powershell
+py -3 -B -m world.run --seed 7 --ticks 300 --yield on --scoring on --out runs/leg6-20260922-seed7-300-on.jsonl
+py -3 -B -m world.run --seed 7 --ticks 300 --yield on --scoring on --out runs/leg6-20260922-seed7-300-on-repeat.jsonl
+py -3 -B -m world.run --seed 7 --ticks 300 --yield on --scoring off --out runs/leg6-20260922-seed7-300-off.jsonl
+```
+
+Read-only analysis/render commands (no execution slots):
+
+```powershell
+py -3 -B -m evidence.stage-01.leg6_compare
+py -3 -B -m world.viewer runs/leg6-20260922-seed7-300-on.jsonl
+py -3 -B -m world.viewer runs/leg6-20260922-seed7-300-on.jsonl --text VIEW
+```
+
+Compare OFF to `runs/one-source-grid-seed7-ticks300-yieldon.jsonl` (leg 5).
+Canonical ON equality excludes only timing lines, including header and end.
+Physical comparison covers genesis, world, ledger, availability, production,
+observations and native settlement records; decisions compare exact shape/values.
+Read-only comparison code is `leg6_compare.py`, a bounded saved-file calculation,
+not a selector or a new evidence platform. It reports all scored GO/YIELD choices,
+contested claim ticks and fatal accepted claims. No replacement scores are computed.
+Timings use recorded tick costs, excluding stream writes, and are not a benchmark.
+
+Focused validation before runs: first `py -3 -B -m pytest tests/test_scoring.py -q`
+reported **1 failed, 14 passed (0.43s)**. The new permutation fixture left its
+temporary candidates installed for the next case. Resetting that fixture between
+cases fixed it without changing product code or weakening assertions. Second run:
+**15 passed (0.34s)**; full unchanged reference suite plus additions:
+`py -3 -B -m pytest -q`, **323 passed (19.20s)**. After adding the read-only
+comparison and its known-input counting check: focused **16 passed (0.10s)**;
+full result recorded below. These are focused correctness fixtures, including
+existing short seeded reference tests, not the three 300-tick exploration runs.
+The bundled interpreter lacked pytest; testing uses the installed `py -3`
+Python 3.12 interpreter. No dependencies or reference expectations were changed.
+
+### Leg 6 results — 2026-09-22
+
+**Implementation and validation.** One selector ranks existing eligible actions
+and records its actual score pairs in `decisions[actor].scores` only when ON.
+Default/OFF retains the prior decision block. Headers declare the formula, scale
+coupling, both inequalities, eligibility/tie boundaries and independent food
+allocation. The viewer uses saved scores and outcomes and labels tick-start
+inputs separately from post-tick consequences. HTML and text share native-field
+formatting; no replacement scorer. The viewer's emergency aggregate now explicitly
+counts tick-start boundaries (excludes final post-tick state); the known fixture
+checks initial emergency, dead exclusion and final-boundary exclusion.
+
+Final commands/results on Python 3.12.10:
+
+| Command | Result |
+|---|---|
+| `py -3 -B -m pytest tests/test_scoring.py -q` | 16 passed, 0.10s |
+| `py -3 -B -m pytest -q` | 324 passed, 18.45s (308 existing + 16 additions) |
+| `git diff --check` | pass |
+| `git diff --name-only -- kernel world/observe.py world/overlay.py world/process.py tests/fixtures` | empty; all preserved |
+| `py -3 -B -m evidence.stage-01.leg6_compare` | all four equality checks true; required scored choice and contested tick present |
+| `py -3 -B -m world.viewer runs/leg6-20260922-seed7-300-on.jsonl` | HTML generated from saved file; file verifies |
+| `py -3 -B -m world.viewer runs/leg6-20260922-seed7-300-on.jsonl --text 39` | scored choice and native consequences rendered |
+| Same text command with `--text 28` | contested claims, rotation, accepts/denial and effects rendered |
+| `node --check runs/leg6-20260922-viewer.js` | pass (viewer JS extracted directly from world.viewer.JS) |
+
+No old tests or reference files changed. Focused tests directly cover boundary
+and parity throughout the six-person eligible domain at four hungry thresholds;
+EAT/emergency; bounded/dead observations; candidate permutations; native scores;
+score-block tamper detection via the existing trail; atomic multi-source denial;
+full-roster rotation with inactive actors; unchanged fatal claim latency; native
+HTML/text content; and counting boundaries. Tamper detection is existing stream
+integrity, not adversarial authenticity or ratification of slice 1c.
+
+**Execution ledger.** All invocations completed, all saved files verify, and
+all attempts remain in `runs/`. Exactly three 300-tick executions used; no retries.
+
+| Slot | Saved file in runs/ | Mode | Remaining |
+|---|---|---|---:|
+| 1 | leg6-20260922-seed7-300-on.jsonl | ON | 2 |
+| 2 | leg6-20260922-seed7-300-on-repeat.jsonl | ON identical repetition | 1 |
+| 3 | leg6-20260922-seed7-300-off.jsonl | OFF, yield remains ON | 0 |
+
+**Control and reproducibility.** OFF decisions (shape and values), genesis and
+physical trajectory exactly equal the saved leg-5 seed-7 yield-ON file. Both ON
+files have byte-identical canonical content after excluding timing lines only.
+These checks inspect native values; digest changes do not establish behaviour.
+For file identification only, ON/repeat trail is
+`14728773fec785f4e8802a730049cfa606c0dbd32352a034240881f2d8d2b8de`;
+OFF/leg-5 trail is
+`9405ee6f63146e034dcc4bb63f68b1072ffafba14f7b96ae4c0efe46ffbb070a`.
+
+| Measure, 300 ticks | Scoring ON (repeat identical) | Scoring OFF / leg 5 |
+|---|---|---|
+| Survivors | 3: p01, p02, p05 | 3: p01, p03, p05 |
+| Death identities / saved died_at boundary | p04:22, p06:46, p03:58 | p04:22, p02:46, p06:58 |
+| Denied food claims | 6 | 5 |
+| Living tick-start emergency person-ticks | 144 | 106 |
+| Selected yield events | 0 | 5 |
+| GO selected with YIELD still eligible | 5 | Not scored |
+
+**Crossover occurred.** Twelve person-ticks record both GO and YIELD pairs;
+five select GO, seven select higher-tier EAT. GO selections are p02 and p06 at
+tick 38, p01 at ticks 50 and 51, and p02 at tick 62. At tick 38 / view 39,
+p02 and p06 each start with hunger 8, yield_at 1, seen crowd 2 and source stock 0.
+The configured boundary is hunger >= 7. Recorded GO `(0,7)` beats YIELD `(0,4)`.
+p02 moves (4,4) -> (5,4); p06 moves (6,8) -> (6,7); both end at hunger 9.
+They submit no food claim on that tick. No stock or hunger consequence is
+inferred from score magnitude. At tick 17, p03 instead selects EAT `(2,0)` over
+GO `(0,1)` and YIELD `(0,4)`, demonstrating the tier distinction in this run.
+
+**Contention example.** Tick 27 / view 28 begins with source stock 4. p01, p05
+and p06 each request 2 and record personal CLAIM `(1,0)`. The recorded full
+rotation is p04 -> p05 -> p06 -> p01 -> p02 -> p03. p04 died at boundary 22,
+remains in the kernel roster and submits nothing. p05 and p06 are accepted,
+each with actor +2 and source -2. p01 is explicitly denied_insufficient_source
+with no effects. Post-settlement stock is 0; no renewal that tick. There is no
+claimant ranking by hunger/pressure and no winner reconstructed by the viewer.
+
+**Timing, separately.** Recorded observation/selection/settlement/process costs
+in milliseconds, excluding stream writes: ON mean 0.136776, p95 0.2122, max
+0.4357; repeat mean 0.134973, p95 0.2178, max 0.2769; OFF mean 0.135635, p95
+0.2088, max 0.2654. These are not capacity measurements or evidence of speedup.
+
+**Checkpoint/artifacts.** HTML: `runs/leg6-20260922-seed7-300-on.html`.
+Buttons cycle saved scored choices, GO-over-eligible-YIELD choices and contested
+claims. Text views: `runs/leg6-20260922-view39-utf8.txt` (crossover),
+`runs/leg6-20260922-view28-utf8.txt` (contention), and views 46/58 (fatal claims).
+Full read-only comparison output: `runs/leg6-20260922-comparison.json`.
+The initial PowerShell text captures (`...view39.txt`, `...view28.txt`) retained
+a console encoding replacement for the em dash; they remain alongside fresh
+UTF-8 exports written directly using render_text(...)/Path.write_text. No saved
+run was modified or repeated. Raw runs and generated views remain local ignored
+exploration output, following the existing repository policy; code, tests and
+this result record are committed. They are not sealed ratification evidence.
+
+Browser Use rejected opening the local HTML under its URL security policy.
+No alternate browser surface or indirect workaround was used. HTML generation,
+native-content tests and JavaScript syntax passed; actual browser visual/layout
+inspection is not claimed. The saved file is available for owner inspection.
+
+**Immediate owner decision: claim-then-eat latency, before ratification.**
+In ON, p06 claims 2 at tick 45 with hunger 15, reaches hunger 16 and dies at
+boundary 46 holding those 2 units. p03 repeats this at tick 57 / boundary 58.
+OFF has the same pattern for p02 at 45/46 and p06 at 57/58. These are recorded
+consequences of the unchanged rule, not proof of a policy improvement or of
+what a counterfactual would do.
+
+Bounded decision for the owner: retain separate claim then eat and explicitly
+accept these boundary consequences, or authorise a separately scoped revision
+that lets an accepted claim consume one acquired unit in the same tick. The
+latter would require an explicit change to the current spendability boundary,
+atomic settlement/conservation checks and new comparison authority/budget; a
+world-side free credit or silent grace tick is not an implementation substitute.
+Recommendation for the decision: consider the bounded same-tick obtain/eat
+revision if arrival with a successful claim is intended to avert starvation.
+No such change is authorised or implemented here. This decision is immediate
+after C, not deferred into ratification or another behaviour leg.
+
+**Standing and delivery.** Fixed-run demonstrations are present; no further
+whole-world runs are allowed in leg 6. This is exploration delivery only, not
+owner acceptance of C, general viability, fairness or survival improvement.
+No orchestrator, social/memory work, leg 7, ratification or Stage exit opened.
+Origin fetch/push URL remains
+`https://github.com/lochheadr92-creator/Simulation-3.git`. GitHub get_repo was
+checked again after the comparison: repository id 1377478590, visibility
+**public**. Private push requirement is unmet; keep the bounded local commit,
+do not push, merge, create a remote or change visibility.
+
+**Changed files and rollback.** `world/config.py` owns mode/model declarations;
+`world/decide.py` owns ranking and native pairs; `world/run.py` owns opt-in CLI
+and distinct ON names; `world/viewer.py` owns saved-file presentation/navigation.
+`tests/test_scoring.py` adds focused invariants; `leg6_compare.py` reads saved
+comparisons; `AGENTS.md`, this record and `SIM3_STATE.md` preserve authority,
+results and the immediate latency decision. Kernel/observation/overlay/process
+and old tests are untouched. Operational rollback is `--scoring off` (default).
+For source rollback, revert the leg-6 implementation files from its local commit
+after checking for later work; retain the direction/result history and run files,
+and update the snapshot rather than erasing declarations or evidence.
+
+## Preceding card — exploration leg 6, 2026-09-21 (preserved pre-code declaration)
+
+| Field | Contents |
+|---|---|
+| State | OD-011, scored existing actions and visual checkpoint C. Owner delegated the design after opening the next leg. No Stage exit or checkpoint acceptance. |
+| Scope | world decision/config/CLI/viewer and focused tests; unchanged kernel, observation, overlay and world processes. |
+| Identity | Base 768a454951bb2ec82ceb224a9065ecb785b31516; formula and mode declared in OD-011 and each run header. |
+| Claim | Native scores drive a GO/YIELD choice; existing source contention is displayed with its actual rotating order and settlement. Authored policy, not a survival/fairness claim. |
+| Definitions | OD-011 score pairs; eligibility unchanged; actor-count rotation uses the kernel roster. No new scientific counting predicate. |
+| Instrument | One live selector; scores recorded at selection; viewer reads native decisions and kernel outcomes. Baseline measured this session: 308 passed in 19.06s. |
+| Budget and attempt | At most 3 whole-world executions: seed 7, 300 ticks, scoring ON twice and OFF once, yield ON throughout. No tuning or additional seeds. Existing stage budgets are not renewed. |
+| Evidence and rollback | Append results below. Keep leg-5 files. Revert only OD-011 implementation and its snapshot changes; preserve this record. Leg 7 remains closed. |
+
 ## Active card — Stage 1b, 2026-09-21
 
 | Field | Contents |

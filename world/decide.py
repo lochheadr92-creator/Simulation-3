@@ -1,7 +1,8 @@
 """Candidates and the one live selection rule.
 
 `candidates` lists what a person could do this tick given their observation;
-`decide` picks one by a fixed priority. Both are pure. The record keeps the
+`decide` picks one by fixed priority (OFF) or declared integer pairs (ON).
+Both are pure. The record keeps the actual scores when ON and the
 eligible set beside the choice so a later reader can see what was passed
 over (DOCTRINE 2: observation, eligibility, ranking kept separate).
 
@@ -39,6 +40,7 @@ from world.overlay import Position
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
     "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
 )
+LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, HOME, REST)
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,7 @@ class Decision:
     candidates: tuple[str, ...]
     amount: int = 0                      # units to eat or claim
     step: Position | None = None         # the cell a move ends on
+    scores: tuple[tuple[str, tuple[int, int]], ...] | None = None
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -56,6 +59,8 @@ class Decision:
             out["amount"] = self.amount
         if self.step is not None:
             out["step"] = list(self.step)
+        if self.scores is not None:
+            out["scores"] = {action: list(pair) for action, pair in self.scores}
         return out
 
 
@@ -105,32 +110,61 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     return tuple(found)
 
 
+def action_score(action: str, observation: Observation, config: WorldConfig) -> tuple[int, int]:
+    """Score one eligible action from its bounded tick-start observation only.
+
+    GO is odd, YIELD even. GO > YIELD iff hunger >= hungry_at + crowd -
+    yield_at + 1. Equal increments for hunger and crowd are an authored scale.
+    These pairs never enter the kernel's food-allocation order.
+    """
+    if action == EAT:
+        return (2, 0)
+    if action in (CLAIM, WAIT):
+        return (1, 0)
+    if action == GO:
+        return (0, 2 * (observation.hunger - config.hungry_at) + 1)
+    if action == YIELD:
+        return (0, 2 * (crowd_on_source(observation) - observation.yield_at + 1))
+    if action in (HOME, REST):
+        return (0, 0)
+    raise ValueError(f"no score for action {action!r}")
+
+
 def decide(observation: Observation, config: WorldConfig) -> Decision:
     options = candidates(observation, config)
     actor = observation.actor
     if not options:
         return Decision(actor, DEAD, "dead", ())
+    scores = None
+    if config.scoring_on:
+        # Sorting stabilises the native candidate block; it is not a tie rule.
+        # All simultaneously eligible pairs are distinct under this model.
+        options = tuple(sorted(options))
+        scores = tuple((action, action_score(action, observation, config)) for action in options)
+        selected = max(scores, key=lambda item: item[1])[0]
+    else:
+        selected = next(action for action in LEG5_PRIORITY if action in options)
     urgency = "emergency" if observation.hunger >= config.emergency_at else "hungry"
-    if EAT in options:
-        return Decision(actor, EAT, f"{urgency}, holding {observation.food}", options, amount=1)
-    if CLAIM in options:
+    if selected == EAT:
+        return Decision(actor, EAT, f"{urgency}, holding {observation.food}", options, amount=1, scores=scores)
+    if selected == CLAIM:
         seen = observation.source_food
         if seen is None:
             raise AssertionError("claim selected without observed source stock")
         amount = min(config.claim_amount, seen)
-        return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount)
-    if WAIT in options:
-        return Decision(actor, WAIT, f"{urgency}, source empty", options)
-    if YIELD in options:
+        return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount, scores=scores)
+    if selected == WAIT:
+        return Decision(actor, WAIT, f"{urgency}, source empty", options, scores=scores)
+    if selected == YIELD:
         crowd = crowd_on_source(observation)
         return Decision(
             actor, YIELD,
             f"{urgency}, saw {crowd} on source, stock {observation.source_food}, yield_at {observation.yield_at}",
-            options,
+            options, scores=scores,
         )
-    if GO in options:
+    if selected == GO:
         return Decision(actor, GO, f"{urgency}, walking to source", options,
-                        step=step_toward(observation.position, observation.source))
-    if HOME in options:
-        return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home))
-    return Decision(actor, REST, "fed, at home", options)
+                        step=step_toward(observation.position, observation.source), scores=scores)
+    if selected == HOME:
+        return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)
+    return Decision(actor, REST, "fed, at home", options, scores=scores)

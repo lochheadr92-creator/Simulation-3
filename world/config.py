@@ -50,6 +50,7 @@ class WorldConfig:
     perception_radius: int = 3    # Chebyshev cells; self is always in view
     yield_set: tuple[int, ...] = DEFAULT_YIELD_SET
     yield_on: bool = True         # False assigns yield_at = actors + 1 so the rule never fires
+    scoring_on: bool = False      # opt in; OFF preserves the leg-5 selector and decision shape
 
     def __post_init__(self) -> None:
         checks = {
@@ -106,9 +107,26 @@ class WorldConfig:
             "dead_are_not_seen": "dead people are neither seen nor counted",
             "yield_set": list(self.yield_set),
             "yield": "on" if self.yield_on else "off",
+            "scoring": "on" if self.scoring_on else "off",
+            "scoring_formula": {
+                "eat": "(2, 0)", "claim": "(1, 0)", "wait": "(1, 0)",
+                "go": "(0, 2 * (hunger - hungry_at) + 1)",
+                "yield": "(0, 2 * (seen_crowd - yield_at + 1))",
+                "home": "(0, 0)", "rest": "(0, 0)",
+            },
+            "scoring_order": "lexicographic (tier, pressure), greatest first; eligibility unchanged",
+            "scoring_scale": (
+                "one hunger point and one observed person each add 2 pressure units; "
+                "equal weighting is a modelling assumption, not an empirical scale"
+            ),
+            "scoring_crossover": "GO > YIELD iff hunger >= hungry_at + seen_crowd - yield_at + 1 (both eligible)",
+            "scoring_crossover_configured": f"hunger >= seen_crowd - yield_at + {self.hungry_at + 1} (both eligible)",
+            "scoring_ties": "GO odd, YIELD even: never equal; CLAIM/WAIT and HOME/REST mutually exclusive; no additional tie policy",
+            "food_allocation": "kernel sorted full tick-start roster (including inactive actors), rotated by tick mod actor_count; personal scores confer no priority",
             "movement": "one step per tick along the longer axis (x on ties), four neighbours, co-location allowed",
             "decision": (
-                "eat if hungry and holding; claim if hungry at the source; wait if hungry at an empty source; "
+                ("score existing eligible actions; " if self.scoring_on else "fixed priority: ")
+                + "eat if hungry and holding; claim if hungry at the source; wait if hungry at an empty source; "
                 "yield if hungry, not emergency, off the source, source in view, crowd >= yield_at and stock < crowd; "
                 "walk to the source if hungry; else walk home"
             ),
