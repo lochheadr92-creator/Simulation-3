@@ -257,6 +257,9 @@ def test_cli_from_repository_root_does_not_mutate_kernel():
         capture_output=True,
         text=True,
         encoding="utf-8",
+        # the child prints git subjects; on Windows a pipe defaults to the ANSI
+        # code page, so tell it to emit the UTF-8 this side decodes
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         check=False,
     )
     after = _kernel_hashes()

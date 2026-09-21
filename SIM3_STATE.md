@@ -7,17 +7,17 @@ milestone completion. Values that cannot be established from the repository are
 UNKNOWN.
 
 ```
-current_milestone: Stage 1, slice 1c (record stream and viewer, re-scoped by OD-009; checkpoint 1 delivered)
-milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; slices 1a and 1b independently reviewed PASS (2026-09-21); slice 1d deferred
-authoritative_head: 6c2c0efd (OD-009 recorded); kernel 0.2.0-stage1b at 9d1542d
+current_milestone: Stage 2, first step (position, movement, one renewable source, hunger); checkpoint 2 delivered under OD-009
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; slice 1d deferred; Stage 2 open in checkpoint order only; slices 1a and 1b independently reviewed PASS (2026-09-21)
+authoritative_head: 6c309092 (checkpoint 1); kernel 0.2.0-stage1b at 9d1542d, unchanged by Stage 2 work
 last_accepted_gate: none
 last_accepted_evidence: none
-current_hypothesis: The kernel's contested transactions and two-tick reservations can be written to a record stream and read back, reproducibly, so a world built on them can be looked at before it is argued about.
+current_hypothesis: A grid world with movement, one renewable source and hunger, composed on the unchanged kernel ledger, produces repeatable, readable trajectories in which who eats and who dies follows from declared rules and kernel contention, not from identity.
 proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
-not_proven: Stage 1 exit; sealed evidence and replay (deferred part of 1c); instance isolation; 50-actor cost envelope (1d deferred); any world, person, need, movement, memory, or social behaviour
+not_proven: Stage 1 exit; sealed evidence and replay (deferred part of 1c); instance isolation; 50-actor cost envelope (1d deferred); Stage 2 viability, opportunity counting and confirmation floors; perception, memory, or social behaviour
 parked: Stages 3-6; slice 1d; orchestrator Phase 4 branches; six-person starter world; 50-person behavioural demonstration
-blockers: none for checkpoint work; the first Stage 2 step (position, movement, food source, hunger) needs only the checkpoint cadence in OD-009
-next_gate: checkpoint 2, a map over time, after the first Stage 2 step
+blockers: none for checkpoint work; perception radius and bounded views (checkpoint 3) need only the checkpoint cadence in OD-009
+next_gate: checkpoint 3, perception radius and bounded views
 authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
 last_updated: 2026-09-21
 ```
@@ -30,33 +30,36 @@ history of `codex/kernel-first-slice`. The checkpoint 1 run referenced below
 was executed locally; its output is exploration, not evidence.
 
 - **Milestone.** OD-009 re-scopes slice 1c to a record stream plus a viewer
-  that renders from the stream, and defers slice 1d. Checkpoint 1 is
-  delivered: `stream/` writes and verifies append-only JSONL runs and renders a
-  self-contained HTML page from them (`RECORD.md`, "Slice 1c (re-scoped) —
-  checkpoint 1"). Stage 1 exit remains unclaimed; sealed evidence and replay
-  (the deferred part of 1c) are not built.
-- **HEAD.** `6c2c0efd` records OD-009. The kernel is `0.2.0-stage1b`
-  (schema `v3.kernel.1b.1`) at `9d1542d`, which landed slice 1b with both
-  review records. A later stream/tooling commit cannot store its own hash in
-  this file.
+  and defers slice 1d; checkpoint 1 (`stream/`) is delivered. Stage 2 is
+  open in checkpoint order only: its first step, position, movement, one
+  renewable source and hunger, is delivered as checkpoint 2 (`world/`, a map
+  over time rendered from the run file; `RECORD.md`, "Stage 2, first step").
+  Stage 1 exit remains unclaimed; sealed evidence and replay (the deferred
+  part of 1c) are not built.
+- **HEAD.** `6c309092` landed checkpoint 1. The kernel is `0.2.0-stage1b`
+  (schema `v3.kernel.1b.1`) at `9d1542d`; Stage 2 work composes it and does
+  not modify it. A later commit cannot store its own hash in this file.
 - **Reviews, not gates.** Slice 1a at `fb5a8959` and slice 1b (snapshot of
   `b915aa0`, landed as `9d1542d`) each received an independent
   different-model PASS on their kernel claims (2026-09-21). No stage exit review
   exists; `last_accepted_gate` and `last_accepted_evidence` are none.
-- **Hypothesis.** The 1b kernel claims (phased settlement, two-tick
-  reservations, availability = stock − holds, rails) can be written to a
-  record stream, read back with every digest recomputed, and reproduced
-  byte-for-byte from a seed. Checkpoint 1 demonstrated this for one seeded
-  200-tick run; it does not accept anything.
-- **Open observations.** Reservations never expire (1b declaration), so holds
-  accumulate over long runs; the economy has no production. Both feed Stage 2
-  scoping. `automation/preflight.py` reports the milestone line above as a
-  mismatch because it recognises fixed phrases; recorded, not fixed (OD-009).
+- **Hypothesis.** A grid world with movement, one renewable source and hunger
+  on the unchanged kernel ledger gives repeatable, readable trajectories in
+  which who eats and who dies follows from declared rules and kernel
+  contention. Checkpoint 2 showed one seeded 300-tick run (three of six
+  survive; a stable cycle follows) and byte-identical reproduction; it
+  accepts nothing and counts no opportunities.
+- **Open observations.** With the default levers the source cannot feed six;
+  claim and eat are separate ticks, so two deaths happened at the source
+  holding food; reservations never expire (1b declaration); nobody perceives
+  anyone else yet. `automation/preflight.py` reports the milestone and head
+  lines above as mismatches because it recognises fixed phrases; recorded,
+  not fixed (OD-009).
 - **Parked / not authorised.** Slice 1d; Stages 3–6; orchestrator Phase 4
   branches (parked as drift under OD-009); frozen hashes, provenance packages
-  and adversarial acceptance for checkpoint work. Stage 2 opens only in
-  checkpoint order: position, movement, food source, hunger, then
-  checkpoint 2, a map over time.
+  and adversarial acceptance for checkpoint work; the Stage 2
+  opportunity-counting instrument and confirmation floors. Next in
+  checkpoint order: perception radius and bounded views (checkpoint 3).
 
 Capability, reachability, and measurement remain separate. This snapshot does
 not infer that Stage 1 is complete.

@@ -793,3 +793,54 @@ recorded rather than fixed. The copied review evidence files under
 commit, so their `artifact-sha256.json` hashes describe the workspace copies,
 not the committed blobs. Stage 1 exit remains unclaimed; the first Stage 2 step
 (position, movement, food source, hunger) is next.
+
+### Stage 2, first step — checkpoint 2, a map over time — 2026-09-21
+
+Position, movement, one renewable food source and hunger, under OD-009 point
+4. New package `world/` composes the 1b kernel without changing it: the kernel
+remains the only place food units move (claims, eating, contention); `world/`
+holds what the kernel does not know (homes, positions, hunger, deaths) as an
+immutable overlay beside the kernel state. One tick: observe (bounded
+tick-start view: own position, hunger, free food, the source's place and free
+stock) → decide (one live selection rule with the eligible candidates recorded
+beside the choice) → kernel settles eat/claim proposals → world processes in a
+fixed order: movement, hunger, death, renewal. Renewal is the only production
+rule; it constructs the next kernel state through the kernel's validated
+constructor and is written to the tick line, and the run reader recomputes it
+from the stored state rather than trusting the digest. Stream format is now
+`v3.stream.2` (optional `world`, `decisions`, `production` blocks; v3.stream.1
+files still read). Genesis uses one named seeded generator
+(`homes-uniform-v1`); nothing else in a run is random.
+
+Declared levers (all in the run header; CLI flags on `world.run`): grid
+12×12, six people, source at centre, starting food 1, source stock 4, cap 8,
+renewal +2 every 3 ticks, claim up to 2, hunger +1 per tick, satiation 6 per
+unit, hungry at 5, emergency at 10, death at 16. Movement one cell per tick
+along the longer axis (x on ties), co-location allowed. Decision priority:
+eat if hungry and holding; claim if hungry at the source; wait if hungry at an
+empty source; walk to the source if hungry; else walk home and rest.
+
+Checkpoint run: `py -3 -B -m world.run --seed 7 --ticks 300 --twice --html`
+→ trail `d9f78325601a9a1f7745843f0517d7a6452a6f8d0eb261c9f3f1253596115f02`,
+second run byte-identical; survivors 3, deaths 3 (p04 t22, p06 t46, p03
+t58); 79 claims accepted, 6 denied (`denied_insufficient_source`), 160 units
+eaten, 144 emergency person-ticks; tick_ms mean 0.099 / p95 0.143 / max
+0.212. Viewer: `world/viewer.py` (map, people table with decision and kernel
+outcome, hunger and stock over time). `tests/test_world.py` adds 22 tests;
+whole tree 286 passed.
+
+Observations, inputs to the next leg, not results:
+- The world found a carrying capacity: three die in the first 60 ticks, then
+  the remaining three hold a stable cycle (stock 2–6, hunger sawtooth to ~10).
+  With these levers the source cannot feed six.
+- Two of the three deaths happened at the source holding food: claim and eat
+  are separate ticks, so a claim at hunger 15 cannot beat death at 16. That
+  is the declared rule, and it is what "needs never pause" costs.
+- The kernel's own contention rail is what decides who eats when several
+  arrive together; the world layer never overrides a kernel outcome.
+- Nobody sees anyone else yet; perception is the next checkpoint (OD-009).
+
+Tooling note: `tests/test_preflight.py` now sets `PYTHONIOENCODING=utf-8`
+for the preflight child process; the previous commit's em dash in a subject
+line made the pipe's ANSI code page decode fail on Windows. No orchestrator,
+no frozen hashes, no acceptance claimed. Stage 1 exit remains unclaimed.
