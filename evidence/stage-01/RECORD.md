@@ -902,3 +902,18 @@ Tooling note: `automation/preflight.py` will report
 `sim3_state_milestone_mismatch` and `sim3_state_head_mismatch` against the
 updated snapshot; recorded, not fixed (OD-009). No orchestrator, no frozen
 hashes, no acceptance claimed. Stage 1 exit remains unclaimed.
+
+### OD-009 Revision 3 recorded — 2026-09-21
+
+The owner opened the exploration lane and replaced remaining OD-009
+sequencing. Legs 2–6 are not opened by this entry; each needs its own
+direction and a pre-code declaration. Stage 3 re-entry is parked; Stage 4 is
+blocked; slices 1c and 1d and the Stage 1 exit gate wait in the ratification
+lane. Work already delivered under the original OD-009 stands (1b; stream
+checkpoint 1; world checkpoint 2; perception checkpoint 3) as exploration,
+not as a Stage exit. Mapped against the new order: leg 1 done; legs 2–4 have
+corresponding delivered work (agents/presence, position/locality as visual
+checkpoint A, decision-time observations); next undelivered item is leg 5
+(inter-agent and population state, visual checkpoint B), which is not
+authorised to start. No implementation in this sitting. Stage 1 exit remains
+unclaimed.

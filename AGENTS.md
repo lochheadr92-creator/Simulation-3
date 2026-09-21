@@ -319,3 +319,86 @@ re-run under the ratification rules before it is cited as a result.
 **Linked revision.** Slice 1b landed in `9d1542d` on `codex/kernel-first-slice`
 after `1858e96`; checkpoint legs are recorded beneath the Stage 1 and Stage 2
 cards as they run.
+
+**Supersession.** Remaining sequencing under this entry is superseded by
+OD-009 Revision 3 below. Work already delivered under this entry (slice 1b,
+checkpoints 1–3) stands.
+
+### OD-009 Revision 3 - 2026-09-21 - Exploration lane
+
+**Exact owner direction.** Recorded from the owner's message of 2026-09-21:
+
+> OD-009 — 2026-09-21 — Revision 3: exploration lane
+>
+> Objective
+> Prove the engine can produce a varied, repeated, readable living world
+> before any scientific acceptance machinery is built.
+>
+> Lane definition
+> This direction opens the exploration lane on Living World V3.
+> Kept in the exploration lane: determinism, reproducibility, replay equality
+> within a run, tests, one active leg at a time, declared stop conditions.
+> Deferred to the ratification lane: frozen baseline hashes, provenance
+> packages, adversarial acceptance reviews, Stage exit claims.
+> Nothing built in the exploration lane may claim a Stage exit.
+>
+> Cadence
+> Foundation leg, behaviour leg, visual checkpoint, further behaviour,
+> visual checkpoint.
+> The backend must not advance more than two legs ahead of something
+> visible or inspectable. A leg that would breach this waits until a
+> checkpoint lands.
+>
+> Leg order
+> 1. Close slice 1b (manifest regeneration against the 1b kernel, stale
+>    orchestrator files removed, commit).
+> 2. Canonical agents and entities, world presence.
+> 3. Position and locality. Visual checkpoint A: people exist and occupy
+>    space over a run.
+> 4. Perception. Decision time observations, native, inert by construction.
+> 5. Inter agent and population state. Visual checkpoint B: people notice
+>    each other, differentiated by declared trait.
+> 6. Contested scoring. Ties resolve by the adopted rotation rule
+>    (tick mod actor_count). Visual checkpoint C: a contested choice
+>    resolves deterministically and readably.
+> 7. Slices 1c and 1d and the Stage 1 exit gate, under the ratification
+>    lane.
+>
+> Leg opening
+> Each leg from 2 onward is opened by its own owner direction. Before
+> code, the leg declares: behaviour targeted, canonical state it changes,
+> what becomes visible afterward, control or ON/OFF comparison, tests,
+> stop condition.
+>
+> Standing constraints
+> DOCTRINE.md is unchanged by this direction.
+> Stage 3 re entry is parked. Stage 4 is blocked.
+> No orchestrator or pilot tooling work under this direction.
+> Halt and report on drift toward infrastructure first, test first,
+> abstraction first, or diagnostic only work.
+>
+> Relationship to prior directions
+> OD-001 through OD-008 stand. Where ROADMAP.md stage sequencing conflicts
+> with the leg order above, this direction governs until it is closed.
+>
+> Closure
+> This direction closes when the owner accepts visual checkpoint C or
+> withdraws the direction. Closure returns sequencing authority to
+> ROADMAP.md.
+
+**Affected scope or rule.** Opens the exploration lane and replaces remaining
+sequencing from the original OD-009 with the leg order above. Does not open
+legs 2–6 for implementation; each still needs its own owner direction and a
+pre-code declaration. Parks Stage 3 re-entry and blocks Stage 4. Moves slices
+1c and 1d and the Stage 1 exit gate to the ratification lane (leg 7). Does
+not amend DOCTRINE.md. Does not undo work already delivered under the original
+OD-009. No orchestrator or pilot tooling. No Stage exit may be claimed from
+exploration-lane work.
+
+**Reason.** Keep proving a readable living world, with a stricter cadence
+(visible checkpoints A–C, one opened leg at a time) and a hard split between
+exploration and ratification, before any scientific acceptance machinery.
+
+**Linked revision.** Recorded on `codex/kernel-first-slice` after checkpoint 3
+(`9d354414`). The amendment commit's hash cannot appear inside this entry and
+is reported after the commit.
