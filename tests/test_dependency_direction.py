@@ -101,3 +101,29 @@ def test_the_declared_layering_is_acyclic():
 
     for module in sorted(ALLOWED):
         walk(module, ())
+
+
+# Presentation track (OD-012): viewer/ reads saved run files and imports nothing
+# from the kernel, the world, or the stream (which imports the kernel).
+
+VIEWER = KERNEL.parent / "viewer"
+VIEWER_FORBIDDEN = {"kernel", "world", "stream"}
+
+
+def top_level_imports(path: pathlib.Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            found.add(node.module.split(".")[0])
+        elif isinstance(node, ast.Import):
+            found.update(alias.name.split(".")[0] for alias in node.names)
+    return found
+
+
+def test_viewer_package_exists_and_imports_nothing_from_kernel_world_or_stream():
+    modules = sorted(VIEWER.glob("*.py"))
+    assert [m.name for m in modules if m.name != "__init__.py"], "viewer/ has no modules"
+    offences = [(m.name, sorted(top_level_imports(m) & VIEWER_FORBIDDEN)) for m in modules
+                if top_level_imports(m) & VIEWER_FORBIDDEN]
+    assert offences == []

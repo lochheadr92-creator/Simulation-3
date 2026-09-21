@@ -210,6 +210,98 @@ For source rollback, revert the leg-6 implementation files from its local commit
 after checking for later work; retain the direction/result history and run files,
 and update the snapshot rather than erasing declarations or evidence.
 
+## Presentation track card — OD-012, 2026-09-22, before code
+
+Not a leg. No behavioural objective. Does not move the active leg-6 card,
+open leg 7, accept checkpoint C, or decide the claim-then-eat latency.
+
+| Field | Contents |
+|---|---|
+| Objective | v1 world view: isometric 2:1 canvas render of a saved world run with smooth (interpolated) playback, per OD-012. A way to look; not an instrument, not evidence. |
+| Files | `viewer/__init__.py`, `viewer/world_view.py` (generator: `.jsonl` in, `runs/<name>.world.html` out), the page template and script inside `viewer/world_view.py`, `tests/test_world_view.py`, one added test block in `tests/test_dependency_direction.py`. Nothing under `kernel/`, `world/`, `stream/` or `tests/fixtures/` changes; `world/viewer.py` is untouched. |
+| Identity | Base `94523ae06957a549ffd2b98aacb3b12120f6b0f3` on `codex/kernel-first-slice`, clean tree at inspection. Inputs: `runs/leg6-20260922-seed7-300-on.jsonl` (trail `14728773…`) and `runs/leg6-20260922-seed7-300-off.jsonl` (trail `9405ee6f…`), read only. |
+| Rules | OD-012 rules 1 to 5: saved files only; no import from `kernel/`, `world/` or `stream/`; one self-contained HTML per run, no external resource, no framework or install; interpolation is display only, events snap to recorded boundaries, paused/stepped frames are exact recorded state, inspect shows recorded values and band labels only; never cited for a behavioural or accounting claim, and does not verify run digests (the reader does). |
+| Recognised input | Header `kind` `header`, `format` `v3.stream.2`, `schema_version` `v3.kernel.1b.1`, a `world` block with `positions`, `homes`, `hunger`, `died_at`, and a `scenario` with `width`, `height`, `source`, `source_position`, `source_cap`, `hungry_at`, `emergency_at`, `death_at`; an `end` line whose `ticks` equals the tick lines read, ticks contiguous from genesis. Anything else is refused with a message naming the field. |
+| Tests | Embedded data SHA-256 equals the source file's SHA-256 (the page carries the digest); no external reference in the page (no `http`, `src=`, `href=`, `url(`, `@import`, `fetch`, `import(`); unrecognised header refused; `viewer/` imports nothing from `kernel`, `world` or `stream` (dependency-direction check extended); `node --check` on the extracted script when `node` is present, skipped with a message otherwise; synthetic 50-person, 2,000-tick fixture in the run-file shape renders and the page stays under 64 MiB; per-frame interpolation step timed headlessly in `node` on that fixture. Full suite must remain green with no reference expectation changed. |
+| Budget | Zero whole-world executions. The synthetic fixture is a test input written to a temporary directory, never under `runs/`, never cited as a run. One sitting. |
+| Unverifiable here | Browser layout, motion smoothness and frame rate on the owner's machine: inspected by the owner. The headless timing covers the interpolation arithmetic only, not canvas drawing. |
+| Rollback | Delete `viewer/`, `tests/test_world_view.py`, the added block in `tests/test_dependency_direction.py`, and the two generated `runs/*.world.html` pages (ignored by git). Retain OD-012 and this card as history. Nothing else changes. |
+
+### Presentation track v1 results — 2026-09-22
+
+**Built.** `viewer/world_view.py`: generator (`py -3 -B -m viewer.world_view
+runs/<run>.jsonl`, writes `runs/<run>.world.html`), a pure JS core
+(`WorldViewCore`: parse lines, build typed arrays, compute one display frame)
+and the page script (canvas 2D, 2:1 isometric tiles, depth-sorted sprites,
+requestAnimationFrame playback with ease-in-out tween of position and hunger
+colour, speed 1–20 t/s, integer scrubber, step, pan/zoom/fit, click-to-inspect
+person or source, legend, footer). The page embeds the run file's complete
+text as one JSON string (every less-than sign written as its JSON unicode
+escape, so no byte sequence in the data can close the script element) and
+carries the file's
+SHA-256 in `<meta name="source-sha256">`. The generator recognises exactly
+the header shape in the card and refuses anything else by name. Rule 4 as
+implemented: at progress 0 the frame equals the recorded state (asserted in
+`node` at ticks 0, 1, 777 and n on the synthetic fixture); the inspect panel
+reads recorded positions, hunger, band label, food, trait, decision line,
+scores and kernel outcomes for state/tick `t`, and re-renders on tick change
+during playback, never on the tween; a person whose `died_at` is `k` stops at
+boundary `k` and their marker fades over three ticks; yield rings follow the
+recorded decision of tick `t`.
+
+**Tests** (`py -3 -B -m pytest`, Python 3.12, node v24.19.0 present):
+
+| Check | Result |
+|---|---|
+| `tests/test_world_view.py` + `tests/test_dependency_direction.py` | 15 passed |
+| whole tree | **333 passed** in 22.89s (324 existing + 8 world-view + 1 dependency-direction), no reference expectation changed |
+| embedded text SHA-256 = file SHA-256, page carries it | pass |
+| page references nothing outside itself (`https?://`, `src=`, `href=`, `url(`, `@import`, `fetch(`, `import(` absent; exactly three inline scripts) | pass |
+| unrecognised header refused (format, schema, no world, no homes, no thresholds, no source, not a header; cut file; CLI exit 2) | pass |
+| `viewer/` imports nothing from `kernel`, `world`, `stream` (AST, both test files) | pass |
+| `node --check` on the two page scripts | pass |
+| synthetic 50 people × 2,000 ticks (40×20, temp dir, not a run): page 15,338,519 bytes vs bound 64 MiB; source 12.9 MB | pass |
+| headless frame step on that fixture, 600 frames | mean 0.024 ms vs bound 4.0 ms |
+| `git diff --check` | pass |
+
+One test correction during the sitting: the CLI test compared the embedded
+text with a newline-normalised read; on Windows the fixture has CRLF and the
+page embeds it verbatim, so the comparison now reads bytes on both sides.
+The generator writes the page with `newline="\n"` so page bytes are the same
+on every platform. No product assertion was weakened.
+
+**Pages** (ignored by git under `runs/`):
+- `runs/leg6-20260922-seed7-300-on.world.html` — 836,900 bytes, source sha256 `5875f1038106fb94…`
+- `runs/leg6-20260922-seed7-300-off.world.html` — 802,893 bytes, source sha256 `8d78bca1f78423b3…`
+
+**Inspection.** The built-in browser refused `file://` paths (as Browser Use
+did for Codex). The ON page was served from `runs/` over `127.0.0.1:8765` for
+the check and the server stopped afterwards: page loads, no console output,
+plays from tick 39 at 10 t/s (tick 64 after 2.5 s), 74 rAF/s in a 464×320
+pane, tick 46 shows 4 alive, stock 0, and the fading marker for p06 at the
+source. In the container, the synthetic 6-person page was screenshotted under
+Playwright Chromium at 1400×900: layout, legend, inspect panel and playback at
+61–62 rAF/s, no console errors. Full-window layout and motion smoothness on
+the owner's machine remain the owner's inspection.
+
+**Size note for the 50-person world.** The synthetic fixture came to 6.4 KB
+per tick; the real leg-6 file is 2.3 KB per tick for six people, so a real
+50-person 2,000-tick file may be larger than the fixture (observations scale
+with neighbours in view). The page inlines the file verbatim by rule 3, so
+a real 50 × 2,000 page could approach or exceed the 64 MiB bound. Recorded
+as the known limit of v1; a compact projection would need a direction.
+
+**Not done.** No push (see below). `SIM3_STATE.md` not updated (snapshot
+only; the card did not list it). No kernel, world, stream, fixture or
+`world/viewer.py` change. No whole-world execution.
+
+**Origin visibility.** `git ls-remote origin` succeeds with the owner's
+credentials (`codex/kernel-first-slice` at `810ab25f`); the anonymous GitHub
+API returns 404 for `lochheadr92-creator/Simulation-3`, which is the
+response for a private repository (Codex saw it public at 00:54 the same
+day). `gh` is not installed, so no authenticated visibility field was read.
+Left for the owner: say push, or not.
+
 ## Preceding card — exploration leg 6, 2026-09-21 (preserved pre-code declaration)
 
 | Field | Contents |
