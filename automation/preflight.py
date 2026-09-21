@@ -32,6 +32,7 @@ SIM3_STATE_REL = Path("SIM3_STATE.md")
 VERSION_REL = Path("kernel") / "version.py"
 PYPROJECT_REL = Path("pyproject.toml")
 FILE_MANIFEST_REL = Path("evidence") / "stage-01" / "repair-1" / "FILE_MANIFEST.json"
+MANIFEST_CONTRACT_REL = Path("automation") / "evidence_contracts" / "stage-01-repair-1.json"
 MANIFEST_COMPARE_PREFIXES = ("kernel/", "tests/")
 MANIFEST_COMPARE_EXACT = (
     "evidence/stage-01/instrument/mutation_check.py",
@@ -77,6 +78,10 @@ def posix_rel(path: Path, root: Path) -> str:
 
 def display_root(path: Path) -> str:
     return path.resolve().as_posix()
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 def sha256_file(path: Path) -> str:
@@ -125,6 +130,23 @@ def run_git(root: Path, args: list[str], git_exe: str) -> subprocess.CompletedPr
         timeout=GIT_TIMEOUT_S,
         check=False,
     )
+
+
+def git_blob_bytes(root: Path, git_exe: str | None, rev: str, rel: str) -> bytes | None:
+    """The bytes of `rel` at `rev`, or None if git, the revision or the path is unavailable."""
+    if git_exe is None or not rev or not rel:
+        return None
+    try:
+        proc = subprocess.run(
+            [git_exe, "-C", str(root), "--no-optional-locks", "show", f"{rev}:{rel}"],
+            capture_output=True,
+            env=git_env(),
+            timeout=GIT_TIMEOUT_S,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return proc.stdout if proc.returncode == 0 else None
 
 
 def discover_root(start: Path) -> Path:
@@ -301,22 +323,51 @@ def collect_canonical_hashes(root: Path) -> list[str]:
     return sorted(lines)
 
 
-def compare_file_manifest(root: Path) -> dict[str, Any]:
+def manifest_recorded_revision(root: Path) -> str:
+    """The revision at which the Repair 1 manifest's hashes were recorded.
+
+    Read from the packet's evidence contract, which owns that fact; the manifest
+    itself only names the pre-repair source base.
+    """
+    try:
+        payload = json.loads((root / MANIFEST_CONTRACT_REL).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ""
+    value = payload.get("recorded_revision") if isinstance(payload, dict) else None
+    return str(value) if isinstance(value, str) else ""
+
+
+def compare_file_manifest(root: Path, git_exe: str | None = None) -> dict[str, Any]:
+    """Check the historical manifest against the bytes it recorded.
+
+    A historical packet asserts what its files were at its recorded revision.
+    With git available those blobs are compared, so a later, declared kernel
+    change (a new slice) is reported as `superseded`, not as an inconsistency.
+    A mismatch against the recorded revision means the evidence and history
+    disagree, which is an inconsistency. Without git, or for entries not
+    tracked at that revision, the working tree is compared as before.
+    """
     path = root / FILE_MANIFEST_REL
     info: dict[str, Any] = {
         "path": FILE_MANIFEST_REL.as_posix(),
         "present": path.is_file(),
         "source_base": "UNKNOWN",
+        "recorded_revision": "UNKNOWN",
+        "compared_against": "working tree",
         "compared": 0,
         "matched": 0,
+        "superseded": [],
         "mismatches": [],
         "unreadable": None,
         "compared_subset": (
             "kernel/*, tests/*, evidence/stage-01/instrument/mutation_check.py "
-            "from the Repair 1 sha256 map (repaired file bytes). "
-            "source_base is the pre-repair revision the repair was applied to, "
-            "not HEAD and not a review verdict. Other manifest entries, including "
-            "AGENTS.md and RECORD.md, are not compared."
+            "from the Repair 1 sha256 map (repaired file bytes), compared against "
+            "the packet's recorded revision when git can read it, else the working "
+            "tree. source_base is the pre-repair revision the repair was applied to, "
+            "not HEAD and not a review verdict. Entries that differ in the working "
+            "tree after matching at the recorded revision are listed as superseded, "
+            "which is information, not an inconsistency. Other manifest entries, "
+            "including AGENTS.md and RECORD.md, are not compared."
         ),
     }
     if not path.is_file():
@@ -331,6 +382,9 @@ def compare_file_manifest(root: Path) -> dict[str, Any]:
     if not isinstance(hashes, dict):
         info["unreadable"] = "sha256 map missing"
         return info
+    revision = manifest_recorded_revision(root) if git_exe else ""
+    if revision:
+        info["recorded_revision"] = revision
     for rel, expected in sorted(hashes.items()):
         if not (
             rel.startswith(MANIFEST_COMPARE_PREFIXES)
@@ -338,6 +392,20 @@ def compare_file_manifest(root: Path) -> dict[str, Any]:
         ):
             continue
         current = root / Path(*rel.split("/"))
+        blob = git_blob_bytes(root, git_exe, revision, rel) if revision else None
+        if blob is not None:
+            info["compared_against"] = f"recorded revision {revision}"
+            info["compared"] += 1
+            at_revision = sha256_bytes(blob)
+            if at_revision == expected:
+                info["matched"] += 1
+                if not current.is_file() or sha256_file(current) != expected:
+                    info["superseded"].append(rel)
+            else:
+                info["mismatches"].append(
+                    f"{rel}  recorded={expected} at_revision={at_revision}"
+                )
+            continue
         if not current.is_file():
             info["compared"] += 1
             info["mismatches"].append(f"{rel}  recorded={expected} actual=MISSING")
@@ -523,7 +591,7 @@ def collect(root: Path, git_exe: str | None | object = Ellipsis) -> dict[str, An
     sim3_present = sim3_path.is_file()
     sim3_fields = parse_sim3_state(sim3_path.read_text(encoding="utf-8")) if sim3_present else None
 
-    manifest = compare_file_manifest(root)
+    manifest = compare_file_manifest(root, git_info.get("git_exe"))
     pytest_config = collect_pytest_config(root)
     inconsistencies = collect_inconsistencies(
         root,
@@ -563,6 +631,9 @@ def collect(root: Path, git_exe: str | None | object = Ellipsis) -> dict[str, An
         "file_manifest_compared_subset": manifest["compared_subset"],
         "file_manifest_compared": str(manifest["compared"]),
         "file_manifest_matched": str(manifest["matched"]),
+        "file_manifest_recorded_revision": manifest["recorded_revision"],
+        "file_manifest_compared_against": manifest["compared_against"],
+        "file_manifest_superseded_in_working_tree": list(manifest["superseded"]),
         "configured_seeds": seeds,
         "configured_horizons": horizons,
         "active_slice_whole_world_executions_authorised": world_budget,
@@ -616,6 +687,9 @@ def render(data: dict[str, Any]) -> str:
         f"file_manifest_compared_subset: {data['file_manifest_compared_subset']}",
         f"file_manifest_compared: {data['file_manifest_compared']}",
         f"file_manifest_matched: {data['file_manifest_matched']}",
+        f"file_manifest_recorded_revision: {data['file_manifest_recorded_revision']}",
+        f"file_manifest_compared_against: {data['file_manifest_compared_against']}",
+        *_emit_list("file_manifest_superseded_in_working_tree", data["file_manifest_superseded_in_working_tree"]),
         f"configured_seeds: {data['configured_seeds']}",
         f"configured_horizons: {data['configured_horizons']}",
         (
