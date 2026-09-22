@@ -405,11 +405,14 @@ def observed_slice_1b(fields: dict[str, Any]) -> str:
     parked = field(fields, "sim3_state.parked")
     blockers = field(fields, "sim3_state.blockers")
     not_proven = field(fields, "sim3_state.not_proven")
-    blob = f"{parked} {blockers} {not_proven}".lower()
+    status = field(fields, "sim3_state.milestone_status")
+    blob = f"{parked} {blockers} {not_proven} {status}".lower()
     if "1b" in blob and "not authorised" in blob:
         return "no"
     if "slice 1b" in blob and "not authorised" in blob:
         return "no"
+    if "1b" in blob and "reviewed pass" in blob:
+        return "yes"
     return "UNKNOWN"
 
 

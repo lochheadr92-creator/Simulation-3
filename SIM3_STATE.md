@@ -7,9 +7,9 @@ milestone completion. Values that cannot be established from the repository are
 UNKNOWN.
 
 ```
-current_milestone: exploration leg 6 delivered (opt-in scored actions, saved-file visual checkpoint C); C not owner-accepted; browser layout inspection blocked
-milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane open; ratification lane holds 1c/1d/Stage 1 exit; slices 1a and 1b independently reviewed PASS (2026-09-21)
-authoritative_head: leg-6 implementation commit containing this snapshot, based on 768a454951bb2ec82ceb224a9065ecb785b31516 (OD-011 revised 2026-09-22); kernel 0.2.0-stage1b at 9d1542d, unchanged
+current_milestone: Stage 1, slice 1a
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane open; exploration leg 6 delivered (opt-in scored actions, saved-file visual checkpoint C); C not owner-accepted; browser layout inspection blocked; ratification lane holds 1c/1d/Stage 1 exit; slices 1a and 1b independently reviewed PASS (2026-09-21)
+authoritative_head: abbb0138b3c71d350a2214afe97e234686405289
 last_accepted_gate: none
 last_accepted_evidence: none
 current_hypothesis: Scoring existing actions from bounded tick-start views permits GO to beat eligible YIELD before emergency; personal scores do not rank food claims. Equal hunger/crowd increments are authored assumptions. Fixed seed-7 observation: 5 GO-over-YIELD choices; repeat ON canonical bytes equal excluding timing; OFF exactly matches leg 5.

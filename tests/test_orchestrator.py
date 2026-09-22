@@ -202,10 +202,10 @@ def test_o3_mutation_instrument_is_not_eligible_or_runnable():
 def test_o4_scientific_next_is_not_an_executable_registry_id():
     proc = _cli(REPO_ROOT, "--explain")
     out = proc.stdout
-    assert "observed_scientific_next: independent post-repair review of the Stage 1a repaired source" in out
+    assert "observed_scientific_next: immediate owner decision on claim-then-eat latency" in out
     assert "observed_scientific_next_executable: no" in out
     assert "observed_scientific_next_is_registry_id: no" in out
-    assert "registered_command_id: independent post-repair review of the Stage 1a repaired source" not in out
+    assert "registered_command_id: immediate owner decision on claim-then-eat latency" not in out
 
 
 def test_o5_o6_does_not_invoke_run_gate_or_create_receipts(monkeypatch):
@@ -369,11 +369,11 @@ def test_n7_n8_scientific_next_is_separate_and_not_a_registry_id():
     out = proc.stdout
     sci = out.split("SCIENTIFIC / PROJECT NEXT — OBSERVED ONLY", 1)[1]
     mech = out.split("SCIENTIFIC / PROJECT NEXT — OBSERVED ONLY", 1)[0]
-    assert "observed_scientific_next: independent post-repair review of the Stage 1a repaired source" in sci
+    assert "observed_scientific_next: immediate owner decision on claim-then-eat latency" in sci
     assert "executable: no" in sci
     assert "authority: project/scientific process, not orchestrator registry" in sci
-    assert "id: independent post-repair review of the Stage 1a repaired source" not in mech
-    assert "registered_command_id: independent post-repair review" not in out
+    assert "id: immediate owner decision on claim-then-eat latency" not in mech
+    assert "registered_command_id: immediate owner decision" not in out
 
 
 def test_n9_malformed_registry_fails_closed(tmp_path: Path):
@@ -477,7 +477,7 @@ def test_n13_n14_preflight_pass_is_not_acceptance():
     out = proc.stdout
     assert "milestone_acceptance_inferred: no" in out
     assert "capability_proven: no" in out
-    assert "observed_slice_1b_authorised: no" in out
+    assert "observed_slice_1b_authorised: yes" in out
     assert "Stage 1a accepted" not in out
     assert "preflight_result PASS is inspection only" in out
 
