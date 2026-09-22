@@ -329,3 +329,85 @@ def test_cli_from_repository_root():
     assert "evidence_verification: OK" in proc.stdout
     assert "capability_proven: no" in proc.stdout
     assert proc.stderr == ""
+
+
+def _record_and_tracked_kernel(tmp_path: Path) -> tuple[str, Path]:
+    record = tmp_path / "evidence" / "stage-01" / "RECORD.md"
+    record.parent.mkdir(parents=True)
+    record.write_text(
+        "Only slice 1a is open. Whole-world executions authorised: 0.\npy -3 -m pytest\n",
+        encoding="utf-8",
+    )
+    target = tmp_path / "kernel" / "version.py"
+    target.parent.mkdir()
+    target.write_text('ENGINE_VERSION = "recorded"\n', encoding="utf-8")
+    _git(tmp_path, "add", "kernel/version.py")
+    _git(tmp_path, "commit", "-m", "kernel")
+    rev = _git(tmp_path, "rev-parse", "HEAD").stdout.strip()
+    manifest = tmp_path / "evidence" / "stage-01" / "FILE_MANIFEST.json"
+    manifest.write_text(
+        json.dumps({"base": rev, "sha256": {"kernel/version.py": _sha256(target)}}) + "\n",
+        encoding="utf-8",
+    )
+    return rev, target
+
+
+def test_historical_manifest_survives_a_later_change_to_a_tracked_file(tmp_path: Path):
+    _init_repo(tmp_path)
+    rev, target = _record_and_tracked_kernel(tmp_path)
+    _write_contract(
+        tmp_path,
+        "packet.json",
+        _base_contract(
+            rev,
+            file_manifest="evidence/stage-01/FILE_MANIFEST.json",
+            required_files=["evidence/stage-01/RECORD.md", "evidence/stage-01/FILE_MANIFEST.json"],
+        ),
+    )
+    target.write_text('ENGINE_VERSION = "next-slice"\n', encoding="utf-8")  # a later declared change
+    data = verify(tmp_path)
+    codes = [(status, code) for status, code, _detail in data["packets"][0]["checks"]]
+    assert data["evidence_verification"] == "OK"
+    assert ("OK", "manifest_hash_match") in codes
+    assert ("OK", "manifest_superseded_in_working_tree") in codes
+    assert ("ERROR", "manifest_hash_mismatch") not in codes
+
+
+def test_historical_manifest_that_disagrees_with_its_revision_still_fails(tmp_path: Path):
+    _init_repo(tmp_path)
+    rev, _target = _record_and_tracked_kernel(tmp_path)
+    manifest = tmp_path / "evidence" / "stage-01" / "FILE_MANIFEST.json"
+    manifest.write_text(json.dumps({"base": rev, "sha256": {"kernel/version.py": "0" * 64}}) + "\n", encoding="utf-8")
+    _write_contract(
+        tmp_path,
+        "packet.json",
+        _base_contract(
+            rev,
+            file_manifest="evidence/stage-01/FILE_MANIFEST.json",
+            required_files=["evidence/stage-01/RECORD.md", "evidence/stage-01/FILE_MANIFEST.json"],
+        ),
+    )
+    data = verify(tmp_path)
+    checks = data["packets"][0]["checks"]
+    assert data["evidence_verification"] == "ERROR"
+    assert any(code == "manifest_hash_mismatch" and "at_revision=" in detail for _s, code, detail in checks)
+
+
+def test_current_manifest_is_still_checked_against_the_working_tree(tmp_path: Path):
+    _init_repo(tmp_path)
+    rev, target = _record_and_tracked_kernel(tmp_path)
+    _write_contract(
+        tmp_path,
+        "packet.json",
+        _base_contract(
+            rev,
+            role="current",
+            must_match_current_head=True,
+            file_manifest="evidence/stage-01/FILE_MANIFEST.json",
+            required_files=["evidence/stage-01/RECORD.md", "evidence/stage-01/FILE_MANIFEST.json"],
+        ),
+    )
+    target.write_text('ENGINE_VERSION = "drifted"\n', encoding="utf-8")
+    data = verify(tmp_path)
+    assert data["evidence_verification"] == "ERROR"
+    assert any(code == "manifest_hash_mismatch" for _s, code, _d in data["packets"][0]["checks"])
