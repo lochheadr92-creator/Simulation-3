@@ -1,0 +1,27 @@
+V3 orchestrator dry-run
+=======================
+orchestrator_mode: read-only
+orchestrator_phase: 3
+this_phase_executes_registered_commands: no
+requested_registry_id: unknown
+registered: no
+mechanically_eligible: no
+currently_executable: no
+repository: C:/Users/RJLoc/Documents/Codex/2026-09-20/how-the-orchestrator-looking/work/orchestrator-freeze
+branch: codex/orchestrator-phases-1-3-freeze
+head: b915aa0c179d4e19c954f8b05eb107c4cd34d475
+dirty: yes
+allow_dirty_requested: no
+future_execution_blocked: yes
+blocked_reason: unknown_registry_id
+delegation_target: automation/run_gate.py
+delegation_gate_id: (none)
+resolved_delegation_argv: []
+delegation_executed: no
+receipt_created: no
+scientific_state_changed: no
+milestone_acceptance_inferred: no
+capability_proven: no
+reachability_proven: no
+measurement_proven: no
+note: dry-run resolves a future run_gate delegation; it does not execute

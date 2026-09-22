@@ -27,9 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
 from automation.preflight import (  # noqa: E402
     discover_root,
     display_root,
-    git_blob_bytes,
     run_git,
-    sha256_bytes,
     sha256_file,
 )
 
@@ -176,19 +174,7 @@ def verify_manifest(
     manifest_rel: str | None,
     exclude: list[str],
     checks: list[tuple[str, str, str]],
-    *,
-    role: str | None = None,
-    recorded_revision: str | None = None,
-    git_exe: str | None = None,
 ) -> None:
-    """Check a packet's file manifest.
-
-    A historical packet asserts what its files were at its recorded revision,
-    so with git available those blobs are what the manifest is checked against;
-    a later declared change in the working tree is reported as superseded, not
-    as a mismatch. A current packet, an entry not tracked at that revision, or
-    a run without git falls back to the working tree.
-    """
     if not manifest_rel:
         add_check(checks, "OK", "file_manifest", f"packet={packet_id} none declared")
         return
@@ -207,35 +193,8 @@ def verify_manifest(
         return
     add_check(checks, "OK", "file_manifest_readable", f"packet={packet_id} {manifest_rel}")
     excluded = set(exclude)
-    historical = role == "historical" and bool(recorded_revision) and git_exe is not None
     for rel, expected in sorted(hashes.items()):
         target = root / posix_join(rel)
-        if rel not in excluded and historical:
-            blob = git_blob_bytes(root, git_exe, str(recorded_revision), rel)
-            if blob is not None:
-                at_revision = sha256_bytes(blob)
-                if at_revision != expected:
-                    add_check(
-                        checks,
-                        "ERROR",
-                        "manifest_hash_mismatch",
-                        f"packet={packet_id} {rel} recorded={expected} at_revision={at_revision}",
-                    )
-                    continue
-                add_check(
-                    checks,
-                    "OK",
-                    "manifest_hash_match",
-                    f"packet={packet_id} {rel} at recorded revision {str(recorded_revision)[:12]}",
-                )
-                if not target.is_file() or sha256_file(target) != expected:
-                    add_check(
-                        checks,
-                        "OK",
-                        "manifest_superseded_in_working_tree",
-                        f"packet={packet_id} {rel} differs from the recorded revision in the working tree",
-                    )
-                continue
         if not target.is_file():
             add_check(checks, "ERROR", "manifest_path_missing", f"packet={packet_id} {rel}")
             continue
@@ -540,9 +499,6 @@ def verify_packet(
         contract.get("file_manifest"),
         list(contract.get("hash_compare_exclude") or []),
         checks,
-        role=contract.get("role"),
-        recorded_revision=recorded_full,
-        git_exe=git_exe,
     )
     verify_receipts(
         root,

@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "C:/dev/02-Simulation-Sandbox/.worktrees/request-food-outstanding/sandbox/f01_validation_venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--tb=short",
+    "--basetemp=C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\phase4-publication-20260921\\pytest-temp",
+    "--junitxml=C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\phase4-publication-20260921\\publication-tests.xml"
+  ],
+  "cwd": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-20\\how-the-orchestrator-looking\\work\\orchestrator-publication-20260921",
+  "environment_overrides": {
+    "PYTHONUTF8": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

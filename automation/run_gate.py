@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -41,6 +42,8 @@ from automation.verify_evidence import (  # noqa: E402
     render as verify_render,
     verify as verify_evidence,
 )
+from automation.controller_io import SafetyError  # noqa: E402
+from automation.runtime_policy import bind_gate_runtime, recheck_runtime  # noqa: E402
 
 REGISTRY_REL = Path("automation") / "gate_registry.json"
 RUNS_REL = Path("evidence") / "automation-runs"
@@ -140,8 +143,14 @@ def dirty_names(preflight: dict[str, Any]) -> list[str]:
     return [posix(name) for name in names]
 
 
-def allocate_run_dir(root: Path, gate_id: str, head: str) -> Path:
+def allocate_run_dir(root: Path, gate_id: str, head: str, controller_run_id: str | None = None) -> Path:
     base = root / RUNS_REL / gate_id
+    if controller_run_id is not None:
+        if not re.fullmatch('[0-9a-f]{32}', controller_run_id):
+            raise RunGateError('error: invalid controller run identity')
+        path = base / controller_run_id
+        path.mkdir(parents=True, exist_ok=False)
+        return path
     prefix = (head if head and head != "UNKNOWN" else "unknown")[:12]
     seq = 1
     while True:
@@ -227,47 +236,116 @@ def build_run_contract(
     }
 
 
-def run_command(root: Path, argv: list[str], timeout_s: int) -> dict[str, Any]:
+def launch_error_record(exc: OSError) -> dict[str, Any]:
+    """Structured record of a failed process creation. Nothing was executed."""
+    return {
+        "type": type(exc).__name__,
+        "errno": exc.errno,
+        "winerror": getattr(exc, "winerror", None),
+        "strerror": exc.strerror,
+        "filename": None if exc.filename is None else str(exc.filename),
+        "message": str(exc),
+    }
+
+
+def _command_env() -> dict[str, str]:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONUNBUFFERED"] = "1"
+    return env
+
+
+def _decode(data: Any) -> str:
+    if isinstance(data, bytes):
+        return data.decode("utf-8", "replace")
+    return data or ""
+
+
+def run_command(root: Path, argv: list[str], timeout_s: int, sink: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Standalone mode. Process creation is separated from command outcome:
+    ``command_started`` is true only after ``Popen`` returned a process. A caller
+    may pass ``sink`` so partial facts survive an interruption."""
+    outcome: dict[str, Any] = sink if sink is not None else {}
+    outcome.update({
+        "argv": argv, "dispatch_attempted": True, "command_started": False, "pid": None,
+        "launch_error": None, "exit_code": None, "timed_out": False, "stdout": "", "stderr": "",
+    })
     try:
-        proc = subprocess.run(
-            argv,
-            cwd=root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            timeout=timeout_s,
-            check=False,
+        proc = subprocess.Popen(
+            argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=_command_env(), shell=False,
         )
-    except subprocess.TimeoutExpired as exc:
-        stdout = exc.stdout.decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
-        stderr = exc.stderr.decode("utf-8", "replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
-        return {
-            "argv": argv,
-            "exit_code": None,
-            "timed_out": True,
-            "stdout": stdout,
-            "stderr": stderr + "\nerror: command timed out\n",
-        }
     except OSError as exc:
-        return {
-            "argv": argv,
-            "exit_code": None,
-            "timed_out": False,
-            "stdout": "",
-            "stderr": f"error: failed to start command: {exc}\n",
-        }
-    return {
-        "argv": argv,
-        "exit_code": proc.returncode,
-        "timed_out": False,
-        "stdout": proc.stdout or "",
-        "stderr": proc.stderr or "",
-    }
+        outcome["launch_error"] = launch_error_record(exc)
+        outcome["stderr"] = f"error: failed to start command: {exc}\n"
+        return outcome
+    outcome["command_started"] = True
+    outcome["pid"] = proc.pid
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired as exc:
+        proc.kill()
+        late_out, late_err = proc.communicate()
+        outcome["timed_out"] = True
+        outcome["stdout"] = _decode(exc.stdout) + _decode(late_out)
+        outcome["stderr"] = _decode(exc.stderr) + _decode(late_err) + "\nerror: command timed out\n"
+        return outcome
+    except BaseException:
+        proc.kill()
+        proc.wait()
+        raise
+    outcome["exit_code"] = proc.returncode
+    outcome["stdout"] = _decode(stdout)
+    outcome["stderr"] = _decode(stderr)
+    return outcome
+
+
+def run_streamed_command(root: Path, argv: list[str], timeout_s: int, directory: Path,
+                         sink: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Controller mode preserves output even if the worker is forcibly stopped."""
+    directory.mkdir(parents=True, exist_ok=True)
+    outcome: dict[str, Any] = sink if sink is not None else {}
+    outcome.update({
+        'argv': argv, 'dispatch_attempted': True, 'command_started': False, 'pid': None,
+        'launch_error': None, 'exit_code': None, 'timed_out': False,
+    })
+    error = ''
+    with (directory / 'stdout.txt').open('xb') as stdout, (directory / 'stderr.txt').open('xb') as stderr:
+        try:
+            try:
+                proc = subprocess.Popen(argv, cwd=root, stdout=stdout, stderr=stderr,
+                                        env=_command_env(), shell=False)
+            except OSError as exc:
+                # Process creation failed: nothing ran. Record it structurally,
+                # never as a dispatched command with a missing exit code.
+                outcome['launch_error'] = launch_error_record(exc)
+                error = f'error: failed to start command: {exc}\n'
+            else:
+                outcome['command_started'] = True
+                outcome['pid'] = proc.pid
+                try:
+                    outcome['exit_code'] = proc.wait(timeout=timeout_s)
+                except subprocess.TimeoutExpired:
+                    outcome['timed_out'] = True
+                    error = '\nerror: command timed out\n'
+                    proc.kill()
+                    proc.wait()
+                except BaseException:
+                    # Interruption keeps subprocess.run's guarantee: the started
+                    # child is killed before the exception propagates.
+                    proc.kill()
+                    proc.wait()
+                    raise
+        finally:
+            if error:
+                stderr.write(error.encode('utf-8'))
+            stdout.flush()
+            stderr.flush()
+            os.fsync(stdout.fileno())
+            os.fsync(stderr.fileno())
+    outcome['stdout'] = (directory / 'stdout.txt').read_text(encoding='utf-8', errors='replace')
+    outcome['stderr'] = (directory / 'stderr.txt').read_text(encoding='utf-8', errors='replace')
+    return outcome
 
 
 def list_gates(root: Path, registry_path: Path | None) -> str:
@@ -326,6 +404,9 @@ def refuse(
         "head": head,
         "branch": branch,
         "command_exit_code": None,
+        "dispatch_attempted": False,
+        "command_started": False,
+        "launch_error": None,
         "allow_dirty": allow_dirty,
     }
     if run_dir is not None:
@@ -352,6 +433,10 @@ def render_result(result: dict[str, Any]) -> str:
         f"head: {result.get('head', 'UNKNOWN')}",
         f"branch: {result.get('branch', 'UNKNOWN')}",
         f"command_exit_code: {result.get('command_exit_code')}",
+        f"dispatch_attempted: {result.get('dispatch_attempted', False)}",
+        f"command_started: {result.get('command_started', False)}",
+        f"launch_error: {json.dumps(result.get('launch_error'), sort_keys=True)}",
+        f"runtime_policy: {(result.get('runtime') or {}).get('command', {}).get('policy', '(none)')}",
         f"allow_dirty: {result.get('allow_dirty', False)}",
     ]
     if result.get("reason"):
@@ -373,13 +458,20 @@ def run(
     *,
     allow_dirty: bool = False,
     registry_path: Path | None = None,
+    controller_run_id: str | None = None,
+    before_command=None,
+    registry_snapshot: dict[str, Any] | None = None,
+    runtime_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = root.resolve()
     preflight = preflight_collect(root)
-    registry = load_registry(root, registry_path)
+    # The controller worker supplies the registry bytes it hashed and validated.
+    # Its callback rechecks identity before each command. Standalone behavior is
+    # unchanged; there is no CLI option for a controller snapshot or callback.
+    registry = registry_snapshot if registry_snapshot is not None else load_registry(root, registry_path)
     gate = get_gate(registry, gate_id)
     if gate.get("unsafe"):
-        run_dir = allocate_run_dir(root, gate_id, str(preflight.get("head") or "unknown"))
+        run_dir = allocate_run_dir(root, gate_id, str(preflight.get("head") or "unknown"), controller_run_id)
         set_status(run_dir, "IN_PROGRESS")
         return refuse(
             run_dir,
@@ -395,7 +487,7 @@ def run(
         )
     dirt = dirty_names(preflight)
     if dirt and not allow_dirty:
-        run_dir = allocate_run_dir(root, gate_id, str(preflight.get("head") or "unknown"))
+        run_dir = allocate_run_dir(root, gate_id, str(preflight.get("head") or "unknown"), controller_run_id)
         set_status(run_dir, "IN_PROGRESS")
         return refuse(
             run_dir,
@@ -406,7 +498,7 @@ def run(
             allow_dirty=allow_dirty,
         )
     if preflight.get("blocking_failures"):
-        run_dir = allocate_run_dir(root, gate_id, str(preflight.get("head") or "unknown"))
+        run_dir = allocate_run_dir(root, gate_id, str(preflight.get("head") or "unknown"), controller_run_id)
         set_status(run_dir, "IN_PROGRESS")
         return refuse(
             run_dir,
@@ -420,9 +512,19 @@ def run(
     argv = gate.get("argv")
     if not isinstance(argv, list) or not all(isinstance(item, str) and item for item in argv):
         raise RunGateError(f"error: gate {gate_id} has invalid argv")
+    # Explicit runtime policy: the registry argv stays as provenance; a `py -3`
+    # prefix resolves to this runner's native base interpreter and nothing else.
+    # The controller passes the binding it recorded in the request; any
+    # difference refuses before a run directory exists.
+    try:
+        runtime = bind_gate_runtime(gate)
+    except SafetyError as exc:
+        raise RunGateError(f"error: gate {gate_id} refused by runtime policy: {exc}") from exc
+    if runtime_binding is not None and runtime_binding != runtime:
+        raise RunGateError(f"error: gate {gate_id} runtime binding differs from the controller request")
     timeout_s = int(gate.get("timeout_s") or 300)
     head = str(preflight.get("head") or "UNKNOWN")
-    run_dir = allocate_run_dir(root, gate_id, head)
+    run_dir = allocate_run_dir(root, gate_id, head, controller_run_id)
     set_status(run_dir, "IN_PROGRESS")
     run_rel = posix(run_dir.relative_to(root).as_posix())
 
@@ -438,14 +540,38 @@ def run(
 
     command: dict[str, Any] | None = None
     additional: list[dict[str, Any]] = []
+    # Filled in place by the launcher so an interruption still records whether
+    # dispatch was attempted and whether the process had actually been created.
+    progress: dict[str, Any] = {"dispatch_attempted": False, "command_started": False,
+                                "launch_error": None, "exit_code": None}
+
+    def launch_record(outcome: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "dispatch_attempted": outcome["dispatch_attempted"],
+            "command_started": outcome["command_started"],
+            "pid": outcome["pid"],
+            "launch_error": outcome["launch_error"],
+            "exit_code": outcome["exit_code"],
+            "timed_out": outcome["timed_out"],
+        }
+
     try:
-        command = run_command(root, list(argv), timeout_s)
+        if before_command is not None:
+            before_command()
+        # Recheck the bound runtime immediately before the actual dispatch:
+        # the interpreter file hash and resolved argv must still match.
+        recheck_runtime(runtime["command"])
+        resolved_argv = list(runtime["command"]["resolved_argv"])
+        command = (run_streamed_command(root, resolved_argv, timeout_s, run_dir / 'command', progress)
+                   if controller_run_id else run_command(root, resolved_argv, timeout_s, progress))
         write_text(run_dir / "command" / "stdout.txt", command["stdout"])
         write_text(run_dir / "command" / "stderr.txt", command["stderr"])
         dump_json(
             run_dir / "command" / "argv.json",
-            {"argv": command["argv"], "timed_out": command["timed_out"]},
+            {"argv": command["argv"], "registry_argv": list(argv),
+             "runtime": runtime["command"], "timed_out": command["timed_out"]},
         )
+        dump_json(run_dir / "command" / "launch.json", launch_record(command))
         write_text(
             run_dir / "command" / "exit_code.txt",
             "" if command["exit_code"] is None else str(command["exit_code"]),
@@ -453,11 +579,20 @@ def run(
         for index, check_argv in enumerate(gate.get("required_checks") or []):
             if not isinstance(check_argv, list):
                 continue
-            extra = run_command(root, [str(item) for item in check_argv], timeout_s)
+            if before_command is not None:
+                before_command()
+            check_runtime = runtime["checks"][index]
+            recheck_runtime(check_runtime)
+            check_resolved = list(check_runtime["resolved_argv"])
+            extra = (run_streamed_command(root, check_resolved, timeout_s, run_dir / 'checks' / f'{index:02d}')
+                     if controller_run_id else run_command(root, check_resolved, timeout_s))
             additional.append(extra)
             extra_dir = run_dir / "checks" / f"{index:02d}"
             write_text(extra_dir / "stdout.txt", extra["stdout"])
             write_text(extra_dir / "stderr.txt", extra["stderr"])
+            dump_json(extra_dir / "argv.json", {"argv": extra["argv"], "registry_argv": list(check_argv),
+                                               "runtime": check_runtime, "timed_out": extra["timed_out"]})
+            dump_json(extra_dir / "launch.json", launch_record(extra))
             write_text(
                 extra_dir / "exit_code.txt",
                 "" if extra["exit_code"] is None else str(extra["exit_code"]),
@@ -481,7 +616,11 @@ def run(
             "run_dir": run_rel,
             "head": head,
             "branch": preflight.get("branch"),
-            "command_exit_code": None if command is None else command.get("exit_code"),
+            "command_exit_code": progress.get("exit_code"),
+            "dispatch_attempted": bool(progress.get("dispatch_attempted")),
+            "command_started": bool(progress.get("command_started")),
+            "launch_error": progress.get("launch_error"),
+            "runtime": runtime,
             "allow_dirty": allow_dirty,
             "reason": "interrupted",
         }
@@ -491,9 +630,11 @@ def run(
 
     execution_success = (
         command is not None
+        and command.get("command_started") is True
         and command.get("exit_code") == 0
         and not command.get("timed_out")
-        and all(item.get("exit_code") == 0 and not item.get("timed_out") for item in additional)
+        and all(item.get("command_started") is True and item.get("exit_code") == 0
+                and not item.get("timed_out") for item in additional)
     )
     packaged_files = [
         f"{run_rel}/STATUS",
@@ -505,6 +646,7 @@ def run(
         f"{run_rel}/command/stderr.txt",
         f"{run_rel}/command/exit_code.txt",
         f"{run_rel}/command/argv.json",
+        f"{run_rel}/command/launch.json",
         f"{run_rel}/after/git.json",
         f"{run_rel}/after/kernel-hashes.json",
         f"{run_rel}/contract.json",
@@ -525,7 +667,12 @@ def run(
         "head": head,
         "branch": preflight.get("branch"),
         "command_exit_code": None if command is None else command.get("exit_code"),
-        "timed_out": False if command is None else bool(command.get("timed_out")),
+        "timed_out": bool(command and command.get("timed_out")) or any(item.get("timed_out") for item in additional),
+        "dispatch_attempted": True,
+        "command_started": bool(command and command.get("command_started")),
+        "launch_error": None if command is None else command.get("launch_error"),
+        "required_checks": [launch_record(item) for item in additional],
+        "runtime": runtime,
         "allow_dirty": allow_dirty,
         "unexpected_mutations": mutations,
         "verify_ok": False,

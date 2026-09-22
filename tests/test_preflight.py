@@ -257,9 +257,6 @@ def test_cli_from_repository_root_does_not_mutate_kernel():
         capture_output=True,
         text=True,
         encoding="utf-8",
-        # the child prints git subjects; on Windows a pipe defaults to the ANSI
-        # code page, so tell it to emit the UTF-8 this side decodes
-        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         check=False,
     )
     after = _kernel_hashes()
@@ -285,18 +282,3 @@ def test_cli_rejects_a_missing_root(tmp_path: Path):
     missing = tmp_path / "no-such-root"
     code = main(["--root", str(missing)])
     assert code == 1
-
-
-def test_historical_manifest_is_compared_at_its_recorded_revision_not_the_working_tree():
-    """A later declared kernel change (a new slice) must not read as evidence
-    inconsistency: the Repair 1 manifest asserts bytes at fb5a895, not today."""
-    data = collect(REPO_ROOT)
-    if data["head"] in {"UNKNOWN", ""}:
-        return  # no git: the working-tree fallback is exercised elsewhere
-    assert data["file_manifest_compared_against"].startswith("recorded revision ")
-    assert data["file_manifest_recorded_revision"] != "UNKNOWN"
-    assert data["file_manifest_matched"] == data["file_manifest_compared"]
-    assert not any(item.startswith("file_manifest_hash_mismatch") for item in data["inconsistencies"])
-    report = render(data)
-    assert "file_manifest_compared_against: recorded revision" in report
-    assert "file_manifest_superseded_in_working_tree" in report

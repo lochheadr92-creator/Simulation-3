@@ -16,7 +16,7 @@ current_hypothesis: Scoring existing actions from bounded tick-start views permi
 proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
 not_proven: Stage 1 exit; sealed evidence and replay (ratification-lane 1c); instance isolation; 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; owner acceptance of checkpoint C; browser layout quality; memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
 parked: Stage 3 re-entry; Stage 4; Stages 5-6; slice 1d and Stage 1 exit (ratification lane); orchestrator Phase 4 branches; six-person starter world as confirmation
-blockers: push prohibited because verified existing origin is public, not private; local commit retained. Browser Use URL policy blocked opening the local HTML file. Whole-world leg-6 budget exhausted (3/3); no further run authorised.
+blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Browser Use URL policy blocked opening the local HTML file. Whole-world leg-6 budget exhausted (3/3); no further run authorised.
 next_gate: immediate owner decision on claim-then-eat latency after C and before ratification; retain separate actions or explicitly authorise a bounded same-tick obtain/eat revision with new comparison authority. No latency change, leg 7 or acceptance inferred.
 authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
 last_updated: 2026-09-22

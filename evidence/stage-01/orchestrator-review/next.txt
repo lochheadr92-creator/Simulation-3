@@ -1,0 +1,63 @@
+V3 orchestrator
+===============
+orchestrator_mode: read-only
+orchestrator_phase: 2
+this_phase_executes_registered_commands: no
+writes: no
+invokes_registered_command: no
+actions_are_discovered_not_generated: yes
+
+WORKFLOW / MECHANICAL ACTIONS
+-----------------------------
+legal_mechanical_action_count: 2
+blocked_registered_action_count: 1
+currently_executable: no
+[action]
+id: stage-01a-reference-suite
+registered: yes
+acceptance_claimed: false
+unsafe: (none)
+mechanically_eligible: yes
+currently_executable: no
+reason: execution capability not implemented in Phase 2
+future_execution_requires_allow_dirty: yes
+future_execution_blocked_by_in_progress_receipt: no
+recorded_command_identity: py -3 -m pytest
+not_a_scientific_gate: yes
+[action]
+id: stage-01a-fixture-digests
+registered: yes
+acceptance_claimed: false
+unsafe: (none)
+mechanically_eligible: yes
+currently_executable: no
+reason: execution capability not implemented in Phase 2
+future_execution_requires_allow_dirty: yes
+future_execution_blocked_by_in_progress_receipt: no
+recorded_command_identity: py -3 evidence/stage-01/instrument/fixture_digests.py
+not_a_scientific_gate: yes
+
+BLOCKED / INELIGIBLE REGISTERED ACTIONS
+---------------------------------------
+[action]
+id: stage-01a-mutation-instrument
+registered: yes
+acceptance_claimed: false
+unsafe: mutates_working_tree,overwrites_historical_instrument_runs
+mechanically_eligible: no
+currently_executable: no
+reason: unsafe:mutates_working_tree,overwrites_historical_instrument_runs
+
+SCIENTIFIC / PROJECT NEXT — OBSERVED ONLY
+-----------------------------------------
+observed_scientific_next: independent post-repair review of the Stage 1a repaired source
+executable: no
+authority: project/scientific process, not orchestrator registry
+observed_scientific_next_is_registry_id: no
+milestone_acceptance_inferred: no
+capability_proven: no
+reachability_proven: no
+measurement_proven: no
+observed_slice_1b_authorised: no
+note: COMPLETE local receipts are not scientific authority
+note: preflight_result PASS is inspection only

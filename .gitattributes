@@ -2,3 +2,10 @@
 
 # Preserve the byte identities of archived repair evidence.
 evidence/stage-01/repair-1/** -text
+
+# Preserve byte identities of the read-only orchestrator verification outputs.
+evidence/stage-01/orchestrator-review/** -text
+
+# Preserve the recorded verification output bytes.
+evidence/stage-01/orchestrator-publication/prior-tests/** -text
+evidence/stage-01/orchestrator-publication/publication-tests/** -text

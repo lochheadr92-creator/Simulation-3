@@ -1028,6 +1028,61 @@ note. Engine/test content remains the validated repair. Independent post-repair
 acceptance and Stage 1 completion remain pending. Publication does not change
 that status.
 
+### Bounded Phase 4 orchestrator repair — 2026-09-20
+
+Owner direction OD-006 authorises repairing tooling findings F1-F9 in an isolated
+checkout based on 6591629029ac5cfedbb16279e2c62888894fb44b. The original Phase 4
+checkout and the verified read-only baseline remain preserved.
+
+The final focused inspection/controller/runner regression run passed 168 tests.
+Actual commands in those tests were harmless fixtures in disposable repositories;
+no real registered project gate or pilot was run. Source identities, raw failures,
+final results, contract decisions and limitations are recorded in
+[the Phase 4 repair review](orchestrator-phase4-repair/REVIEW.md).
+
+This is uncommitted tooling repair and self-verification, not independent
+scientific acceptance. Stage 1a acceptance remains pending, Stage 1 remains
+incomplete, and Slice 1b remains unauthorised. No kernel or scientific criterion
+changed, and no merge or push occurred.
+
+### Read-only orchestrator freeze — 2026-09-20
+
+OD-005 authorises verification, demonstrated-defect repair, safety review, and
+commit of orchestrator Phases 1-3. The result and reproduction commands are in
+[`orchestrator-review/REVIEW.md`](orchestrator-review/REVIEW.md). This work is
+isolated from newer uncommitted execution work in the original checkout.
+
+No kernel, simulation rule, registry command, evidence contract, or scientific
+acceptance state is changed. Whole-world executions used remain zero. This is
+a tooling verification record, not independent post-repair acceptance of Stage
+1a. Slice 1b remains unauthorised and the Stage 1 exit remains unclaimed.
+
+### Phase 4 repair 2 and controlled pilot — 2026-09-20
+
+The owner's instruction of 2026-09-20 authorised bounded repairs for the two
+findings of the Phase 4 pilot (registered `py -3` runtime, startup provenance),
+focused tests, and exactly one real registered gate through the orchestrator in
+a disposable copy. Both repairs were made in an isolated copy of the Phase 4
+repair candidate; 191 focused and 365 whole-tree tests passed; the single
+`stage-01a-fixture-digests` request returned SUCCESS with evidence COMPLETE and
+its output matches `repair-1/fixtures-repaired.txt`. Identities, tests, the
+pilot receipt and limitations are recorded in
+[orchestrator-phase4-repair2/REVIEW.md](orchestrator-phase4-repair2/REVIEW.md).
+
+This is uncommitted tooling repair, self-verification and a mechanical pilot,
+not independent scientific acceptance. Stage 1a acceptance remains pending,
+Stage 1 remains incomplete, and Slice 1b remains unauthorised. No kernel,
+registry command, scientific criterion, merge or push changed.
+
+### Orchestrator publication - 2026-09-21
+
+OD-007 authorises commit and publication of the verified automation snapshot.
+See [the publication record](orchestrator-publication/RECORD.md) for source
+identities, test evidence, runtime limitations and the correction that the
+pilot fixture output matches the reference after newline normalization, not
+byte-for-byte. Earlier uncommitted/no-publication statements describe their
+original sittings and remain historical. Stage 1a scientific acceptance stays
+pending; Slice 1b remains unauthorised. No additional real project gate ran.
 ### Independent post-repair review of slice 1a — 2026-09-21
 
 Reviewer: Claude (`claude-fable-5-1`), a different model from the builder.
