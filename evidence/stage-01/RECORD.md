@@ -1346,3 +1346,25 @@ Stop condition met: checkpoint B renders from the run file; seed-7 ON has
 yield events; ON/OFF is recorded here. Leg 6 is not opened. No
 orchestrator, no frozen hashes, no acceptance claimed. Stage 1 exit remains
 unclaimed.
+
+### OD-013 recorded — ratification lane opened — 2026-09-23
+
+Owner direction OD-013 (AGENTS.md) resolves the claim-then-eat latency
+decision named under OD-011: separate obtain and eat actions are retained,
+no same-tick obtain/eat revision is authorised, and the ratification lane
+is opened. The decision changes no kernel or world code; leg 6 comparisons
+remain the comparison authority under the existing latency.
+
+Ratification cards opened by this entry:
+
+- **Slice 1c — sealed evidence stream and replay (active).** Deliver a
+  sealed stream whose canonical bytes can be replayed and verified against
+  the kernel's canonical form, closing the ratification-lane 1c scope
+  recorded in SIM3_STATE.md. Declarations precede implementation.
+- **Slice 1d — 50-actor cost envelope.** Measure and record the bounded
+  cost envelope at 50 actors, ratification scope, after 1c.
+
+The Stage 1 exit review is requested from an independent reviewer only
+once the 1c and 1d records are complete. Checkpoint C is not accepted by
+this entry, exploration leg 7 is not opened, and the Stage 1 exit gate is
+not claimed.

@@ -756,3 +756,34 @@ previous frontend became.
 **Linked revision.** Recorded on `codex/kernel-first-slice` after
 `94523ae06957a549ffd2b98aacb3b12120f6b0f3`. The recording commit's hash
 cannot appear inside this entry and is reported after the commit.
+
+### OD-013 - 2026-09-23 - Retain claim-then-eat latency; open the ratification lane
+
+**Exact owner direction.** "Keep claim and eat as separate actions. Do not
+authorise a same-tick obtain/eat revision. Proceed to ratification."
+Recorded from the owner's acceptance of the drafted entry on 2026-09-23
+("yes"), following the decision named in OD-011 and restated in SIM3_STATE.md.
+
+**Scope.** Claim-then-eat latency is retained as built: an obtain settles
+within its tick and consumption is possible no earlier than the next tick
+start, per the slice 1a availability boundary and slice 1b's exactly-once
+reservation semantics. No kernel or world change is authorised by this
+entry. The ratification lane is opened: slice 1c (sealed evidence stream and
+replay), then slice 1d (50-actor cost envelope), then a Stage 1 exit review
+requested from an independent reviewer. This entry does not accept
+checkpoint C, does not authorise exploration leg 7, does not reopen parked
+work, and does not claim the Stage 1 exit gate.
+
+**Reason.** The leg-6 hypothesis was validated under the existing latency;
+a same-tick revision would supersede the checkpoint comparisons and require
+new comparison authority without a demonstrated benefit. Hunger pressure
+already discriminates GO from eligible YIELD before emergency under the
+current rules. Ratification is the cheapest path to an independently
+reviewed Stage 1, and the decision was the only blocker the state file
+recorded for that lane.
+
+**Linked work.** SIM3_STATE.md records 1c as the active ratification slice;
+ratification cards for 1c and 1d are opened in evidence/stage-01/RECORD.md;
+the Stage 1 exit review is requested only once the 1c and 1d records are
+complete. Recorded on `codex/kernel-first-slice`; the recording commit's
+hash is reported after the commit.

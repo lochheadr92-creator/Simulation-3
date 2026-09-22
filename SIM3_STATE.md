@@ -8,7 +8,7 @@ UNKNOWN.
 
 ```
 current_milestone: Stage 1, slice 1a
-milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane open; exploration leg 6 delivered (opt-in scored actions, saved-file visual checkpoint C); C not owner-accepted; browser layout inspection blocked; ratification lane holds 1c/1d/Stage 1 exit; slices 1a and 1b independently reviewed PASS (2026-09-21)
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane open; exploration leg 6 delivered (opt-in scored actions, saved-file visual checkpoint C); C not owner-accepted; browser layout inspection blocked; ratification lane open at slice 1c (OD-013, 2026-09-23); slices 1a and 1b independently reviewed PASS (2026-09-21)
 authoritative_head: abbb0138b3c71d350a2214afe97e234686405289
 last_accepted_gate: none
 last_accepted_evidence: none
@@ -16,10 +16,10 @@ current_hypothesis: Scoring existing actions from bounded tick-start views permi
 proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
 not_proven: Stage 1 exit; sealed evidence and replay (ratification-lane 1c); instance isolation; 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; owner acceptance of checkpoint C; browser layout quality; memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
 parked: Stage 3 re-entry; Stage 4; Stages 5-6; slice 1d and Stage 1 exit (ratification lane); orchestrator Phase 4 branches; six-person starter world as confirmation
-blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Browser Use URL policy blocked opening the local HTML file. Whole-world leg-6 budget exhausted (3/3); no further run authorised.
-next_gate: immediate owner decision on claim-then-eat latency after C and before ratification; retain separate actions or explicitly authorise a bounded same-tick obtain/eat revision with new comparison authority. No latency change, leg 7 or acceptance inferred.
+blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Claim-then-eat latency decision resolved by OD-013 (2026-09-23): separate actions retained, ratification lane opened. Browser Use URL policy blocked opening the local HTML file. Whole-world leg-6 budget exhausted (3/3); no further exploration run authorised. Ratification lane requires an independent reviewer for the Stage 1 exit review; none requested yet.
+next_gate: slice 1c ratification: sealed evidence stream and replay, then slice 1d capacity envelope; Stage 1 exit review requested from an independent reviewer once the 1c and 1d records are complete. Claim-then-eat latency retained per OD-013; exploration leg 7 not opened; no acceptance inferred.
 authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
-last_updated: 2026-09-22
+last_updated: 2026-09-23
 ```
 
 ## Basis (snapshot only)

@@ -202,10 +202,10 @@ def test_o3_mutation_instrument_is_not_eligible_or_runnable():
 def test_o4_scientific_next_is_not_an_executable_registry_id():
     proc = _cli(REPO_ROOT, "--explain")
     out = proc.stdout
-    assert "observed_scientific_next: immediate owner decision on claim-then-eat latency" in out
+    assert "observed_scientific_next: slice 1c ratification: sealed evidence stream and replay" in out
     assert "observed_scientific_next_executable: no" in out
     assert "observed_scientific_next_is_registry_id: no" in out
-    assert "registered_command_id: immediate owner decision on claim-then-eat latency" not in out
+    assert "registered_command_id: slice 1c ratification" not in out
 
 
 def test_o5_o6_does_not_invoke_run_gate_or_create_receipts(monkeypatch):
@@ -369,11 +369,11 @@ def test_n7_n8_scientific_next_is_separate_and_not_a_registry_id():
     out = proc.stdout
     sci = out.split("SCIENTIFIC / PROJECT NEXT — OBSERVED ONLY", 1)[1]
     mech = out.split("SCIENTIFIC / PROJECT NEXT — OBSERVED ONLY", 1)[0]
-    assert "observed_scientific_next: immediate owner decision on claim-then-eat latency" in sci
+    assert "observed_scientific_next: slice 1c ratification: sealed evidence stream and replay" in sci
     assert "executable: no" in sci
     assert "authority: project/scientific process, not orchestrator registry" in sci
-    assert "id: immediate owner decision on claim-then-eat latency" not in mech
-    assert "registered_command_id: immediate owner decision" not in out
+    assert "id: slice 1c ratification" not in mech
+    assert "registered_command_id: slice 1c ratification" not in out
 
 
 def test_n9_malformed_registry_fails_closed(tmp_path: Path):
