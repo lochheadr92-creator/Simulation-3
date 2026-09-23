@@ -195,11 +195,14 @@ def test_writer_refuses_production_that_did_not_happen(tmp_path: Path):
     ledger, overlay = genesis(cfg)
     engine = Engine(ledger)
     record = engine.tick([])
-    writer = RunWriter(tmp_path / "w.jsonl", run_id="x", genesis=ledger, scenario=cfg.describe(), world=overlay.canonical())
+    writer = RunWriter(tmp_path / "w.jsonl", run_id="x", genesis=ledger, scenario=cfg.describe(),
+                       world=overlay.canonical(), horizon=1)
     with pytest.raises(RunFileError):
-        writer.record(record, engine.state, production=[{"source": FOOD_SOURCE, "amount": 1}], produced_state=engine.state)
+        writer.record(record, engine.state, inputs=[], production=[{"source": FOOD_SOURCE, "amount": 1}],
+                      produced_state=engine.state)
     with pytest.raises(RunFileError):
-        writer.record(record, engine.state, production=[{"source": FOOD_SOURCE, "amount": 1}])
+        writer.record(record, engine.state, inputs=[], production=[{"source": FOOD_SOURCE, "amount": 1}])
+    writer.record(record, engine.state, inputs=[])
     writer.close()
     with pytest.raises(RunFileError):
         apply_production(engine.state.canonical(), [{"source": "nowhere", "amount": 1}])

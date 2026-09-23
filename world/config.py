@@ -16,6 +16,7 @@ runtime randomness through Stage 3).
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -28,6 +29,9 @@ FOOD_SOURCE = "food"
 DISTANCE_METRIC = "chebyshev"
 PERCEPTION_BOUNDARY = "distance <= radius"
 DEFAULT_YIELD_SET = (1, 2, 3)
+INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
+                  "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
+                  "hungry_at", "emergency_at", "death_at", "perception_radius")
 
 
 @dataclass(frozen=True)
@@ -131,6 +135,39 @@ class WorldConfig:
                 "walk to the source if hungry; else walk home"
             ),
         }
+
+    @classmethod
+    def from_describe(cls, described: Mapping[str, Any]) -> "WorldConfig":
+        """The configuration a run header describes (slice 1c replay and recovery).
+
+        Refused unless `describe()` of the result equals the description exactly:
+        the world name, the genesis generator, every lever and every line of
+        declared rule text must be what this code writes, so a header from
+        another generator or rule set cannot be replayed as this one.
+        """
+        if not isinstance(described, Mapping):
+            raise ValueError("a world description must be a mapping")
+        if described.get("name") != "one-source-grid" or described.get("genesis_generator") != GENESIS_GENERATOR:
+            raise ValueError(f"unknown world or genesis generator: "
+                             f"{described.get('name')!r} {described.get('genesis_generator')!r}")
+        values: dict[str, Any] = {}
+        for name in INTEGER_LEVERS:
+            value = described.get(name)
+            if type(value) is not int:
+                raise ValueError(f"world lever {name} must be an integer, got {value!r}")
+            values[name] = value
+        yield_set = described.get("yield_set")
+        if not isinstance(yield_set, list):
+            raise ValueError(f"yield_set must be a list, got {yield_set!r}")
+        switches = {"on": True, "off": False}
+        if any(not isinstance(described.get(name), str) or described.get(name) not in switches
+               for name in ("yield", "scoring")):
+            raise ValueError("yield and scoring must each be 'on' or 'off'")
+        config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
+                     scoring_on=switches[described["scoring"]])
+        if config.describe() != dict(described):
+            raise ValueError("the world description does not round-trip exactly")
+        return config
 
 
 def _homes_from(rng: random.Random, config: WorldConfig) -> dict[str, tuple[int, int]]:

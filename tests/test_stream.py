@@ -62,14 +62,15 @@ def test_run_file_verifies_and_reads_back_what_the_engine_committed(tmp_path: Pa
 def test_writer_refuses_to_overwrite_and_checks_the_record_state_pair(tmp_path: Path):
     path = tmp_path / "run.jsonl"
     genesis = WorldState.genesis(balances={"A": 1})
-    with RunWriter(path, run_id="x", genesis=genesis, scenario={}) as writer:
+    with RunWriter(path, run_id="x", genesis=genesis, scenario={}, horizon=1) as writer:
         engine = Engine(genesis)
-        record = engine.tick([consume("p", "A", 0, amount=1)])
+        proposal = consume("p", "A", 0, amount=1)
+        record = engine.tick([proposal])
         with pytest.raises(RunFileError):
-            writer.record(record, genesis)  # wrong state for this record
-        writer.record(record, engine.state)
+            writer.record(record, genesis, inputs=[proposal])  # wrong state for this record
+        writer.record(record, engine.state, inputs=[proposal])
     with pytest.raises(FileExistsError):
-        RunWriter(path, run_id="x", genesis=genesis, scenario={})
+        RunWriter(path, run_id="x", genesis=genesis, scenario={}, horizon=1)
     assert read_run(path).complete
 
 

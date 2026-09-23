@@ -127,3 +127,26 @@ def test_viewer_package_exists_and_imports_nothing_from_kernel_world_or_stream()
     offences = [(m.name, sorted(top_level_imports(m) & VIEWER_FORBIDDEN)) for m in modules
                 if top_level_imports(m) & VIEWER_FORBIDDEN]
     assert offences == []
+
+
+# Slice 1c (declaration item 9): the simulation packages depend downward only,
+# kernel <- stream <- world, and none imports the viewer, the tooling or the
+# tests. Replay and recovery of world runs therefore live in world/.
+
+LAYERS_ABOVE = {
+    "kernel": {"stream", "world", "viewer", "automation", "tests"},
+    "stream": {"world", "viewer", "automation", "tests"},
+    "world": {"viewer", "automation", "tests"},
+}
+
+
+def test_simulation_packages_import_only_downward():
+    offences = []
+    for package, forbidden in LAYERS_ABOVE.items():
+        modules = sorted((KERNEL.parent / package).glob("*.py"))
+        assert modules, package
+        for module in modules:
+            bad = top_level_imports(module) & forbidden
+            if bad:
+                offences.append((f"{package}/{module.name}", sorted(bad)))
+    assert offences == []

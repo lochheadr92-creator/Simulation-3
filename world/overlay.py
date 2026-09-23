@@ -88,5 +88,27 @@ class Overlay:
             "died_at": dict(self.died_at),
         }
 
+    @classmethod
+    def from_canonical(cls, data: Mapping[str, Any]) -> "Overlay":
+        """Rebuild an overlay from `canonical()` (slice 1c: replay, recovery).
+        The shape is checked here; every value is validated by the constructor."""
+        keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
+        if not isinstance(data, Mapping) or set(data) != keys:
+            raise ValueError(f"a canonical overlay needs exactly the keys {sorted(keys)}")
+        for name in sorted(keys - {"tick"}):
+            if not isinstance(data[name], Mapping):
+                raise ValueError(f"a canonical overlay needs a mapping of {name}")
+
+        def cells(raw: Mapping[str, Any]) -> dict[str, Position]:
+            out: dict[str, Position] = {}
+            for actor, cell in raw.items():
+                if not isinstance(cell, (list, tuple)) or len(cell) != 2:
+                    raise ValueError(f"{actor!r} needs a two-integer position, got {cell!r}")
+                out[actor] = (cell[0], cell[1])
+            return out
+
+        return cls(tick=data["tick"], homes=cells(data["homes"]), positions=cells(data["positions"]),
+                   hunger=dict(data["hunger"]), yield_at=dict(data["yield_at"]), died_at=dict(data["died_at"]))
+
     def digest(self) -> str:
         return canonical_digest(self.canonical())

@@ -12,6 +12,7 @@ a world model: nothing here is a need, a place or a behaviour.
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -37,6 +38,27 @@ class Scenario:
             "starting_balance": self.starting_balance, "source_stock": self.source_stock,
             "max_proposals_per_tick": self.max_proposals_per_tick,
         }
+
+    @classmethod
+    def from_describe(cls, described: Mapping[str, Any]) -> "Scenario":
+        """The scenario a run header describes (slice 1c replay and recovery).
+        Refused unless `describe()` of the result equals the description exactly,
+        so a header from another generator or version cannot pass as this one."""
+        if not isinstance(described, Mapping):
+            raise ValueError("a scenario description must be a mapping")
+        if described.get("name") != SCENARIO_NAME or described.get("version") != SCENARIO_VERSION:
+            raise ValueError(f"not a {SCENARIO_VERSION} description: "
+                             f"{described.get('name')!r} {described.get('version')!r}")
+        values: dict[str, int] = {}
+        for name in ("seed", "actors", "sources", "starting_balance", "source_stock", "max_proposals_per_tick"):
+            value = described.get(name)
+            if type(value) is not int:
+                raise ValueError(f"scenario {name} must be an integer, got {value!r}")
+            values[name] = value
+        scenario = cls(**values)
+        if scenario.describe() != dict(described):
+            raise ValueError("the scenario description does not round-trip exactly")
+        return scenario
 
     def actor_ids(self) -> list[str]:
         return [f"p{index + 1}" for index in range(self.actors)]

@@ -289,3 +289,15 @@ def test_page_scripts_parse_under_node(small_run, tmp_path):
         js = tmp_path / f"script{i}.js"
         js.write_text(body, encoding="utf-8")
         subprocess.run([node, "--check", str(js)], check=True)
+
+
+def test_a_sealed_world_run_opens_in_the_world_view(tmp_path):
+    """Slice 1c: v3.stream.3 files open; the view reads what it always read."""
+    from world.config import WorldConfig
+    from world.run import run_world
+
+    path = tmp_path / "sealed.jsonl"
+    run_world(WorldConfig(seed=7), 20, path)
+    loaded = load_run(path)
+    assert loaded.header["format"] == "v3.stream.3" and loaded.tick_count == 20
+    assert "seal" in loaded.header and render_html(loaded)

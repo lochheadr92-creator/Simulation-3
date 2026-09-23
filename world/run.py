@@ -10,12 +10,15 @@ One tick:
      kernel proposals, moves are kept for the process step
   3. the kernel settles the proposals: this is the only place food moves
   4. world processes run (world/process.py): movement, hunger, death, renewal
-  5. the tick line records the kernel record and state, the overlay, every
-     decision, every observation, and any production; a timing line records
-     wall-clock cost
+  5. the tick line records the kernel record and state, the proposals
+     submitted, the overlay, every decision, every observation, and any
+     production, sealed (v3.stream.3); a timing line records wall-clock cost
+
+Steps 1-4 are `world_step`, the one path both a run and its replay take.
+    py -3 -B -m world.run --replay runs/<file>.jsonl   # slice 1c: replay against the file
 
 Output goes to runs/<run_id>.jsonl (and .html). runs/ is ignored by git: a
-checkpoint run is exploration output under OD-009, not evidence.
+checkpoint run is exploration output, not evidence.
 """
 
 from __future__ import annotations
@@ -27,14 +30,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from kernel import Engine, Proposal, claim, consume
+from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume
 
-from stream.run_file import RunWriter, read_run
+from stream.run_file import RunFileError, RunWriter, read_run
 from world.config import FOOD_SOURCE, WorldConfig, genesis
 from world.decide import CLAIM, EAT, Decision, decide
-from world.observe import observe
+from world.observe import Observation, observe
+from world.overlay import Overlay
 
-from world.process import advance
+from world.process import Processed, advance
 
 DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
@@ -70,32 +74,57 @@ class WorldRun:
     tick_ms_max: float
 
 
+@dataclass(frozen=True)
+class WorldStep:
+    """One tick of the world loop, before anything is written."""
+
+    views: dict[str, Observation]
+    decisions: dict[str, Decision]
+    proposals: list[Proposal]
+    record: TickRecord
+    committed: WorldState          # what settlement committed
+    processed: Processed           # the world processes applied after it
+    engine: Engine                 # the engine the next tick runs on
+
+    def line_fields(self) -> dict[str, Any]:
+        """The world blocks of this tick's line, as the writer and replay take them."""
+        return {
+            "world": self.processed.overlay.canonical(),
+            "decisions": {actor: d.canonical() for actor, d in self.decisions.items()},
+            "observations": {actor: view.compact() for actor, view in self.views.items()},
+            "production": list(self.processed.production) or None,
+            "produced_state": self.processed.ledger,
+        }
+
+
+def world_step(engine: Engine, overlay: Overlay, config: WorldConfig) -> WorldStep:
+    """Observe, decide, settle, process: one tick from `engine`'s state and `overlay`."""
+    state = engine.state
+    views = {actor: observe(actor, state, overlay, config) for actor in overlay.living}
+    decisions = {actor: decide(views[actor], config) for actor in overlay.living}
+    proposals = proposals_for(decisions, state.tick)
+    record = engine.tick(proposals)
+    committed = engine.state
+    processed = advance(overlay, decisions, record, committed, config)
+    next_engine = Engine(processed.ledger) if processed.production else engine
+    return WorldStep(views=views, decisions=decisions, proposals=proposals, record=record,
+                     committed=committed, processed=processed, engine=next_engine)
+
+
 def run_world(config: WorldConfig, ticks: int, path: Path) -> WorldRun:
     ledger, overlay = genesis(config)
     engine = Engine(ledger)
     elapsed: list[int] = []
     with RunWriter(path, run_id=run_id_for(config, ticks), genesis=ledger, scenario=config.describe(),
-                   world=overlay.canonical()) as writer:
+                   world=overlay.canonical(), horizon=ticks) as writer:
         for _ in range(ticks):
             started = time.perf_counter_ns()
-            state = engine.state
-            views = {actor: observe(actor, state, overlay, config) for actor in overlay.living}
-            decisions = {actor: decide(views[actor], config) for actor in overlay.living}
-            record = engine.tick(proposals_for(decisions, state.tick))
-            processed = advance(overlay, decisions, record, engine.state, config)
+            step = world_step(engine, overlay, config)
             cost = time.perf_counter_ns() - started
             elapsed.append(cost)
-            writer.record(
-                record, engine.state, elapsed_ns=cost,
-                world=processed.overlay.canonical(),
-                decisions={actor: d.canonical() for actor, d in decisions.items()},
-                observations={actor: view.compact() for actor, view in views.items()},
-                production=list(processed.production) or None,
-                produced_state=processed.ledger,
-            )
-            overlay = processed.overlay
-            if processed.production:
-                engine = Engine(processed.ledger)
+            writer.record(step.record, step.committed, inputs=step.proposals, elapsed_ns=cost,
+                          **step.line_fields())
+            overlay, engine = step.processed.overlay, step.engine
         trail = writer.close()
     ordered = sorted(elapsed) or [0]
     return WorldRun(
@@ -115,7 +144,7 @@ LEVERS = ("width", "height", "actors", "starting_food", "source_stock", "source_
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a seeded one-source grid world and write its record stream.")
-    parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument("--seed", type=int, default=None, help="Required unless --replay is given.")
     parser.add_argument("--ticks", type=int, default=300)
     for lever in LEVERS:
         parser.add_argument(f"--{lever.replace('_', '-')}", type=int, default=None, help=f"world lever (default from WorldConfig)")
@@ -126,7 +155,22 @@ def build_parser() -> argparse.ArgumentParser:
                         help="score eligible personal actions (opt in); food allocation is unchanged")
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
     parser.add_argument("--html", action="store_true", help="Render the map viewer next to the run file.")
+    parser.add_argument("--replay", default=None, metavar="FILE",
+                        help="Replay a sealed world run from its header, recomputing every decision, "
+                             "checked against the file (slice 1c).")
     return parser
+
+
+def replay_main(path: Path) -> int:
+    from stream.replay import ReplayError, replay_lines
+    from world.replay import replay_world
+    try:
+        result = replay_world(path)
+    except (ReplayError, RunFileError, ValueError) as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
+    sys.stdout.write("\n".join(replay_lines(result)) + "\n")
+    return 0 if result.identical else 1
 
 
 def config_from(args: argparse.Namespace) -> WorldConfig:
@@ -138,6 +182,11 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.replay:
+        return replay_main(Path(args.replay))
+    if args.seed is None:
+        sys.stderr.write("error: --seed is required unless --replay is given\n")
+        return 2
     if args.ticks < 1:
         sys.stderr.write("error: ticks must be positive\n")
         return 2

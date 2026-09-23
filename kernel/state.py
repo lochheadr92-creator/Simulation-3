@@ -51,6 +51,20 @@ def source_of(account: str) -> str:
     return account[len(SOURCE_PREFIX) :]
 
 
+def _canonical_map(data: Any, keys: frozenset[str], what: str) -> Mapping[str, Any]:
+    """Refuse anything but a mapping with exactly the canonical keys of `what`.
+
+    The `from_canonical` constructors below rebuild objects from stored
+    canonical forms (slice 1c: replay, recovery, restored instances). They
+    add no rule of their own: they check the shape, then build through the
+    ordinary constructors, so the same rails guard a restored object as a
+    live one.
+    """
+    if not isinstance(data, Mapping) or set(data) != keys:
+        raise ValueError(f"a canonical {what} needs exactly the keys {sorted(keys)}")
+    return data
+
+
 @dataclass(frozen=True)
 class Effect:
     """One signed movement against one account. Never applied on its own."""
@@ -66,6 +80,11 @@ class Effect:
 
     def canonical(self) -> dict[str, Any]:
         return {"account": self.account, "delta": self.delta}
+
+    @classmethod
+    def from_canonical(cls, data: Mapping[str, Any]) -> "Effect":
+        data = _canonical_map(data, frozenset({"account", "delta"}), "effect")
+        return cls(account=data["account"], delta=data["delta"])
 
 
 @dataclass(frozen=True)
@@ -89,6 +108,16 @@ class Source:
 
     def canonical(self) -> dict[str, Any]:
         return {"stock": self.stock, "authorised": sorted(self.authorised)}
+
+    @classmethod
+    def from_canonical(cls, data: Mapping[str, Any]) -> "Source":
+        data = _canonical_map(data, frozenset({"stock", "authorised"}), "source")
+        authorised = data["authorised"]
+        if not isinstance(authorised, (list, tuple)) or any(not isinstance(actor_id, str) for actor_id in authorised):
+            raise ValueError("a canonical source needs a list of claimant identities")
+        if list(authorised) != sorted(set(authorised)):
+            raise ValueError("a canonical source lists its claimants sorted and once each")
+        return cls(stock=data["stock"], authorised=frozenset(authorised))
 
 
 @dataclass(frozen=True)
@@ -144,6 +173,16 @@ class Reservation:
             "created_tick": self.created_tick, "operation": self.operation,
             "effects": [effect.canonical() for effect in self.effects],
         }
+
+    @classmethod
+    def from_canonical(cls, data: Mapping[str, Any]) -> "Reservation":
+        data = _canonical_map(
+            data, frozenset({"action_id", "actor", "created_tick", "operation", "effects"}), "reservation")
+        effects = data["effects"]
+        if not isinstance(effects, (list, tuple)):
+            raise ValueError("a canonical reservation needs a list of effects")
+        return cls(action_id=data["action_id"], actor=data["actor"], created_tick=data["created_tick"],
+                   operation=data["operation"], effects=tuple(Effect.from_canonical(effect) for effect in effects))
 
 
 @dataclass(frozen=True)
@@ -254,6 +293,28 @@ class WorldState:
             sources=dict(sources or {}),
             consumed=consumed,
             reservations=dict(reservations or {}),
+        )
+
+    @classmethod
+    def from_canonical(cls, data: Mapping[str, Any]) -> "WorldState":
+        """Rebuild a state from `canonical()`, as replay, recovery and restored
+        instances need. Only this schema version is accepted, and the result is
+        built through the constructor, so every rail that guards a live state
+        guards a restored one. `from_canonical(s.canonical()).digest() == s.digest()`."""
+        data = _canonical_map(
+            data, frozenset({"schema_version", "tick", "balances", "sources", "consumed", "reservations"}), "state")
+        if data["schema_version"] != SCHEMA_VERSION:
+            raise ValueError(f"a canonical state of schema {data['schema_version']!r} is not {SCHEMA_VERSION}")
+        for name in ("balances", "sources", "reservations"):
+            if not isinstance(data[name], Mapping):
+                raise ValueError(f"a canonical state needs a mapping of {name}")
+        return cls(
+            tick=data["tick"],
+            balances=dict(data["balances"]),
+            sources={source_id: Source.from_canonical(source) for source_id, source in data["sources"].items()},
+            consumed=data["consumed"],
+            reservations={action_id: Reservation.from_canonical(reservation)
+                          for action_id, reservation in data["reservations"].items()},
         )
 
     @property

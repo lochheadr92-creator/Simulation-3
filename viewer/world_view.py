@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-RECOGNISED_FORMATS = ("v3.stream.2",)
+RECOGNISED_FORMATS = ("v3.stream.2", "v3.stream.3")
 RECOGNISED_SCHEMAS = ("v3.kernel.1b.1",)
 REQUIRED_WORLD_KEYS = ("positions", "homes", "hunger", "died_at")
 REQUIRED_SCENARIO_KEYS = ("width", "height", "source", "source_position", "source_cap",

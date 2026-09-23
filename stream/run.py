@@ -3,10 +3,12 @@
     py -3 -B -m stream.run --seed 7 --ticks 200
     py -3 -B -m stream.run --seed 7 --ticks 200 --twice     # determinism check
     py -3 -B -m stream.run --seed 7 --ticks 200 --html      # also render the viewer
+    py -3 -B -m stream.run --replay runs/<file>.jsonl        # slice 1c: replay against the file
 
 Output goes to runs/<run_id>.jsonl (and .html). runs/ is ignored by git: a
 checkpoint run is exploration output, not evidence. The per-tick timing lines
-are the visible cost signal OD-009 keeps while slice 1d is deferred.
+are the visible cost signal until slice 1d measures cost. Every run file is
+sealed (v3.stream.3) and records the proposals submitted each tick.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from pathlib import Path
 
 from kernel import Engine
 
-from stream.run_file import RunWriter, read_run
+from stream.run_file import RunFileError, RunWriter, read_run
 from stream.scenario import ProposalGenerator, Scenario
 
 DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
@@ -33,7 +35,8 @@ def run_scenario(scenario: Scenario, ticks: int, path: Path) -> dict:
     engine = Engine(scenario.genesis())
     generator = ProposalGenerator(scenario)
     elapsed: list[int] = []
-    with RunWriter(path, run_id=run_id_for(scenario, ticks), genesis=engine.state, scenario=scenario.describe()) as writer:
+    with RunWriter(path, run_id=run_id_for(scenario, ticks), genesis=engine.state, scenario=scenario.describe(),
+                   horizon=ticks) as writer:
         for _ in range(ticks):
             live = {action: reservation.actor for action, reservation in engine.state.reservations.items()}
             proposals = generator.tick(engine.state.tick, live)
@@ -41,7 +44,7 @@ def run_scenario(scenario: Scenario, ticks: int, path: Path) -> dict:
             record = engine.tick(proposals)
             cost = time.perf_counter_ns() - started
             elapsed.append(cost)
-            writer.record(record, engine.state, elapsed_ns=cost)
+            writer.record(record, engine.state, inputs=proposals, elapsed_ns=cost)
         trail = writer.close()
     ordered = sorted(elapsed) or [0]
     return {
@@ -55,18 +58,37 @@ def run_scenario(scenario: Scenario, ticks: int, path: Path) -> dict:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a seeded checkpoint scenario and write its record stream.")
-    parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument("--seed", type=int, default=None, help="Required unless --replay is given.")
     parser.add_argument("--ticks", type=int, default=100)
     parser.add_argument("--actors", type=int, default=6)
     parser.add_argument("--sources", type=int, default=2)
     parser.add_argument("--out", default=None, help="Run file path. Default: runs/<run_id>.jsonl")
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
     parser.add_argument("--html", action="store_true", help="Render the viewer next to the run file.")
+    parser.add_argument("--replay", default=None, metavar="FILE",
+                        help="Replay a sealed scenario run from its header genesis and recorded inputs, "
+                             "checked against the file (slice 1c).")
     return parser
+
+
+def replay_main(path: Path) -> int:
+    from stream.replay import ReplayError, replay_lines, replay_scenario
+    try:
+        result = replay_scenario(path)
+    except (ReplayError, RunFileError, ValueError) as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
+    sys.stdout.write("\n".join(replay_lines(result)) + "\n")
+    return 0 if result.identical else 1
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.replay:
+        return replay_main(Path(args.replay))
+    if args.seed is None:
+        sys.stderr.write("error: --seed is required unless --replay is given\n")
+        return 2
     if args.ticks < 1 or args.actors < 1 or args.sources < 1:
         sys.stderr.write("error: ticks, actors and sources must be positive\n")
         return 2
