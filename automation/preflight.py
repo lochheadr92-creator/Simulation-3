@@ -53,6 +53,14 @@ HASH_CHUNK = 65536
 GIT_TIMEOUT_S = 30
 
 # Explicit phrases from authoritative documents. Absence yields UNKNOWN.
+# ROADMAP.md states the active slice as "Stage N is open at slice X" or
+# "Stage N continues at slice X"; the first such statement in the document
+# (the adoption banner) is the milestone. The 1a phrases below remain as the
+# fallback for documents that predate that wording.
+ROADMAP_ACTIVE_SLICE_PATTERN = re.compile(
+    r"\bStage\s+(\d+)\s+(?:is\s+open\s+at|continues\s+at)\s+slice\s+(\d+[a-z])\b",
+    re.IGNORECASE,
+)
 ROADMAP_MILESTONE_PHRASE = "Stage 1 is open at slice 1a"
 ROADMAP_NO_STAGE_PASSED = "No stage has passed"
 RECORD_SLICE_OPEN = "Only slice 1a is open"
@@ -224,7 +232,10 @@ def parse_sim3_state(text: str) -> dict[str, str]:
 def parse_milestone(roadmap_text: str, record_text: str | None) -> dict[str, str]:
     milestone = "UNKNOWN"
     status_parts: list[str] = []
-    if contains_phrase(roadmap_text, ROADMAP_MILESTONE_PHRASE):
+    active = ROADMAP_ACTIVE_SLICE_PATTERN.search(roadmap_text)
+    if active is not None:
+        milestone = f"Stage {active.group(1)}, slice {active.group(2).lower()}"
+    elif contains_phrase(roadmap_text, ROADMAP_MILESTONE_PHRASE):
         milestone = "Stage 1, slice 1a"
     if contains_phrase(roadmap_text, ROADMAP_NO_STAGE_PASSED):
         status_parts.append("no stage has passed")

@@ -1,13 +1,13 @@
 # V3 — development roadmap
 
 **ADOPTED 2026-09-19; scope updated 2026-09-21 under OD-008 and OD-009
-Revision 3. No stage has passed. Until OD-009 Revision 3 closes, exploration
-sequencing follows that direction's leg order rather than the stage numbers
-below: Stage 3 re-entry is parked, Stage 4 is blocked, and slices 1c and 1d
-and the Stage 1 exit gate wait in the ratification lane. Each exploration
-leg from 2 onward still needs its own owner direction before code.
-Confirmation floors, frozen baselines and independent acceptance belong to
-the ratification lane. This document by itself authorises no execution.**
+Revision 3, and on 2026-09-23 under OD-014. No stage has passed. OD-014
+accepted visual checkpoint C and closed OD-009 Revision 3, so sequencing
+authority is this document. Stage 1 continues at slice 1c, then slice 1d,
+then the Stage 1 exit review. That closure does not open a later stage, an
+exploration leg, or execution by itself. Confirmation floors, frozen
+baselines and independent acceptance belong to the ratification lane. This
+document by itself authorises no execution.**
 
 The behavioural starter world has six people. The engineering target is 50 people.
 The order below follows dependencies, not the old project's feature sequence.

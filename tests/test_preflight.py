@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -137,6 +138,25 @@ def test_parse_milestone_reads_roadmap_and_record_phrases():
     assert "107 passed" not in parsed["milestone_status"]
 
 
+def test_parse_milestone_takes_roadmap_active_slice_over_historical_record_phrase():
+    # ROADMAP.md is sequencing authority: its explicit active-slice statement
+    # outranks the historical "Only slice 1a is open" line in the stage record,
+    # which stays in RECORD.md as history and must not pin the milestone.
+    roadmap = (
+        "No stage has passed. Stage 1 continues at slice 1c, then slice 1d,\n"
+        "then the Stage 1 exit review."
+    )
+    record = "Only slice 1a is open.\nStage 1 remains incomplete.\nStage 1 exit remains unclaimed.\n"
+    parsed = parse_milestone(roadmap, record)
+    assert parsed["current_milestone"] == "Stage 1, slice 1c"
+    assert "Stage 1 exit unclaimed" in parsed["milestone_status"]
+    assert parsed["milestone_completion_inferred"] == "no"
+    # the older wording still parses, and whitespace inside the phrase does not matter
+    assert parse_milestone("Stage 1 is open\nat slice 1a.", None)["current_milestone"] == "Stage 1, slice 1a"
+    # a mention of a slice without the open/continues wording sets nothing
+    assert parse_milestone("slice 1c is described below", None)["current_milestone"] == "UNKNOWN"
+
+
 def test_collect_on_this_repository_is_deterministic_and_read_only():
     before = _kernel_hashes()
     first = render(collect(REPO_ROOT))
@@ -145,7 +165,9 @@ def test_collect_on_this_repository_is_deterministic_and_read_only():
     assert first == second
     assert before == after
     assert "milestone_completion_inferred: no" in first
-    assert "current_milestone: Stage 1, slice 1a" in first
+    # the live repository yields a parsed milestone, never UNKNOWN; the exact
+    # slice is ROADMAP.md's business and moves as the project moves
+    assert re.search(r"^current_milestone: Stage \d+, slice \d+[a-z]$", first, re.MULTILINE)
     assert "note: passing tests are not milestone completion" in first
     for section in (
         "repository_root:",

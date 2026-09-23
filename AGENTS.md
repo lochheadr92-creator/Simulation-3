@@ -787,3 +787,73 @@ ratification cards for 1c and 1d are opened in evidence/stage-01/RECORD.md;
 the Stage 1 exit review is requested only once the 1c and 1d records are
 complete. Recorded on `codex/kernel-first-slice`; the recording commit's
 hash is reported after the commit.
+
+### OD-014 - 2026-09-23 - Accept checkpoint C; keep obtain and eat separate
+
+**Exact owner direction.** Recorded from the owner's message of 2026-09-23:
+
+> Checkpoint C is accepted as sufficient to close the current exploration
+> question.
+>
+> For claim-then-eat latency:
+>
+> KEEP CLAIM/OBTAIN AND EAT AS SEPARATE ACTIONS.
+>
+> Do not implement same-tick obtain-and-eat.
+>
+> Rationale:
+> - obtaining/possessing food and consuming food are distinct causal events;
+> - the intermediate possession state is valuable world state;
+> - preserving it allows later systems to interact with possession before
+>   consumption, including transfer, storage, theft, interruption,
+>   prioritisation, social behaviour, and resource competition;
+> - visual convenience or apparent one-tick awkwardness is not sufficient
+>   justification to collapse two causal actions;
+> - no behavioural/kernel change is authorised by this decision.
+>
+> This is an owner design decision, not experimental proof.
+
+**Scope.** Visual checkpoint C (exploration leg 6, OD-011) is owner-accepted
+as sufficient to close the exploration question OD-009 Revision 3 opened.
+Under that direction's closure clause, Revision 3 is closed and sequencing
+authority returns to ROADMAP.md. Exploration leg 7 is not opened and would
+need a new owner direction. Obtain/claim and eat remain separate actions, as
+OD-013 already recorded; this entry supplies the owner's rationale and does
+not amend OD-013, the leg-6 evidence, or the availability boundary. No
+same-tick obtain-and-eat revision is authorised. No kernel, world, stream,
+viewer, or tooling change is authorised. The Stage 1 exit is not accepted.
+Capability, reachability, and measurement are not established by this entry.
+
+**Reason.** The owner closed the current exploration question by accepting
+checkpoint C, and retained separate possession and consumption so later
+systems can act on food that is held and not yet eaten. That is design
+authority. It is not a finding that the leg-6 runs proved a survival,
+fairness, or latency result. OD-013's reason paragraph remains the text
+recorded at `5400056`; this entry does not rewrite it into the earlier
+experiments.
+
+**Owner-supplied basis, added 2026-09-23 before commit.** The owner states
+the acceptance rests on two grounds: the fixed ON/OFF comparison recorded
+under the leg-6 card, and the owner's own inspection of the OD-012 world
+view rendered from the saved leg-6 runs, at tick 135 (OFF) and tick 300 (ON),
+on 2026-09-23. The builder's browser inspection of checkpoint C had been
+blocked by URL policy; it is superseded by the owner's inspection, not by
+any re-run, and the leg-6 run budget remains exhausted. Observation the
+owner carries forward as an input, not a result: in the ON run the source
+sits at its cap (8/8) at tick 300 while the living people are hungry and
+away from it, so renewal above the cap is discarded. Whether the cap, the
+renewal cadence or the yield/score rules should change is a question for a
+later exploration direction, not for the ratification lane.
+
+**Tooling scope, stated once.** Orchestrator and evidence tooling work is in
+scope for ratification-lane slices under OD-013 and out of scope for
+exploration legs; that is what OD-009 Revision 3's standing constraint
+meant. The first such change is recorded with this entry: the preflight
+milestone parser now reads ROADMAP.md's explicit active-slice statement
+instead of two historical slice-1a phrases, so the state snapshot can carry
+the true milestone without the orchestrator refusing every action.
+
+**Linked work.** Recorded on `codex/kernel-first-slice` after `5400056`
+(OD-013), with `ROADMAP.md`'s banner, `SIM3_STATE.md` and
+`evidence/stage-01/RECORD.md` reconciled in the same commit. The recording
+commit's hash cannot appear inside this entry.

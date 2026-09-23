@@ -1,5 +1,15 @@
 # Stage 1 record — kernel only
 
+## Status after OD-014 — 2026-09-23
+
+Owner direction OD-014 accepts checkpoint C and closes OD-009 Revision 3.
+Obtain and eat remain separate actions (OD-013; the owner's rationale is
+OD-014). No same-tick obtain-and-eat. No exploration leg 7. No kernel or
+world change. Stage 1 exit unclaimed. The leg-6 card below is the historical
+pre-acceptance card and is not amended. The first unmet ratification
+requirement, and why it is not executed in this sitting, is recorded under
+"OD-014 recorded".
+
 ## Active card — exploration leg 6, revised 2026-09-22 before code
 
 | Field | Contents |
@@ -1368,3 +1378,57 @@ The Stage 1 exit review is requested from an independent reviewer only
 once the 1c and 1d records are complete. Checkpoint C is not accepted by
 this entry, exploration leg 7 is not opened, and the Stage 1 exit gate is
 not claimed.
+
+### OD-014 recorded — checkpoint C accepted; obtain and eat stay separate — 2026-09-23
+
+Owner direction OD-014 (AGENTS.md) accepts checkpoint C as sufficient to
+close the exploration question and, by the closure clause of OD-009
+Revision 3, returns sequencing authority to ROADMAP.md. Exploration leg 7
+is not opened. Obtain/claim and eat remain separate actions. No same-tick
+obtain-and-eat revision is authorised, and no kernel or world change is
+authorised. The owner's rationale is design authority: possession and
+consumption are distinct causal events, and the held-food state is kept so
+later systems can interact with it before consumption. This entry is not
+experimental proof of capability, reachability, or measurement. It does not
+amend OD-013, the leg-6 card, or the leg-6 results. An uncommitted draft of
+this section had attributed an owner inspection at particular ticks and a
+source-cap observation; that wording was not in the recorded direction at
+the time and was not retained by the agent that wrote this paragraph. The
+owner then supplied that basis directly on 2026-09-23 (world view inspected
+at tick 135 OFF and tick 300 ON; source at cap while people hungry and away
+from it, carried as an input), and it is recorded in OD-014 under
+"Owner-supplied basis". Both steps are kept here so the provenance is
+visible.
+
+Tooling scope, stated once: orchestrator and evidence tooling work is in
+scope for ratification-lane slices under OD-013 and out of scope for
+exploration legs. First such change, in the OD-014 commit:
+`automation/preflight.py` derives the milestone from ROADMAP.md's explicit
+"Stage N continues at / is open at slice X" statement, falling back to the
+historical slice-1a phrases only when no such statement exists. The two
+prior snapshots had carried `current_milestone: Stage 1, slice 1a` to keep
+the orchestrator's block-on-inconsistency from refusing every action; that
+value was false and is corrected with this entry. The orchestrator's
+blocking rule itself is unchanged.
+
+First unmet ratification requirement: slice 1c, sealed evidence stream and
+replay, then slice 1d, then an independent Stage 1 exit review. Slices 1a
+and 1b have independent different-model PASS reviews on their kernel claims
+(2026-09-21). Those reviews are not the Stage 1 exit. The exploration stream
+(`stream/`, format `v3.stream.2`) already provides canonical per-tick content
+lines, recomputed record and state digests, prior/next state chaining
+including production, a trail digest, tamper detection and byte-identical
+reruns. RECORD describes that stream as exploration, not a sealed
+ratification schema.
+
+ROADMAP "Evidence and foundation checks" and the slice 1c proof object still
+require a specified evidence schema before its writer; a complete-tick seal
+tied to code, configuration and schema identities; replay from genesis and
+declared inputs checked against the file rather than against a second run;
+recovery through the last verified sealed tick, including resume with pending
+reservations; and isolation of two instances restored from the same state.
+OD-013 names the opened 1c work as a sealed evidence stream and replay, and
+names 1d as the 50-actor cost envelope. Recovery and instance isolation are
+in the ROADMAP 1c proof object and are not named in that OD-013 sentence.
+This entry does not choose that boundary and does not specify the schema.
+Nothing of slice 1c is implemented or run here. Stage 1 exit remains unclaimed.
