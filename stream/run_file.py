@@ -296,6 +296,36 @@ class RunWriter:
         self._trail = hashlib.sha256()
         self._write(header)
 
+    @classmethod
+    def resume(cls, path: Path, *, header: dict[str, Any], prefix: bytes, tick_lines: Iterable[bytes],
+               seal: str, next_tick: int) -> "RunWriter":
+        """Continue a sealed run in a new file from its sealed prefix (slice 1c
+        recovery). The prefix bytes are written unchanged, and the seal chain,
+        trail digest and tick count carry on from them, so a faithful
+        continuation is byte-identical to an uninterrupted run, timing aside.
+        The caller vouches for the prefix; stream/recover.py builds it from
+        what the reader verified."""
+        if header.get("format") not in SEALED_FORMATS:
+            raise RunFileError("only a sealed run can be resumed")
+        writer = cls.__new__(cls)
+        writer.header = header
+        writer._trail = hashlib.sha256()
+        writer._ticks = 0
+        for raw in tick_lines:
+            writer._trail.update(raw)
+            writer._ticks += 1
+        if writer._ticks > header["horizon"]:
+            raise RunFileError("the sealed prefix is longer than the run's horizon")
+        writer._seal = seal
+        writer._next_tick = next_tick
+        writer.path = Path(path)
+        writer.path.parent.mkdir(parents=True, exist_ok=True)
+        writer._handle = writer.path.open("xb")
+        writer._closed = False
+        writer._handle.write(prefix)
+        writer._handle.flush()
+        return writer
+
     def _write(self, payload: dict[str, Any]) -> bytes:
         raw = _line(payload)
         self._handle.write(raw)

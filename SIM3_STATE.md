@@ -8,18 +8,18 @@ UNKNOWN.
 
 ```
 current_milestone: Stage 1, slice 1c
-milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane closed by OD-014 (checkpoint C owner-accepted 2026-09-23; OD-009 Revision 3 closed; sequencing authority with ROADMAP.md); ratification lane open at slice 1c (OD-013, 2026-09-23), bounded by the ROADMAP 1c proof object (OD-015, 2026-09-23); slice 1c declared before code 2026-09-23 (RECORD.md active card), commit A built (sealed stream, inputs, reconstruction, replay), commit B not yet; obtain and eat remain separate actions; no same-tick obtain/eat; exploration leg 7 not opened; slices 1a and 1b independently reviewed PASS (2026-09-21)
-authoritative_head: 56d3c3fe746f22ca58f4219a9ac0aa3b16293623
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane closed by OD-014 (checkpoint C owner-accepted 2026-09-23; OD-009 Revision 3 closed; sequencing authority with ROADMAP.md); ratification lane open at slice 1c (OD-013, 2026-09-23), bounded by the ROADMAP 1c proof object (OD-015, 2026-09-23); slice 1c record delivered 2026-09-23 by its builder, not reviewed (commits A and B; RECORD.md "Slice 1c results"); obtain and eat remain separate actions; no same-tick obtain/eat; exploration leg 7 not opened; slices 1a and 1b independently reviewed PASS (2026-09-21)
+authoritative_head: 028ffa8da78a9cd1ba95f06556d12a54fe5286ab
 last_accepted_gate: none
 last_accepted_evidence: none
-current_hypothesis: slice 1c, declared; commit A built, commit B not yet: a v3.stream.3 run seals its header and every tick in one chain; replay from genesis and the recorded inputs reproduces every tick payload byte for byte; recovery through the last verified sealed tick, with live reservations at the cut, reproduces the uninterrupted run's sealed content; two engines restored from one sealed tick share no mutable object; kernel canonical forms and recorded fixtures stay unchanged. Essential claims are on kernel-only scenario runs; world runs are optional targets.
+current_hypothesis: slice 1c, delivered and not reviewed: a v3.stream.3 run seals its header and every tick in one chain; replay from genesis and the recorded inputs reproduces every tick payload byte for byte; recovery through the last verified sealed tick, with live reservations at the cut, reproduces the uninterrupted run's sealed content; two engines restored from one sealed tick share no mutable object; kernel canonical forms and recorded fixtures stay unchanged. Essential claims are on kernel-only scenario runs; world runs are optional targets.
 proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
-not_proven: Stage 1 exit; slice 1c (sealed evidence, replay, recovery through the last verified sealed tick, instance isolation; ROADMAP proof object per OD-015); 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; browser layout quality and owner acceptance of the OD-012 world view (checkpoint C acceptance is not viewer acceptance); memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
-parked: slice 1d and the Stage 1 exit until the 1c record exists; orchestrator Phase 4 branches; six-person starter world as confirmation; Stages 2-6 are later roadmap stages and are not opened by OD-014 or OD-015; the source-at-cap question (OD-014 owner-supplied basis) waits for a later exploration direction
-blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Claim-then-eat latency resolved by OD-013 and grounded by OD-014 (2026-09-23): obtain and eat stay separate actions; no same-tick obtain/eat; owner design decision, not experimental proof; no kernel or world change. Checkpoint C accepted by OD-014 as closing the exploration question; exploration leg 7 is not opened. Whole-world leg-6 budget exhausted (3/3). Slice 1c boundary settled by OD-015 (ROADMAP proof object: sealed evidence, replay, recovery, private instance isolation). Slice 1c declared before code (RECORD.md active card, 2026-09-23); commit A built; commit B (recovery, isolation, frozen references, results) not yet. Stage 1 exit review requires an independent reviewer; none requested yet.
-next_gate: slice 1c ratification: sealed evidence stream and replay, with recovery through the last verified sealed tick and private instance isolation (ROADMAP proof object, OD-015): commit B (recovery, isolation, frozen references, results) per the declaration in RECORD.md, after commit A (seal, inputs, reader, reconstruction, replay); then slice 1d capacity envelope; Stage 1 exit review requested from an independent reviewer once the 1c and 1d records are complete. Claim-then-eat latency retained per OD-013 and OD-014; exploration leg 7 not opened; no acceptance inferred. First unmet work is slice 1c commit B.
+not_proven: Stage 1 exit; slice 1c as reviewed (sealed evidence, replay, recovery, instance isolation: demonstrated by the builder on the declared runs, no independent review yet); 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; browser layout quality and owner acceptance of the OD-012 world view (checkpoint C acceptance is not viewer acceptance); memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
+parked: the Stage 1 exit review until the 1d record exists (OD-013); orchestrator Phase 4 branches; six-person starter world as confirmation; Stages 2-6 are later roadmap stages and are not opened by OD-014 or OD-015; the source-at-cap question (OD-014 owner-supplied basis) waits for a later exploration direction
+blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Claim-then-eat latency resolved by OD-013 and grounded by OD-014 (2026-09-23): obtain and eat stay separate actions; no same-tick obtain/eat; owner design decision, not experimental proof; no kernel or world change. Checkpoint C accepted by OD-014 as closing the exploration question; exploration leg 7 is not opened. Whole-world leg-6 budget exhausted (3/3). Slice 1c boundary settled by OD-015 (ROADMAP proof object: sealed evidence, replay, recovery, private instance isolation). Slice 1c record delivered (commits A and B), not reviewed; its independent review is requested with the 1d record (OD-013), from a separate reviewer using a different model from its builder's (Claude, configured claude-opus-5-5). Stage 1 exit review requires an independent reviewer; none requested yet.
+next_gate: slice 1c ratification: sealed evidence stream and replay, with recovery through the last verified sealed tick and private instance isolation (ROADMAP proof object, OD-015): record delivered 2026-09-23, not reviewed; then slice 1d capacity envelope (not started); Stage 1 exit review requested from an independent reviewer once the 1c and 1d records are complete. Claim-then-eat latency retained per OD-013 and OD-014; exploration leg 7 not opened; no acceptance inferred. First unmet work is the slice 1d pre-implementation declaration.
 authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
-last_updated: 2026-09-23 (slice 1c commit A)
+last_updated: 2026-09-23 (slice 1c record)
 ```
 
 ## Basis (snapshot only)
@@ -32,7 +32,7 @@ OD-015 entries), `kernel/state.py`, `kernel/engine.py`, `kernel/proposals.py`,
 `stream/run_file.py`, `stream/run.py`, `stream/scenario.py`, `world/run.py`,
 `world/config.py`, `world/overlay.py`, the format checks in
 `viewer/world_view.py`, `tests/test_dependency_direction.py`, and the git
-history of `codex/kernel-first-slice` at `56d3c3f`, with the commit-A changes to those files. The latency bullet rests
+history of `codex/kernel-first-slice` at `028ffa8`, with the commit-B changes and the frozen references. The latency bullet rests
 on the sources the OD-014 snapshot read (`kernel/settlement.py`,
 `world/decide.py`). Checkpoint runs remain exploration, not evidence.
 
@@ -52,8 +52,8 @@ on the sources the OD-014 snapshot read (`kernel/settlement.py`,
   proof object: sealed evidence, replay, recovery, and private instance
   isolation. Exploration leg 7 is not opened. OD-014 and OD-015 are owner
   decisions. Neither accepts the Stage 1 exit.
-- **HEAD.** `56d3c3f` records the slice 1c declaration and is the commit this
-  entry sits on; the commit carrying 1c commit A cannot contain its own hash.
+- **HEAD.** `028ffa8` is slice 1c commit A and the commit this entry sits on;
+  the commit carrying commit B and the 1c record cannot contain its own hash.
   Kernel version `0.2.0-stage1b` and schema `v3.kernel.1b.1` are unchanged;
   `kernel/state.py` gains additive `from_canonical` constructors, and no
   settlement rule or canonical form changes.
@@ -75,15 +75,18 @@ on the sources the OD-014 snapshot read (`kernel/settlement.py`,
   (`kernel/settlement.py`). Eat is eligible from food already held at tick
   start (`world/decide.py`). The deaths at the source holding newly claimed
   units remain a recorded consequence of that rule.
-- **Slice 1c commit A built; commit B not yet.** The declaration in `RECORD.md`
+- **Slice 1c record delivered, not reviewed.** The declaration in `RECORD.md`
   (active card and "Slice 1c declaration") fixes the v3.stream.3 schema, seal,
   replay, recovery and isolation before any writer. It departs from the
   2026-09-23 build brief where the code required it; the differences are
   listed at its end. Essential claims are on kernel-only scenario runs; world
-  runs are optional targets. Commit A built the sealed writer and reader,
-  inputs, reconstruction and replay; recovery, isolation, the frozen
-  references and the results follow in commit B. New run files are
-  v3.stream.3; older v3.stream.2 files stay readable, unsealed.
+  runs are optional targets. Commits A and B built the sealed writer and
+  reader, inputs, reconstruction, replay, recovery and isolation; the frozen
+  references and the reviewer's `reproduce.py` are under
+  `evidence/stage-01/slice-1c/`. New run files are v3.stream.3; older
+  v3.stream.2 files stay readable, unsealed. The builder was Claude
+  (configured `claude-opus-5-5`), so the independent review needs a
+  reviewer on a different model.
 - **Owner decision draft, 2026-09-23.** Written against `df99524`; its
   decisions are OD-013 and OD-014 and are not entered again. Its tentative
   slice list placing isolation in 1d is superseded by OD-015; its note that

@@ -4,6 +4,7 @@
     py -3 -B -m stream.run --seed 7 --ticks 200 --twice     # determinism check
     py -3 -B -m stream.run --seed 7 --ticks 200 --html      # also render the viewer
     py -3 -B -m stream.run --replay runs/<file>.jsonl        # slice 1c: replay against the file
+    py -3 -B -m stream.run --recover runs/<cut>.jsonl --out runs/<new>.jsonl   # slice 1c: recovery
 
 Output goes to runs/<run_id>.jsonl (and .html). runs/ is ignored by git: a
 checkpoint run is exploration output, not evidence. The per-tick timing lines
@@ -68,7 +69,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--replay", default=None, metavar="FILE",
                         help="Replay a sealed scenario run from its header genesis and recorded inputs, "
                              "checked against the file (slice 1c).")
+    parser.add_argument("--recover", default=None, metavar="FILE",
+                        help="Recover a cut or broken sealed scenario run through its last sealed tick "
+                             "into the new file given by --out (slice 1c).")
     return parser
+
+
+def recover_main(path: Path, out: str | None) -> int:
+    from stream.recover import RecoveryError, recover_scenario, recovery_lines
+    if not out:
+        sys.stderr.write("error: --recover needs --out for the recovered file\n")
+        return 2
+    try:
+        result = recover_scenario(path, Path(out))
+    except (RecoveryError, RunFileError, ValueError, FileExistsError) as exc:
+        sys.stderr.write(f"error: {exc}\n")
+        return 2
+    checked = read_run(Path(out))
+    sys.stdout.write("\n".join(recovery_lines(result) + [f"file_verifies: {'yes' if checked.complete else 'no'}"]) + "\n")
+    return 0 if checked.complete else 1
 
 
 def replay_main(path: Path) -> int:
@@ -84,10 +103,12 @@ def replay_main(path: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.recover:
+        return recover_main(Path(args.recover), args.out)
     if args.replay:
         return replay_main(Path(args.replay))
     if args.seed is None:
-        sys.stderr.write("error: --seed is required unless --replay is given\n")
+        sys.stderr.write("error: --seed is required unless --replay or --recover is given\n")
         return 2
     if args.ticks < 1 or args.actors < 1 or args.sources < 1:
         sys.stderr.write("error: ticks, actors and sources must be positive\n")
@@ -131,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         html_path = path.with_suffix(".html")
         html_path.write_text(render_html(checked), encoding="utf-8")
         lines.append(f"viewer: {html_path}")
-    lines.append("note: exploration output under OD-009; not evidence, not acceptance")
+    lines.append("note: a run file is evidence only where a stage record cites it; never acceptance")
     sys.stdout.write("\n".join(lines) + "\n")
     return 0 if checked.complete else 1
 
