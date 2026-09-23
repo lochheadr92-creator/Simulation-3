@@ -6,10 +6,190 @@ Owner direction OD-015 sets slice 1c's boundary to the ROADMAP.md proof
 object: sealed evidence, replay, recovery, and private instance isolation.
 OD-013 and OD-014 stand: obtain and eat remain separate actions, no same-tick
 obtain-and-eat, no exploration leg 7, and checkpoint C is owner-accepted as
-closing the exploration question. The exploration leg-6 card below is
-therefore a closed preceding card; its rows are unchanged. The slice 1c card
-is written with its pre-implementation declaration before any 1c code. No
-kernel, world or stream change. Stage 1 exit unclaimed.
+closing the exploration question. The active card below is slice 1c,
+declared before code on 2026-09-23; nothing of it is implemented. The
+exploration leg-6 card after it is a closed preceding card with its rows
+unchanged, and the Stage 1b card further down, which still carried an
+"Active card" heading, is retitled as a preceding card with its rows
+unchanged. Stage 1 exit unclaimed.
+
+## Active card — slice 1c, sealed evidence, replay, recovery and isolation (ratification), declared 2026-09-23 before code
+
+| Field | Contents |
+|---|---|
+| State | Stage 1, slice 1c, ratification lane (OD-013); boundary is the ROADMAP 1c proof object (OD-015). Declared before code; nothing implemented or run. Consumers: slice 1d (the frozen 1a–1c reference suite) and the independent Stage 1 exit review. Slices 1a and 1b hold independent PASS reviews; no 1c review is requested before the 1d record exists (OD-013). |
+| Scope | In: sealed writer and reader, replay, recovery and restore helper in stream/; additive `from_canonical` constructors in kernel/state.py and world/overlay.py; `from_describe` for Scenario and WorldConfig; runners passing inputs; world replay and recovery in world/; v3.stream.3 recognition in viewer/world_view.py; focused tests; this record and the snapshot. Out: settlement, engine, proposals, ordering, reasons, version, decision rules, levers, generators, recorded fixtures, automation/, slice 1d. |
+| Identity | codex/kernel-first-slice at 6f500408b59e69f6f9c0da2be14172bb2f30a993; engine 0.2.0-stage1b and schema v3.kernel.1b.1, unchanged by this slice; stream format v3.stream.2 → v3.stream.3; OD-013, OD-015. |
+| Claim | Essential, on kernel-only scenario runs: (1) header and every tick sealed in one chain, and the reader names the first break; (2) replay from genesis and recorded inputs reproduces every tick payload byte for byte; (3) recovery of a cut or broken file through the last verified sealed tick, with at least one live reservation at the cut, yields sealed content equal to the uninterrupted run's; (4) two engines restored from one sealed tick share no mutable object; (5) kernel canonical forms, the 1b fixture digests and the head-b305783 decisions fixture unchanged; (6) dependency direction kernel ← stream ← world tested. Optional, Stage 2 layer and not a Stage 1 exit condition: (1)–(3) on world runs. The 1a/1b integrity rails are unchanged. |
+| Definitions | The declaration below, items 1–9. |
+| Instrument | Known cases: a byte edit, deletion and swap of tick lines; a cut mid-line; a broken seal on the last line; one altered input or recorded outcome. Null controls: an untouched file verifies; v3.stream.1/2 files read with no seal checks. Before-capture: the committed 1b fixture output, reproduced at 6f50040 before this declaration. Nothing else run. |
+| Budget and attempt | No world-design or capacity slot is used: scenario runs are focused transaction tests; world checks are focused tests on existing configurations, not exploration and not behavioural evidence. Two frozen references (item 10). Attempts appended below. |
+| Evidence and rollback | Commit A (items 1–6 and 9), commit B (items 7–8, references, results). References under evidence/stage-01/slice-1c/ with SHA256SUMS.txt. Rollback: revert B then A; v3.stream.1/2 files and readers are unaffected. |
+
+### Slice 1c declaration — 2026-09-23, before code
+
+Authority: OD-013 (ratification lane, slice 1c) and OD-015 (boundary: the
+ROADMAP 1c proof object). Specification: ROADMAP.md "Evidence and foundation
+checks". Written before any 1c writer or reader change. A value here changes
+only by a new dated declaration appended below, never by editing this one.
+
+Read in the code at `6f50040` before writing. Tick lines already hold the
+full committed kernel state, the overlay and any production entries.
+`WorldState` carries its tick, so rotation and action identities come back
+with the state. `Engine` holds only its current state, a diagnostics counter
+and a lock, so an engine built on a restored state continues identically
+without an engine change. The scenario generator's PRNG state is not in the
+file. The scenario submits a boolean amount on purpose, which the kernel
+canonical form refuses. `viewer/world_view.py` recognises only v3.stream.2 and
+rejects unknown line kinds. The first 120 tick lines of existing v3.stream.2
+files take about 0.28 MB (world, seed 7) and 0.59 MB (scenario, seed 7, whose
+holds accumulate).
+
+1. **Format and header.** `STREAM_FORMAT` becomes v3.stream.3 and
+   `READABLE_FORMATS` gains it; v3.stream.1 and v3.stream.2 files stay
+   readable with no seal checks. The header keeps every v3.stream.2 field and
+   adds `horizon` (the declared tick count); `code_identity`
+   (`{"files": {path: sha256}, "digest": digest(files)}` over every `*.py`
+   under kernel/, stream/ and world/ at run time, paths relative and
+   `/`-separated, bytes hashed after CRLF→LF); `config_identity` (the digest
+   of the header's `scenario` description); and `seal`. No git head, dirty
+   flag, clock or host enters the file: each would enter every seal and stop a
+   reviewer reproducing a reference at another commit; the results entry names
+   the commit of each reference. Engine and schema versions stay as they are,
+   because nothing in settlement or the state schema changes.
+
+2. **Inputs.** Each tick line carries `inputs`: the proposals submitted to
+   `Engine.tick` that tick, in submission order, each
+   `{"proposal_id", "actor", "order", "operation", "params"}`, and `[]` when
+   there are none. `params` is the canonical form when the submitted params
+   have one. Otherwise the entry carries `params_typed` instead, where every
+   value is a two-item list `[tag, payload]`: `int`, `str`, `none`, `bool`
+   (1 or 0), `float` (`float.hex`), `seq` (encoded items) and `map`
+   (`[encoded key, encoded value]` pairs sorted by the canonical bytes of the
+   encoded key). Either form decodes to a `Proposal` equal to the one
+   submitted, and the writer refuses anything else. Inputs link to outcomes by
+   `proposal_id`. `decisions` and `observations` are unchanged.
+
+3. **Seal.** `header_seal = digest(header without "seal")`. Each tick line
+   stores `seal = digest({"prev": prev, "tick": digest(tick payload without
+   "seal")})`, where `prev` is `header_seal` for the first tick and the
+   previous tick's seal after that. The end line adds `final_seal` (the last
+   tick's seal, or `header_seal` when there are no ticks) beside `ticks` and
+   `trail_digest`, and `ticks` must equal `horizon`. Timing lines stay outside
+   every seal and digest. The trail digest is kept and computed as now, over
+   the tick lines as written. Seals and inputs exist only in the stream: no
+   kernel canonical form or digest changes.
+
+4. **Reader.** `read_run` keeps every existing check, verifies v3.stream.3
+   seals, reports the first failing line, and exposes `last_sealed_tick`: the
+   tick number of the last tick line whose seal, and every seal before it,
+   verifies and which passed every other check on its line; -1 when the header
+   seal fails or no tick qualifies; `None` for v3.stream.1/2 files. Nothing
+   after a break counts as sealed.
+
+5. **Reconstruction.** Additive classmethods only: `Effect`, `Source`,
+   `Reservation` and `WorldState.from_canonical` in kernel/state.py and
+   `Overlay.from_canonical` in world/overlay.py. Each requires the exact
+   canonical key set, and the current `schema_version` for `WorldState`. Each
+   builds through the existing constructor, so the existing `__post_init__`
+   rails validate it, and satisfies
+   `from_canonical(x.canonical()).digest() == x.digest()`. No other kernel
+   change. `Scenario.from_describe` and `WorldConfig.from_describe` require
+   `describe()` of the result to equal the header description exactly, which
+   also refuses unknown names, versions and generators.
+
+6. **Replay.** Rebuild the configuration from the header and re-execute from
+   the header genesis. Scenario runs resubmit each tick's recorded inputs;
+   world runs recompute observations, decisions and inputs with the live code.
+   Compare every tick payload without `seal` byte for byte with the file, and
+   report the first divergent tick and top-level field or `replay:
+   identical`, together with whether the live code identity equals the
+   header's. Only complete, fully sealed files are replayed. `--twice` stays
+   and is not the ratification check. Commands:
+   `py -3 -B -m stream.run --replay FILE` for scenario runs and
+   `py -3 -B -m world.run --replay FILE` for world runs.
+
+7. **Recovery.** For a v3.stream.3 file that is cut or whose seal chain
+   breaks, keep the file's bytes through the last sealed tick line (header,
+   sealed ticks and the timing lines between them). Restore that tick's
+   committed state, or its produced state when the line records production,
+   with `WorldState.from_canonical`, and for world runs the overlay with
+   `Overlay.from_canonical`. Continue to `horizon` in a new file. Recovery
+   never reads past that line or uses an unsealed one. It refuses when the
+   header seal fails or the live code identity differs from the header's. The
+   scenario generator is not in the file, so recovery rebuilds it from the
+   header's `Scenario` and runs it through the sealed ticks, requiring its
+   output to equal each sealed tick's recorded inputs, before generating the
+   rest. Every content line of the result (header, tick and end lines, seals
+   included) must equal the uninterrupted run's; only timing lines may differ.
+   Provenance (source sha256, last sealed tick, resumed range) is printed by
+   the command and recorded in the results, not written into the file, so no
+   new line kind is added. Commands: `--recover FILE --out NEW` on the same
+   two runners.
+
+8. **Isolation.** Two engines restored from one sealed tick through
+   `WorldState.from_canonical` are private. Ticking one with proposals leaves
+   the other's state digest unchanged. Editing any dict or list from one's
+   `canonical()` changes neither. Their `balances`, `sources` and
+   `reservations` mappings are distinct objects. The restore-from-file helper
+   lives in stream/.
+
+9. **Ownership and compatibility.** kernel/ imports nothing from stream/ or
+   world/; stream/ imports nothing from world/; world replay and recovery live
+   in world/ and use stream/'s file functions. The dependency-direction test
+   is extended to check both. Nothing new imports automation/ or tests/.
+   `viewer/world_view.py` adds v3.stream.3 to its recognised formats and
+   nothing else, so sealed world runs still open in the OD-012 world view.
+
+10. **Runs.** Focused tests: the seal chain and tamper cases; inputs equal the
+    submitted proposals, including empty ticks and the boolean case;
+    `from_canonical` round trips over the 1a/1b fixture states and every tick
+    of a 200-tick scenario run, with malformed input refused; replay identical
+    for scenario runs at seeds 7, 11 and 23 over 120 ticks, and non-identical
+    at exactly the edited tick when one input or one recorded outcome is
+    altered; recovery on a truncated line, on a broken last seal, and on a cut
+    at the first tick at or after tick 40 with at least one live reservation;
+    isolation as in item 8. Optional world targets: replay identical at seeds
+    7, 11 and 23 over 120 ticks with yield on/off and scoring on/off, one
+    altered decision caught at its tick, and one world recovery. Frozen
+    references under evidence/stage-01/slice-1c/ with SHA256SUMS.txt: the
+    scenario, seed 7, 120 ticks (expected about 0.66 MB), and the default
+    world configuration, seed 7, 120 ticks (expected about 0.31 MB, optional
+    target). Their file sha256 and final seals go in the results.
+
+11. **Reference results.** The committed 1b fixture output
+    `evidence/stage-01/slice-1b/fixtures-stage1b.txt` is the before-capture:
+    its state and record digests are sha256 over kernel canonical bytes, and
+    `fixture_digests.py` reproduced it exactly at `6f50040` before this
+    declaration. After the slice, that output is unchanged and
+    `tests/fixtures/head-b305783-seed7-ticks80-decisions.json` still matches.
+    Nothing is regenerated.
+
+12. **Stop and halt.** The slice closes when items 1–11 hold and a results
+    entry below this declaration records: what was built; the references'
+    sha256 and final seals; replay results per seed; the recovery cut tick and
+    the live reservations at the cut; the reference results; and reproduction
+    commands for the independent reviewer. Halt and report if any step needs a
+    settlement or decision change, a kernel or schema version change, a new
+    lever, a change to a recorded fixture or reference digest, or a kernel
+    canonical-form change; if replay diverges for any reason other than a
+    defect in new 1c code; or if the suite fails for a reason outside this
+    slice.
+
+13. **Commits.** A: items 1–6 and 9 with their tests. B: items 7 and 8, the
+    frozen references and the results entry. Each commit: the whole suite
+    green in one invocation, an ASCII subject, the message from a file, local
+    only, no push.
+
+Changes from the 2026-09-23 build brief, decided here: no git fields in the
+file, because they would enter every seal; `params_typed` for params without a
+canonical form; recovery restores sealed content identical to the
+uninterrupted run instead of writing a `resumed_from` header; the scenario
+generator is rebuilt and checked on recovery; world replay and recovery live
+in world/, so stream/ still does not import world/; the viewer recognises the
+new format; sizes are measured estimates (about 0.66 MB and 0.31 MB), not
+"well under 300 KB"; world checks and the world reference are optional
+targets, because Stage 1 is kernel-only.
 
 ## Preceding card — exploration leg 6, revised 2026-09-22 before code (closed 2026-09-23 by OD-014)
 
@@ -331,7 +511,7 @@ Left for the owner: say push, or not.
 | Budget and attempt | At most 3 whole-world executions: seed 7, 300 ticks, scoring ON twice and OFF once, yield ON throughout. No tuning or additional seeds. Existing stage budgets are not renewed. |
 | Evidence and rollback | Append results below. Keep leg-5 files. Revert only OD-011 implementation and its snapshot changes; preserve this record. Leg 7 remains closed. |
 
-## Active card — Stage 1b, 2026-09-21
+## Preceding card — Stage 1b, 2026-09-21 (landed as 9d1542d; independently reviewed PASS 2026-09-21)
 
 | Field | Contents |
 |---|---|
