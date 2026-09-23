@@ -8,27 +8,30 @@ UNKNOWN.
 
 ```
 current_milestone: Stage 1, slice 1c
-milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane closed by OD-014 (checkpoint C owner-accepted 2026-09-23; OD-009 Revision 3 closed; sequencing authority with ROADMAP.md); ratification lane open at slice 1c (OD-013, 2026-09-23); obtain and eat remain separate actions; no same-tick obtain/eat; exploration leg 7 not opened; slices 1a and 1b independently reviewed PASS (2026-09-21)
-authoritative_head: 54000569a4f031205768c0498417367ffd392b10
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane closed by OD-014 (checkpoint C owner-accepted 2026-09-23; OD-009 Revision 3 closed; sequencing authority with ROADMAP.md); ratification lane open at slice 1c (OD-013, 2026-09-23), bounded by the ROADMAP 1c proof object (OD-015, 2026-09-23); obtain and eat remain separate actions; no same-tick obtain/eat; exploration leg 7 not opened; slices 1a and 1b independently reviewed PASS (2026-09-21)
+authoritative_head: 4b8bb846c3803942dbbc8d2c47e07cbcca5e1893
 last_accepted_gate: none
 last_accepted_evidence: none
-current_hypothesis: Scoring existing actions from bounded tick-start views permits GO to beat eligible YIELD before emergency; personal scores do not rank food claims. Equal hunger/crowd increments are authored assumptions. Fixed seed-7 observation: 5 GO-over-YIELD choices; repeat ON canonical bytes equal excluding timing; OFF exactly matches leg 5.
+current_hypothesis: none under test. The exploration question is closed (OD-014); the leg-6 hypothesis and its seed-7 observation stay recorded in RECORD.md as exploration, not evidence. Slice 1c's claim is stated in its pre-implementation declaration before code.
 proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
-not_proven: Stage 1 exit; sealed evidence and replay (ratification-lane 1c); recovery through the last verified sealed tick; instance isolation; 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; browser layout quality of the world view; memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
-parked: slice 1d and the Stage 1 exit until the 1c record exists; orchestrator Phase 4 branches; six-person starter world as confirmation; Stages 2-6 are later roadmap stages and are not opened by OD-014
-blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Claim-then-eat latency resolved by OD-013 and grounded by OD-014 (2026-09-23): obtain and eat stay separate actions; no same-tick obtain/eat; owner design decision, not experimental proof; no kernel or world change. Checkpoint C accepted by OD-014 as closing the exploration question; exploration leg 7 is not opened. Whole-world leg-6 budget exhausted (3/3). Slice 1c implementation is not started: the evidence schema must be declared before a writer, and ROADMAP recovery and instance isolation are not settled inside or outside OD-013's sealed-stream-and-replay scope. Stage 1 exit review requires an independent reviewer; none requested yet.
-next_gate: slice 1c ratification: sealed evidence stream and replay, then slice 1d capacity envelope; Stage 1 exit review requested from an independent reviewer once the 1c and 1d records are complete. Claim-then-eat latency retained per OD-013 and OD-014; exploration leg 7 not opened; no acceptance inferred. First unmet work is the slice 1c pre-implementation declaration.
+not_proven: Stage 1 exit; slice 1c (sealed evidence, replay, recovery through the last verified sealed tick, instance isolation; ROADMAP proof object per OD-015); 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; browser layout quality and owner acceptance of the OD-012 world view (checkpoint C acceptance is not viewer acceptance); memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
+parked: slice 1d and the Stage 1 exit until the 1c record exists; orchestrator Phase 4 branches; six-person starter world as confirmation; Stages 2-6 are later roadmap stages and are not opened by OD-014 or OD-015; the source-at-cap question (OD-014 owner-supplied basis) waits for a later exploration direction
+blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Claim-then-eat latency resolved by OD-013 and grounded by OD-014 (2026-09-23): obtain and eat stay separate actions; no same-tick obtain/eat; owner design decision, not experimental proof; no kernel or world change. Checkpoint C accepted by OD-014 as closing the exploration question; exploration leg 7 is not opened. Whole-world leg-6 budget exhausted (3/3). Slice 1c boundary settled by OD-015 (ROADMAP proof object: sealed evidence, replay, recovery, private instance isolation). Slice 1c implementation is not started: the evidence schema must be declared before a writer. Stage 1 exit review requires an independent reviewer; none requested yet.
+next_gate: slice 1c ratification: sealed evidence stream and replay, with recovery through the last verified sealed tick and private instance isolation (ROADMAP proof object, OD-015); then slice 1d capacity envelope; Stage 1 exit review requested from an independent reviewer once the 1c and 1d records are complete. Claim-then-eat latency retained per OD-013 and OD-014; exploration leg 7 not opened; no acceptance inferred. First unmet work is the slice 1c pre-implementation declaration.
 authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
-last_updated: 2026-09-23 (OD-014)
+last_updated: 2026-09-23 (OD-015)
 ```
 
 ## Basis (snapshot only)
 
-Sources read for this snapshot: `ROADMAP.md`, `AGENTS.md` (through OD-014),
-`DOCTRINE.md`, `evidence/stage-01/RECORD.md`, `kernel/version.py`,
-`kernel/settlement.py`, `world/decide.py`, `stream/run_file.py`, and the git
-history of `codex/kernel-first-slice`. Checkpoint runs remain exploration, not
-evidence.
+Sources read for this snapshot: `ROADMAP.md` (banner, Stage 1, stage-card
+template), `AGENTS.md` (authority sections; OD-009 through OD-015),
+`DOCTRINE.md`, `evidence/stage-01/RECORD.md` (top card and the OD-013 and
+OD-014 entries), `kernel/version.py`, and the git history of
+`codex/kernel-first-slice` at `4b8bb84`. Bullets carried from the OD-014
+snapshot rest on the sources it read (`kernel/settlement.py`,
+`world/decide.py`, `stream/run_file.py`); `4b8bb84` changes no kernel, world or
+stream file. Checkpoint runs remain exploration, not evidence.
 
 - **Milestone line.** `current_milestone` is `Stage 1, slice 1c`, the slice
   ROADMAP.md's banner names. Earlier snapshots carried `Stage 1, slice 1a`
@@ -41,12 +44,15 @@ evidence.
   `stage_card_review_status_stale`) are informational.
 - **Milestone.** OD-014 accepts checkpoint C and closes OD-009 Revision 3.
   Sequencing authority returns to `ROADMAP.md`. The ratification lane opened
-  by OD-013 remains slice 1c (sealed evidence stream and replay), then 1d,
-  then an independent Stage 1 exit review. Exploration leg 7 is not opened.
-  OD-014 is an owner design decision. It does not accept the Stage 1 exit.
-- **HEAD.** `5400056` records OD-013 and is the commit this reconciliation
-  sits on; the commit recording OD-014 cannot contain its own hash. Kernel `0.2.0-stage1b`, schema `v3.kernel.1b.1`,
-  unchanged at `9d1542d`. No simulation source is changed by OD-014.
+  by OD-013 is slice 1c, then 1d, then an independent Stage 1 exit review.
+  OD-015 (owner, 2026-09-23: "folow roadmap") bounds slice 1c by the ROADMAP
+  proof object: sealed evidence, replay, recovery, and private instance
+  isolation. Exploration leg 7 is not opened. OD-014 and OD-015 are owner
+  decisions. Neither accepts the Stage 1 exit.
+- **HEAD.** `4b8bb84` records OD-014 and is the commit this entry sits on;
+  the commit recording OD-015 cannot contain its own hash. Kernel
+  `0.2.0-stage1b`, schema `v3.kernel.1b.1`, unchanged since `9d1542d`. No
+  simulation source is changed by OD-015.
 - **Reviews, not gates.** Slice 1a at `fb5a8959` and slice 1b (landed as
   `9d1542d`) each received an independent different-model PASS on their
   kernel claims (2026-09-21). No stage exit review exists;
@@ -58,16 +64,24 @@ evidence.
   claims. No survival or fairness benefit is established. Checkpoint C was
   owner-inspected in the OD-012 world view (tick 135 OFF, tick 300 ON);
   carried forward as an input: in the ON run the source sits at its cap
-  while people are hungry and away from it, so renewal is discarded.
+  while people are hungry and away from it, so renewal is discarded. The
+  leg-6 card at the top of `RECORD.md` is retitled as a closed preceding
+  card (rows unchanged), and `current_hypothesis` no longer carries its
+  hypothesis.
 - **Latency.** Obtain and eat stay separate (OD-013, rationale in OD-014).
   A credit settled in a tick is spendable at the next tick start
   (`kernel/settlement.py`). Eat is eligible from food already held at tick
   start (`world/decide.py`). The deaths at the source holding newly claimed
   units remain a recorded consequence of that rule.
 - **Slice 1c not started.** The exploration stream (`v3.stream.2`) is not the
-  ROADMAP seal. The schema must be declared before a writer. ROADMAP also
-  requires recovery and instance isolation; OD-013's sentence names sealed
-  stream and replay. That boundary is not chosen here.
+  ROADMAP seal. The schema must be declared before a writer. OD-015 settles
+  the boundary OD-013's sentence left open: recovery and instance isolation
+  are inside 1c.
+- **Owner decision draft, 2026-09-23.** Written against `df99524`; its
+  decisions are OD-013 and OD-014 and are not entered again. Its tentative
+  slice list placing isolation in 1d is superseded by OD-015; its note that
+  checkpoint C acceptance is not viewer acceptance is carried in
+  `not_proven`.
 - **Tooling.** Local `run_gate` receipts are gitignored and are not evidence.
   The orchestrator does not decide acceptance.
 

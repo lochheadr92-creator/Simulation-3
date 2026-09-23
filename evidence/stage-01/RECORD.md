@@ -1,16 +1,22 @@
 # Stage 1 record — kernel only
 
-## Status after OD-014 — 2026-09-23
+## Status after OD-015 — 2026-09-23
 
-Owner direction OD-014 accepts checkpoint C and closes OD-009 Revision 3.
-Obtain and eat remain separate actions (OD-013; the owner's rationale is
-OD-014). No same-tick obtain-and-eat. No exploration leg 7. No kernel or
-world change. Stage 1 exit unclaimed. The leg-6 card below is the historical
-pre-acceptance card and is not amended. The first unmet ratification
-requirement, and why it is not executed in this sitting, is recorded under
-"OD-014 recorded".
+Owner direction OD-015 sets slice 1c's boundary to the ROADMAP.md proof
+object: sealed evidence, replay, recovery, and private instance isolation.
+OD-013 and OD-014 stand: obtain and eat remain separate actions, no same-tick
+obtain-and-eat, no exploration leg 7, and checkpoint C is owner-accepted as
+closing the exploration question. The exploration leg-6 card below is
+therefore a closed preceding card; its rows are unchanged. The slice 1c card
+is written with its pre-implementation declaration before any 1c code. No
+kernel, world or stream change. Stage 1 exit unclaimed.
 
-## Active card — exploration leg 6, revised 2026-09-22 before code
+## Preceding card — exploration leg 6, revised 2026-09-22 before code (closed 2026-09-23 by OD-014)
+
+Closed 2026-09-23: checkpoint C owner-accepted (OD-014); claim-then-eat
+latency decided (OD-013, rationale in OD-014). The rows below are preserved as
+delivered. Their "no owner acceptance" and "immediate follow-up" wording
+describes the card before that closure.
 
 | Field | Contents |
 |---|---|
@@ -1432,3 +1438,37 @@ names 1d as the 50-actor cost envelope. Recovery and instance isolation are
 in the ROADMAP 1c proof object and are not named in that OD-013 sentence.
 This entry does not choose that boundary and does not specify the schema.
 Nothing of slice 1c is implemented or run here. Stage 1 exit remains unclaimed.
+
+### OD-015 recorded — slice 1c boundary follows ROADMAP; exploration card closed — 2026-09-23
+
+Owner direction OD-015 (AGENTS.md; the owner's words: "folow roadmap")
+settles the boundary the entry above left unchosen. Slice 1c is the
+ROADMAP.md proof object as written: sealed evidence, replay, recovery through
+the last verified sealed tick (including resume with pending reservations),
+and isolation of two instances restored from the same state, specified by
+ROADMAP.md "Evidence and foundation checks". OD-013's phrase "sealed evidence
+stream and replay" names the slice and does not narrow it; the slice 1c card
+opened under OD-013 is read with this scope. Slice 1d is unchanged.
+
+The owner's decision draft supplied the same day, written against
+`df99524`, was reconciled against the repository rather than entered again.
+Its decisions (separate claim/obtain and eat; no same-tick revision;
+checkpoint C owner-accepted; no exploration leg 7; no scope expansion; owner
+design authority, not experimental proof) are those recorded as OD-013 and
+OD-014. Two points are handled here. Its statement that accepting checkpoint
+C is not accepting the viewer is carried into SIM3_STATE.md `not_proven`. Its
+tentative slice list, which placed instance isolation in 1d, conflicted with
+ROADMAP.md and is superseded by OD-015.
+
+Exploration closure in this record: the leg-6 card at the top is retitled as
+a closed preceding card with a short closure note; its rows, the leg-6
+declaration and the leg-6 results are unchanged. The top status block now
+reads "Status after OD-015"; the OD-014 status it replaces is kept in the
+entry above. SIM3_STATE.md `current_hypothesis` no longer carries the leg-6
+hypothesis, which stays recorded under that card as exploration, not
+evidence.
+
+First unmet ratification requirement: the slice 1c pre-implementation
+declaration (evidence schema before its writer), written as the active card
+before any 1c code. No kernel, world, stream, viewer or tooling change is made
+by this entry. Stage 1 exit remains unclaimed.

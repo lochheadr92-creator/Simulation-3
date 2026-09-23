@@ -857,3 +857,40 @@ the true milestone without the orchestrator refusing every action.
 (OD-013), with `ROADMAP.md`'s banner, `SIM3_STATE.md` and
 `evidence/stage-01/RECORD.md` reconciled in the same commit. The recording
 commit's hash cannot appear inside this entry.
+
+### OD-015 - 2026-09-23 - Slice 1c boundary: the ROADMAP proof object
+
+**Exact owner direction.** "folow roadmap". Recorded from the owner's message
+of 2026-09-23, answering which boundary slice 1c has. The options put to the
+owner were: ROADMAP.md as written; OD-013's sentence only (sealed stream and
+replay, with recovery and isolation as a separate later step); or isolation
+moved into slice 1d, as listed "subject to verification against current
+authority" in a decision draft the owner supplied the same day. That draft's
+other decisions are those already recorded as OD-013 and OD-014 and are not
+entered again. The slice 1c build brief of 2026-09-23 had stated the same
+boundary as an owner decision outside this register; this entry records it.
+
+**Scope.** Slice 1c is the ROADMAP.md proof object as written: sealed evidence,
+replay, recovery, and private instance isolation, specified by ROADMAP.md
+"Evidence and foundation checks". That covers the evidence schema declared
+before its writer; a complete-tick seal tied to code, configuration and schema
+identities; replay from genesis and declared inputs, checked against the
+sealed file; recovery through the last verified sealed tick, with resume from
+pending reservations agreeing with uninterrupted execution; isolation of two
+instances restored from the same state; and dependency-direction checks with
+the reference suite. OD-013's phrase "sealed evidence stream and replay" names
+the opened slice and does not narrow it. Slice 1d remains the declared
+50-actor cost envelope against the frozen 1a–1c reference suite. ROADMAP.md is
+not amended. This entry does not open slice 1d, request the Stage 1 exit
+review, or claim the Stage 1 exit.
+
+**Reason.** OD-014 returned sequencing authority to ROADMAP.md, and its 1d row
+measures against a frozen 1a–1c suite, so recovery and isolation are settled
+before 1d. SIM3_STATE.md and the "OD-014 recorded" stage-record entry recorded
+this boundary as unchosen; the owner has chosen it.
+
+**Linked revision.** Recorded on `codex/kernel-first-slice` after `4b8bb84`
+(OD-014), with SIM3_STATE.md and evidence/stage-01/RECORD.md reconciled in the
+same commit, including the retitling of the exploration leg-6 card as a closed
+preceding card. The recording commit's hash cannot appear inside this entry
+and is reported after the commit.
