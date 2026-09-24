@@ -16,7 +16,7 @@ import pytest
 
 from kernel import Source, WorldState, canonical_bytes
 from stream.run_file import apply_production, read_run
-from world.config import DISTANCE_METRIC, FOOD_SOURCE, PERCEPTION_BOUNDARY, WorldConfig
+from world.config import DISTANCE_METRIC, FOOD_SOURCE, PERCEPTION_BOUNDARY, SHORT_RANGE_LEVERS, WorldConfig
 from world.decide import CLAIM, GO, candidates, decide
 from world.observe import Observation, chebyshev, in_view, observe
 from world.overlay import Overlay
@@ -131,7 +131,8 @@ def test_source_stock_absent_out_of_view_and_equal_when_in_view():
 def test_unrestricted_radius_decisions_match_head_b305783(tmp_path: Path):
     fixture = json.loads(HEAD_FIXTURE.read_text(encoding="utf-8"))
     assert fixture["head"].startswith("b305783")
-    cfg = WorldConfig(seed=fixture["seed"], perception_radius=12, yield_on=False)
+    # the fixture was captured under the pre-2026-09-25 defaults
+    cfg = WorldConfig(seed=fixture["seed"], perception_radius=12, yield_on=False, **SHORT_RANGE_LEVERS)
     run_world(cfg, fixture["ticks"], tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     got = [tick["decisions"] for tick in run.ticks]

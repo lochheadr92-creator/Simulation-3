@@ -12,7 +12,7 @@ import pytest
 
 from kernel import Engine, Source, WorldState, canonical_bytes, claim
 from stream.run_file import read_run
-from world.config import FOOD_SOURCE, WorldConfig
+from world.config import FOOD_SOURCE, SHORT_RANGE_LEVERS, WorldConfig
 from world.decide import action_score, candidates, crowd_on_source, decide
 from world.observe import Observation, SeenPerson, observe
 from world.overlay import Overlay
@@ -22,7 +22,8 @@ from world.viewer import render_html, render_text
 
 
 def config(**changes):
-    return replace(WorldConfig(seed=7, width=7, height=7, actors=4, scoring_on=True), **changes)
+    # leg-6 (checkpoint C) tests are calibrated to the pre-2026-09-25 defaults
+    return replace(WorldConfig(seed=7, width=7, height=7, actors=4, scoring_on=True, **SHORT_RANGE_LEVERS), **changes)
 
 
 def observation(**changes):

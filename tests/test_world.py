@@ -82,7 +82,8 @@ def test_selection_rule_follows_the_declared_priority():
     assert d.kind == WAIT and d.reason.startswith("emergency")
     d = decide(obs(hunger=cfg.hungry_at, food=0, position=(0, 0)), cfg)
     assert d.kind == GO and d.step == (1, 0)
-    d = decide(obs(hunger=cfg.hungry_at - 1, food=0, position=(1, 0), home=(0, 0)), cfg)
+    # carrying food, so not due to leave for the source yet (tests/test_range.py covers leaving in time)
+    d = decide(obs(hunger=cfg.hungry_at - 1, food=1, position=(1, 0), home=(0, 0)), cfg)
     assert d.kind == HOME and d.step == (0, 0)
     d = decide(obs(hunger=0, food=0), cfg)
     assert d.kind == REST and d.step is None

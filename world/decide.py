@@ -12,7 +12,10 @@ Priority, highest first:
   wait   hungry, standing on the source, source empty (stay; hunger continues)
   yield  hungry, not emergency, off the source, source in view, crowd on the
          source >= yield_at and observed stock < crowd (stay; hunger continues)
-  go     hungry, elsewhere: one step toward the source
+  go     hungry, elsewhere: one step toward the source; or (trips on) holding
+         no food, elsewhere, and hunger + hunger_rate * steps to the source
+         >= hungry_at, so a person far from food leaves in time to arrive as
+         hunger reaches hungry_at (once due, it stays due on the way)
   home   not hungry, away from home: one step toward home
   rest   not hungry, at home
 A dead person has no candidates and decides nothing.
@@ -74,6 +77,19 @@ def step_toward(origin: Position, target: Position) -> Position:
     return (origin[0], origin[1] + (1 if dy > 0 else -1))
 
 
+def steps_to_source(observation: Observation) -> int:
+    """Moves to the source cell: movement is one four-neighbour step per tick."""
+    return abs(observation.source[0] - observation.position[0]) + abs(observation.source[1] - observation.position[1])
+
+
+def trip_due(observation: Observation, config: WorldConfig) -> bool:
+    """Holding no food and far enough that leaving now arrives as hunger reaches
+    hungry_at. Each step adds hunger_rate and removes one step, so once due it
+    stays due until the person arrives."""
+    return (config.plan_trips and observation.food == 0 and not observation.at_source
+            and observation.hunger + config.hunger_rate * steps_to_source(observation) >= config.hungry_at)
+
+
 def crowd_on_source(observation: Observation) -> int:
     """Living others this person can see who are standing on the source cell."""
     return sum(1 for seen in observation.others if seen.position == observation.source)
@@ -106,7 +122,10 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             found.append(YIELD)
         found.append(GO)
     if not hungry:
-        found.append(REST if observation.at_home else HOME)
+        if trip_due(observation, config):
+            found.append(GO)
+        else:
+            found.append(REST if observation.at_home else HOME)
     return tuple(found)
 
 
@@ -163,7 +182,10 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
             options, scores=scores,
         )
     if selected == GO:
-        return Decision(actor, GO, f"{urgency}, walking to source", options,
+        reason = (f"{urgency}, walking to source" if observation.hunger >= config.hungry_at
+                  else f"fed, leaving in time: hunger {observation.hunger}, "
+                       f"{steps_to_source(observation)} steps to source, no food held")
+        return Decision(actor, GO, reason, options,
                         step=step_toward(observation.position, observation.source), scores=scores)
     if selected == HOME:
         return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)

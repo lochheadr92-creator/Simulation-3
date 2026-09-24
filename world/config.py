@@ -29,6 +29,13 @@ FOOD_SOURCE = "food"
 DISTANCE_METRIC = "chebyshev"
 PERCEPTION_BOUNDARY = "distance <= radius"
 DEFAULT_YIELD_SET = (1, 2, 3)
+
+# The defaults before 2026-09-25: an 11-tick window from hungry (5) to dead (16)
+# that kept people within about 8 steps of food, claims of 2, and no early
+# departure. Kept so earlier checkpoint results and fixtures can be reproduced:
+# WorldConfig(seed=..., **SHORT_RANGE_LEVERS).
+SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
+                      "renewal_every": 3, "claim_amount": 2, "plan_trips": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -43,18 +50,19 @@ class WorldConfig:
     starting_food: int = 1        # units each person holds at genesis
     source_stock: int = 4         # units in the source at genesis
     source_cap: int = 8           # renewal never lifts stock above this
-    renewal_every: int = 3        # ticks between renewals
+    renewal_every: int = 15       # ticks between renewals
     renewal_amount: int = 2       # units added per renewal, capped
-    claim_amount: int = 2         # most units one claim asks for
+    claim_amount: int = 3         # most units one claim takes: the pack carried away
     hunger_rate: int = 1          # hunger added per tick while alive
-    satiation: int = 6            # hunger removed per unit eaten
-    hungry_at: int = 5            # hunger at which a person seeks food
-    emergency_at: int = 10        # hunger at which the state is an emergency
-    death_at: int = 16            # hunger at which a person dies
+    satiation: int = 30           # hunger removed per unit eaten
+    hungry_at: int = 25           # hunger at which a person seeks food
+    emergency_at: int = 50        # hunger at which the state is an emergency
+    death_at: int = 80            # hunger at which a person dies
     perception_radius: int = 3    # Chebyshev cells; self is always in view
     yield_set: tuple[int, ...] = DEFAULT_YIELD_SET
     yield_on: bool = True         # False assigns yield_at = actors + 1 so the rule never fires
     scoring_on: bool = False      # opt in; OFF preserves the leg-5 selector and decision shape
+    plan_trips: bool = True       # holding no food, leave for the source in time to arrive as hunger reaches hungry_at
 
     def __post_init__(self) -> None:
         checks = {
@@ -89,7 +97,7 @@ class WorldConfig:
         return tuple(f"p{index:02d}" for index in range(1, self.actors + 1))
 
     def describe(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "name": self.name,
             "genesis_generator": GENESIS_GENERATOR,
             "seed": self.seed,
@@ -135,6 +143,15 @@ class WorldConfig:
                 "walk to the source if hungry; else walk home"
             ),
         }
+        if self.plan_trips:
+            # Written only when on, so a header from before this rule existed
+            # (which never carried it) still round-trips, as trips off.
+            out["trips"] = "on"
+            out["decision"] = out["decision"].replace(
+                "walk to the source if hungry; else walk home",
+                "walk to the source if hungry, or when holding no food and hunger + hunger_rate * steps to the "
+                "source reaches hungry_at (leave in time); else walk home")
+        return out
 
     @classmethod
     def from_describe(cls, described: Mapping[str, Any]) -> "WorldConfig":
@@ -163,8 +180,11 @@ class WorldConfig:
         if any(not isinstance(described.get(name), str) or described.get(name) not in switches
                for name in ("yield", "scoring")):
             raise ValueError("yield and scoring must each be 'on' or 'off'")
+        trips = described.get("trips", "off")
+        if not isinstance(trips, str) or trips not in switches:
+            raise ValueError("trips must be 'on' or 'off'")
         config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
-                     scoring_on=switches[described["scoring"]])
+                     scoring_on=switches[described["scoring"]], plan_trips=switches[trips])
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config

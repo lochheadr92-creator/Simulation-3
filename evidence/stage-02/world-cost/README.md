@@ -31,6 +31,9 @@ Limits: one machine and one workload, crowded near worst case for perception
 (most people are in view of most others). Observation size still grows with
 the square of the population, now at about 7 bytes per pair.
 
+These results were measured at `986a276`, under the short-range defaults
+later replaced by the range fix; `world.bench` now runs the new defaults.
+
 Raw results: `results/` (one JSON per run, plus `verification.json`). The run
 files are not committed; rerun with
 `py -3 -B -m world.bench --ticks 10000 --out FILE --result FILE.json`.

@@ -155,6 +155,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", default=None, help="Run file path. Default: runs/<run_id>.jsonl")
     parser.add_argument("--scoring", choices=("on", "off"), default="off",
                         help="score eligible personal actions (opt in); food allocation is unchanged")
+    parser.add_argument("--trips", choices=("on", "off"), default="on",
+                        help="leave for the source in time when holding no food (default on)")
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
     parser.add_argument("--html", action="store_true", help="Render the map viewer next to the run file.")
     parser.add_argument("--replay", default=None, metavar="FILE",
@@ -198,6 +200,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers: dict[str, Any] = {lever: getattr(args, lever) for lever in LEVERS if getattr(args, lever) is not None}
     levers["yield_on"] = args.yield_mode == "on"
     levers["scoring_on"] = args.scoring == "on"
+    levers["plan_trips"] = args.trips == "on"
     return WorldConfig(seed=args.seed, **levers)
 
 

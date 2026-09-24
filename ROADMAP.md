@@ -20,6 +20,12 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   crowd-yield trait, scored actions and a world viewer.
 - The 50-person world cost check passed on 2026-09-25, against the same
   targets as 1d (`evidence/stage-02/world-cost/`).
+- Range fix (2026-09-25): people starved beyond about 8 steps from food. The
+  survival window is now five times longer (hungry at 25, dead at 80, a unit
+  feeds 30, renewal every 15 ticks so food per person is unchanged), a claim
+  takes a pack of up to 3, and a person holding no food leaves in time to
+  arrive as they get hungry. The old settings are `SHORT_RANGE_LEVERS` in
+  `world/config.py`.
 
 ## 1. Kernel
 

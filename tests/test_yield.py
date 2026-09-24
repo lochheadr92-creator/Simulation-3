@@ -15,7 +15,7 @@ import pytest
 
 from kernel import canonical_bytes
 from stream.run_file import read_run
-from world.config import DEFAULT_YIELD_SET, FOOD_SOURCE, WorldConfig, genesis, homes_for, yield_at_for
+from world.config import DEFAULT_YIELD_SET, FOOD_SOURCE, SHORT_RANGE_LEVERS, WorldConfig, genesis, homes_for, yield_at_for
 from world.decide import GO, WAIT, YIELD, candidates, crowd_on_source, decide, yield_eligible
 from world.observe import Observation, SeenPerson
 from world.run import run_world
@@ -101,7 +101,7 @@ def test_emergency_never_yields():
 
 def test_off_decisions_match_head_b305783(tmp_path: Path):
     fixture = json.loads(HEAD_FIXTURE.read_text(encoding="utf-8"))
-    cfg = WorldConfig(seed=fixture["seed"], yield_on=False)
+    cfg = WorldConfig(seed=fixture["seed"], yield_on=False, **SHORT_RANGE_LEVERS)   # fixture's defaults
     run_world(cfg, fixture["ticks"], tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     got = [tick["decisions"] for tick in run.ticks]
@@ -116,7 +116,7 @@ def test_off_decisions_match_head_b305783(tmp_path: Path):
 
 
 def test_recorded_yields_match_the_rule_and_dead_are_not_counted(tmp_path: Path):
-    cfg = WorldConfig(seed=7, yield_on=True)
+    cfg = WorldConfig(seed=7, yield_on=True, **SHORT_RANGE_LEVERS)   # leg-5 calibration: crowds within 80 ticks
     run_world(cfg, 80, tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     source = tuple(run.header["scenario"]["source_position"])
