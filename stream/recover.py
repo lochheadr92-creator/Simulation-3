@@ -76,6 +76,8 @@ def sealed_prefix(path: Path) -> SealedPrefix:
                             "code), so continuing it here would not continue the same run")
     raw = path.read_bytes()
     lines = raw.splitlines(keepends=True)
+    if not lines or json.loads(lines[0]) != run.header:
+        raise RecoveryError(f"{path}: the first line is not the header the reader verified")
     wanted = run.last_sealed_tick - run.header["genesis"]["tick"] + 1
     kept = [lines[0]]
     ticks: list[dict[str, Any]] = []

@@ -500,6 +500,10 @@ def read_run(path: Path) -> Run:
                 except json.JSONDecodeError as exc:
                     problems.append(f"line {number}: not JSON ({exc.msg})")
                     continue
+                except (ValueError, RecursionError):
+                    # e.g. bytes that are not UTF-8: a damaged line, not a reader crash
+                    problems.append(f"line {number}: not readable JSON")
+                    continue
                 if not isinstance(payload, dict) or "kind" not in payload:
                     problems.append(f"line {number}: not an event")
                     continue
@@ -507,9 +511,12 @@ def read_run(path: Path) -> Run:
                     problems.append(f"line {number}: event after end")
                 kind = payload["kind"]
                 if kind == "header":
-                    first_header = header is None
-                    if not first_header:
+                    if header is not None:
+                        # Only the first header governs the file. A later one is
+                        # untrusted content and never replaces it.
                         problems.append(f"line {number}: second header")
+                        continue
+                    first_header = True
                     header = payload
                     if payload.get("format") not in READABLE_FORMATS:
                         problems.append(f"line {number}: unsupported format {payload.get('format')!r}")
@@ -531,7 +538,10 @@ def read_run(path: Path) -> Run:
                         problems.append(f"line {number}: record digest does not match content")
                     if digest(payload.get("state")) != payload.get("state_digest"):
                         problems.append(f"line {number}: state digest does not match content")
-                    record = payload.get("record") or {}
+                    record = payload.get("record")
+                    if not isinstance(record, dict):
+                        problems.append(f"line {number}: record is not an object")
+                        record = {}
                     if record.get("next_state_digest") != payload.get("state_digest"):
                         problems.append(f"line {number}: record and state disagree")
                     if expected_tick is not None and payload.get("tick") != expected_tick:
@@ -563,11 +573,16 @@ def read_run(path: Path) -> Run:
                         seal = payload.get("seal")
                     trail.update(raw)
                     ticks.append(payload)
-                    expected_tick = int(payload.get("tick", -1)) + 1
+                    tick_number = payload.get("tick")
+                    expected_tick = tick_number + 1 if type(tick_number) is int else None
                     if sealed and intact and len(problems) == before:
                         last_sealed = payload.get("tick")
                 elif kind == "timing":
-                    timings[int(payload.get("tick", -1))] = int(payload.get("elapsed_ns", 0))
+                    tick_number, elapsed = payload.get("tick", -1), payload.get("elapsed_ns", 0)
+                    if type(tick_number) is int and type(elapsed) is int:
+                        timings[tick_number] = elapsed
+                    else:
+                        problems.append(f"line {number}: timing line is not two integers")
                 elif kind == "end":
                     end = payload
                     if payload.get("ticks") != len(ticks):
@@ -582,6 +597,10 @@ def read_run(path: Path) -> Run:
                                             f"horizon is {header.get('horizon')}")
                 else:
                     problems.append(f"line {number}: unknown event kind {kind!r}")
+            except Exception as exc:
+                # A damaged line must never crash the reader: it is a break, and
+                # the verified prefix before it stays recoverable.
+                problems.append(f"line {number}: unreadable ({type(exc).__name__})")
             finally:
                 if len(problems) > before:
                     intact = False

@@ -9,9 +9,11 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
 
 - Stage 1 kernel: 1a (contention) and 1b (reservations) are built and passed
   independent review. 1c (sealed run files, replay, recovery, isolated
-  instances) is built; its review found two recovery bugs to fix, F1 and F2 in
-  `evidence/stage-01/review-2026-09-23-slice-1c/REVIEW.md`. 1d (the 50-actor
-  cost check) is not started.
+  instances) is built. Its review's two recovery bugs, F1 and F2 in
+  `evidence/stage-01/review-2026-09-23-slice-1c/REVIEW.md`, were fixed on
+  2026-09-25 (`tests/test_damaged_suffix.py`); F3 (a seal-chain test gap) and
+  F4 (an untested byte boundary) remain open. 1d (the 50-actor cost check) is
+  not started.
 - Ahead of Stage 2 proper, an exploratory world already runs on the kernel:
   movement, a renewable food source, hunger and death, a perception radius, a
   crowd-yield trait, scored actions and a world viewer.
