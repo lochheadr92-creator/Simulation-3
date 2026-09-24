@@ -22,6 +22,7 @@ is optional. The old governance is in `archive/governance/`.
     py -3 -B -m pytest -q -p no:cacheprovider
     py -3 -B -m world.run --seed 7 --ticks 300 --twice --html
     py -3 -B -m stream.run --replay FILE
+    py -3 -B -m stream.bench --ticks 10000 --out FILE   # slice 1d cost check
 
 ## Rules
 

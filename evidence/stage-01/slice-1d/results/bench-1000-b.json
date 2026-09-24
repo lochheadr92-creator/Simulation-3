@@ -1,0 +1,46 @@
+{
+  "workload": {
+    "name": "kernel-bench",
+    "version": "v3.bench.kernel.1",
+    "seed": 1,
+    "actors": 50,
+    "plenty": 1000000000,
+    "scarce": 40,
+    "starting_balance": 5
+  },
+  "ticks": 1000,
+  "trail_digest": "bffe319b4f9affbbaef98cacaaaea9a364bb6c2fb8a4269972778d054179def8",
+  "final_state_digest": "bfd4b09bb069e3ce592ad41067db95b2e646ed6d79e501bfbe13cc2472610988",
+  "tick_ms_mean": 2.9631416,
+  "tick_ms_p95": 3.6474,
+  "tick_ms_max": 11.5761,
+  "settle_ms_mean": 0.6503848000000001,
+  "generate_ms_mean": 0.1352013,
+  "final_flush_ms": 9.3623,
+  "proposals_per_tick": 45.569,
+  "live_holds_max": 21,
+  "live_holds_at_end": 15,
+  "evidence_bytes": 23179581,
+  "evidence_kib_per_tick": 22.6363095703125,
+  "evidence_gib_per_10000_ticks": 0.21587667055428025,
+  "peak_memory_mib": 21.94140625,
+  "memory_at_tick_1000_mib": 21.76953125,
+  "memory_at_end_mib": 21.796875,
+  "memory_growth_mib": null,
+  "machine": {
+    "node": "TheWeapon",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 198 Stepping 2, GenuineIntel",
+    "cpu_count": 24,
+    "python": "3.12.10",
+    "implementation": "CPython"
+  },
+  "within_targets": {
+    "mean_tick_ms": true,
+    "p95_tick_ms": true,
+    "peak_memory_mib": true,
+    "evidence_kib_per_tick": true,
+    "evidence_gib_per_10000_ticks": true,
+    "memory_growth_mib": null
+  }
+}

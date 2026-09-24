@@ -13,7 +13,8 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   `evidence/stage-01/review-2026-09-23-slice-1c/REVIEW.md`, were fixed on
   2026-09-25 (`tests/test_damaged_suffix.py`), and its test gaps F3 and F4
   are closed (`tests/test_seal_and_prefix.py`). 1d (the 50-actor cost check) is
-  not started.
+  done: every target met with wide margins (`evidence/stage-01/slice-1d/`).
+  All four kernel slices are built; Stage 2 (a viable world) is next.
 - Ahead of Stage 2 proper, an exploratory world already runs on the kernel:
   movement, a renewable food source, hunger and death, a perception radius, a
   crowd-yield trait, scored actions and a world viewer.
