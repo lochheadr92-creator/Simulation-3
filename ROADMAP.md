@@ -18,6 +18,8 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
 - Ahead of Stage 2 proper, an exploratory world already runs on the kernel:
   movement, a renewable food source, hunger and death, a perception radius, a
   crowd-yield trait, scored actions and a world viewer.
+- The 50-person world cost check passed on 2026-09-25, against the same
+  targets as 1d (`evidence/stage-02/world-cost/`).
 
 ## 1. Kernel
 

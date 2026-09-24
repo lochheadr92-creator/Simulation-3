@@ -23,6 +23,7 @@ is optional. The old governance is in `archive/governance/`.
     py -3 -B -m world.run --seed 7 --ticks 300 --twice --html
     py -3 -B -m stream.run --replay FILE
     py -3 -B -m stream.bench --ticks 10000 --out FILE   # slice 1d cost check
+    py -3 -B -m world.bench --ticks 10000 --out FILE    # 50-person world cost check
 
 ## Rules
 
