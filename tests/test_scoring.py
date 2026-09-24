@@ -140,7 +140,7 @@ def test_bounded_observations_and_dead_never_seen_counted_or_submitted(native_ru
     for tick in run.ticks:
         assert "p04" not in tick["decisions"] and "p04" not in tick["observations"]
         assert all(o["actor"] != "p04" for o in tick["record"]["outcomes"])
-        assert all(other["id"] != "p04" for ob in tick["observations"].values() for other in ob["others"])
+        assert all("p04" not in ob["sees"] for ob in tick["observations"].values())
     assert run.ticks[0]["decisions"]["p01"]["scores"]["yield"] == [0, 2]
     cfg = config(perception_radius=1)
     ledger, overlay = synthetic_genesis(cfg)

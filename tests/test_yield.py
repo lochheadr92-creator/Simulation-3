@@ -129,7 +129,7 @@ def test_recorded_yields_match_the_rule_and_dead_are_not_counted(tmp_path: Path)
         hunger = start["hunger"]
         for actor, decision in tick["decisions"].items():
             observation = tick["observations"][actor]
-            crowd = sum(1 for other in observation.get("others", []) if tuple(other["at"]) == source)
+            crowd = sum(1 for other in observation.get("sees", []) if tuple(start["positions"][other]) == source)
             stock = observation.get("source_food")
             should = (
                 hunger[actor] >= hungry_at
@@ -145,7 +145,7 @@ def test_recorded_yields_match_the_rule_and_dead_are_not_counted(tmp_path: Path)
                 found += 1
             else:
                 assert not should or decision["kind"] in {"eat", "claim", "wait"}
-            assert all(other["id"] not in start["died_at"] for other in observation.get("others", []))
+            assert all(other not in start["died_at"] for other in observation.get("sees", []))
         start = tick["world"]
     assert found >= 1
 

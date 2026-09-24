@@ -73,7 +73,7 @@ for (let k = 0; k <= n; k++) {
   series.alive.push(alive);
   if (k >= 1) { for (const o of ticks[k - 1].record.outcomes) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
     const block = ticks[k - 1].observations || {};
-    for (const p of Object.keys(block)) { if ((block[p].others || []).length) totals.sawOther++; if (Object.prototype.hasOwnProperty.call(block[p], 'source_food')) totals.sawSource++; }
+    for (const p of Object.keys(block)) { if ((block[p].sees || block[p].others || []).length) totals.sawOther++; if (Object.prototype.hasOwnProperty.call(block[p], 'source_food')) totals.sawSource++; }
     let anyYield = false; for (const p of people) { const d = ticks[k - 1].decisions && ticks[k - 1].decisions[p]; if (d && d.kind === 'yield') { totals.yields++; anyYield = true; } }
     if (anyYield) totals.yieldTicks.push(k); }
 }
@@ -132,7 +132,7 @@ function show(k) {
   for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
     const ob = t && t.observations && t.observations[p];
     let sees = '';
-    if (ob) { const names = (ob.others || []).map(x => x.id); if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S'); sees = names.join(', '); }
+    if (ob) { const names = ob.sees ? ob.sees.slice() : (ob.others || []).map(x => x.id); if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S'); sees = names.join(', '); }
     const ya = traitOf(p);
     const kindCell = d ? (d.kind === 'yield' ? `<span style="color:var(--yield)">&#9675; yield</span>` : esc(d.kind) + (d.amount ? ' ' + d.amount : '')) + ' <span class="meta">' + esc(d.reason) + '</span>' : '';
     rows += `<tr><td>${p}</td><td class="num">${ya === null ? '' : ya}</td><td class="mono">${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td><td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>`
@@ -179,6 +179,21 @@ def _checkpoints(run: Run) -> dict[str, list[int]]:
     return found
 
 
+def _seen_ids(observation: dict) -> list[str]:
+    """Who an observation saw: `sees` (identities) in current files, `others`
+    (identity, position, food per person) in files written before 2026-09-25."""
+    if "sees" in observation:
+        return list(observation["sees"])
+    return [entry["id"] for entry in observation.get("others", [])]
+
+
+def _seen_positions(observation: dict, start_world: dict) -> list:
+    """Tick-start positions of the people an observation saw."""
+    if "sees" in observation:
+        return [start_world["positions"][actor] for actor in observation["sees"]]
+    return [entry["at"] for entry in observation.get("others", [])]
+
+
 def _tick_details(run: Run, view: int) -> dict[str, str]:
     """Shared HTML/text presentation of native fields, with boundary labels."""
     if not view:
@@ -189,7 +204,7 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
     selection = [f"Tick {tick['tick']} — personal selection from tick-start inputs"]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         ob = tick.get("observations", {}).get(actor, {})
-        crowd = sum(person["at"] == cfg["source_position"] for person in ob.get("others", []))
+        crowd = sum(position == cfg["source_position"] for position in _seen_positions(ob, prior))
         scores = d.get("scores")
         pairs = "; ".join(f"{action} {tuple(scores[action])}" if scores is not None and action in scores
                           else f"{action} (score not recorded)" for action in d["candidates"])
@@ -294,7 +309,7 @@ def render_text(run: Run, view: int) -> str:
     saw_other = saw_source = yields = 0
     for entry in run.ticks:
         for observation in entry.get("observations", {}).values():
-            if observation.get("others"):
+            if _seen_ids(observation):
                 saw_other += 1
             if "source_food" in observation:
                 saw_source += 1
@@ -312,7 +327,7 @@ def render_text(run: Run, view: int) -> str:
         observation = tick.get("observations", {}).get(actor) if tick else None
         seen = ""
         if observation is not None:
-            names = [entry["id"] for entry in observation.get("others", [])]
+            names = _seen_ids(observation)
             if "source_food" in observation:
                 names.append(f"S={observation['source_food']}")
             seen = f"  sees {', '.join(names) if names else 'none'}"

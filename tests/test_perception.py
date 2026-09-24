@@ -90,34 +90,31 @@ def test_claim_requires_observed_stock_and_does_not_invent_actions():
     assert set(candidates(obs(hunger=cfg.hungry_at, food=0, position=(0, 0), source_food=None), cfg)) == {GO}
 
 
-def test_recorded_others_never_exceed_the_radius(tmp_path: Path):
+def test_recorded_sees_are_exactly_the_living_others_in_the_radius(tmp_path: Path):
+    """The run file records who each person saw as identities only; their
+    positions come from the tick-start world block in the same file."""
     cfg = small(perception_radius=2)
     run_world(cfg, 40, tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     assert run.complete
     radius = run.header["scenario"]["perception_radius"]
     source = tuple(run.header["scenario"]["source_position"])
-    start_positions = run.header["world"]["positions"]
+    start_world = run.header["world"]
     start_state = run.header["genesis"]
     for tick in run.ticks:
+        positions = start_world["positions"]
+        living = [p for p in sorted(positions) if p not in start_world["died_at"]]
         for actor, observation in tick["observations"].items():
-            origin = tuple(start_positions[actor])
-            assert set(observation) <= {"others", "source_food"}
-            ids = []
-            for other in observation["others"]:
-                assert set(other) == {"id", "at", "food"}
-                assert "hunger" not in other and "home" not in other and "decision" not in other
-                assert other["id"] != actor
-                assert chebyshev(origin, tuple(other["at"])) <= radius
-                assert other["food"] == start_state["balances"][other["id"]]
-                ids.append(other["id"])
-            assert ids == sorted(ids)
+            origin = tuple(positions[actor])
+            assert set(observation) <= {"sees", "source_food"}
+            expected = [q for q in living if q != actor and chebyshev(origin, tuple(positions[q])) <= radius]
+            assert observation["sees"] == expected
             if "source_food" in observation:
                 assert chebyshev(origin, source) <= radius
                 assert observation["source_food"] == start_state["sources"][FOOD_SOURCE]["stock"]
             else:
                 assert chebyshev(origin, source) > radius
-        start_positions = tick["world"]["positions"]
+        start_world = tick["world"]
         start_state = apply_production(tick["state"], tick.get("production", []))
 
 
@@ -159,9 +156,7 @@ def test_tampering_with_a_recorded_observation_does_not_verify(tmp_path: Path):
     index = next(i for i, line in enumerate(lines) if b'"kind":"tick"' in line and b'"observations"' in line)
     tick = json.loads(lines[index])
     actor = sorted(tick["observations"])[0]
-    tick["observations"][actor]["others"] = list(tick["observations"][actor]["others"]) + [
-        {"id": "p99", "at": [0, 0], "food": 0}
-    ]
+    tick["observations"][actor]["sees"] = list(tick["observations"][actor]["sees"]) + ["p99"]
     lines[index] = canonical_bytes(tick) + b"\n"
     (tmp_path / "w.jsonl").write_bytes(b"".join(lines))
     run = read_run(tmp_path / "w.jsonl")
@@ -197,3 +192,23 @@ def test_viewer_shows_perception_and_stays_self_contained(tmp_path: Path):
     assert "sees (tick before)" in page
     text = render_text(run, 1)
     assert "sees" in text and "person-ticks with another in view" in text
+
+
+def test_seen_food_from_the_availability_map_equals_each_persons_own_view():
+    """observe() reads others' free food from one availability map per tick;
+    it must equal what each person's own kernel view reports, holds included."""
+    from kernel import Engine
+    from kernel.state import actor_account
+    from stream.bench import Workload, WorkloadGenerator
+
+    workload = Workload(seed=4, actors=12)
+    engine, generator = Engine(workload.genesis()), WorkloadGenerator(workload)
+    checked_with_holds = 0
+    for _ in range(30):
+        state = engine.state
+        available = state.availability()
+        for actor in workload.actor_ids():
+            assert available[actor_account(actor)] == state.view_for(actor).own_available
+        checked_with_holds += bool(state.reservations)
+        engine.tick(generator.tick(state))
+    assert checked_with_holds > 0

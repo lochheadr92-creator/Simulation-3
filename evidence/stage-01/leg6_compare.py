@@ -33,7 +33,10 @@ def counts(run):
                 ob = tick["observations"][actor]
                 choices.append({"tick": tick["tick"], "view": tick["tick"] + 1, "actor": actor,
                                 "hunger": start["hunger"][actor], "yield_at": start["yield_at"][actor],
-                                "seen_crowd": sum(o["at"] == source for o in ob["others"]),
+                                # `sees` (identities; positions from the tick-start world) since
+                                # 2026-09-25, `others` (with positions) in older files
+                                "seen_crowd": (sum(start["positions"][q] == source for q in ob["sees"]) if "sees" in ob
+                                               else sum(o["at"] == source for o in ob["others"])),
                                 "observed_stock": ob.get("source_food"), "decision": d,
                                 "from": start["positions"][actor], "to": tick["world"]["positions"][actor],
                                 "hunger_after": tick["world"]["hunger"][actor]})

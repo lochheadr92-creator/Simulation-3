@@ -101,7 +101,8 @@ class WorldStep:
 def world_step(engine: Engine, overlay: Overlay, config: WorldConfig) -> WorldStep:
     """Observe, decide, settle, process: one tick from `engine`'s state and `overlay`."""
     state = engine.state
-    views = {actor: observe(actor, state, overlay, config) for actor in overlay.living}
+    available = state.availability()
+    views = {actor: observe(actor, state, overlay, config, available) for actor in overlay.living}
     decisions = {actor: decide(views[actor], config) for actor in overlay.living}
     proposals = proposals_for(decisions, state.tick)
     record = engine.tick(proposals)

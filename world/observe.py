@@ -16,14 +16,22 @@ source cell is within the radius. Outside the radius the observation
 carries no stock value (None), not a stale number and not zero. There is
 no memory, observation age, or belief store; this is the local-knowledge
 hook without retained facts (Stage 4).
+
+Recorded form (run file, from 2026-09-25): `sees`, the identities of the
+living others in view in roster order, plus `source_food` when the source is
+in view. Their positions and free food are the tick-start world positions and
+ledger availability already in the same file, so they are not repeated; older
+files recorded them per observation as `others`.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 from kernel import WorldState
+from kernel.state import actor_account
 
 from world.config import FOOD_SOURCE, WorldConfig
 from world.overlay import Overlay, Position
@@ -80,19 +88,24 @@ class Observation:
         return out
 
     def compact(self) -> dict[str, Any]:
-        """Run-file form: seen identities with position and food, source stock if seen."""
-        out: dict[str, Any] = {"others": [seen.canonical() for seen in self.others]}
+        """Run-file form: seen identities, and source stock if seen."""
+        out: dict[str, Any] = {"sees": [seen.actor for seen in self.others]}
         if self.source_food is not None:
             out["source_food"] = self.source_food
         return out
 
 
-def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfig) -> Observation:
+def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfig,
+            available: Mapping[str, int] | None = None) -> Observation:
+    """`available` is the ledger's availability map; a caller observing many
+    people passes it once per tick rather than having it rebuilt per person."""
+    if available is None:
+        available = ledger.availability()
     view = ledger.view_for(actor)
     origin = overlay.positions[actor]
     radius = config.perception_radius
     others = tuple(
-        SeenPerson(other, overlay.positions[other], ledger.view_for(other).own_available)
+        SeenPerson(other, overlay.positions[other], available[actor_account(other)])
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
