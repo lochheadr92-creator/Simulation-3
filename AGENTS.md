@@ -894,3 +894,35 @@ this boundary as unchosen; the owner has chosen it.
 same commit, including the retitling of the exploration leg-6 card as a closed
 preceding card. The recording commit's hash cannot appear inside this entry
 and is reported after the commit.
+
+### OD-016 - 2026-09-25 - Commit the lodged slice 1c review; publish local work
+
+**Exact owner direction.** "can you stage and commit, then pushed all work
+associated with this repo from the local so github is up to date". Recorded
+from the owner's message of 2026-09-25. Told before any push that the origin
+is public (an anonymous read with credential helpers disabled succeeded on
+2026-09-25) and that the parked orchestrator freeze branch was unpublished,
+the owner selected: push publicly; record this direction as OD-016; push the
+freeze branch too.
+
+**Scope.** Commit the lodged independent slice 1c review
+(`evidence/stage-01/review-2026-09-23-slice-1c/`), its `.gitattributes`
+byte-preservation rule and the matching `RECORD.md` and `SIM3_STATE.md`
+updates, which the lodging sitting left uncommitted for lack of commit
+authority. Push `codex/kernel-first-slice`, including its unpublished local
+history after `5400056`, and the local branch
+`codex/orchestrator-phases-1-3-freeze` (`6591629`, whose content OD-007
+published only inside a snapshot) to the existing origin
+`https://github.com/lochheadr92-creator/Simulation-3.git`. Publishing to the
+public origin supersedes OD-011's private-origin condition for this
+publication only. No merge, force push, remote creation, visibility change,
+repair of the slice 1c findings, rerun, later slice or stage acceptance is
+authorised.
+
+**Reason.** Bring GitHub level with the local repository and keep an offsite
+copy of all recorded work, including the review evidence and the exact
+orchestrator source that the orchestrator tests clone.
+
+**Linked revision.** Recorded on `codex/kernel-first-slice` after `2670af6`
+(the lodging commit). The recording commit's hash cannot appear inside this
+entry and is reported after the commit.
