@@ -1,6 +1,6 @@
 # V3 — founding doctrine
 
-Design principles for the engine. Follow them in the code; no paperwork required.
+**ADOPTED 2026-09-19 with AGENTS.md and ROADMAP.md. Effective and mandatory.**
 
 ## Purpose
 
@@ -28,9 +28,12 @@ evidence, and bounded operating costs; a blank repository proves none of these.
    objective. Ordinary decisions must determine participants and outcomes. Do not
    script successful pairs, encounters, transfers, or reunions.
 
-4. **Don't tune your way to a result.** Know what question a run answers before
-   tweaking levers. When a result matters, fix the code, configuration and seed,
-   rerun it, and keep the earlier result rather than overwriting it.
+4. **Exploration is bounded; confirmation is frozen.** Declare the question,
+   allowed changes, and budget before exploration. Declare activation, eligibility,
+   and ranking changes before implementing them. Freeze code, configuration,
+   criteria, inputs, horizon, and analysis before confirmation. Further tuning
+   preserves the old result and consumes the existing budget; it cannot rescue
+   an earlier result retrospectively.
 
 5. **Correctness cannot be switched off.** Every resource gain has a source;
    production, consumption, and loss have explicit rules. Allocation, reservations,
@@ -80,7 +83,7 @@ isolated copies cannot share mutable state or observational references.
 Use no runtime randomness through Stage 3. A genesis generator may use a named,
 versioned deterministic algorithm and seed, with the resulting initial state saved.
 Later randomness requires a declared modelling need, replayable state and consumption,
-and Ryan's OK; it cannot be introduced to rescue coverage counts.
+and an owner direction; it cannot be introduced to rescue coverage counts.
 
 Break equivalent competing claims and partner ties by a declared, replayable rule
 that rotates priority across ticks rather than permanently favouring a fixed ID.
