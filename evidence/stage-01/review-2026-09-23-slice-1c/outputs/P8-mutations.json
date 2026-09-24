@@ -1,0 +1,120 @@
+[
+  {
+    "name": "drop-prev",
+    "file": "stream/run_file.py",
+    "returncode": 0,
+    "counts": {
+      "passed": 131,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed_tests": []
+  },
+  {
+    "name": "prefix-extra-line",
+    "file": "stream/recover.py",
+    "returncode": 0,
+    "counts": {
+      "passed": 131,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed_tests": []
+  },
+  {
+    "name": "shared-mapping",
+    "file": "stream/recover.py",
+    "returncode": 1,
+    "counts": {
+      "passed": 129,
+      "failed": 2,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed_tests": [
+      "tests.test_recovery::test_two_engines_restored_from_one_sealed_tick_share_no_mutable_state",
+      "tests.test_recovery::test_restore_refuses_a_tick_the_file_does_not_vouch_for"
+    ]
+  },
+  {
+    "name": "skip-generator-check",
+    "file": "stream/recover.py",
+    "returncode": 1,
+    "counts": {
+      "passed": 130,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed_tests": [
+      "tests.test_recovery::test_recovery_refuses_when_the_generator_does_not_reproduce_the_sealed_inputs"
+    ]
+  },
+  {
+    "name": "timing-in-trail",
+    "file": "stream/run_file.py",
+    "returncode": 1,
+    "counts": {
+      "passed": 95,
+      "failed": 36,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed_tests": [
+      "tests.test_sealed_stream::test_a_fresh_scenario_run_is_sealed_through_its_last_tick",
+      "tests.test_sealed_stream::test_a_fresh_world_run_is_sealed_through_its_last_tick",
+      "tests.test_replay::test_scenario_runs_replay_identically[7]",
+      "tests.test_replay::test_scenario_runs_replay_identically[11]",
+      "tests.test_replay::test_scenario_runs_replay_identically[23]",
+      "tests.test_replay::test_replay_refuses_files_it_cannot_vouch_for",
+      "tests.test_replay::test_world_runs_replay_identically[False-True-7]",
+      "tests.test_replay::test_world_runs_replay_identically[False-True-11]",
+      "tests.test_replay::test_world_runs_replay_identically[False-True-23]",
+      "tests.test_replay::test_world_runs_replay_identically[False-False-7]",
+      "tests.test_replay::test_world_runs_replay_identically[False-False-11]",
+      "tests.test_replay::test_world_runs_replay_identically[False-False-23]",
+      "tests.test_replay::test_world_runs_replay_identically[True-True-7]",
+      "tests.test_replay::test_world_runs_replay_identically[True-True-11]",
+      "tests.test_replay::test_world_runs_replay_identically[True-True-23]",
+      "tests.test_replay::test_world_runs_replay_identically[True-False-7]",
+      "tests.test_replay::test_world_runs_replay_identically[True-False-11]",
+      "tests.test_replay::test_world_runs_replay_identically[True-False-23]",
+      "tests.test_replay::test_the_runner_commands_report_replay",
+      "tests.test_recovery::test_recovery_from_a_cut_with_live_reservations_matches_the_uninterrupted_run",
+      "tests.test_recovery::test_recovery_from_a_line_cut_in_half",
+      "tests.test_recovery::test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it",
+      "tests.test_recovery::test_recovery_never_uses_an_unsealed_line",
+      "tests.test_recovery::test_recovery_from_the_header_alone_starts_at_genesis",
+      "tests.test_recovery::test_recovery_of_a_file_cut_only_before_its_end_line",
+      "tests.test_recovery::test_recovery_refuses_what_it_cannot_trust",
+      "tests.test_recovery::test_world_recovery_matches_the_uninterrupted_run[True]",
+      "tests.test_recovery::test_world_recovery_matches_the_uninterrupted_run[False]",
+      "tests.test_recovery::test_the_runner_commands_recover",
+      "tests.test_stream::test_two_runs_of_one_seed_are_byte_identical_apart_from_timing",
+      "tests.test_stream::test_run_file_verifies_and_reads_back_what_the_engine_committed",
+      "tests.test_stream::test_viewer_renders_every_tick_from_the_file_with_no_external_resources",
+      "tests.test_world::test_movement_takes_one_cell_per_tick_and_contention_is_settled_by_the_kernel",
+      "tests.test_world::test_two_runs_of_one_seed_are_byte_identical_apart_from_timing",
+      "tests.test_world::test_world_run_file_verifies_and_chains_through_production",
+      "tests.test_world::test_viewer_renders_from_the_file_with_no_external_resources"
+    ]
+  },
+  {
+    "name": "prefix-extra-tick",
+    "file": "stream/recover.py",
+    "returncode": 1,
+    "counts": {
+      "passed": 128,
+      "failed": 3,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed_tests": [
+      "tests.test_recovery::test_recovery_from_a_line_cut_in_half",
+      "tests.test_recovery::test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it",
+      "tests.test_recovery::test_recovery_never_uses_an_unsealed_line"
+    ]
+  }
+]

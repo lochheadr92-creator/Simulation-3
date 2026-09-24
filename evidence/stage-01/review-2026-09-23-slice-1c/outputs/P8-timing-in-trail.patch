@@ -1,0 +1,11 @@
+--- stream/run_file.py
++++ stream/run_file.py
+@@ -357,7 +357,7 @@
+         self._ticks += 1
+         self._next_tick += 1
+         if elapsed_ns is not None:
+-            self._write({"kind": "timing", "tick": record.tick, "elapsed_ns": int(elapsed_ns)})
++            self._trail.update(self._write({"kind": "timing", "tick": record.tick, "elapsed_ns": int(elapsed_ns)}))
+ 
+     def close(self) -> str:
+         """Write the end line and return the trail digest. Refuses, leaving the

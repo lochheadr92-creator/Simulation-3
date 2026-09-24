@@ -1,0 +1,322 @@
+# Slice 1c executing review prompt for ChatGPT, 2026-09-23
+
+This follows the summary read in `records/2026-09-23-slice-1c-gpt-summary-read.md`. The owner asked for a prompt that gets ChatGPT to do what is needed, which means running the code, not just reading the report.
+
+## Upload package
+
+- File: `C:\Users\RJLoc\Downloads\sim3-1c-review\sim3-1c-d14dece.zip`
+- Size and sha256: 4,580,061 bytes, sha256 `3ad56ed18a3b05f32dcb3b6c9596879f8954326ab5f2eccc5e9b66d2b095f80b`
+- Contents:
+  - `03-Living-World-V3/`: a single-branch clone detached at `d14dece`. All 551 objects are loose and reachable. Remote, reflogs and hooks were removed, and unreachable objects were pruned.
+  - `wheels/`: pytest 9.1.1 and its dependencies for an offline install, including exceptiongroup, tomli and typing_extensions for Python 3.10.
+- A secret scan with high-signal patterns over the tree and the branch history found nothing. The history does carry the commit authors' name and email.
+
+## Dry run of the package on Windows (builder, VERIFIED)
+
+- The zip's sha256 matched.
+- A Python-only object check, with no git, confirmed that HEAD is `d14dece`, that the first-parent chain is `d14dece` → `028ffa8` → `56d3c3f` → `6f50040`, and that all 268 tracked files match the commit tree with no extra files.
+- git rev-parse, status and fsck were clean.
+- pytest installed offline from `wheels/` (pytest 9.1.1).
+- Full suite: 559 passed and 35 setup errors, all in the orchestrator tests that need the sibling `..\orchestrator-freeze` repository (test_orchestrator_audit 8, test_orchestrator_execution 20, test_runtime_and_startup 7).
+- `reproduce.py` passed 12 of 12, and both replays were identical with the same code identity.
+- Suite partition: 7 test files import automation/ (222 tests); the other 24 files (372 tests) cover the kernel, stream, world and viewer.
+- Static check: all 86 .py files parse under the 3.10 and 3.11 grammar, with no PEP 701 f-strings and no 3.12-only library calls. `automation/preflight.py` needs `tomllib` (3.11+).
+
+Not done: a Linux dry run. The folder-access dialog timed out, so the package was never staged into a Linux container.
+
+## Prompt
+
+```text
+INDEPENDENT EXECUTING REVIEW: Simulation 3 (03-Living-World-V3), Stage 1 slice 1c
+Sealed evidence, replay, recovery and private instance isolation
+
+0. WHY THIS REVIEW EXISTS
+An earlier ChatGPT assessment of slice 1c worked only from the builder's written report and
+ran nothing. The project's rules (AGENTS.md, "Exit review") say the reviewer must run the
+reference suite and independently reproduce at least one central quantitative claim, and
+that "an inaccessible artifact or summary-only review cannot support PASS". That assessment
+is recorded as a summary read. This review replaces it and must execute the code in the
+attached archive. Do not reuse conclusions from that assessment or from any report: the
+archive and your own runs are the only evidence.
+
+1. ROLE AND INDEPENDENCE
+- You are the independent reviewer of slice 1c. The builder was Claude, configured model
+  claude-opus-5-5 (the serving model may have differed). State your own model name and
+  identifier first. If you took part in building 1c, stop.
+- You review; you do not build. Do not fix anything. Report each problem with a minimal
+  reproduction the builder can rerun.
+- If you cannot execute Python against the archive (no code tool, the archive will not
+  extract, the code will not import), stop and tell the owner exactly what failed. Do not
+  issue a verdict from reading alone.
+
+2. THE ARCHIVE
+- Attached: sim3-1c-d14dece.zip, 4,580,061 bytes, sha256
+  3ad56ed18a3b05f32dcb3b6c9596879f8954326ab5f2eccc5e9b66d2b095f80b. Check both first; if
+  either differs, stop.
+- Contents:
+    03-Living-World-V3/  a git clone of branch codex/kernel-first-slice, detached at the
+                         pinned target: object store included, every object loose, no
+                         remote, no reflogs, no hooks
+    wheels/              pure-Python wheels for pytest 9.1.1 and its dependencies, for an
+                         offline install
+- Pinned target: d14decec50d285395febb97c06d8eb7d94930b88 (slice 1c commit B). Chain:
+    6f500408b59e69f6f9c0da2be14172bb2f30a993  OD-015 recorded; the declaration's base identity
+    56d3c3fe746f22ca58f4219a9ac0aa3b16293623  slice 1c declaration, before any 1c code
+    028ffa8da78a9cd1ba95f06556d12a54fe5286ab  commit A: v3.stream.3 seal, inputs, reconstruction, replay
+    d14decec50d285395febb97c06d8eb7d94930b88  commit B: recovery, isolation, frozen references, results entry
+- The owner's machine runs Windows with Python 3.12.10 and pytest 9.1.1, and the frozen
+  references were written there. Your sandbox is a different operating system, so your
+  reruns double as a cross-platform check.
+
+3. SETUP (under /mnt/data or your sandbox's working folder)
+- Extract the archive twice: a working copy for runs and probes, and a pristine copy you
+  never modify, used to restore files and to compare.
+- Record the OS, the Python version, and whether git and pytest are available.
+- Verify that the working copy is exactly the pinned commit:
+  * With git: git rev-parse HEAD prints the pinned hash; git status --short prints nothing
+    (the repository's .gitattributes sets eol=lf); git fsck --full --strict passes;
+    git log --first-parent --format=%H shows the chain above.
+  * Without git, in Python: every file .git/objects/ab/cdef... holds zlib-compressed
+    "<type> <size>\0<body>", and the sha1 of the decompressed bytes must equal abcdef....
+    .git/HEAD holds the commit hash. Parse the commit's "tree" and "parent" lines, follow
+    first parents to 6f500408..., walk the tree objects (entries are "<mode> <name>\0"
+    followed by a 20-byte sha1; mode 40000 is a directory), and check that every working
+    file hashes to its blob id, sha1(b"blob %d\0" % len(data) + data). Confirm there are
+    no extra files outside .git.
+- Python: the builder's static check found that all 86 .py files parse under the 3.10 and
+  3.11 grammar, with no 3.12-only library calls; automation/preflight.py imports tomllib,
+  so it needs 3.11 or later. If pytest is missing or older than 8, install it offline:
+    python3 -m pip install --no-index --find-links <extracted>/wheels pytest
+- Set PYTHONUTF8=1 and PYTHONDONTWRITEBYTECODE=1 for every run, pass -B to Python, and run
+  every command from the working copy's root.
+- If your tool limits how long a command may run, start long runs with subprocess.Popen,
+  write to a log file and poll it, or run the suite one test file at a time.
+
+4. AUTHORITY AND SCOPE
+- This is an owner-requested review of slice 1c alone, like the 2026-09-21 reviews of 1a
+  and 1b. It is not the Stage 1 exit review, which OD-013 requests only once the 1c and 1d
+  records are complete. RECORD.md's 1c card says no 1c review is requested before the 1d
+  record exists; the owner's request supersedes that line and leaves OD-013's exit-review
+  timing unchanged. Do not claim or recommend the Stage 1 exit. Slice 1d (the 50-actor
+  cost envelope) is unbuilt and out of scope.
+- Authority, in order: owner directions recorded as ODs in AGENTS.md (OD-013, OD-014 and
+  OD-015 bear on 1c), ROADMAP.md, DOCTRINE.md, then the slice 1c declaration in
+  evidence/stage-01/RECORD.md. SIM3_STATE.md is a snapshot, not authority. Chat, reports,
+  project notes and this prompt are not evidence.
+- OD-015 fixes the 1c boundary as ROADMAP's proof object: "Sealed evidence, replay,
+  recovery, and private instance isolation."
+- Essential claims (RECORD.md 1c card, Claim row), on kernel-only scenario runs:
+    (1) header and every tick sealed in one chain, and the reader names the first break;
+    (2) replay from genesis and recorded inputs reproduces every tick payload byte for byte;
+    (3) recovery of a cut or broken file through the last verified sealed tick, with at
+        least one live reservation at the cut, yields sealed content equal to the
+        uninterrupted run's;
+    (4) two engines restored from one sealed tick share no mutable object;
+    (5) kernel canonical forms, the 1b fixture digests and the head-b305783 decisions
+        fixture unchanged;
+    (6) dependency direction kernel <- stream <- world tested.
+  Optional targets (Stage 2 layer, not Stage 1 exit conditions): (1) to (3) on world runs.
+  Also claimed: the 1a/1b integrity rails are unchanged.
+- Judge two things separately: (a) whether the code delivers the declared claims; (b)
+  whether the declared claims cover what ROADMAP requires of 1c (section 9). The
+  declaration ends with a list of departures from the owner's build brief; say whether
+  any of them weakens a ROADMAP requirement. A gap in the declaration is a finding even
+  when every declared claim holds.
+
+5. READ FIRST (in the working copy)
+- AGENTS.md: "Exit review"; OD-013, OD-014, OD-015.
+- ROADMAP.md: section 1 "Kernel only" and its slice table; "Tick algorithm" step 6;
+  "Evidence and foundation checks".
+- evidence/stage-01/RECORD.md: the status block at the top; the slice 1c active card;
+  "Slice 1c declaration" (items 1 to 13 and the list of departures from the build brief);
+  "Slice 1c commit A"; "Slice 1c results". Skim the 2026-09-21 review entries for 1a and
+  1b and their folders, evidence/stage-01/review-2026-09-21-slice-1a/ and
+  review-2026-09-21-slice-1b/, for the standard expected.
+- The change set from 6f500408 to d14decec. Read in full: stream/run_file.py,
+  stream/replay.py, stream/recover.py, stream/run.py, world/run.py, world/replay.py,
+  world/recover.py. Read the changes to kernel/state.py, world/overlay.py,
+  world/config.py, stream/scenario.py and viewer/world_view.py.
+- Tests: tests/test_sealed_stream.py, test_replay.py, test_recovery.py,
+  test_reference_results.py, test_dependency_direction.py, and the 1c changes to
+  test_stream.py, test_world.py and test_world_view.py.
+
+6. BUILD HISTORY THE RECORD DOES NOT SHOW (builder's disclosure; verify, do not trust)
+- The frozen references were written twice. The first pair was deleted before commit
+  because a runner message inside the code identity changed; the committed pair was
+  written by the committed code.
+- Before commit A: replay's first-difference report sorted fields alphabetically and was
+  changed to tick order; the genesis-mismatch test was changed to alter starting_balance,
+  because the scenario genesis ignores the seed; WorldConfig.from_describe could raise
+  TypeError on an unhashable value and was fixed.
+- During the 1c record commits, two tests in tests/test_orchestrator.py failed on
+  SIM3_STATE wording until the pinned next_gate prefix was kept.
+- Before commit B: three drafted results claims failed the builder's own checks and were
+  corrected (that timing lines include the write; that the scenario's reservations never
+  expire; that the fixture output is byte-identical without line-ending normalisation).
+- Commit B was amended once before it was reported (75e7792 to d14dece) to add the
+  recovery-source sha256 values; only RECORD.md changed.
+- The builder made this archive: a single-branch clone detached at d14decec, with remote,
+  reflogs and hooks removed and unreachable objects pruned, plus wheels downloaded from
+  PyPI. Section 3 is how you verify it rather than trust it.
+
+7. REQUIRED RERUNS (in the working copy; save every raw output)
+R1  The whole suite in one invocation:
+      python3 -B -m pytest -q -p no:cacheprovider --basetemp <new folder>
+    The builder's observations, both on Windows:
+    - in the owner's repository, which sits beside a sibling repository
+      ..\orchestrator-freeze: 594 passed;
+    - from this archive, extracted elsewhere, with pytest installed from wheels/: 559
+      passed and 35 errors, all at setup in tests/test_orchestrator_audit.py (8),
+      tests/test_orchestrator_execution.py (20) and tests/test_runtime_and_startup.py (7),
+      because those tests clone the sibling repository, which is not in the archive.
+    Report the suite in two parts. The 7 files that import automation/
+    (test_orchestrator.py, test_orchestrator_audit.py, test_orchestrator_execution.py,
+    test_preflight.py, test_run_gate.py, test_runtime_and_startup.py,
+    test_verify_evidence.py; 222 tests) cover the parked orchestrator and were written for
+    Windows, so expect more failures there on another OS; classify each (missing sibling
+    repository, operating system, or real defect). The other 24 files (372 tests) cover
+    the kernel, stream, world and viewer, and all passed for the builder; any failure
+    there is significant.
+R2  python3 -B evidence/stage-01/slice-1c/reproduce.py
+    The builder reports "12 of 12 checks passed".
+R3  python3 -B evidence/stage-01/instrument/fixture_digests.py, captured through Python and
+    compared with evidence/stage-01/slice-1b/fixtures-stage1b.txt (LF line endings).
+    Report whether it is identical before and after normalising CRLF to LF (on Windows the
+    output is CRLF; on your OS it may be byte-identical).
+R4  python3 -B -m stream.run --replay evidence/stage-01/slice-1c/scenario-seed7-ticks120.jsonl
+    python3 -B -m world.run --replay evidence/stage-01/slice-1c/world-seed7-ticks120.jsonl
+    The builder reports "replay: identical" and "code identity: same as the header".
+R5  --recover FILE --out NEW on both runners (python3 -B -m stream.run and
+    python3 -B -m world.run), on cut copies you make yourself. Never point it at the
+    frozen references.
+R6  python3 -B automation/preflight.py
+    On Windows it reported PASS with two pre-existing informational inconsistencies
+    (record_rollback_describes_no_remote, stage_card_review_status_stale). It inspects the
+    repository through git, so it may fail in your sandbox for environmental reasons.
+    Record the result and its cause; automation/ is parked and out of scope.
+R7  Every quantitative statement in "Slice 1c results": sizes, sha256, final seals, trail
+    digests, the scenario cut after tick 40 with 11 live reservations resuming 41 to 119,
+    both cut-source sizes and sha256, replay seeds 7, 11 and 23, the 12 world
+    combinations, per-tick sizes and shares, and the timing means (those came from the
+    owner's machine; check them against the timing lines in the frozen files, not by
+    rerunning). Mark each one RERUN, READ or UNKNOWN.
+
+8. INDEPENDENT CHECKS AND PROBES (your own code; add your own)
+At least one central quantitative claim must be reproduced by your own code rather than
+the builder's scripts; P1 and P7 qualify.
+P1  The seal chain from the declaration, not from the code. Using kernel.canonical only
+    for canonical bytes and digest, implement item 3 yourself and verify both references:
+    header seal, every tick seal, final_seal, ticks equal to horizon, the trail digest,
+    and that timing lines sit outside every seal and digest.
+P2  The code identity from item 1: recompute it over the working copy's files and compare
+    with both headers. Confirm the headers carry no git, host, path or clock data.
+P3  The reader against item 4, on copies: a flipped byte in a tick line, a header edit, a
+    deleted tick line, two tick lines swapped, a line cut part way, an edited timing line,
+    and junk after the end line. For each, record last_sealed_tick and first_break_line
+    and whether they match item 4.
+P4  Forgery and the trust model. Edit tick content and reseal the whole chain as a forger
+    would. The reader will accept it; replay must name the first divergent tick and field.
+    Then state plainly what a sealed file does and does not prove: the seals are unkeyed
+    digests, scenario replay resubmits the recorded inputs rather than regenerating them,
+    and recovery checks the rebuilt generator against the recorded inputs. Say whether
+    that meets ROADMAP's "Replay independently from genesis and declared inputs" and the
+    declaration, and whether the record claims more than it proves.
+P5  Recovery at cuts you choose: at least three ticks holding live reservations,
+    including one where a hold was created on that tick and one where a hold completes or
+    is cancelled on the next tick; also a broken seal in the middle of a file. Compare the
+    recovered file's content lines (every line except those with "kind":"timing") with
+    the uninterrupted run. Confirm that every refusal writes nothing and that --recover
+    never overwrites.
+P6  Isolation (item 8; ROADMAP: "isolation of two instances restored from the same
+    state"). Restore two engines from one sealed tick and try every path you can find to
+    shared mutable state: state mappings, nested Source and Reservation objects and their
+    fields, canonical() copies, anything a proposal or record holds. Advance one; the
+    other's digest must not move. Compare with a third engine restored fresh.
+P7  Determinism across processes and platforms. Regenerate both references in separate
+    processes with PYTHONHASHSEED unset, 0 and 4242:
+      python3 -B -m stream.run --seed 7 --ticks 120 --out <new file>
+      python3 -B -m world.run --seed 7 --ticks 120 --out <new file>
+    and compare content lines and final seals with the frozen files written on Windows.
+    Any difference is a finding: record the first differing line and field.
+P8  Test adequacy. In the working copy, inject one fault at a time into 1c code, run the
+    1c test files, record which tests fail, then restore the file from the pristine copy
+    (or git checkout) and confirm the working copy matches the pristine copy again. At
+    least: drop "prev" from the tick seal; let the recovered prefix keep one line past the
+    last sealed tick; make two restored engines share one mapping; skip the generator
+    check in scenario recovery; let a timing line enter the trail digest. A fault no test
+    catches is a finding.
+P9  Rails and scope. Between 6f500408 and d14decec (git diff, or the two trees compared
+    with the Python method in section 3) there must be no change under automation/,
+    tests/fixtures/, evidence/stage-01/slice-1b/ and evidence/stage-01/instrument/, and
+    no change to kernel/settlement.py, kernel/engine.py, kernel/proposals.py,
+    kernel/version.py or world/decide.py. kernel/state.py changes are additive only;
+    engine and schema versions are unchanged; declaration items 1 to 13 are identical in
+    RECORD.md at 56d3c3fe and at d14decec (normalise CRLF before comparing); no lever
+    default, decision rule or source of randomness is added.
+
+9. ROADMAP COVERAGE MAP
+For each requirement in ROADMAP "Evidence and foundation checks", say whether 1c evidence
+covers it, earlier slice evidence covers it (cite the 1a or 1b review or test), it belongs
+to 1d or a later stage, or it is uncovered:
+schema declared before its writer; genesis and code, configuration and schema identities;
+ordered inputs and tick IDs; proposal and action IDs; resolution reasons; balanced effects
+and reservation transitions; state and event identities; a complete-tick seal; decision
+records containing or referencing immutable copies of the actual inputs and alternatives
+used, linked to outcomes; optional diagnostic capture unable to change canonical history,
+state or identity allocation; partial writes recovering only through the last verified
+sealed tick; resume with pending reservations agreeing with uninterrupted execution;
+independent replay from genesis and declared inputs; input-map permutation; repeated
+execution; unauthorised writes; observer attempts to mutate live or prior state; isolation
+of two restored instances; dependency-direction checks; the reference suite.
+
+10. RULES
+- No network access is needed; do not fetch anything. Never push anything anywhere.
+- Change files only in the working copy, and only for P8 (one fault at a time, restored
+  before the next) and for cut or tampered copies of run files. Never modify the pristine
+  copy or the frozen references; write regenerated files elsewhere.
+- Do not change seeds, horizons, thresholds or tests to make anything pass. Record
+  failures exactly as observed, with the command and its output.
+- No new features, refactors, exploration runs or world-design experiments. World runs
+  are for the optional 1c targets and your probes only.
+- automation/ (the orchestrator) is parked: run the suite and preflight, but do not
+  review, change or debug the orchestrator.
+- Label every statement in REVIEW.md RERUN (you executed it), READ (you inspected it
+  without executing it) or UNKNOWN.
+
+11. STOP AND REPORT WHEN
+- The archive's size or sha256 differs, or the identity checks in section 3 fail.
+- You cannot execute the code (see section 1).
+- A verdict would depend on something you could not open or run.
+- A test among the 372 simulation tests fails, or a probe finds a defect: record it with
+  a minimal reproduction and continue with the checks that do not depend on it. Do not
+  fix.
+
+12. DELIVERABLES
+Write everything to a folder named sim3-review-1c-output, zip it as
+sim3-review-1c-output.zip and give the owner a download link. The folder holds:
+- REVIEW.md, containing:
+  - Reviewer: model name and identifier, tool, date and time, OS, Python and pytest
+    versions, whether git was available; a statement that you are not the builder's model
+    and did not see the builder's session.
+  - Target: the archive's sha256 as received, how you verified the pinned commit, and the
+    commit chain.
+  - What you read.
+  - Reruns R1 to R7 with results, and a claims table: claim, RERUN/READ/UNKNOWN, result,
+    evidence file.
+  - Probes P1 to P9: method, result, evidence file.
+  - The ROADMAP coverage map.
+  - A verdict for each essential claim (1) to (6) and for "1a/1b integrity rails
+    unchanged": PASS, FAIL or UNKNOWN, each with its reasoning. The optional world targets
+    separately. Stage 1 exit: not claimed.
+  - Findings numbered F1, F2, ... with severity (blocking, should fix, observation), a
+    minimal reproduction, and the rule or requirement at stake.
+  - Discrepancies between the "Slice 1c results" entry and what you observed.
+  - A proposed RECORD.md entry of at most ten lines, headed
+    "### Independent review of slice 1c - <date>", in the style of the 1b entry.
+- probes/ (your scripts) and outputs/ (the raw output of every command you ran, the suite
+  included).
+
+13. FINAL MESSAGE TO THE OWNER
+Five lines at most: your verdict line, findings counted by severity, the single most
+important finding, and the download link.
+```

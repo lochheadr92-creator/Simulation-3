@@ -1,0 +1,8 @@
+source: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\outputs\sim3-review-1c-output\outputs\artifacts\suffix-header-horizon.jsonl
+source sha256: c06ea4e57ccf22ebda307f75567c0e12350417d4d5431a913ddef185747f05d5
+last sealed tick: 56 (live holds at the cut: 15)
+resumed: ticks 57 to 120
+written: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\outputs\sim3-review-1c-output\outputs\artifacts\suffix-header-horizon-recovered.jsonl
+trail_digest: e1bbad746e04eb4456074ad96b038e9896b8c2f6670525feb1e4c39b57eb715f
+final_seal: 8dd25d0e0dcfa14d3677da415c84ed234cb89a1eed6fa9b47969308d68fc68bd
+file_verifies: no

@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "C:\\Users\\RJLoc\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "-m",
+    "world.run",
+    "--recover",
+    "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\R5-world-cut60.jsonl",
+    "--out",
+    "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\R5-world-recovered.jsonl"
+  ],
+  "cwd": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\run\\03-Living-World-V3",
+  "returncode": 0,
+  "seconds": 0.2190000000409782,
+  "utc": "2026-09-23T12:06:38.366745+00:00"
+}

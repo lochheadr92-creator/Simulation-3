@@ -1,0 +1,11 @@
+--- stream/recover.py
++++ stream/recover.py
+@@ -91,7 +91,7 @@
+     if len(ticks) != wanted or (ticks and ticks[-1]["tick"] != run.last_sealed_tick):
+         raise RecoveryError(f"{path}: the last sealed tick line could not be located")
+     return SealedPrefix(source=path, source_sha256=hashlib.sha256(raw).hexdigest(), header=run.header,
+-                        ticks=tuple(ticks), tick_lines=tuple(tick_lines), prefix=b"".join(kept))
++                        ticks=tuple(ticks), tick_lines=tuple(tick_lines), prefix=b"".join(kept + lines[len(kept):len(kept)+1]))
+ 
+ 
+ def restored_state(header: dict[str, Any], tick: dict[str, Any] | None) -> WorldState:

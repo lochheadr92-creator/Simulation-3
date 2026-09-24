@@ -1,0 +1,75 @@
+{
+  "21": {
+    "holds": 3,
+    "created_on_tick": [
+      "action:08fbcb9dedf576af6b5014e44aba7518840ea15839f4bc385b3a31dab0a34c5a"
+    ],
+    "released_next_tick": [],
+    "returncode": 0,
+    "output_exists": true,
+    "content_equal": true
+  },
+  "33": {
+    "holds": 10,
+    "created_on_tick": [
+      "action:3e4ed9146a267918cf8b3f9a04c8d3cd518f3a74aa157d9218b18317d0a71544"
+    ],
+    "released_next_tick": [
+      "action:08fbcb9dedf576af6b5014e44aba7518840ea15839f4bc385b3a31dab0a34c5a"
+    ],
+    "returncode": 0,
+    "output_exists": true,
+    "content_equal": true
+  },
+  "73": {
+    "holds": 14,
+    "created_on_tick": [],
+    "released_next_tick": [],
+    "returncode": 0,
+    "output_exists": true,
+    "content_equal": true
+  },
+  "broken-middle": {
+    "returncode": 0,
+    "output_exists": true,
+    "content_equal": true
+  },
+  "never-overwrite": {
+    "returncode": 2,
+    "unchanged": true
+  },
+  "refusal-complete": {
+    "returncode": 2,
+    "output_exists": false,
+    "content_equal": false
+  },
+  "refusal-broken-header": {
+    "returncode": 2,
+    "output_exists": false,
+    "content_equal": false
+  },
+  "refusal-other-code": {
+    "returncode": 2,
+    "output_exists": false,
+    "content_equal": false
+  },
+  "refusal-generator-mismatch": {
+    "returncode": 2,
+    "output_exists": false,
+    "content_equal": false
+  },
+  "refusal-wrong-kind": {
+    "returncode": 2,
+    "output_exists": false,
+    "content_equal": false
+  },
+  "world-wrong-kind": {
+    "returncode": 2,
+    "output_exists": false,
+    "content_equal": false
+  },
+  "world-never-overwrite": {
+    "returncode": 2,
+    "unchanged": true
+  }
+}

@@ -1,0 +1,124 @@
+[
+  {
+    "kind": "scenario",
+    "fault": "one-bad-utf8-byte",
+    "source": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\scenario-one-bad-utf8-byte.jsonl",
+    "output": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\scenario-one-bad-utf8-byte-recovered.jsonl",
+    "expected_last_good_tick": 56,
+    "reader": {
+      "exception": "UnicodeDecodeError",
+      "message": "'utf-8' codec can't decode byte 0xff in position 585: invalid start byte"
+    },
+    "recovery": {
+      "exception": "UnicodeDecodeError",
+      "message": "'utf-8' codec can't decode byte 0xff in position 585: invalid start byte"
+    },
+    "output_exists": false
+  },
+  {
+    "kind": "scenario",
+    "fault": "bad-timing-value",
+    "source": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\scenario-bad-timing-value.jsonl",
+    "output": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\scenario-bad-timing-value-recovered.jsonl",
+    "expected_last_good_tick": 57,
+    "reader": {
+      "exception": "ValueError",
+      "message": "invalid literal for int() with base 10: 'broken'"
+    },
+    "recovery": {
+      "exception": "ValueError",
+      "message": "invalid literal for int() with base 10: 'broken'"
+    },
+    "output_exists": false
+  },
+  {
+    "kind": "scenario",
+    "fault": "unsealed-header-horizon",
+    "source": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\scenario-unsealed-header-horizon.jsonl",
+    "output": {
+      "complete": false,
+      "ticks": 121,
+      "header_horizon": 120,
+      "end_ticks": 121,
+      "problems": [
+        "line 243: end declares 121 ticks, horizon is 120"
+      ],
+      "content_equal": false
+    },
+    "expected_last_good_tick": 56,
+    "reader": {
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "header_horizon": 121
+    },
+    "recovery": {
+      "resumed": [
+        57,
+        120
+      ],
+      "last_sealed_tick": 56
+    },
+    "output_exists": true
+  },
+  {
+    "kind": "world",
+    "fault": "one-bad-utf8-byte",
+    "source": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\world-one-bad-utf8-byte.jsonl",
+    "output": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\world-one-bad-utf8-byte-recovered.jsonl",
+    "expected_last_good_tick": 56,
+    "reader": {
+      "exception": "UnicodeDecodeError",
+      "message": "'utf-8' codec can't decode byte 0xff in position 1752: invalid start byte"
+    },
+    "recovery": {
+      "exception": "UnicodeDecodeError",
+      "message": "'utf-8' codec can't decode byte 0xff in position 1752: invalid start byte"
+    },
+    "output_exists": false
+  },
+  {
+    "kind": "world",
+    "fault": "bad-timing-value",
+    "source": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\world-bad-timing-value.jsonl",
+    "output": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\world-bad-timing-value-recovered.jsonl",
+    "expected_last_good_tick": 57,
+    "reader": {
+      "exception": "ValueError",
+      "message": "invalid literal for int() with base 10: 'broken'"
+    },
+    "recovery": {
+      "exception": "ValueError",
+      "message": "invalid literal for int() with base 10: 'broken'"
+    },
+    "output_exists": false
+  },
+  {
+    "kind": "world",
+    "fault": "unsealed-header-horizon",
+    "source": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\outputs\\artifacts\\minimal-findings-frfw9r03\\world-unsealed-header-horizon.jsonl",
+    "output": {
+      "complete": false,
+      "ticks": 121,
+      "header_horizon": 120,
+      "end_ticks": 121,
+      "problems": [
+        "line 243: end declares 121 ticks, horizon is 120"
+      ],
+      "content_equal": false
+    },
+    "expected_last_good_tick": 56,
+    "reader": {
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "header_horizon": 121
+    },
+    "recovery": {
+      "resumed": [
+        57,
+        120
+      ],
+      "last_sealed_tick": 56
+    },
+    "output_exists": true
+  }
+]

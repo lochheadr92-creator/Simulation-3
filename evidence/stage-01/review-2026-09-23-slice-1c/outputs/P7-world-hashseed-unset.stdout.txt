@@ -1,0 +1,16 @@
+V3 checkpoint run (world)
+run_id: one-source-grid-seed7-ticks120-yieldon
+file: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\outputs\sim3-review-1c-output\outputs\artifacts\P7-world-hashseed-unset.jsonl
+ticks: 120
+trail_digest: ddfeec26a28909311d437a089783b5f29c8c19684aab362606d9912d904a7134
+final_state_digest: 7eba582dae16e68b9195f4558410ee18c41dad276bbc5c7f4e7365394ff08b24
+final_overlay_digest: bde6fb0308cd26e7db99bc8595413b252ffc00a4d4b5d0577a2677391c73ab84
+survivors: 3  deaths: 3
+yield: on
+scoring: off
+yield_events: 5
+file_verifies: yes
+tick_ms_mean: 0.162
+tick_ms_p95: 0.265
+tick_ms_max: 0.407
+note: a run file is evidence only where a stage record cites it; never acceptance

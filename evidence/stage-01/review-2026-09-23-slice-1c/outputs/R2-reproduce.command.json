@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "C:\\Users\\RJLoc\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "-B",
+    "evidence/stage-01/slice-1c/reproduce.py"
+  ],
+  "cwd": "C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\run\\03-Living-World-V3",
+  "returncode": 0,
+  "seconds": 1.0160000000032596,
+  "utc": "2026-09-23T12:06:37.309059+00:00"
+}

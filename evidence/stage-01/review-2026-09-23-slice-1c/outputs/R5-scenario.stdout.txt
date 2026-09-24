@@ -1,0 +1,8 @@
+source: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\outputs\sim3-review-1c-output\outputs\artifacts\R5-scenario-cut40.jsonl
+source sha256: b91069fbfb89a5b9c83b844d15afca9f0fe8df7bd6bc1df2de53169ba9d0f35a
+last sealed tick: 40 (live holds at the cut: 11)
+resumed: ticks 41 to 119
+written: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\outputs\sim3-review-1c-output\outputs\artifacts\R5-scenario-recovered.jsonl
+trail_digest: f9414d0099af3c1c5cf30f951d4c26a9f5899ad3bb266a0806fd1144067fbe9d
+final_seal: 62cb2d489122d37791fd077e8edd4e55b93f6776579c3c5191a0c1ce08c46549
+file_verifies: yes

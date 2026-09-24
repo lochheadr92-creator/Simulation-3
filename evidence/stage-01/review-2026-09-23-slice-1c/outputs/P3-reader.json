@@ -1,0 +1,192 @@
+{
+  "seal-byte": {
+    "expected_last": 56,
+    "expected_break": 116,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "problems": [
+        "line 116: seal does not verify",
+        "line 118: seal does not verify",
+        "line 242: trail digest does not match the tick lines"
+      ],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true
+  },
+  "header-edit": {
+    "expected_last": -1,
+    "expected_break": 1,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": -1,
+      "first_break_line": 1,
+      "problems": [
+        "line 1: header seal does not verify"
+      ],
+      "header_run_id": "edited"
+    },
+    "matches": true
+  },
+  "delete-tick": {
+    "expected_last": 56,
+    "expected_break": 117,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 56,
+      "first_break_line": 117,
+      "problems": [
+        "line 117: expected tick 57, found 58",
+        "line 117: prior state digest does not chain",
+        "line 117: seal does not verify",
+        "line 241: end declares 120 ticks, file has 119",
+        "line 241: trail digest does not match the tick lines"
+      ],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true
+  },
+  "swap-ticks": {
+    "expected_last": 56,
+    "expected_break": 116,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "problems": [
+        "line 116: expected tick 57, found 58",
+        "line 116: prior state digest does not chain",
+        "line 116: seal does not verify",
+        "line 118: expected tick 59, found 57",
+        "line 118: prior state digest does not chain",
+        "line 118: seal does not verify",
+        "line 120: expected tick 58, found 59",
+        "line 120: prior state digest does not chain",
+        "line 120: seal does not verify",
+        "line 242: trail digest does not match the tick lines"
+      ],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true
+  },
+  "partial-line": {
+    "expected_last": 56,
+    "expected_break": 116,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "problems": [
+        "line 116: incomplete (no newline)",
+        "no end record (run did not finish, or the file was cut)"
+      ],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true
+  },
+  "timing-edit": {
+    "expected_last": 119,
+    "expected_break": null,
+    "actual": {
+      "complete": true,
+      "last_sealed_tick": 119,
+      "first_break_line": null,
+      "problems": [],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true
+  },
+  "trailing-junk": {
+    "expected_last": 119,
+    "expected_break": 243,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 119,
+      "first_break_line": 243,
+      "problems": [
+        "line 243: not JSON (Expecting value)"
+      ],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true
+  },
+  "record-wrong-type": {
+    "expected_last": 56,
+    "expected_break": 116,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "problems": [
+        "line 116: record digest does not match content",
+        "line 116: record and state disagree",
+        "line 116: prior state digest does not chain",
+        "line 116: tick record has no readable outcomes to match its inputs",
+        "line 116: seal does not verify",
+        "line 242: trail digest does not match the tick lines"
+      ],
+      "header_run_id": "contention-and-holds-seed7-ticks120"
+    },
+    "matches": true,
+    "recovery": {
+      "returncode": 0,
+      "output_exists": true,
+      "content_equal": true
+    }
+  },
+  "non-utf8": {
+    "expected_last": 56,
+    "expected_break": 116,
+    "actual": {
+      "exception": "UnicodeDecodeError",
+      "message": "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\probes\\probe_integrity.py\", line 28, in inspect\n    r=read_run(path)\n      ^^^^^^^^^^^^^^\n  File \"C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\run\\03-Living-World-V3\\stream\\run_file.py\", line 499, in read_run\n    payload = json.loads(raw)\n              ^^^^^^^^^^^^^^^\n  File \"C:\\Users\\RJLoc\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\json\\__init__.py\", line 341, in loads\n    s = s.decode(detect_encoding(s), 'surrogatepass')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nUnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\n"
+    },
+    "matches": false,
+    "recovery": {
+      "returncode": 2,
+      "output_exists": false,
+      "content_equal": false
+    }
+  },
+  "timing-wrong-type": {
+    "expected_last": 57,
+    "expected_break": 117,
+    "actual": {
+      "exception": "ValueError",
+      "message": "invalid literal for int() with base 10: 'broken'",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\outputs\\sim3-review-1c-output\\probes\\probe_integrity.py\", line 28, in inspect\n    r=read_run(path)\n      ^^^^^^^^^^^^^^\n  File \"C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\run\\03-Living-World-V3\\stream\\run_file.py\", line 570, in read_run\n    timings[int(payload.get(\"tick\", -1))] = int(payload.get(\"elapsed_ns\", 0))\n                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'broken'\n"
+    },
+    "matches": false,
+    "recovery": {
+      "returncode": 2,
+      "output_exists": false,
+      "content_equal": false
+    }
+  },
+  "second-header": {
+    "expected_last": 56,
+    "expected_break": 116,
+    "actual": {
+      "complete": false,
+      "last_sealed_tick": 56,
+      "first_break_line": 116,
+      "problems": [
+        "line 116: second header",
+        "line 118: expected tick 0, found 58",
+        "line 118: prior state digest does not chain",
+        "line 118: seal does not verify",
+        "line 242: end declares 120 ticks, file has 119",
+        "line 242: trail digest does not match the tick lines"
+      ],
+      "header_run_id": "untrusted suffix header"
+    },
+    "matches": true,
+    "recovery": {
+      "returncode": 0,
+      "output_exists": true,
+      "content_equal": true
+    }
+  }
+}

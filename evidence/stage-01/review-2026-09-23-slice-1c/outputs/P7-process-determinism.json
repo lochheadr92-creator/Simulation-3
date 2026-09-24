@@ -1,0 +1,50 @@
+[
+  {
+    "kind": "scenario",
+    "hashseed": null,
+    "returncode": 0,
+    "content_equal": true,
+    "first_difference": null,
+    "final_seal": "62cb2d489122d37791fd077e8edd4e55b93f6776579c3c5191a0c1ce08c46549"
+  },
+  {
+    "kind": "world",
+    "hashseed": null,
+    "returncode": 0,
+    "content_equal": true,
+    "first_difference": null,
+    "final_seal": "2db221dcaa15076212ee692e79e680893a0252c6d8835040f512a49f8d857b97"
+  },
+  {
+    "kind": "scenario",
+    "hashseed": "0",
+    "returncode": 0,
+    "content_equal": true,
+    "first_difference": null,
+    "final_seal": "62cb2d489122d37791fd077e8edd4e55b93f6776579c3c5191a0c1ce08c46549"
+  },
+  {
+    "kind": "world",
+    "hashseed": "0",
+    "returncode": 0,
+    "content_equal": true,
+    "first_difference": null,
+    "final_seal": "2db221dcaa15076212ee692e79e680893a0252c6d8835040f512a49f8d857b97"
+  },
+  {
+    "kind": "scenario",
+    "hashseed": "4242",
+    "returncode": 0,
+    "content_equal": true,
+    "first_difference": null,
+    "final_seal": "62cb2d489122d37791fd077e8edd4e55b93f6776579c3c5191a0c1ce08c46549"
+  },
+  {
+    "kind": "world",
+    "hashseed": "4242",
+    "returncode": 0,
+    "content_equal": true,
+    "first_difference": null,
+    "final_seal": "2db221dcaa15076212ee692e79e680893a0252c6d8835040f512a49f8d857b97"
+  }
+]

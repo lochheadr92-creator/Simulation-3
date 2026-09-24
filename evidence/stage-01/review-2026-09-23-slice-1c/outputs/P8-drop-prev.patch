@@ -1,0 +1,11 @@
+--- stream/run_file.py
++++ stream/run_file.py
+@@ -98,7 +98,7 @@
+ 
+ 
+ def tick_seal(previous: str | None, payload: Mapping[str, Any]) -> str:
+-    return digest({"prev": previous, "tick": digest(without_seal(payload))})
++    return digest({"tick": digest(without_seal(payload))})
+ 
+ 
+ # --- inputs ------------------------------------------------------------------------

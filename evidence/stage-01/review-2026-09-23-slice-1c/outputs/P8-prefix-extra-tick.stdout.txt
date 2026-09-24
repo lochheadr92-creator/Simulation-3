@@ -1,0 +1,77 @@
+..................................................................FFF... [ 54%]
+...........................................................              [100%]
+================================== FAILURES ===================================
+____________________ test_recovery_from_a_line_cut_in_half ____________________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-prefix-extra-tick/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-prefix-extra-tick/test_recovery_from_a_line_cut_0')
+
+    def test_recovery_from_a_line_cut_in_half(uninterrupted, tmp_path):
+        lines = uninterrupted.read_bytes().splitlines(keepends=True)
+        index = index_of_tick(lines, 61)
+        cut = tmp_path / "half.jsonl"
+        cut.write_bytes(b"".join(lines[:index]) + lines[index][: len(lines[index]) // 2])
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 60
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 62 diff: b'{"availability":{"actor:p1":2,"actor:p2":3,"actor:p3":3,"actor:p4":4,"actor:p5":3,"actor:p6":6,"sink:consumed":0,"source:s1":1,"source:s2":0},"inputs":[{"actor":"p5","operation":"transfer","order":0,"params":{"amount":1,"to":"p6"},"proposal_id":"t61-0"}],"kind":"tick","record":{"engine_version":"0.2.0-stage1b","next_state_digest":"bd21a02c9da222a5d2f99b2589b8b4f77b27f470f43ffd74a64c77a127e07b27","outcomes":[{"accepted":1,"action_id":null,"actor":"p5","effects":[{"account":"actor:p5","delta":-1},{"account":"actor:p6","delta":1}],"operation":"transfer"...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests\test_recovery.py:113: AssertionError
+____ test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it ____
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-prefix-extra-tick/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-prefix-extra-tick/test_recovery_from_a_broken_la0')
+
+    def test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it(uninterrupted, tmp_path):
+        cut = cut_after(uninterrupted, 70, tmp_path / "cut.jsonl")
+        lines = cut.read_bytes().splitlines(keepends=True)
+        last = json.loads(lines[-1])
+        last["seal"] = "0" * 64
+        lines[-1] = canonical_bytes(last) + b"\n"
+        cut.write_bytes(b"".join(lines))
+        assert read_run(cut).last_sealed_tick == 69
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 69
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 71 diff: b'{"availability":{"actor:p1":4,"actor:p2":12,"actor:p3":4,"actor:p4":1,"actor:p5":1,"actor:p6":2,"sink:consumed":0,"source:s1":1,"source:s2":0},"inputs":[{"actor":"p5","operation":"reserve","order":0,"params":{"operation":"consume","params":{"amount":1}},"proposal_id":"t70-0"}],"kind":"tick","record":{"engine_version":"0.2.0-stage1b","next_state_digest":"2d2b5c72cc7c7ad674bb43a0dbe30106f548b88a571e6c25dd6427ef8a4daa8b","outcomes":[{"accepted":1,"action_id":"action:362f0c0212eab58e123c7a8f3995c76533ec915cf8a923a996477a4c6b9ea4d1","actor":"p5","effects"...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests\test_recovery.py:126: AssertionError
+__________________ test_recovery_never_uses_an_unsealed_line __________________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-prefix-extra-tick/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-prefix-extra-tick/test_recovery_never_uses_an_un0')
+
+    def test_recovery_never_uses_an_unsealed_line(uninterrupted, tmp_path):
+        """An edited line and everything after it are dropped, not carried forward."""
+        lines = uninterrupted.read_bytes().splitlines(keepends=True)
+        index = index_of_tick(lines, 80)
+        edited = json.loads(lines[index])
+        actor = sorted(edited["state"]["balances"])[0]
+        edited["state"]["balances"][actor] += 5
+        lines[index] = canonical_bytes(edited) + b"\n"
+        broken = tmp_path / "broken.jsonl"
+        broken.write_bytes(b"".join(lines[:-1]))
+        assert read_run(broken).last_sealed_tick == 79
+        result = recover_scenario(broken, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 79
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 81 diff: b'{"availability":{"actor:p1":2,"actor:p2":13,"actor:p3":2,"actor:p4":1,"actor:p5":0,"actor:p6":1,"sink:consumed":0,"source:s1":0,"source:s2":0},"inputs":[{"actor":"p4","operation":"claim","order":0,"params":{"sources":{"s1":2,"s2":2}},"proposal_id":"t80-0"},{"actor":"p6","operation":"claim","order":0,"params":{"sources":{"s1":1}},"proposal_id":"t80-1"}],"kind":"tick","record":{"engine_version":"0.2.0-stage1b","next_state_digest":"914a64ab5f363a280e3a0bdb60f59a6669eab3c8e3af02177b57896542507ff4","outcomes":[{"accepted":0,"action_id":null,"actor":"p4","...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+
+tests\test_recovery.py:142: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_recovery.py::test_recovery_from_a_line_cut_in_half - assert...
+FAILED tests/test_recovery.py::test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it
+FAILED tests/test_recovery.py::test_recovery_never_uses_an_unsealed_line - as...
+3 failed, 128 passed in 11.06s

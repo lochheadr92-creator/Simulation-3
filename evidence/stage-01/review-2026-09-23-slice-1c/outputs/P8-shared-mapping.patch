@@ -1,0 +1,16 @@
+--- stream/recover.py
++++ stream/recover.py
+@@ -119,7 +119,12 @@
+     genesis_tick = (run.header.get("genesis") or {}).get("tick", 0)
+     if not run.sealed or run.last_sealed_tick is None or not genesis_tick <= tick <= run.last_sealed_tick:
+         raise RecoveryError(f"tick {tick} is not sealed in {path}")
+-    return Engine(restored_state(run.header, run.ticks[tick - genesis_tick]))
++    state = restored_state(run.header, run.ticks[tick - genesis_tick])
++    if hasattr(restore_engine, "_review_shared_balances"):
++        object.__setattr__(state, "balances", restore_engine._review_shared_balances)
++    else:
++        restore_engine._review_shared_balances = state.balances
++    return Engine(state)
+ 
+ 
+ def resume_writer(out: Path, prefix: SealedPrefix) -> RunWriter:

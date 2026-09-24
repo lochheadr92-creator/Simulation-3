@@ -1,0 +1,31 @@
+{
+  "reader": {
+    "complete": false,
+    "last_sealed_tick": 56,
+    "first_break_line": 116,
+    "problems": [
+      "line 116: second header",
+      "line 118: expected tick 0, found 58",
+      "line 118: prior state digest does not chain",
+      "line 118: seal does not verify",
+      "line 242: end declares 120 ticks, file has 119",
+      "line 242: trail digest does not match the tick lines",
+      "line 242: end declares 120 ticks, horizon is 121"
+    ],
+    "header_run_id": "contention-and-holds-seed7-ticks120"
+  },
+  "recovery": {
+    "returncode": 1,
+    "output_exists": true,
+    "content_equal": false
+  },
+  "recovered_reader": {
+    "complete": false,
+    "last_sealed_tick": 120,
+    "first_break_line": 243,
+    "problems": [
+      "line 243: end declares 121 ticks, horizon is 120"
+    ],
+    "header_run_id": "contention-and-holds-seed7-ticks120"
+  }
+}

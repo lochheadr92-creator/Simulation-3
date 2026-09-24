@@ -1,0 +1,13 @@
+PASS  sha256 scenario-seed7-ticks120.jsonl  (ad6aa0b23045cd7f30906c439c773963b56a980ca39cd3d07c1229a0a27ea6d2)
+PASS  sha256 world-seed7-ticks120.jsonl  (8573efa7d2b0dad457d00e11ec2df63a11777e37b0fd19719457cffb51887c8c)
+PASS  verifies and is sealed through its last tick: scenario-seed7-ticks120.jsonl  (final_seal 62cb2d489122d37791fd077e8edd4e55b93f6776579c3c5191a0c1ce08c46549)
+PASS  code identity is the live code's: scenario-seed7-ticks120.jsonl  (5c250fd164cecbdd98fcd412db58ee2b1d4e548a174047ed36882fdad44be8ad)
+PASS  verifies and is sealed through its last tick: world-seed7-ticks120.jsonl  (final_seal 2db221dcaa15076212ee692e79e680893a0252c6d8835040f512a49f8d857b97)
+PASS  code identity is the live code's: world-seed7-ticks120.jsonl  (5c250fd164cecbdd98fcd412db58ee2b1d4e548a174047ed36882fdad44be8ad)
+PASS  replay identical: scenario-seed7-ticks120.jsonl  (120 ticks)
+PASS  replay identical: world-seed7-ticks120.jsonl  (120 ticks)
+PASS  run again, content lines identical: scenario-seed7-ticks120.jsonl  (final_seal 62cb2d489122d37791fd077e8edd4e55b93f6776579c3c5191a0c1ce08c46549)
+PASS  run again, content lines identical: world-seed7-ticks120.jsonl  (final_seal 2db221dcaa15076212ee692e79e680893a0252c6d8835040f512a49f8d857b97)
+PASS  scenario recovery, content lines identical  (cut after tick 40, live holds at the cut 11, resumed (41, 119))
+PASS  world recovery, content lines identical  (cut after tick 60, resumed (61, 119))
+12 of 12 checks passed; work folder C:\Users\RJLoc\AppData\Local\Temp\sim3-1c-reproduce-8wv453r_

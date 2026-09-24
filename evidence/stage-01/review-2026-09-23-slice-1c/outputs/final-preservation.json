@@ -1,0 +1,39 @@
+{
+  "pristine_files": 835,
+  "pristine_differences": [],
+  "working_files": 268,
+  "working_differences": [],
+  "git": {
+    "head": {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "returncode": 0,
+      "stdout": "d14decec50d285395febb97c06d8eb7d94930b88\n",
+      "stderr": ""
+    },
+    "status": {
+      "argv": [
+        "git",
+        "status",
+        "--short"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "fsck": {
+      "argv": [
+        "git",
+        "fsck",
+        "--full",
+        "--strict"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  }
+}

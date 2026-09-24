@@ -1,0 +1,118 @@
+V3 preflight
+============
+preflight_result: PASS
+milestone_completion_inferred: no
+blocking_failures: (none)
+repository_root: C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/run/03-Living-World-V3
+branch: HEAD
+head: d14decec50d285395febb97c06d8eb7d94930b88
+git_status:
+  - clean
+dirty_files: (none)
+untracked_files: (none)
+recent_commits:
+  - d14decec50d285395febb97c06d8eb7d94930b88 stream(stage-1c): recovery, isolation and frozen references - slice 1c commit B
+  - 028ffa8da78a9cd1ba95f06556d12a54fe5286ab stream(stage-1c): sealed evidence stream and replay - slice 1c commit A
+  - 56d3c3fe746f22ca58f4219a9ac0aa3b16293623 docs(stage-1c): declare slice 1c before code
+  - 6f500408b59e69f6f9c0da2be14172bb2f30a993 docs(governance): record OD-015 - slice 1c boundary follows ROADMAP
+  - 4b8bb846c3803942dbbc8d2c47e07cbcca5e1893 docs(governance): record OD-014, accept checkpoint C, close OD-009 Revision 3
+  - 54000569a4f031205768c0498417367ffd392b10 docs(governance): record OD-013 - retain claim-then-eat latency, open ratification
+  - df995240985a2c9d396333df598b22092f58a81f fix(governance): reconcile state snapshot and orchestrator tests with post-OD-008 reality
+  - 7a54b9e02616daefd721869288c97fc69dcabd41 fix(tooling): re-apply historical-manifest fix on Phase 4 base
+  - 47ac1ccefcc345b9011248e54f04c52710076013 Merge remote-tracking branch 'origin/codex/kernel-first-slice' into codex/kernel-first-slice
+  - abbb0138b3c71d350a2214afe97e234686405289 viewer(presentation): OD-012 world view v1, isometric smooth playback
+authoritative_documents_found:
+  - AGENTS.md
+  - DOCTRINE.md
+  - ROADMAP.md
+  - evidence/stage-01/RECORD.md
+authoritative_documents_missing: (none)
+current_milestone: Stage 1, slice 1c
+milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; independent post-repair review pending
+engine_version: 0.2.0-stage1b
+schema_version: v3.kernel.1b.1
+canonical_file_hashes:
+  - AGENTS.md  sha256:e9a07479aa6d282014fed909a3efd37b6d88e1451ae18cf5571b878863e1cad0
+  - DOCTRINE.md  sha256:3cf74071169d874478c09d18fc9c6e2fe4ddb970c6548a410b6c653a54f0c5db
+  - ROADMAP.md  sha256:9a986670ac1b3131987a6fa834e63d7666bd8ed3cffa081fe5d5bad9d74e563f
+  - SIM3_STATE.md  sha256:f034081980e6a658dbd07023c67b5a9d8daea59d87e49a6125b8d5d7fa7dd1e7
+  - kernel/__init__.py  sha256:08b9e6c6cd5c2026e36f264f422b183da12d02486f95d4a5d783d2d88e1c081d
+  - kernel/canonical.py  sha256:20fa4781f240854b3eb04bdabd0b750c6e60be12d59798a2179b41b4893a8de0
+  - kernel/diagnostics.py  sha256:d2c657bb82882f34ca93ab922bcbe0b178e030c64bff1473b938e6f9b45b9640
+  - kernel/engine.py  sha256:e5a3bedbf7ec6662ad7a1c39875759e560d0e0c19e2296fbaa62f3338863eaac
+  - kernel/ordering.py  sha256:bf3a6d0220334ccdaf7d10daf048bca7fd0d1874171aa2f9421ceaa93af88487
+  - kernel/outcomes.py  sha256:ff17c25a360b393a7c4ff1052ce12f66634b0acbea94a60f876a73a12126fc32
+  - kernel/proposals.py  sha256:b59402e7d3654208ab7e2ab710e07799e8edc7a70f4b909a3e41dad2bd1f05ce
+  - kernel/reasons.py  sha256:2642e3d3b17cd4b4ea0c22c8a9f1bc70f0fd70a2fa05d2282d0ce41f50bc9f52
+  - kernel/settlement.py  sha256:9fef6f414c851a6218b2614f7678570f5b28062927be8955953bcfaba4dc0a3b
+  - kernel/state.py  sha256:df067aed0f5c1dd889bd5ad83c9064f99b2388ff9a0ef32cb5441cd5c0704f51
+  - kernel/units.py  sha256:aa8b04387d1c4f3662e4a412ccf46699c0c8976602b68093d821a7ec1e89580a
+  - kernel/version.py  sha256:967d874c73455648ee91b902aef0e8c4dcf134644de7b8d659ec7d7f683e71a9
+file_manifest_path: evidence/stage-01/repair-1/FILE_MANIFEST.json
+file_manifest_present: yes
+file_manifest_source_base: fa8be6083b31ead3c7e6aae844c0fd749927e6d0
+file_manifest_compared_subset: kernel/*, tests/*, evidence/stage-01/instrument/mutation_check.py from the Repair 1 sha256 map (repaired file bytes), compared against the packet's recorded revision when git can read it, else the working tree. source_base is the pre-repair revision the repair was applied to, not HEAD and not a review verdict. Entries that differ in the working tree after matching at the recorded revision are listed as superseded, which is information, not an inconsistency. Other manifest entries, including AGENTS.md and RECORD.md, are not compared.
+file_manifest_compared: 9
+file_manifest_matched: 9
+file_manifest_recorded_revision: fb5a8959fb6a7a23d6e3107fe32be8248cc19901
+file_manifest_compared_against: recorded revision fb5a8959fb6a7a23d6e3107fe32be8248cc19901
+file_manifest_superseded_in_working_tree:
+  - kernel/proposals.py
+  - kernel/settlement.py
+  - kernel/version.py
+configured_seeds: none discovered
+configured_horizons: none discovered
+active_slice_whole_world_executions_authorised: 0
+experiments_directory: none
+test_commands:
+  - py -3 -m pytest
+  - py -3 evidence/stage-01/instrument/fixture_digests.py
+  - py -3 evidence/stage-01/instrument/mutation_check.py  # mutates working tree; not part of preflight
+pytest_present: yes
+pytest_testpaths: tests
+pytest_pythonpath: .
+evidence_directories:
+  - evidence/
+  - evidence/automation-runs/
+  - evidence/stage-01/
+  - evidence/stage-01/instrument/
+  - evidence/stage-01/instrument/runs/
+  - evidence/stage-01/orchestrator-phase4-repair/
+  - evidence/stage-01/orchestrator-phase4-repair2/
+  - evidence/stage-01/orchestrator-publication/
+  - evidence/stage-01/orchestrator-publication/prior-tests/
+  - evidence/stage-01/orchestrator-publication/publication-tests/
+  - evidence/stage-01/orchestrator-review/
+  - evidence/stage-01/repair-1/
+  - evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/
+  - evidence/stage-01/repair-1/invalid-mutation-wrapper-attempt/mutation-runs/
+  - evidence/stage-01/repair-1/mutation-runs/
+  - evidence/stage-01/repair-1/review-before-repair/
+  - evidence/stage-01/review-2026-09-21-slice-1a/
+  - evidence/stage-01/review-2026-09-21-slice-1a/mutations/
+  - evidence/stage-01/review-2026-09-21-slice-1a/mutations/mutation-runs/
+  - evidence/stage-01/review-2026-09-21-slice-1b/
+  - evidence/stage-01/review-2026-09-21-slice-1b/mutations-attempt-1-baseline-blocked/
+  - evidence/stage-01/review-2026-09-21-slice-1b/mutations-attempt-1-baseline-blocked/mutation-runs/
+  - evidence/stage-01/review-2026-09-21-slice-1b/mutations/
+  - evidence/stage-01/review-2026-09-21-slice-1b/mutations/mutation-runs/
+  - evidence/stage-01/slice-1b/
+  - evidence/stage-01/slice-1c/
+sim3_state_present: yes
+sim3_state.authoritative_documents: AGENTS.md; DOCTRINE.md; ROADMAP.md
+sim3_state.authoritative_head: 028ffa8da78a9cd1ba95f06556d12a54fe5286ab
+sim3_state.blockers: publication blocker resolved by owner direction 2026-09-22 ("push"): the local branch is merged with the published Phase 4 snapshot (810ab25) and pushed to the public origin; the earlier public-origin prohibition is superseded for this publication. Claim-then-eat latency resolved by OD-013 and grounded by OD-014 (2026-09-23): obtain and eat stay separate actions; no same-tick obtain/eat; owner design decision, not experimental proof; no kernel or world change. Checkpoint C accepted by OD-014 as closing the exploration question; exploration leg 7 is not opened. Whole-world leg-6 budget exhausted (3/3). Slice 1c boundary settled by OD-015 (ROADMAP proof object: sealed evidence, replay, recovery, private instance isolation). Slice 1c record delivered (commits A and B), not reviewed; its independent review is requested with the 1d record (OD-013), from a separate reviewer using a different model from its builder's (Claude, configured claude-opus-5-5). Stage 1 exit review requires an independent reviewer; none requested yet.
+sim3_state.current_hypothesis: slice 1c, delivered and not reviewed: a v3.stream.3 run seals its header and every tick in one chain; replay from genesis and the recorded inputs reproduces every tick payload byte for byte; recovery through the last verified sealed tick, with live reservations at the cut, reproduces the uninterrupted run's sealed content; two engines restored from one sealed tick share no mutable object; kernel canonical forms and recorded fixtures stay unchanged. Essential claims are on kernel-only scenario runs; world runs are optional targets.
+sim3_state.current_milestone: Stage 1, slice 1c
+sim3_state.last_accepted_evidence: none
+sim3_state.last_accepted_gate: none
+sim3_state.last_updated: 2026-09-23 (slice 1c record)
+sim3_state.milestone_status: open; no stage has passed; Stage 1 incomplete; Stage 1 exit unclaimed; exploration lane closed by OD-014 (checkpoint C owner-accepted 2026-09-23; OD-009 Revision 3 closed; sequencing authority with ROADMAP.md); ratification lane open at slice 1c (OD-013, 2026-09-23), bounded by the ROADMAP 1c proof object (OD-015, 2026-09-23); slice 1c record delivered 2026-09-23 by its builder, not reviewed (commits A and B; RECORD.md "Slice 1c results"); obtain and eat remain separate actions; no same-tick obtain/eat; exploration leg 7 not opened; slices 1a and 1b independently reviewed PASS (2026-09-21)
+sim3_state.next_gate: slice 1c ratification: sealed evidence stream and replay, with recovery through the last verified sealed tick and private instance isolation (ROADMAP proof object, OD-015): record delivered 2026-09-23, not reviewed; then slice 1d capacity envelope (not started); Stage 1 exit review requested from an independent reviewer once the 1c and 1d records are complete. Claim-then-eat latency retained per OD-013 and OD-014; exploration leg 7 not opened; no acceptance inferred. First unmet work is the slice 1d pre-implementation declaration.
+sim3_state.not_proven: Stage 1 exit; slice 1c as reviewed (sealed evidence, replay, recovery, instance isolation: demonstrated by the builder on the declared runs, no independent review yet); 50-actor cost envelope (1d, ratification); Stage 2 viability, opportunity counting and confirmation floors; browser layout quality and owner acceptance of the OD-012 world view (checkpoint C acceptance is not viewer acceptance); memory or social behaviour; survival/fairness benefit from scored actions; crowd-yield as an accepted result
+sim3_state.parked: the Stage 1 exit review until the 1d record exists (OD-013); orchestrator Phase 4 branches; six-person starter world as confirmation; Stages 2-6 are later roadmap stages and are not opened by OD-014 or OD-015; the source-at-cap question (OD-014 owner-supplied basis) waits for a later exploration direction
+sim3_state.proven: none independently accepted (reviews of 1a and 1b are reviewer verdicts on tooling-free kernel claims, not stage acceptance)
+inconsistencies:
+  - record_rollback_describes_no_remote evidence/stage-01/RECORD.md rollback text still describes a repository with no remote
+  - stage_card_review_status_stale card still says no independent review was held; evidence/stage-01/repair-1/review-before-repair/REVIEW.md exists
+note: passing tests are not milestone completion; this report does not run the simulation

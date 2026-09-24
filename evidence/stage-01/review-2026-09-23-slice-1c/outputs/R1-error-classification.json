@@ -1,0 +1,7 @@
+{
+  "total": 35,
+  "missing_sibling_repository": 35,
+  "os_failures": 0,
+  "simulation_failures": 0,
+  "classification_basis": "Every setup error message names missing work/run/orchestrator-freeze; no automation diagnosis or repair performed."
+}

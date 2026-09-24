@@ -1,0 +1,42 @@
+........................................................................ [ 54%]
+...FF......................................................              [100%]
+================================== FAILURES ===================================
+____ test_two_engines_restored_from_one_sealed_tick_share_no_mutable_state ____
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-shared-mapping/recovery0/scenario-seed7.jsonl')
+
+    def test_two_engines_restored_from_one_sealed_tick_share_no_mutable_state(uninterrupted):
+        tick = declared_cut(uninterrupted)
+        a, b = restore_engine(uninterrupted, tick), restore_engine(uninterrupted, tick)
+        assert a is not b and a.state is not b.state and a.state.digest() == b.state.digest()
+        assert a.state.reservations, "the declared cut holds live reservations"
+        for name in ("balances", "sources", "reservations"):
+>           assert getattr(a.state, name) is not getattr(b.state, name)
+E           AssertionError: assert mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}) is not mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7})
+E            +  where mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}) = getattr(WorldState(tick=41, balances=mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}), sources=mappingpr..._tick=35, operation='transfer', effects=(Effect(account='actor:p3', delta=2), Effect(account='actor:p6', delta=-2)))})), 'balances')
+E            +    where WorldState(tick=41, balances=mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}), sources=mappingpr..._tick=35, operation='transfer', effects=(Effect(account='actor:p3', delta=2), Effect(account='actor:p6', delta=-2)))})) = <kernel.engine.Engine object at 0x000002B4E1767320>.state
+E            +  and   mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}) = getattr(WorldState(tick=41, balances=mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}), sources=mappingpr..._tick=35, operation='transfer', effects=(Effect(account='actor:p3', delta=2), Effect(account='actor:p6', delta=-2)))})), 'balances')
+E            +    where WorldState(tick=41, balances=mappingproxy({'p1': 8, 'p2': 12, 'p3': 6, 'p4': 6, 'p5': 10, 'p6': 7}), sources=mappingpr..._tick=35, operation='transfer', effects=(Effect(account='actor:p3', delta=2), Effect(account='actor:p6', delta=-2)))})) = <kernel.engine.Engine object at 0x000002B4E17941D0>.state
+
+tests\test_recovery.py:221: AssertionError
+___________ test_restore_refuses_a_tick_the_file_does_not_vouch_for ___________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-shared-mapping/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-shared-mapping/test_restore_refuses_a_tick_th0')
+
+    def test_restore_refuses_a_tick_the_file_does_not_vouch_for(uninterrupted, tmp_path):
+        cut = cut_after(uninterrupted, 20, tmp_path / "cut.jsonl")
+        assert restore_engine(cut, 20).state.tick == 21
+        with pytest.raises(RecoveryError):
+            restore_engine(cut, 21)
+>       assert digest(restore_engine(cut, 0).state.canonical()) == read_run(cut).ticks[0]["state_digest"]
+E       AssertionError: assert '30b53e0ad68c...1146a8cbea282' == '1528f4cd69a1...80ffe8654de1f'
+E         
+E         - 1528f4cd69a1c3f7d3b45e3cae91c7dbecf5d1d888177537b7e80ffe8654de1f
+E         + 30b53e0ad68ccd615554bb92dc6dd9cf265ce641792f68652b71146a8cbea282
+
+tests\test_recovery.py:249: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_recovery.py::test_two_engines_restored_from_one_sealed_tick_share_no_mutable_state
+FAILED tests/test_recovery.py::test_restore_refuses_a_tick_the_file_does_not_vouch_for
+2 failed, 129 passed in 11.29s

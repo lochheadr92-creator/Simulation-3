@@ -1,0 +1,878 @@
+FF..........................................FFF..F.FFFFFFFFFFFF.FFFFFFFF [ 54%]
+.FF..F.........FF.....F................FFF.......F.........              [100%]
+================================== FAILURES ===================================
+__________ test_a_fresh_scenario_run_is_sealed_through_its_last_tick __________
+
+scenario_file = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_a_fresh_scenario_run_is_s0/scenario.jsonl')
+
+    def test_a_fresh_scenario_run_is_sealed_through_its_last_tick(scenario_file: Path):
+        run = read_run(scenario_file)
+>       assert run.complete and run.sealed and run.problems == ()
+E       AssertionError: assert (False)
+E        +  where False = Run(path=WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest...17d077a5', problems=('line 62: trail digest does not match the tick lines',), last_sealed_tick=29, first_break_line=62).complete
+
+tests\test_sealed_stream.py:47: AssertionError
+___________ test_a_fresh_world_run_is_sealed_through_its_last_tick ____________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_a_fresh_world_run_is_seal0')
+
+    def test_a_fresh_world_run_is_sealed_through_its_last_tick(tmp_path: Path):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=7, width=7, height=7, actors=4), 30, path)
+        run = read_run(path)
+>       assert run.complete and run.sealed and run.last_sealed_tick == 29
+E       AssertionError: assert (False)
+E        +  where False = Run(path=WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest...e343fd91', problems=('line 62: trail digest does not match the tick lines',), last_sealed_tick=29, first_break_line=62).complete
+
+tests\test_sealed_stream.py:63: AssertionError
+__________________ test_scenario_runs_replay_identically[7] ___________________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_scenario_runs_replay_iden0')
+seed = 7
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    def test_scenario_runs_replay_identically(tmp_path: Path, seed: int):
+        path = tmp_path / f"scenario-{seed}.jsonl"
+        run_scenario(Scenario(seed=seed), 120, path)
+>       result = replay_scenario(path)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+stream\replay.py:97: in replay_scenario
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_scenario_runs_replay_iden0/scenario-7.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_scenario_runs_replay_iden0\scenario-7.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+__________________ test_scenario_runs_replay_identically[11] __________________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_scenario_runs_replay_iden1')
+seed = 11
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    def test_scenario_runs_replay_identically(tmp_path: Path, seed: int):
+        path = tmp_path / f"scenario-{seed}.jsonl"
+        run_scenario(Scenario(seed=seed), 120, path)
+>       result = replay_scenario(path)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+stream\replay.py:97: in replay_scenario
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_scenario_runs_replay_iden1/scenario-11.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_scenario_runs_replay_iden1\scenario-11.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+__________________ test_scenario_runs_replay_identically[23] __________________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_scenario_runs_replay_iden2')
+seed = 23
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    def test_scenario_runs_replay_identically(tmp_path: Path, seed: int):
+        path = tmp_path / f"scenario-{seed}.jsonl"
+        run_scenario(Scenario(seed=seed), 120, path)
+>       result = replay_scenario(path)
+                 ^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+stream\replay.py:97: in replay_scenario
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_scenario_runs_replay_iden2/scenario-23.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_scenario_runs_replay_iden2\scenario-23.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+________________ test_replay_refuses_files_it_cannot_vouch_for ________________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_replay_refuses_files_it_c0')
+
+    def test_replay_refuses_files_it_cannot_vouch_for(tmp_path: Path):
+        scenario_path = tmp_path / "scenario.jsonl"
+        run_scenario(Scenario(seed=7), 20, scenario_path)
+        world_path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=7, width=7, height=7, actors=4), 20, world_path)
+>       with pytest.raises(ReplayError, match="world run"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'world run'
+E         Actual message: 'C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\pytest-P8-timing-in-trail\\test_replay_refuses_files_it_c0\\world.jsonl does not verify: line 42: trail digest does not match the tick lines'
+
+tests\test_replay.py:281: AssertionError
+______________ test_world_runs_replay_identically[False-True-7] _______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic0')
+seed = 7, yield_on = True, scoring_on = False
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic0/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic0\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[False-True-11] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic1')
+seed = 11, yield_on = True, scoring_on = False
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic1/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic1\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[False-True-23] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic2')
+seed = 23, yield_on = True, scoring_on = False
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic2/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic2\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[False-False-7] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic3')
+seed = 7, yield_on = False, scoring_on = False
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic3/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic3\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+_____________ test_world_runs_replay_identically[False-False-11] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic4')
+seed = 11, yield_on = False, scoring_on = False
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic4/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic4\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+_____________ test_world_runs_replay_identically[False-False-23] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic5')
+seed = 23, yield_on = False, scoring_on = False
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic5/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic5\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+_______________ test_world_runs_replay_identically[True-True-7] _______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic6')
+seed = 7, yield_on = True, scoring_on = True
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic6/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic6\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[True-True-11] _______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic7')
+seed = 11, yield_on = True, scoring_on = True
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic7/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic7\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[True-True-23] _______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic8')
+seed = 23, yield_on = True, scoring_on = True
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic8/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic8\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[True-False-7] _______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic9')
+seed = 7, yield_on = False, scoring_on = True
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic9/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic9\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[True-False-11] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic10')
+seed = 11, yield_on = False, scoring_on = True
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic10/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic10\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+______________ test_world_runs_replay_identically[True-False-23] ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic11')
+seed = 23, yield_on = False, scoring_on = True
+
+    @pytest.mark.parametrize("seed", [7, 11, 23])
+    @pytest.mark.parametrize("yield_on", [True, False])
+    @pytest.mark.parametrize("scoring_on", [False, True])
+    def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
+        path = tmp_path / "world.jsonl"
+        run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on), 120, path)
+>       result = replay_world(path)
+                 ^^^^^^^^^^^^^^^^^^
+
+tests\test_replay.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+world\replay.py:31: in replay_world
+    run = sealed_run(path)
+          ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_runs_replay_identic11/world.jsonl')
+
+    def sealed_run(path: Path) -> Run:
+        """Read `path` and refuse anything but a complete run sealed through its last tick."""
+        run = read_run(Path(path))
+        if not run.sealed:
+            raise ReplayError(f"{path} is format {run.header.get('format')!r}, not a sealed run file")
+        if not run.complete:
+>           raise ReplayError(f"{path} does not verify: {run.problems[0] if run.problems else 'incomplete'}")
+E           stream.replay.ReplayError: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_world_runs_replay_identic11\world.jsonl does not verify: line 242: trail digest does not match the tick lines
+
+stream\replay.py:48: ReplayError
+___________________ test_the_runner_commands_report_replay ____________________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_the_runner_commands_repor0')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001ECE6602960>
+
+    def test_the_runner_commands_report_replay(tmp_path: Path, capsys):
+        scenario_path = tmp_path / "scenario.jsonl"
+        run_scenario(Scenario(seed=7), 30, scenario_path)
+>       assert stream_main(["--replay", str(scenario_path)]) == 0
+E       AssertionError: assert 2 == 0
+E        +  where 2 = stream_main(['--replay', 'C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\pytest-P8-timing-in-trail\\test_the_runner_commands_repor0\\scenario.jsonl'])
+
+tests\test_replay.py:336: AssertionError
+---------------------------- Captured stderr call -----------------------------
+error: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_the_runner_commands_repor0\scenario.jsonl does not verify: line 62: trail digest does not match the tick lines
+_ test_recovery_from_a_cut_with_live_reservations_matches_the_uninterrupted_run _
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_from_a_cut_with_0')
+
+    def test_recovery_from_a_cut_with_live_reservations_matches_the_uninterrupted_run(uninterrupted, tmp_path):
+        cut_tick = declared_cut(uninterrupted)
+        cut = cut_after(uninterrupted, cut_tick, tmp_path / "cut.jsonl")
+        assert read_run(cut).last_sealed_tick == cut_tick and not read_run(cut).complete
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == cut_tick and result.live_holds_at_cut >= 1
+        assert result.resumed == (cut_tick + 1, 119)
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c0570536988c5cb0e958b06545e74005d311f411e30f38c4722822dc19653e3b"}\n' != b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c763b4d9f77bb57cdd4a65e39a9c006feafb3b4fe1004d0961ef2daf33b4ffff"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:101: AssertionError
+____________________ test_recovery_from_a_line_cut_in_half ____________________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_from_a_line_cut_0')
+
+    def test_recovery_from_a_line_cut_in_half(uninterrupted, tmp_path):
+        lines = uninterrupted.read_bytes().splitlines(keepends=True)
+        index = index_of_tick(lines, 61)
+        cut = tmp_path / "half.jsonl"
+        cut.write_bytes(b"".join(lines[:index]) + lines[index][: len(lines[index]) // 2])
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 60
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"718efd99ba10b4af6bb886ce1354a13c4d3570d4eb2d7fc7772a908a864ab8ae"}\n' != b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c763b4d9f77bb57cdd4a65e39a9c006feafb3b4fe1004d0961ef2daf33b4ffff"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:113: AssertionError
+____ test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it ____
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_from_a_broken_la0')
+
+    def test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it(uninterrupted, tmp_path):
+        cut = cut_after(uninterrupted, 70, tmp_path / "cut.jsonl")
+        lines = cut.read_bytes().splitlines(keepends=True)
+        last = json.loads(lines[-1])
+        last["seal"] = "0" * 64
+        lines[-1] = canonical_bytes(last) + b"\n"
+        cut.write_bytes(b"".join(lines))
+        assert read_run(cut).last_sealed_tick == 69
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 69
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"500a48c4cfe084b4efc58aca1c410b8873917ba0a637e5ba085a3bf9b7cbf118"}\n' != b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c763b4d9f77bb57cdd4a65e39a9c006feafb3b4fe1004d0961ef2daf33b4ffff"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:126: AssertionError
+__________________ test_recovery_never_uses_an_unsealed_line __________________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_never_uses_an_un0')
+
+    def test_recovery_never_uses_an_unsealed_line(uninterrupted, tmp_path):
+        """An edited line and everything after it are dropped, not carried forward."""
+        lines = uninterrupted.read_bytes().splitlines(keepends=True)
+        index = index_of_tick(lines, 80)
+        edited = json.loads(lines[index])
+        actor = sorted(edited["state"]["balances"])[0]
+        edited["state"]["balances"][actor] += 5
+        lines[index] = canonical_bytes(edited) + b"\n"
+        broken = tmp_path / "broken.jsonl"
+        broken.write_bytes(b"".join(lines[:-1]))
+        assert read_run(broken).last_sealed_tick == 79
+        result = recover_scenario(broken, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 79
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"bf5ea04b6ecd9170da1509af5dd1d114447c4ab777715db85f8830fa2ffa0b76"}\n' != b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c763b4d9f77bb57cdd4a65e39a9c006feafb3b4fe1004d0961ef2daf33b4ffff"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:142: AssertionError
+____________ test_recovery_from_the_header_alone_starts_at_genesis ____________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_from_the_header_0')
+
+    def test_recovery_from_the_header_alone_starts_at_genesis(uninterrupted, tmp_path):
+        cut = tmp_path / "header.jsonl"
+        cut.write_bytes(uninterrupted.read_bytes().splitlines(keepends=True)[0])
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == -1 and result.resumed == (0, 119)
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"880200805ccba8543873bba46bada7c6a86c6e08cc68cc8583e5a71a1f6c9258"}\n' != b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c763b4d9f77bb57cdd4a65e39a9c006feafb3b4fe1004d0961ef2daf33b4ffff"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:150: AssertionError
+____________ test_recovery_of_a_file_cut_only_before_its_end_line _____________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_of_a_file_cut_on0')
+
+    def test_recovery_of_a_file_cut_only_before_its_end_line(uninterrupted, tmp_path):
+        cut = cut_after(uninterrupted, 119, tmp_path / "cut.jsonl")
+        result = recover_scenario(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == 119 and result.resumed is None
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted)
+E       assert [b'{"code_ide...k":4}\n', ...] == [b'{"code_ide...k":4}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"760cf90d8a6ead9c731364c7f65a67343f87bb01eed6ac919e223f080db64dea"}\n' != b'{"final_seal":"6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30","kind":"end","ticks":120,"trail_digest":"c763b4d9f77bb57cdd4a65e39a9c006feafb3b4fe1004d0961ef2daf33b4ffff"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:157: AssertionError
+_________________ test_recovery_refuses_what_it_cannot_trust __________________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_recovery_refuses_what_it_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001ECE647AC60>
+
+    def test_recovery_refuses_what_it_cannot_trust(uninterrupted, tmp_path, monkeypatch):
+>       with pytest.raises(RecoveryError, match="complete"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE RecoveryError
+
+tests\test_recovery.py:161: Failed
+___________ test_world_recovery_matches_the_uninterrupted_run[True] ___________
+
+uninterrupted_world = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery-world0/world-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_recovery_matches_th0')
+production = True
+
+    @pytest.mark.parametrize("production", [True, False])
+    def test_world_recovery_matches_the_uninterrupted_run(uninterrupted_world, tmp_path, production: bool):
+        cut_tick = next(t["tick"] for t in read_run(uninterrupted_world).ticks
+                        if t["tick"] >= 30 and ("production" in t) == production)
+        cut = cut_after(uninterrupted_world, cut_tick, tmp_path / "cut.jsonl")
+        result = recover_world(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == cut_tick and result.resumed == (cut_tick + 1, 119)
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted_world)
+E       assert [b'{"code_ide...8a0"}\n', ...] == [b'{"code_ide...8a0"}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"ef94a7961cefcd19a4c0e4fc59748ae965f81210333f370f79ff741da6aad201","kind":"end","ticks":120,"trail_digest":"6c32089f8976191b744e926a1f2e5cb36ee50bb62d223ac500bfefaec832d9bb"}\n' != b'{"final_seal":"ef94a7961cefcd19a4c0e4fc59748ae965f81210333f370f79ff741da6aad201","kind":"end","ticks":120,"trail_digest":"45f3b274256756e01516e789a99e8b5e4ec0e62f11399f21027fbb52a26740a1"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:210: AssertionError
+__________ test_world_recovery_matches_the_uninterrupted_run[False] ___________
+
+uninterrupted_world = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery-world0/world-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_recovery_matches_th1')
+production = False
+
+    @pytest.mark.parametrize("production", [True, False])
+    def test_world_recovery_matches_the_uninterrupted_run(uninterrupted_world, tmp_path, production: bool):
+        cut_tick = next(t["tick"] for t in read_run(uninterrupted_world).ticks
+                        if t["tick"] >= 30 and ("production" in t) == production)
+        cut = cut_after(uninterrupted_world, cut_tick, tmp_path / "cut.jsonl")
+        result = recover_world(cut, tmp_path / "recovered.jsonl")
+        assert result.last_sealed_tick == cut_tick and result.resumed == (cut_tick + 1, 119)
+>       assert content(tmp_path / "recovered.jsonl") == content(uninterrupted_world)
+E       assert [b'{"code_ide...8a0"}\n', ...] == [b'{"code_ide...8a0"}\n', ...]
+E         
+E         At index 121 diff: b'{"final_seal":"ef94a7961cefcd19a4c0e4fc59748ae965f81210333f370f79ff741da6aad201","kind":"end","ticks":120,"trail_digest":"874bc0777714582fd9044a117ba7adebf1a8a094be5fffac9ec7d55ab7d21aa9"}\n' != b'{"final_seal":"ef94a7961cefcd19a4c0e4fc59748ae965f81210333f370f79ff741da6aad201","kind":"end","ticks":120,"trail_digest":"45f3b274256756e01516e789a99e8b5e4ec0e62f11399f21027fbb52a26740a1"}\n'
+E         Use -v to get more diff
+
+tests\test_recovery.py:210: AssertionError
+______________________ test_the_runner_commands_recover _______________________
+
+uninterrupted = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery0/scenario-seed7.jsonl')
+uninterrupted_world = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/recovery-world0/world-seed7.jsonl')
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_the_runner_commands_recov0')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001ECE65CCF80>
+
+    def test_the_runner_commands_recover(uninterrupted, uninterrupted_world, tmp_path, capsys):
+        cut = cut_after(uninterrupted, 45, tmp_path / "cut.jsonl")
+>       assert stream_main(["--recover", str(cut), "--out", str(tmp_path / "r.jsonl")]) == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = stream_main(['--recover', 'C:\\Users\\RJLoc\\Documents\\Codex\\2026-09-23\\referenced-chatgpt-conversation-this-is-an\\work\\pytes...referenced-chatgpt-conversation-this-is-an\\work\\pytest-P8-timing-in-trail\\test_the_runner_commands_recov0\\r.jsonl'])
+
+tests\test_recovery.py:256: AssertionError
+---------------------------- Captured stdout call -----------------------------
+source: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_the_runner_commands_recov0\cut.jsonl
+source sha256: 52ec5f8fbac5e1173f5cb3d7d62c62b59b2312ad15ceb59a38763c51976648f6
+last sealed tick: 45 (live holds at the cut: 13)
+resumed: ticks 46 to 119
+written: C:\Users\RJLoc\Documents\Codex\2026-09-23\referenced-chatgpt-conversation-this-is-an\work\pytest-P8-timing-in-trail\test_the_runner_commands_recov0\r.jsonl
+trail_digest: 6cdc41da6b36b802d00b6e10b360919b63647525e961a29171e2179f40b4c297
+final_seal: 6d00814557466a58a8d8f684cbd7caf35dc43caf3c5acd21c44aa02843277c30
+file_verifies: no
+_______ test_two_runs_of_one_seed_are_byte_identical_apart_from_timing ________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_two_runs_of_one_seed_are_0')
+
+    def test_two_runs_of_one_seed_are_byte_identical_apart_from_timing(tmp_path: Path):
+        scenario = Scenario(seed=11, actors=4, sources=2)
+        first = run_scenario(scenario, 60, tmp_path / "a.jsonl")
+        second = run_scenario(scenario, 60, tmp_path / "b.jsonl")
+>       assert first["trail_digest"] == second["trail_digest"]
+E       AssertionError: assert 'f6d6e74100dc...06db4ecee3b71' == '168d235cdb3b...fe350369522d4'
+E         
+E         - 168d235cdb3b08fa8f8558a15e88d5cfe8a8f889a4a8845733cfe350369522d4
+E         + f6d6e74100dc5ff3f9017d28781b8ec26e90d582c739038e06e06db4ecee3b71
+
+tests\test_stream.py:34: AssertionError
+_______ test_run_file_verifies_and_reads_back_what_the_engine_committed _______
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_run_file_verifies_and_rea0')
+
+    def test_run_file_verifies_and_reads_back_what_the_engine_committed(tmp_path: Path):
+        scenario = Scenario(seed=3, actors=3, sources=1)
+        path = tmp_path / "run.jsonl"
+        result = run_scenario(scenario, 25, path)
+        run = read_run(path)
+>       assert run.complete and run.problems == ()
+E       AssertionError: assert (False)
+E        +  where False = Run(path=WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest...6b923a7c', problems=('line 52: trail digest does not match the tick lines',), last_sealed_tick=24, first_break_line=52).complete
+
+tests\test_stream.py:47: AssertionError
+___ test_viewer_renders_every_tick_from_the_file_with_no_external_resources ___
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_viewer_renders_every_tick0')
+
+    def test_viewer_renders_every_tick_from_the_file_with_no_external_resources(tmp_path: Path):
+        path = tmp_path / "run.jsonl"
+        run_scenario(Scenario(seed=8, actors=4, sources=2), 30, path)
+        run = read_run(path)
+        page = render_html(run)
+        assert page.count("<script") == 2 and "src=" not in page and "href=" not in page
+        assert not re.search(r"https?://", page)
+        embedded = json.loads(re.search(r'<script id="run-data" type="application/json">(.*?)</script>', page, re.S).group(1))
+        assert len(embedded["ticks"]) == 30 and embedded["header"]["genesis_digest"] == run.header["genesis_digest"]
+>       assert "file verifies" in page and "not evidence" in page
+E       assert ('file verifies' in '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initi..."cursor" x="0" y="0" width="2" height="${H}" fill="var(--fg)"/></svg>`;\n})();\nrender();\n</script>\n</body></html>\n')
+
+tests\test_stream.py:109: AssertionError
+_ test_movement_takes_one_cell_per_tick_and_contention_is_settled_by_the_kernel _
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_movement_takes_one_cell_p0')
+
+    def test_movement_takes_one_cell_per_tick_and_contention_is_settled_by_the_kernel(tmp_path: Path):
+        cfg = small(seed=11, starting_food=0, source_stock=1, renewal_amount=0, hungry_at=0, death_at=60, emergency_at=30)
+        run_world(cfg, 12, tmp_path / "w.jsonl")
+        run = read_run(tmp_path / "w.jsonl")
+>       assert run.complete
+E       AssertionError: assert False
+E        +  where False = Run(path=WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest...9f35402d', problems=('line 26: trail digest does not match the tick lines',), last_sealed_tick=11, first_break_line=26).complete
+
+tests\test_world.py:148: AssertionError
+_______ test_two_runs_of_one_seed_are_byte_identical_apart_from_timing ________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_two_runs_of_one_seed_are_1')
+
+    def test_two_runs_of_one_seed_are_byte_identical_apart_from_timing(tmp_path: Path):
+        cfg = small()
+        a = run_world(cfg, 80, tmp_path / "a.jsonl")
+        b = run_world(cfg, 80, tmp_path / "b.jsonl")
+>       assert a.trail_digest == b.trail_digest and a.final_overlay_digest == b.final_overlay_digest
+E       AssertionError: assert ('aa4fdd3a190e...8191f28f2063b' == 'a3a552da788c...b6b104b387c23'
+E         
+E         - a3a552da788cbb94ad4cd7ef796124da66f7bcddab08d0523cdb6b104b387c23
+E         + aa4fdd3a190ec2da83eacc012a165c89eebe8a9c42862fc06408191f28f2063b)
+
+tests\test_world.py:170: AssertionError
+_________ test_world_run_file_verifies_and_chains_through_production __________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_world_run_file_verifies_a0')
+
+    def test_world_run_file_verifies_and_chains_through_production(tmp_path: Path):
+        cfg = small(renewal_every=1, renewal_amount=1, source_cap=9)
+        run_world(cfg, 30, tmp_path / "w.jsonl")
+        run = read_run(tmp_path / "w.jsonl")
+>       assert run.complete and run.has_world and run.header["world_digest"]
+E       AssertionError: assert (False)
+E        +  where False = Run(path=WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest...6ed4483e', problems=('line 62: trail digest does not match the tick lines',), last_sealed_tick=29, first_break_line=62).complete
+
+tests\test_world.py:180: AssertionError
+________ test_viewer_renders_from_the_file_with_no_external_resources _________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/Documents/Codex/2026-09-23/referenced-chatgpt-conversation-this-is-an/work/pytest-P8-timing-in-trail/test_viewer_renders_from_the_f0')
+
+    def test_viewer_renders_from_the_file_with_no_external_resources(tmp_path: Path):
+        cfg = small()
+        run_world(cfg, 25, tmp_path / "w.jsonl")
+        run = read_run(tmp_path / "w.jsonl")
+        page = render_html(run)
+>       assert "file verifies" in page and 'id="run-data"' in page
+E       assert ('file verifies' in '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initi...traitKeys.length ? \'; by yield_at \' + fmtBy(totals.deathsBy) : \'\'}</span>`;\nshow(0);\n</script>\n</body></html>\n')
+
+tests\test_world.py:299: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_sealed_stream.py::test_a_fresh_scenario_run_is_sealed_through_its_last_tick
+FAILED tests/test_sealed_stream.py::test_a_fresh_world_run_is_sealed_through_its_last_tick
+FAILED tests/test_replay.py::test_scenario_runs_replay_identically[7] - strea...
+FAILED tests/test_replay.py::test_scenario_runs_replay_identically[11] - stre...
+FAILED tests/test_replay.py::test_scenario_runs_replay_identically[23] - stre...
+FAILED tests/test_replay.py::test_replay_refuses_files_it_cannot_vouch_for - ...
+FAILED tests/test_replay.py::test_world_runs_replay_identically[False-True-7]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[False-True-11]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[False-True-23]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[False-False-7]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[False-False-11]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[False-False-23]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[True-True-7]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[True-True-11]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[True-True-23]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[True-False-7]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[True-False-11]
+FAILED tests/test_replay.py::test_world_runs_replay_identically[True-False-23]
+FAILED tests/test_replay.py::test_the_runner_commands_report_replay - Asserti...
+FAILED tests/test_recovery.py::test_recovery_from_a_cut_with_live_reservations_matches_the_uninterrupted_run
+FAILED tests/test_recovery.py::test_recovery_from_a_line_cut_in_half - assert...
+FAILED tests/test_recovery.py::test_recovery_from_a_broken_last_seal_resumes_from_the_tick_before_it
+FAILED tests/test_recovery.py::test_recovery_never_uses_an_unsealed_line - as...
+FAILED tests/test_recovery.py::test_recovery_from_the_header_alone_starts_at_genesis
+FAILED tests/test_recovery.py::test_recovery_of_a_file_cut_only_before_its_end_line
+FAILED tests/test_recovery.py::test_recovery_refuses_what_it_cannot_trust - F...
+FAILED tests/test_recovery.py::test_world_recovery_matches_the_uninterrupted_run[True]
+FAILED tests/test_recovery.py::test_world_recovery_matches_the_uninterrupted_run[False]
+FAILED tests/test_recovery.py::test_the_runner_commands_recover - AssertionEr...
+FAILED tests/test_stream.py::test_two_runs_of_one_seed_are_byte_identical_apart_from_timing
+FAILED tests/test_stream.py::test_run_file_verifies_and_reads_back_what_the_engine_committed
+FAILED tests/test_stream.py::test_viewer_renders_every_tick_from_the_file_with_no_external_resources
+FAILED tests/test_world.py::test_movement_takes_one_cell_per_tick_and_contention_is_settled_by_the_kernel
+FAILED tests/test_world.py::test_two_runs_of_one_seed_are_byte_identical_apart_from_timing
+FAILED tests/test_world.py::test_world_run_file_verifies_and_chains_through_production
+FAILED tests/test_world.py::test_viewer_renders_from_the_file_with_no_external_resources
+36 failed, 95 passed in 9.28s
