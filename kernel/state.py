@@ -9,10 +9,17 @@ Three account kinds exist. `actor:<id>` is an actor's exclusive holding.
 `sink:consumed` is the single declared consumption sink, which is credit only:
 consumed units leave circulation but stay inside the conserved total, so loss
 can never be confused with leakage.
+
+Named resources (2026-09-25) sit beside that base resource. A world declares
+them in `holdings` (every actor's amount of each) and `consumed_by` (one sink
+each). Their accounts are `actor@<resource>:<id>` and `sink@<resource>:consumed`,
+and a Source says which resource it holds. A world that declares none has
+exactly the canonical form it had before.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -25,18 +32,51 @@ from kernel.version import SCHEMA_VERSION
 ACTOR_PREFIX = "actor:"
 SOURCE_PREFIX = "source:"
 SINK_ACCOUNT = "sink:consumed"
+NAMED_ACTOR_PREFIX = "actor@"
+NAMED_SINK_PREFIX = "sink@"
+_RESOURCE_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}\Z")
 
 
-def actor_account(actor_id: str) -> str:
-    return ACTOR_PREFIX + actor_id
+def is_resource_name(name: Any) -> bool:
+    """A named resource: lower-case letters, digits and underscores, starting
+    with a letter, at most 32 characters. The base resource has no name (None)."""
+    return isinstance(name, str) and _RESOURCE_NAME.match(name) is not None
+
+
+def actor_account(actor_id: str, resource: str | None = None) -> str:
+    """`actor:<id>` holds the base resource; `actor@<resource>:<id>` a named one."""
+    if resource is None:
+        return ACTOR_PREFIX + actor_id
+    return f"{NAMED_ACTOR_PREFIX}{resource}:{actor_id}"
+
+
+def sink_account(resource: str | None = None) -> str:
+    return SINK_ACCOUNT if resource is None else f"{NAMED_SINK_PREFIX}{resource}:consumed"
 
 
 def source_account(source_id: str) -> str:
     return SOURCE_PREFIX + source_id
 
 
+def _named_parts(account: str, prefix: str) -> tuple[str, str] | None:
+    """(resource, rest) for `<prefix><resource>:<rest>`, else None."""
+    if not account.startswith(prefix):
+        return None
+    resource, colon, rest = account[len(prefix):].partition(":")
+    if not colon or not is_resource_name(resource):
+        return None
+    return resource, rest
+
+
 def is_actor_account(account: str) -> bool:
-    return account.startswith(ACTOR_PREFIX)
+    return account.startswith(ACTOR_PREFIX) or _named_parts(account, NAMED_ACTOR_PREFIX) is not None
+
+
+def is_sink_account(account: str) -> bool:
+    if account == SINK_ACCOUNT:
+        return True
+    parts = _named_parts(account, NAMED_SINK_PREFIX)
+    return parts is not None and parts[1] == "consumed"
 
 
 def is_source_account(account: str) -> bool:
@@ -44,7 +84,22 @@ def is_source_account(account: str) -> bool:
 
 
 def actor_of(account: str) -> str:
-    return account[len(ACTOR_PREFIX) :]
+    if account.startswith(ACTOR_PREFIX):
+        return account[len(ACTOR_PREFIX):]
+    parts = _named_parts(account, NAMED_ACTOR_PREFIX)
+    if parts is None:
+        raise ValueError(f"not an actor account: {account!r}")
+    return parts[1]
+
+
+def resource_of(account: str) -> str | None:
+    """The named resource of an actor or sink account; None for the base
+    resource. A source account's resource is its Source's, not in the name."""
+    for prefix in (NAMED_ACTOR_PREFIX, NAMED_SINK_PREFIX):
+        parts = _named_parts(account, prefix)
+        if parts is not None:
+            return parts[0]
+    return None
 
 
 def source_of(account: str) -> str:
@@ -93,10 +148,13 @@ class Source:
 
     stock: int
     authorised: frozenset[str] = frozenset()
+    resource: str | None = None          # None: the base resource
 
     def __post_init__(self) -> None:
         if not is_valid_balance(self.stock):
             raise ValueError(f"a source stock must be an integer of zero or more, got {self.stock!r}")
+        if self.resource is not None and not is_resource_name(self.resource):
+            raise ValueError(f"a source resource needs a valid name, got {self.resource!r}")
         authorised = frozenset(self.authorised)
         for actor_id in authorised:
             if not isinstance(actor_id, str) or not actor_id:
@@ -107,17 +165,23 @@ class Source:
         return actor_id in self.authorised
 
     def canonical(self) -> dict[str, Any]:
-        return {"stock": self.stock, "authorised": sorted(self.authorised)}
+        out: dict[str, Any] = {"stock": self.stock, "authorised": sorted(self.authorised)}
+        if self.resource is not None:
+            out["resource"] = self.resource
+        return out
 
     @classmethod
     def from_canonical(cls, data: Mapping[str, Any]) -> "Source":
-        data = _canonical_map(data, frozenset({"stock", "authorised"}), "source")
+        named = isinstance(data, Mapping) and "resource" in data
+        data = _canonical_map(data, frozenset({"stock", "authorised"} | ({"resource"} if named else set())), "source")
+        if named and not is_resource_name(data["resource"]):
+            raise ValueError("a canonical source names its resource or omits it")
         authorised = data["authorised"]
         if not isinstance(authorised, (list, tuple)) or any(not isinstance(actor_id, str) for actor_id in authorised):
             raise ValueError("a canonical source needs a list of claimant identities")
         if list(authorised) != sorted(set(authorised)):
             raise ValueError("a canonical source lists its claimants sorted and once each")
-        return cls(stock=data["stock"], authorised=frozenset(authorised))
+        return cls(stock=data["stock"], authorised=frozenset(authorised), resource=data.get("resource"))
 
 
 @dataclass(frozen=True)
@@ -128,6 +192,7 @@ class SourceView:
     stock: int
     authorised: tuple[str, ...]
     reserved: int = 0
+    resource: str | None = None
 
     @property
     def available_stock(self) -> int:
@@ -201,10 +266,17 @@ class WorldView:
     sources: Mapping[str, SourceView]
     roster: tuple[str, ...]
     reservations: Mapping[str, Reservation] = field(default_factory=lambda: MappingProxyType({}))
+    holdings: Mapping[str, Mapping[str, int]] = field(default_factory=lambda: MappingProxyType({}))
 
     @property
     def own_balance(self) -> int:
         return self.balances[self.actor]
+
+    def own_available_of(self, resource: str | None = None) -> int:
+        """Free units of one resource: holding minus this actor's own holds."""
+        held = self.balances[self.actor] if resource is None else self.holdings[resource][self.actor]
+        account = actor_account(self.actor, resource)
+        return held - sum(reservation.held().get(account, 0) for reservation in self.reservations.values())
 
     @property
     def own_available(self) -> int:
@@ -223,6 +295,8 @@ class WorldState:
     sources: Mapping[str, Source]
     consumed: int = 0
     reservations: Mapping[str, Reservation] = field(default_factory=dict)
+    holdings: Mapping[str, Mapping[str, int]] = field(default_factory=dict)   # named resource -> actor -> units
+    consumed_by: Mapping[str, int] = field(default_factory=dict)             # named resource -> consumed units
 
     def __post_init__(self) -> None:
         if not is_integer(self.tick) or self.tick < 0:
@@ -248,8 +322,33 @@ class WorldState:
             if not isinstance(source, Source):
                 raise ValueError(f"{source_id!r} is not a Source")
 
+        raw_holdings = dict(self.holdings)
+        holdings: dict[str, Mapping[str, int]] = {}
+        for resource in raw_holdings:
+            if not is_resource_name(resource):
+                raise ValueError(f"a named resource needs a valid name, got {resource!r}")
+        for resource in sorted(raw_holdings):
+            amounts = dict(raw_holdings[resource])
+            if set(amounts) != set(balances):
+                raise ValueError(f"holdings of {resource!r} must name exactly the actors")
+            for actor_id, amount in amounts.items():
+                if not is_valid_balance(amount):
+                    raise ValueError(f"{actor_id!r} holds an invalid amount of {resource!r}: {amount!r}")
+            holdings[resource] = MappingProxyType({actor_id: amounts[actor_id] for actor_id in sorted(amounts)})
+        consumed_by = dict(self.consumed_by)
+        if set(consumed_by) != set(holdings):
+            raise ValueError("every named resource needs exactly one consumption sink")
+        for resource, amount in consumed_by.items():
+            if not is_valid_balance(amount):
+                raise ValueError(f"the {resource!r} sink must hold an integer of zero or more, got {amount!r}")
+        for source_id, source in sources.items():
+            if source.resource is not None and source.resource not in holdings:
+                raise ValueError(f"source {source_id!r} holds an undeclared resource {source.resource!r}")
+
         object.__setattr__(self, "balances", MappingProxyType(balances))
         object.__setattr__(self, "sources", MappingProxyType(sources))
+        object.__setattr__(self, "holdings", MappingProxyType(holdings))
+        object.__setattr__(self, "consumed_by", MappingProxyType({r: consumed_by[r] for r in sorted(consumed_by)}))
         reservations = dict(self.reservations)
         for action_id, reservation in reservations.items():
             if not isinstance(reservation, Reservation) or action_id != reservation.action_id:
@@ -258,7 +357,10 @@ class WorldState:
                 raise ValueError("a reservation needs an existing actor and an earlier creation tick")
             for effect in reservation.effects:
                 account = effect.account
-                if account == SINK_ACCOUNT:
+                named = resource_of(account)
+                if named is not None and named not in holdings:
+                    raise ValueError("a reservation names an unknown resource")
+                if is_sink_account(account):
                     if effect.delta < 0:
                         raise ValueError("a reservation cannot debit consumed stock")
                 elif is_actor_account(account):
@@ -286,6 +388,8 @@ class WorldState:
         sources: Mapping[str, Source] | None = None,
         consumed: int = 0,
         reservations: Mapping[str, Reservation] | None = None,
+        holdings: Mapping[str, Mapping[str, int]] | None = None,
+        consumed_by: Mapping[str, int] | None = None,
     ) -> "WorldState":
         return cls(
             tick=tick,
@@ -293,6 +397,8 @@ class WorldState:
             sources=dict(sources or {}),
             consumed=consumed,
             reservations=dict(reservations or {}),
+            holdings=dict(holdings or {}),
+            consumed_by=dict(consumed_by or {}),
         )
 
     @classmethod
@@ -301,8 +407,14 @@ class WorldState:
         instances need. Only this schema version is accepted, and the result is
         built through the constructor, so every rail that guards a live state
         guards a restored one. `from_canonical(s.canonical()).digest() == s.digest()`."""
-        data = _canonical_map(
-            data, frozenset({"schema_version", "tick", "balances", "sources", "consumed", "reservations"}), "state")
+        named = isinstance(data, Mapping) and ("holdings" in data or "consumed_by" in data)
+        keys = {"schema_version", "tick", "balances", "sources", "consumed", "reservations"}
+        data = _canonical_map(data, frozenset(keys | ({"holdings", "consumed_by"} if named else set())), "state")
+        if named:
+            if not isinstance(data["holdings"], Mapping) or not isinstance(data["consumed_by"], Mapping):
+                raise ValueError("a canonical state needs mappings of holdings and consumed_by")
+            if not data["holdings"] or any(not isinstance(m, Mapping) for m in data["holdings"].values()):
+                raise ValueError("canonical holdings are omitted when empty and map each resource to actors")
         if data["schema_version"] != SCHEMA_VERSION:
             raise ValueError(f"a canonical state of schema {data['schema_version']!r} is not {SCHEMA_VERSION}")
         for name in ("balances", "sources", "reservations"):
@@ -315,6 +427,8 @@ class WorldState:
             consumed=data["consumed"],
             reservations={action_id: Reservation.from_canonical(reservation)
                           for action_id, reservation in data["reservations"].items()},
+            holdings={r: dict(m) for r, m in data["holdings"].items()} if named else {},
+            consumed_by=dict(data["consumed_by"]) if named else {},
         )
 
     @property
@@ -323,16 +437,28 @@ class WorldState:
         return tuple(sorted(self.balances))
 
     def total(self) -> int:
-        """The conserved total: everything held, everything in a source, everything consumed."""
-        return (
-            sum(self.balances.values())
-            + sum(source.stock for source in self.sources.values())
+        """The conserved total of the base resource: held, in a source, consumed."""
+        return self.totals()[None]
+
+    def totals(self) -> dict[str | None, int]:
+        """The conserved total of every resource; None is the base resource."""
+        out: dict[str | None, int] = {
+            None: sum(self.balances.values())
+            + sum(source.stock for source in self.sources.values() if source.resource is None)
             + self.consumed
-        )
+        }
+        for resource, amounts in self.holdings.items():
+            out[resource] = (sum(amounts.values())
+                             + sum(source.stock for source in self.sources.values() if source.resource == resource)
+                             + self.consumed_by[resource])
+        return out
 
     def availability(self) -> dict[str, int]:
         """A detached account map of free stock; holds are counted only once."""
         available = {actor_account(actor): amount for actor, amount in self.balances.items()}
+        for resource, amounts in self.holdings.items():
+            available.update({actor_account(actor, resource): amount for actor, amount in amounts.items()})
+            available[sink_account(resource)] = 0
         available.update({source_account(name): source.stock for name, source in self.sources.items()})
         available[SINK_ACCOUNT] = 0
         for reservation in self.reservations.values():
@@ -355,16 +481,18 @@ class WorldState:
                         stock=source.stock,
                         authorised=tuple(sorted(source.authorised)),
                         reserved=source.stock - available[source_account(source_id)],
+                        resource=source.resource,
                     )
                     for source_id, source in self.sources.items()
                 }
             ),
             roster=self.roster,
             reservations=MappingProxyType(dict(self.reservations)),
+            holdings=MappingProxyType({r: MappingProxyType(dict(m)) for r, m in self.holdings.items()}),
         )
 
     def canonical(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "schema_version": SCHEMA_VERSION,
             "tick": self.tick,
             "balances": dict(self.balances),
@@ -372,6 +500,11 @@ class WorldState:
             "consumed": self.consumed,
             "reservations": {action_id: reservation.canonical() for action_id, reservation in self.reservations.items()},
         }
+        if self.holdings:
+            # Only when declared, so a base-resource world keeps its old canonical form.
+            out["holdings"] = {resource: dict(amounts) for resource, amounts in self.holdings.items()}
+            out["consumed_by"] = dict(self.consumed_by)
+        return out
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

@@ -16,7 +16,10 @@ from kernel.ordering import actor_ranks, rotated_roster, sorted_roster
 from kernel.outcomes import ProposalOutcome, TickRecord
 from kernel.proposals import Proposal, cancel, claim, complete, consume, reserve, transfer
 from kernel.settlement import IntegrityError, Settlement, effects_are_balanced, settle
-from kernel.state import Effect, Reservation, Source, SourceView, WorldState, WorldView
+from kernel.state import (
+    Effect, Reservation, Source, SourceView, WorldState, WorldView, actor_account, is_resource_name,
+    resource_of, sink_account,
+)
 from kernel.units import RESOURCE_UNIT
 from kernel.version import ENGINE_VERSION, SCHEMA_VERSION
 
@@ -59,6 +62,7 @@ __all__ = [
     "TickRecord",
     "WorldState",
     "WorldView",
+    "actor_account",
     "actor_ranks",
     "canonical",
     "canonical_bytes",
@@ -70,15 +74,18 @@ __all__ = [
     "diagnostics",
     "digest",
     "effects_are_balanced",
+    "is_resource_name",
     "engine",
     "ordering",
     "outcomes",
     "proposals",
     "reasons",
     "reserve",
+    "resource_of",
     "rotated_roster",
     "settle",
     "settlement",
+    "sink_account",
     "sorted_roster",
     "state",
     "transfer",

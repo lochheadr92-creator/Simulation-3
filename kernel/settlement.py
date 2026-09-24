@@ -41,7 +41,10 @@ from kernel.state import (
     actor_account,
     actor_of,
     is_actor_account,
+    is_sink_account,
     is_source_account,
+    resource_of,
+    sink_account,
     source_account,
     source_of,
 )
@@ -70,7 +73,10 @@ def effects_are_balanced(effects: Iterable[Effect]) -> bool:
 def _accounts_exist(effects: Iterable[Effect], state: WorldState) -> str | None:
     for effect in effects:
         account = effect.account
-        if account == SINK_ACCOUNT:
+        named = resource_of(account)
+        if named is not None and named not in state.holdings:
+            return reasons.DENIED_UNKNOWN_RESOURCE
+        if is_sink_account(account):
             continue
         if is_actor_account(account):
             if actor_of(account) not in state.balances:
@@ -93,7 +99,7 @@ def _authority(actor_id: str, effects: Iterable[Effect], state: WorldState) -> s
         if effect.delta >= 0:
             continue
         account = effect.account
-        if account == SINK_ACCOUNT:
+        if is_sink_account(account):
             return reasons.DENIED_UNAUTHORISED
         if is_actor_account(account):
             if actor_of(account) != actor_id:
@@ -102,6 +108,19 @@ def _authority(actor_id: str, effects: Iterable[Effect], state: WorldState) -> s
             if not state.sources[source_of(account)].permits(actor_id):
                 return reasons.DENIED_UNAUTHORISED
     return None
+
+
+def _resources_balanced(effects: Iterable[Effect], state: WorldState) -> bool:
+    """Each resource balances on its own. A source account moves its Source's
+    resource; actor and sink accounts move the resource in their address."""
+    sums: dict[str | None, int] = {}
+    for effect in effects:
+        if is_source_account(effect.account):
+            resource = state.sources[source_of(effect.account)].resource
+        else:
+            resource = resource_of(effect.account)
+        sums[resource] = sums.get(resource, 0) + effect.delta
+    return all(total == 0 for total in sums.values())
 
 
 def _shortfall(effects: Iterable[Effect], available: dict[str, int]) -> str | None:
@@ -180,6 +199,8 @@ def settle(state: WorldState, proposals: Iterable[Proposal]) -> Settlement:
             refusal = _authority(proposal.actor, effects, state)
         if refusal is None and not effects_are_balanced(effects):
             refusal = reasons.DENIED_UNBALANCED_EFFECTS
+        if refusal is None and not _resources_balanced(effects, state):
+            refusal = reasons.DENIED_RESOURCE_MISMATCH
         if refusal is not None:
             verdicts[index] = refusal
             continue
@@ -287,6 +308,8 @@ def _commit(
         {actor_account(actor_id) for actor_id in state.balances}
         | {source_account(source_id) for source_id in state.sources}
         | {SINK_ACCOUNT}
+        | {actor_account(actor_id, resource) for resource in state.holdings for actor_id in state.balances}
+        | {sink_account(resource) for resource in state.holdings}
     )
     stray = set(staged) - known
     if stray:
@@ -303,11 +326,21 @@ def _commit(
         for source_id, source in state.sources.items()
     }
     consumed = state.consumed + staged.get(SINK_ACCOUNT, 0)
+    holdings = {
+        resource: {actor_id: amount + staged.get(actor_account(actor_id, resource), 0)
+                   for actor_id, amount in amounts.items()}
+        for resource, amounts in state.holdings.items()
+    }
+    consumed_by = {resource: amount + staged.get(sink_account(resource), 0)
+                   for resource, amount in state.consumed_by.items()}
 
     negatives = (
         [f"actor {actor_id}" for actor_id, amount in balances.items() if amount < 0]
         + [f"source {source_id}" for source_id, stock in stocks.items() if stock < 0]
         + (["the consumption sink"] if consumed < 0 else [])
+        + [f"actor {actor_id} {resource}" for resource, amounts in holdings.items()
+           for actor_id, amount in amounts.items() if amount < 0]
+        + [f"the {resource} sink" for resource, amount in consumed_by.items() if amount < 0]
     )
     if negatives:
         raise IntegrityError(f"settlement would leave a negative balance: {negatives}")
@@ -317,17 +350,19 @@ def _commit(
             tick=state.tick + 1,
             balances=balances,
             sources={
-                source_id: Source(stock=stocks[source_id], authorised=source.authorised)
+                source_id: Source(stock=stocks[source_id], authorised=source.authorised, resource=source.resource)
                 for source_id, source in state.sources.items()
             },
             consumed=consumed,
             reservations=state.reservations if reservations is None else reservations,
+            holdings=holdings,
+            consumed_by=consumed_by,
         )
     except ValueError as error:
         raise IntegrityError(f"settlement produced invalid reservation state: {error}") from error
-    if next_state.total() != state.total():
+    if next_state.totals() != state.totals():
         raise IntegrityError(
-            f"settlement did not conserve the declared total: {state.total()} became {next_state.total()}"
+            f"settlement did not conserve the declared totals: {state.totals()} became {next_state.totals()}"
         )
     if next_state.roster != state.roster:
         raise IntegrityError("settlement changed the roster, which slices 1a/1b do not do")

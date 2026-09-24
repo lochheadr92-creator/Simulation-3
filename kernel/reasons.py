@@ -23,6 +23,8 @@ DENIED_INSUFFICIENT_BALANCE = "denied_insufficient_balance"
 DENIED_UNBALANCED_EFFECTS = "denied_unbalanced_effects"
 DENIED_SELF_TRANSFER = "denied_self_transfer"
 DENIED_UNKNOWN_ACTION = "denied_unknown_action"
+DENIED_UNKNOWN_RESOURCE = "denied_unknown_resource"
+DENIED_RESOURCE_MISMATCH = "denied_resource_mismatch"
 
 ALL = frozenset(
     {
@@ -41,6 +43,8 @@ ALL = frozenset(
         DENIED_UNBALANCED_EFFECTS,
         DENIED_SELF_TRANSFER,
         DENIED_UNKNOWN_ACTION,
+        DENIED_UNKNOWN_RESOURCE,
+        DENIED_RESOURCE_MISMATCH,
     }
 )
 

@@ -18,7 +18,7 @@ from types import MappingProxyType
 from typing import Any, Callable
 
 from kernel import reasons
-from kernel.state import SINK_ACCOUNT, Effect, actor_account, source_account
+from kernel.state import Effect, actor_account, is_resource_name, sink_account, source_account
 from kernel.units import is_integer, is_valid_transaction_amount
 
 OP_CLAIM = "claim"
@@ -90,6 +90,15 @@ def _amount(params: Mapping[str, Any], name: str) -> int:
     return amount
 
 
+def _resource(params: Mapping[str, Any]) -> str | None:
+    """The optional `resource` parameter: absent means the base resource."""
+    if "resource" not in params:
+        return None
+    if not is_resource_name(params["resource"]):
+        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
+    return params["resource"]
+
+
 def expand_claim(proposal: Proposal) -> tuple[Effect, ...]:
     wanted = proposal.params.get("sources")
     if not isinstance(wanted, Mapping) or not wanted:
@@ -97,13 +106,14 @@ def expand_claim(proposal: Proposal) -> tuple[Effect, ...]:
     if any(not isinstance(source_id, str) or not source_id for source_id in wanted):
         raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
 
+    resource = _resource(proposal.params)
     taken = 0
     effects: list[Effect] = []
     for source_id in sorted(wanted):
         amount = _amount(wanted, source_id)
         taken += amount
         effects.append(Effect(source_account(source_id), -amount))
-    effects.append(Effect(actor_account(proposal.actor), taken))
+    effects.append(Effect(actor_account(proposal.actor, resource), taken))
     return _ordered(effects)
 
 
@@ -112,22 +122,24 @@ def expand_transfer(proposal: Proposal) -> tuple[Effect, ...]:
     if not isinstance(target, str) or not target:
         raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
     amount = _amount(proposal.params, "amount")
+    resource = _resource(proposal.params)
     if target == proposal.actor:
         raise reasons.Rejected(reasons.DENIED_SELF_TRANSFER)
     return _ordered(
         [
-            Effect(actor_account(proposal.actor), -amount),
-            Effect(actor_account(target), amount),
+            Effect(actor_account(proposal.actor, resource), -amount),
+            Effect(actor_account(target, resource), amount),
         ]
     )
 
 
 def expand_consume(proposal: Proposal) -> tuple[Effect, ...]:
     amount = _amount(proposal.params, "amount")
+    resource = _resource(proposal.params)
     return _ordered(
         [
-            Effect(actor_account(proposal.actor), -amount),
-            Effect(SINK_ACCOUNT, amount),
+            Effect(actor_account(proposal.actor, resource), -amount),
+            Effect(sink_account(resource), amount),
         ]
     )
 
@@ -147,19 +159,28 @@ def expand(proposal: Proposal) -> tuple[Effect, ...]:
     return tuple(expander(proposal))
 
 
-def claim(proposal_id: str, actor: str, order: int, *, sources: Mapping[str, int]) -> Proposal:
-    """Take the named amounts from the named shared sources, as one transaction."""
-    return Proposal(proposal_id, actor, order, OP_CLAIM, {"sources": dict(sources)})
+def _with_resource(params: dict[str, Any], resource: str | None) -> dict[str, Any]:
+    if resource is not None:
+        params["resource"] = resource
+    return params
 
 
-def transfer(proposal_id: str, actor: str, order: int, *, to: str, amount: int) -> Proposal:
+def claim(proposal_id: str, actor: str, order: int, *, sources: Mapping[str, int],
+          resource: str | None = None) -> Proposal:
+    """Take the named amounts from the named shared sources, as one transaction.
+    Every source must hold `resource` (None: the base resource)."""
+    return Proposal(proposal_id, actor, order, OP_CLAIM, _with_resource({"sources": dict(sources)}, resource))
+
+
+def transfer(proposal_id: str, actor: str, order: int, *, to: str, amount: int,
+             resource: str | None = None) -> Proposal:
     """Give `amount` of the proposer's own holding to another actor."""
-    return Proposal(proposal_id, actor, order, OP_TRANSFER, {"to": to, "amount": amount})
+    return Proposal(proposal_id, actor, order, OP_TRANSFER, _with_resource({"to": to, "amount": amount}, resource))
 
 
-def consume(proposal_id: str, actor: str, order: int, *, amount: int) -> Proposal:
+def consume(proposal_id: str, actor: str, order: int, *, amount: int, resource: str | None = None) -> Proposal:
     """Spend `amount` of the proposer's own holding into the consumption sink."""
-    return Proposal(proposal_id, actor, order, OP_CONSUME, {"amount": amount})
+    return Proposal(proposal_id, actor, order, OP_CONSUME, _with_resource({"amount": amount}, resource))
 
 
 def reserve(proposal_id: str, actor: str, order: int, *, operation: str, params: Mapping[str, Any]) -> Proposal:
