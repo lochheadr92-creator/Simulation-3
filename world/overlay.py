@@ -44,6 +44,7 @@ class Overlay:
     hunger: Mapping[str, int]
     yield_at: Mapping[str, int]
     died_at: Mapping[str, int] = field(default_factory=dict)
+    thirst: Mapping[str, int] = field(default_factory=dict)   # empty unless water is on
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -61,6 +62,13 @@ class Overlay:
             if actor not in positions or type(when) is not int or when < 0 or when > self.tick:
                 raise ValueError(f"death of {actor!r} must name a known person and an earlier tick")
         yield_at = _positive_ints(self.yield_at, roster=set(homes), name="yield_at")
+        thirst = {actor: self.thirst[actor] for actor in sorted(self.thirst)}
+        if thirst and set(thirst) != set(positions):
+            raise ValueError("thirst must name the same people as positions, or be empty")
+        for actor, value in thirst.items():
+            if type(value) is not int or value < 0:
+                raise ValueError(f"thirst of {actor!r} must be an integer of zero or more")
+        object.__setattr__(self, "thirst", MappingProxyType(thirst))
         object.__setattr__(self, "homes", homes)
         object.__setattr__(self, "positions", positions)
         object.__setattr__(self, "hunger", MappingProxyType(hunger))
@@ -86,6 +94,7 @@ class Overlay:
             "hunger": dict(self.hunger),
             "yield_at": dict(self.yield_at),
             "died_at": dict(self.died_at),
+            **({"thirst": dict(self.thirst)} if self.thirst else {}),
         }
 
     @classmethod
@@ -93,6 +102,8 @@ class Overlay:
         """Rebuild an overlay from `canonical()` (slice 1c: replay, recovery).
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
+        if isinstance(data, Mapping) and "thirst" in data:
+            keys = keys | {"thirst"}
         if not isinstance(data, Mapping) or set(data) != keys:
             raise ValueError(f"a canonical overlay needs exactly the keys {sorted(keys)}")
         for name in sorted(keys - {"tick"}):
@@ -108,7 +119,8 @@ class Overlay:
             return out
 
         return cls(tick=data["tick"], homes=cells(data["homes"]), positions=cells(data["positions"]),
-                   hunger=dict(data["hunger"]), yield_at=dict(data["yield_at"]), died_at=dict(data["died_at"]))
+                   hunger=dict(data["hunger"]), yield_at=dict(data["yield_at"]), died_at=dict(data["died_at"]),
+                   thirst=dict(data.get("thirst", {})))
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

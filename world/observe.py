@@ -31,9 +31,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from kernel import WorldState
-from kernel.state import actor_account
+from kernel.state import actor_account, source_account
 
-from world.config import FOOD_SOURCE, WorldConfig
+from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig
 from world.overlay import Overlay, Position
 
 
@@ -69,6 +69,10 @@ class Observation:
     source_food: int | None   # free stock if the source cell is in view; else None
     yield_at: int = 99        # own trait; visible to self, not recorded about others
     others: tuple[SeenPerson, ...] = field(default_factory=tuple)
+    thirst: int = 0                        # water on only, like the three fields below
+    water: int = 0                         # own free water units at tick start
+    water_source: Position | None = None   # a known landmark, like the food source
+    water_stock: int | None = None         # free water stock if its cell is in view; else None
 
     @property
     def at_source(self) -> bool:
@@ -92,6 +96,8 @@ class Observation:
         out: dict[str, Any] = {"sees": [seen.actor for seen in self.others]}
         if self.source_food is not None:
             out["source_food"] = self.source_food
+        if self.water_stock is not None:
+            out["water_stock"] = self.water_stock
         return out
 
 
@@ -123,4 +129,18 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         source_food=source_food,
         yield_at=overlay.yield_at[actor],
         others=others,
+        **_water_view(actor, origin, overlay, config, available),
     )
+
+
+def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldConfig,
+                available: Mapping[str, int]) -> dict[str, Any]:
+    if not config.water_on:
+        return {}
+    well = config.water_position
+    return {
+        "thirst": overlay.thirst[actor],
+        "water": available[actor_account(actor, WATER)],
+        "water_source": well,
+        "water_stock": available[source_account(WATER_SOURCE)] if in_view(origin, well, config.perception_radius) else None,
+    }

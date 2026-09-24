@@ -34,8 +34,8 @@ from typing import Any
 from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume
 
 from stream.run_file import RunFileError, RunWriter, read_run
-from world.config import FOOD_SOURCE, WorldConfig, genesis
-from world.decide import CLAIM, EAT, Decision, decide
+from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, genesis
+from world.decide import CLAIM, DRAW, DRINK, EAT, Decision, decide
 from world.observe import Observation, observe
 from world.overlay import Overlay
 
@@ -46,7 +46,7 @@ DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
 def run_id_for(config: WorldConfig, ticks: int) -> str:
     mode = "on" if config.yield_on else "off"
-    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "")
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "")
 
 
 def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
@@ -58,6 +58,10 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
             out.append(consume(pid, actor, 0, amount=decision.amount))
         elif decision.kind == CLAIM:
             out.append(claim(pid, actor, 0, sources={FOOD_SOURCE: decision.amount}))
+        elif decision.kind == DRINK:
+            out.append(consume(pid, actor, 0, amount=decision.amount, resource=WATER))
+        elif decision.kind == DRAW:
+            out.append(claim(pid, actor, 0, sources={WATER_SOURCE: decision.amount}, resource=WATER))
     return out
 
 
@@ -155,6 +159,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", default=None, help="Run file path. Default: runs/<run_id>.jsonl")
     parser.add_argument("--scoring", choices=("on", "off"), default="off",
                         help="score eligible personal actions (opt in); food allocation is unchanged")
+    parser.add_argument("--water", choices=("on", "off"), default="off",
+                        help="add water and thirst as a second need (default off)")
     parser.add_argument("--trips", choices=("on", "off"), default="on",
                         help="leave for the source in time when holding no food (default on)")
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
@@ -201,6 +207,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["yield_on"] = args.yield_mode == "on"
     levers["scoring_on"] = args.scoring == "on"
     levers["plan_trips"] = args.trips == "on"
+    levers["water_on"] = args.water == "on"
     return WorldConfig(seed=args.seed, **levers)
 
 

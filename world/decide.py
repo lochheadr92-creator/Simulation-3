@@ -33,7 +33,7 @@ Emergency never yields. A yield proposes nothing and does not step.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from world.config import WorldConfig
@@ -44,6 +44,8 @@ EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
     "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
 )
 LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, HOME, REST)
+DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
+WATER_PRIORITY = (DRINK, DRAW, WAIT_WATER, GO_WATER)
 
 
 @dataclass(frozen=True)
@@ -150,6 +152,80 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
 
 
 def decide(observation: Observation, config: WorldConfig) -> Decision:
+    """Food only when water is off (the rule above, unchanged); both needs when on."""
+    if config.water_on:
+        return _decide_two_needs(observation, config)
+    return _decide_food(observation, config)
+
+
+def steps_to(origin: Position, target: Position) -> int:
+    return abs(target[0] - origin[0]) + abs(target[1] - origin[1])
+
+
+def water_trip_due(observation: Observation, config: WorldConfig) -> bool:
+    """The leave-in-time rule for water: holding none, and far enough that
+    leaving now arrives as thirst reaches thirsty_at."""
+    well = observation.water_source
+    return (config.plan_trips and well is not None and observation.water == 0 and observation.position != well
+            and observation.thirst + config.thirst_rate * steps_to(observation.position, well) >= config.thirsty_at)
+
+
+def water_candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]:
+    """drink: thirsty and holding water; draw: thirsty at the water with stock;
+    wait_water: thirsty at empty water; go_water: thirsty elsewhere, or due to leave."""
+    if not observation.alive or observation.water_source is None:
+        return ()
+    thirsty = observation.thirst >= config.thirsty_at
+    at_water = observation.position == observation.water_source
+    found: list[str] = []
+    if thirsty and observation.water >= 1:
+        found.append(DRINK)
+    if thirsty and at_water:
+        if observation.water_stock is None:
+            raise AssertionError(f"{observation.actor} is at the water but did not observe its stock")
+        found.append(DRAW if observation.water_stock >= 1 else WAIT_WATER)
+    if not at_water and (thirsty or water_trip_due(observation, config)):
+        found.append(GO_WATER)
+    return tuple(found)
+
+
+def _decide_two_needs(observation: Observation, config: WorldConfig) -> Decision:
+    """Serve the need nearer its lethal level (exact integer comparison of
+    thirst/thirst_death_at against hunger/death_at; thirst wins ties). Needs
+    that are not calling fall back to the food rule's walk home or rest."""
+    food = candidates(observation, config)
+    if not food:
+        return Decision(observation.actor, DEAD, "dead", ())
+    water = water_candidates(observation, config)
+    both = food + water
+    food_calling = any(action not in (HOME, REST) for action in food)
+    thirst_first = observation.thirst * config.death_at >= observation.hunger * config.thirst_death_at
+    if water and (not food_calling or thirst_first):
+        chosen = next(action for action in WATER_PRIORITY if action in water)
+        return replace(_water_decision(observation, config, chosen), candidates=both)
+    return replace(_decide_food(observation, config), candidates=both)
+
+
+def _water_decision(observation: Observation, config: WorldConfig, selected: str) -> Decision:
+    actor = observation.actor
+    urgency = "thirst emergency" if observation.thirst >= config.thirst_emergency_at else "thirsty"
+    if selected == DRINK:
+        return Decision(actor, DRINK, f"{urgency}, holding {observation.water} water", (), amount=1)
+    if selected == DRAW:
+        stock = observation.water_stock
+        if stock is None:
+            raise AssertionError("draw selected without observed water stock")
+        return Decision(actor, DRAW, f"{urgency}, at water with {stock} free", (), amount=min(config.draw_amount, stock))
+    if selected == WAIT_WATER:
+        return Decision(actor, WAIT_WATER, f"{urgency}, water empty", ())
+    well = observation.water_source
+    reason = (f"{urgency}, walking to water" if observation.thirst >= config.thirsty_at
+              else f"leaving in time for water: thirst {observation.thirst}, {steps_to(observation.position, well)} "
+                   f"steps, none held")
+    return Decision(actor, GO_WATER, reason, (), step=step_toward(observation.position, well))
+
+
+def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     options = candidates(observation, config)
     actor = observation.actor
     if not options:
