@@ -26,6 +26,11 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   takes a pack of up to 3, and a person holding no food leaves in time to
   arrive as they get hungry. The old settings are `SHORT_RANGE_LEVERS` in
   `world/config.py`.
+- Water (2026-09-25): the kernel has named resources beside the base one
+  (per-resource accounts, holds and conservation), and the world has water
+  and thirst as a second need behind `--water on` (off by default, and off
+  leaves everything as it was). Pack carrying covers water too. Next: decide
+  whether water becomes the default, and look at the viewer.
 
 ## 1. Kernel
 
