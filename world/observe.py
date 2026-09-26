@@ -23,6 +23,9 @@ in view. Their positions and free food are the tick-start world positions and
 ledger availability already in the same file, so they are not repeated; older
 files recorded them per observation as `others`.
 
+Warmth (2026-09-27) needs no landmark: shelter is the person's own home cell,
+which the observation already carries, so `cold` is the only field it adds.
+
 Several sources of a kind (2026-09-26): every source position is a known
 landmark. The one a person heads for (`target_source`) is the nearest (steps,
 then id) seen with free stock; when none in view has stock, it is the nearest.
@@ -85,6 +88,7 @@ class Observation:
     source_id: str = FOOD_SOURCE           # which food source `source` is: the one this person heads for
     water_source_id: str = WATER_SOURCE    # likewise for water
     seen_stock: tuple[tuple[str, int], ...] = ()   # several sources of a kind: free stock of each source in view
+    cold: int = 0                          # warmth on only; shelter is `home`, so it needs no separate landmark
 
     @property
     def at_source(self) -> bool:
@@ -93,6 +97,11 @@ class Observation:
     @property
     def at_home(self) -> bool:
         return self.position == self.home
+
+    @property
+    def sheltered(self) -> bool:
+        """Shelter is a person's own home cell: the one need met by a place."""
+        return self.at_home
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -149,6 +158,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         others=others,
         source_id=source_id,
         seen_stock=seen_stock,
+        **({"cold": overlay.cold[actor]} if config.warmth_on else {}),
         **_water_view(actor, origin, overlay, config, available),
     )
 

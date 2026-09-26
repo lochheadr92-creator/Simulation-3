@@ -137,6 +137,7 @@ function drawChart() {
 }
 function show(k) {
   if (C.water !== 'on') document.querySelectorAll('.water-col').forEach(e => e.remove());
+  if (C.warmth !== 'on') document.querySelectorAll('.warmth-col').forEach(e => e.remove());
   v = Math.max(0, Math.min(n, k)); $('slider').value = v; $('tick').textContent = `view ${v} / ${n}`; $('map').innerHTML = drawMap(v);
   const w = world(v), t = v >= 1 ? ticks[v - 1] : null; let alive = 0; let rows = '';
   for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
@@ -148,7 +149,7 @@ function show(k) {
       sees = names.join(', '); }
     const ya = traitOf(p);
     const kindCell = d ? (d.kind === 'yield' ? `<span style="color:var(--yield)">&#9675; yield</span>` : esc(d.kind) + (d.amount ? ' ' + d.amount : '') + (d.target ? ' \u2192 ' + esc(d.target) : '')) + ' <span class="meta">' + esc(d.reason) + '</span>' : '';
-    rows += `<tr><td>${p}</td><td class="num">${ya === null ? '' : ya}</td><td class="mono">${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td>${C.water === 'on' ? '<td class="num">' + w.thirst[p] + '</td>' : ''}<td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>${C.water === 'on' ? '<td class="num">' + waterHeld(v, p) + '</td>' : ''}`
+    rows += `<tr><td>${p}</td><td class="num">${ya === null ? '' : ya}</td><td class="mono">${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td>${C.water === 'on' ? '<td class="num">' + w.thirst[p] + '</td>' : ''}${C.warmth === 'on' ? '<td class="num">' + w.cold[p] + (w.positions[p].join(',') === w.homes[p].join(',') ? ' ⌂' : '') + '</td>' : ''}<td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>${C.water === 'on' ? '<td class="num">' + waterHeld(v, p) + '</td>' : ''}`
           + `<td class="mono">${esc(sees)}</td>`
           + `<td>${kindCell}</td>`
           + `<td>${o ? `<span class="${o.accepted ? 'ok' : 'no'}">${esc(o.reason)}</span>` : ''}</td></tr>`; }
@@ -238,6 +239,7 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
         selection.append(
             f"{actor}: tick-start at {tuple(prior['positions'][actor])}, hunger {prior['hunger'][actor]}, "
             + (f"thirst {prior['thirst'][actor]}, " if "thirst" in prior else "")
+            + (f"cold {prior['cold'][actor]}, " if "cold" in prior else "")
             + f"yield_at {prior.get('yield_at', {}).get(actor, 'not recorded')}, "
             f"seen crowd {crowd}, seen source stock {ob.get('source_food', 'not observed')}"
             + (f", seen stocks {ob['seen_stock']}" if "seen_stock" in ob else "")
@@ -310,10 +312,10 @@ def render_html(run: Run) -> str:
 <div class="stats" id="summary"></div>
 <div class="grid">
   <div class="panel"><h2>Map</h2><div id="map"></div>
-    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span><span>small number: yield_at</span></div></div>
+    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span><span>small number: yield_at</span>{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
   <div class="panel"><h2>People after this tick</h2>
-    <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th class="num water-col">thirst</th><th>state</th><th class="num">food</th><th class="num water-col">water</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
-    <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start. yield_at is the person's own crowd-yield trait.</p></div>
+    <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th class="num water-col">thirst</th><th class="num warmth-col">cold</th><th>state</th><th class="num">food</th><th class="num water-col">water</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
+    <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start.{' Cold is the warmth need: it rises away from home and falls at home, the shelter each person has.' if scenario.get('warmth') == 'on' else ''} yield_at is the person's own crowd-yield trait.</p></div>
 </div>
 <div class="panel" style="margin-top:12px"><h2>Personal selection — tick-start inputs and recorded scores</h2><pre id="selection" class="native mono"></pre></div>
 <div class="panel" style="margin-top:12px"><h2>Resource settlement — recorded kernel order and effects</h2><pre id="settlement" class="native mono"></pre></div>
@@ -378,7 +380,11 @@ def render_text(run: Run, view: int) -> str:
                 names.append(f"S={observation['source_food']}")
             seen = f"  sees {', '.join(names) if names else 'none'}"
         trait = traits.get(actor)
-        lines.append(f"{actor} yield_at {trait} at {tuple(world['positions'][actor])} hunger {world['hunger'][actor]}{dead}"
+        needs = (f" thirst {world['thirst'][actor]}" if "thirst" in world else "") + (
+            f" cold {world['cold'][actor]}" + (" sheltered" if tuple(world["positions"][actor]) == tuple(
+                run.header["world"]["homes"][actor]) else "") if "cold" in world else "")
+        lines.append(f"{actor} yield_at {trait} at {tuple(world['positions'][actor])} hunger {world['hunger'][actor]}"
+                     + needs + dead
                      + seen
                      + (f"  {decision['kind']} ({decision['reason']})" if decision else "")
                      + (f"  -> {outcome['reason']}" if outcome else ""))

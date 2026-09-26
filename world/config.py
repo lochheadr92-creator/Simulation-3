@@ -15,6 +15,10 @@ processes are pure rules (DOCTRINE: no runtime randomness through Stage 3).
 The default world (2026-09-26) has two food sources and, with water on, two
 water sources. The world before that, one food source and no water, is
 `ONE_SOURCE_FOOD_ONLY`; its headers, decisions and records are unchanged.
+
+Warmth (2026-09-27) is the third need and the only one met by a place rather
+than by a resource: a person's home cell is their shelter, cold rises away
+from it and falls on it, and nothing is claimed, carried or consumed.
 """
 
 from __future__ import annotations
@@ -34,6 +38,7 @@ WATER_SOURCE = "water"         # the water source id
 WATER = "water"                # the kernel's named resource for water
 WATER_LEVERS = ("starting_water", "water_stock", "water_cap", "water_renewal_every", "water_renewal_amount",
                 "draw_amount", "thirst_rate", "quench", "thirsty_at", "thirst_emergency_at", "thirst_death_at")
+WARMTH_LEVERS = ("cold_rate", "warming", "cold_at", "cold_emergency_at", "cold_death_at")
 DISTANCE_METRIC = "chebyshev"
 PERCEPTION_BOUNDARY = "distance <= radius"
 DEFAULT_YIELD_SET = (1, 2, 3)
@@ -90,6 +95,12 @@ class WorldConfig:
     thirst_death_at: int = 80
     food_sources: int = 2         # 1 or 2 food sources (the second from 2026-09-25), each with the levers above
     water_sources: int = 2        # 1 or 2 water sources when water is on, each with the water levers
+    warmth_on: bool = False       # a third need: cold, met by sheltering at home (2026-09-27)
+    cold_rate: int = 1            # cold added per tick spent away from shelter
+    warming: int = 3              # cold removed per tick spent at shelter
+    cold_at: int = 25             # cold at which a person seeks shelter
+    cold_emergency_at: int = 50
+    cold_death_at: int = 80
 
     def __post_init__(self) -> None:
         checks = {
@@ -115,6 +126,10 @@ class WorldConfig:
                 and 0 <= self.thirsty_at <= self.thirst_emergency_at < self.thirst_death_at
                 and self.water_position != self.source_position),
             "water_with_scoring": not (self.water_on and self.scoring_on),   # scoring has no water actions yet
+            "warmth": (not self.warmth_on) or (
+                self.cold_rate >= 0 and self.warming >= 1
+                and 0 <= self.cold_at <= self.cold_emergency_at < self.cold_death_at),
+            "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
         }
         bad = [name for name, ok in checks.items() if not ok]
         if bad:
@@ -220,6 +235,20 @@ class WorldConfig:
                 "wait if thirsty at empty water; walk to the water if thirsty, or holding none when thirst + "
                 "thirst_rate * steps reaches thirsty_at; when both needs call, serve the one nearer its lethal "
                 "level (hunger/death_at against thirst/thirst_death_at, thirst on ties)")
+        if self.warmth_on:
+            # Written only when on, so every earlier header still round-trips.
+            out["warmth"] = "on"
+            for name in WARMTH_LEVERS:
+                out[name] = getattr(self, name)
+            out["decision"] += (
+                "; warmth, a need met by a place: shelter is a person's own home cell; cold rises by cold_rate "
+                "each tick that ends away from it and falls by warming each tick that ends on it, whatever the "
+                "person chose; warm at shelter if cold; walk to shelter if cold, or when cold + cold_rate * steps "
+                "home reaches cold_at (leave in time)")
+            out["decision"] += (
+                "; when more than one need calls, serve the one nearest its lethal level (each need compared "
+                "against its own lethal level by exact integer cross-multiplication); on ties thirst, then cold, "
+                "then hunger")
         # Written only when there is more than one, so earlier headers round-trip.
         if self.food_sources > 1:
             out["food_sources"] = [{"id": i, "position": list(p)}
@@ -268,13 +297,22 @@ class WorldConfig:
         water = described.get("water", "off")
         if not isinstance(water, str) or water not in switches:
             raise ValueError("water must be 'on' or 'off'")
-        water_values: dict[str, Any] = {}
+        warmth = described.get("warmth", "off")
+        if not isinstance(warmth, str) or warmth not in switches:
+            raise ValueError("warmth must be 'on' or 'off'")
+        need_values: dict[str, Any] = {}
         if switches[water]:
             for name in WATER_LEVERS:
                 value = described.get(name)
                 if type(value) is not int:
                     raise ValueError(f"water lever {name} must be an integer, got {value!r}")
-                water_values[name] = value
+                need_values[name] = value
+        if switches[warmth]:
+            for name in WARMTH_LEVERS:
+                value = described.get(name)
+                if type(value) is not int:
+                    raise ValueError(f"warmth lever {name} must be an integer, got {value!r}")
+                need_values[name] = value
         counts: dict[str, int] = {}
         for key in ("food_sources", "water_sources"):
             listed = described.get(key)
@@ -285,7 +323,7 @@ class WorldConfig:
             counts["water_sources"] = cls.__dataclass_fields__["water_sources"].default   # unused when off
         config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
-                     water_on=switches[water], **water_values, **counts)
+                     water_on=switches[water], warmth_on=switches[warmth], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config
@@ -348,5 +386,6 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         yield_at=_yield_from(rng, config),
         died_at={},
         thirst={actor: 0 for actor in actors} if config.water_on else {},
+        cold={actor: 0 for actor in actors} if config.warmth_on else {},
     )
     return ledger, overlay

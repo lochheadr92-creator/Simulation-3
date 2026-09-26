@@ -20,6 +20,10 @@ Priority, highest first:
   rest   not hungry, at home
 A dead person has no candidates and decides nothing.
 
+Water adds drink, draw, wait_water and go_water; warmth (2026-09-27) adds warm
+and go_shelter, where shelter is the person's own home cell. When more than one
+need calls, `_decide_needs` serves the one nearest its lethal level.
+
 CLAIM requires the source to be in view. Standing on the source is
 distance 0, so the requirement is always met there; it is stated so the
 rule stays honest if the radius changes. The claim amount is
@@ -40,6 +44,7 @@ recorded, so those decisions are exactly as before.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from fractions import Fraction
 from typing import Any
 
 from world.config import WorldConfig
@@ -52,6 +57,9 @@ EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
 LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, HOME, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
 WATER_PRIORITY = (DRINK, DRAW, WAIT_WATER, GO_WATER)
+WARM, GO_SHELTER = "warm", "go_shelter"
+WARMTH_PRIORITY = (WARM, GO_SHELTER)
+IDLE = (HOME, REST)                  # the food rule's fallback: no need is calling
 
 
 @dataclass(frozen=True)
@@ -161,9 +169,10 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
 
 
 def decide(observation: Observation, config: WorldConfig) -> Decision:
-    """Food only when water is off (the rule above, unchanged); both needs when on."""
-    if config.water_on:
-        return _decide_two_needs(observation, config)
+    """Food alone when it is the only need (the rule above, unchanged); otherwise
+    every need that is on, arbitrated by `_decide_needs`."""
+    if config.water_on or config.warmth_on:
+        return _decide_needs(observation, config)
     return _decide_food(observation, config)
 
 
@@ -198,21 +207,71 @@ def water_candidates(observation: Observation, config: WorldConfig) -> tuple[str
     return tuple(found)
 
 
-def _decide_two_needs(observation: Observation, config: WorldConfig) -> Decision:
-    """Serve the need nearer its lethal level (exact integer comparison of
-    thirst/thirst_death_at against hunger/death_at; thirst wins ties). Needs
-    that are not calling fall back to the food rule's walk home or rest."""
+def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
+    """Serve the need nearest its lethal level: each calling need is ranked by
+    its level over its own lethal level, exactly, and the greatest wins. Ties go
+    to thirst, then cold, then hunger - the order they are listed here, which is
+    the order they rise. Hunger only enters the ranking when food is actually
+    calling; a person with nothing to do falls back to the food rule's walk home
+    or rest. With water on and warmth off this is the two-need rule unchanged:
+    thirst beats hunger exactly when thirst * death_at >= hunger * thirst_death_at.
+
+    The candidate block records every action that was open, food first, then
+    water, then warmth, whichever need was served."""
     food = candidates(observation, config)
     if not food:
         return Decision(observation.actor, DEAD, "dead", ())
     water = water_candidates(observation, config)
-    both = food + water
-    food_calling = any(action not in (HOME, REST) for action in food)
-    thirst_first = observation.thirst * config.death_at >= observation.hunger * config.thirst_death_at
-    if water and (not food_calling or thirst_first):
-        chosen = next(action for action in WATER_PRIORITY if action in water)
-        return replace(_water_decision(observation, config, chosen), candidates=both)
-    return replace(_decide_food(observation, config), candidates=both)
+    warmth = warmth_candidates(observation, config)
+    every = food + water + warmth
+    calling: list[tuple[Fraction, tuple[str, ...], tuple[str, ...], Any]] = []
+    if water:
+        calling.append((Fraction(observation.thirst, config.thirst_death_at),
+                        WATER_PRIORITY, water, _water_decision))
+    if warmth:
+        calling.append((Fraction(observation.cold, config.cold_death_at),
+                        WARMTH_PRIORITY, warmth, _warmth_decision))
+    if calling and any(action not in IDLE for action in food):
+        calling.append((Fraction(observation.hunger, config.death_at), (), (), None))
+    if not calling:
+        return replace(_decide_food(observation, config), candidates=every)
+    _, priority, options, build = max(calling, key=lambda ranked: ranked[0])
+    if build is None:
+        return replace(_decide_food(observation, config), candidates=every)
+    chosen = next(action for action in priority if action in options)
+    return replace(build(observation, config, chosen), candidates=every)
+
+
+def shelter_trip_due(observation: Observation, config: WorldConfig) -> bool:
+    """The leave-in-time rule for warmth: away from shelter and far enough that
+    setting off now reaches it as cold reaches cold_at."""
+    return (config.plan_trips and not observation.sheltered
+            and observation.cold + config.cold_rate * steps_to(observation.position, observation.home)
+            >= config.cold_at)
+
+
+def warmth_candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]:
+    """warm: cold at shelter; go_shelter: cold away from it, or due to leave.
+
+    Warmth is the one need met by a place, so there is nothing to claim, carry
+    or consume: the only actions are to be at shelter or to walk to it."""
+    if not observation.alive or not config.warmth_on:
+        return ()
+    cold = observation.cold >= config.cold_at
+    if observation.sheltered:
+        return (WARM,) if cold else ()
+    return (GO_SHELTER,) if cold or shelter_trip_due(observation, config) else ()
+
+
+def _warmth_decision(observation: Observation, config: WorldConfig, selected: str) -> Decision:
+    actor = observation.actor
+    urgency = "cold emergency" if observation.cold >= config.cold_emergency_at else "cold"
+    if selected == WARM:
+        return Decision(actor, WARM, f"{urgency}, sheltered at home", ())
+    reason = (f"{urgency}, walking to shelter" if observation.cold >= config.cold_at
+              else f"leaving in time for shelter: cold {observation.cold}, "
+                   f"{steps_to(observation.position, observation.home)} steps home")
+    return Decision(actor, GO_SHELTER, reason, (), step=step_toward(observation.position, observation.home))
 
 
 def _water_decision(observation: Observation, config: WorldConfig, selected: str) -> Decision:

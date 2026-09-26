@@ -5,7 +5,7 @@ the engineering target. The stages go in this order because each depends on
 the one before. The older, fuller wording (budgets, confirmation floors, stage
 cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
 
-## Where it stands (2026-09-25)
+## Where it stands (2026-09-27)
 
 - Stage 1 kernel: 1a (contention) and 1b (reservations) are built and passed
   independent review. 1c (sealed run files, replay, recovery, isolated
@@ -37,8 +37,28 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   two others carrying spare food on 211 to 426 person-ticks (the one-source
   world, seed 7: 26). The old world is `ONE_SOURCE_FOOD_ONLY` in `world/config.py`,
   unchanged byte for byte, and the 50-person cost check still uses it.
-  Open: Stage 2 below also lists warmth and shelter; Stage 3 (asking for
-  food) needs the moments above, which this world now has.
+- Warmth and shelter (2026-09-27), the last Stage 2 needs, opt in with
+  `--warmth on`. Warmth is the only need with no resource behind it: shelter
+  is a person's own home cell, cold rises by 1 on every tick that ends away
+  from it and falls by 3 on every tick that ends on it, and death is at 80 as
+  for the other two. Nothing is claimed, carried or consumed, so the kernel is
+  not involved. When several needs call, the one nearest its lethal level is
+  served, thirst then cold then hunger on ties; with warmth off that is the
+  old two-need rule unchanged, and every earlier run file still replays.
+  In 1,500-tick runs on four seeds, warmth on against warmth off: all 6 lived
+  on three seeds and 5 on seed 3, eating was unchanged (about 53 times after
+  starting food ran out), and the help moments that Stage 3 needs held up
+  (196 to 433, against 204 to 411 with warmth off). Cold averaged 6 to 10 and
+  peaked at 40 to 73, so the need bites without dominating.
+  Open finding, not yet ruled on: food and water are each met by a single
+  action, but warmth is met only over many ticks at shelter, and arbitration
+  re-runs every tick. So warmth is the one need that can be pre-empted
+  indefinitely. On seed 3, p02 (home at (11, 11), 10 steps from the nearest
+  well) reached shelter at tick 1347, left after a single tick when thirst
+  edged past cold, and died of thirst at 1356 one step from the water. The
+  levers are untouched: this is recorded, not tuned away. Whether warmth
+  should hold a person at shelter until they are warm (hysteresis) is Ryan's
+  call, as is whether warmth becomes a default like water.
 
 ## 1. Kernel
 
@@ -101,8 +121,9 @@ inputs is the independent check.
 ## 2. Viable world
 
 Six people with movement, bounded perception, food, water, warmth, shelter and
-renewable resources. Levers: geometry, resource placement, renewal, starting
-supplies, perception radius and consumption rates. Don't add social systems to
+renewable resources. All of these are now built; warmth and shelter are opt
+in. Levers: geometry, resource placement, renewal, starting supplies,
+perception radius and consumption rates. Don't add social systems to
 create need. The goal: repeated ordinary obtain-and-eat cycles after starting
 food runs out, exact accounting, needs that keep rising when an action fails,
 and enough moments where a hungry person can see at least two others with

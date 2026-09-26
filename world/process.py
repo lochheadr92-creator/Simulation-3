@@ -3,8 +3,12 @@
   1. movement   a person who decided to step is now on that cell
   2. hunger     hunger' = max(0, hunger + rate - satiation * units eaten);
                 only units the kernel actually settled as consumed count
-  3. death      hunger' >= death_at ends the person at this tick; hunger and
-                position freeze, their held units stay in the ledger
+  2b. cold      warmth on: a tick that ends on the person's own home cell
+                (their shelter) takes `warming` off their cold, and any other
+                tick adds `cold_rate`, whatever they decided; floored at zero
+  3. death      hunger' >= death_at ends the person at this tick, as does
+                thirst or cold reaching its own lethal level; the needs and
+                the position freeze, their held units stay in the ledger
   4. renewal    every `renewal_every` ticks each food source gains
                 `renewal_amount` up to `source_cap`, and with water on each
                 water source does the same with the water levers (food
@@ -69,6 +73,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     positions = dict(overlay.positions)
     hunger = dict(overlay.hunger)
     thirst = dict(overlay.thirst)
+    cold = dict(overlay.cold)
     died_at = dict(overlay.died_at)
     died: list[str] = []
     for actor in overlay.roster:
@@ -80,11 +85,17 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         hunger[actor] = max(0, hunger[actor] + config.hunger_rate - config.satiation * eaten.get(actor, 0))
         if config.water_on:
             thirst[actor] = max(0, thirst[actor] + config.thirst_rate - config.quench * drunk.get(actor, 0))
-        if hunger[actor] >= config.death_at or (config.water_on and thirst[actor] >= config.thirst_death_at):
+        if config.warmth_on:
+            # Shelter is the person's own home cell, and this is where the tick left them.
+            sheltered = positions[actor] == overlay.homes[actor]
+            cold[actor] = max(0, cold[actor] - config.warming if sheltered else cold[actor] + config.cold_rate)
+        if (hunger[actor] >= config.death_at
+                or (config.water_on and thirst[actor] >= config.thirst_death_at)
+                or (config.warmth_on and cold[actor] >= config.cold_death_at)):
             died_at[actor] = settled.tick
             died.append(actor)
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
-                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst)
+                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold)
 
     production: list[dict[str, Any]] = []
     ledger = settled
