@@ -28,7 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def small(**levers) -> WorldConfig:
-    base = dict(seed=3, width=7, height=7, actors=4)
+    # a level start: these check one mechanism at a time, not the staggered roster
+    base = dict(seed=3, width=7, height=7, actors=4, stagger_start=False)
     base.update(levers)
     return WorldConfig(**base)
 
@@ -48,7 +49,8 @@ def test_genesis_is_seeded_saved_and_identity_neutral():
     homes = homes_for(small())
     assert len(set(homes.values())) == len(homes) and small().source_position not in homes.values()
     ledger, overlay = a
-    assert overlay.positions == overlay.homes and all(h == 0 for h in overlay.hunger.values())
+    assert overlay.positions == overlay.homes
+    assert all(h == 0 for h in overlay.hunger.values())          # small() does not stagger the start
     assert set(overlay.yield_at) == set(overlay.homes) and all(v >= 1 for v in overlay.yield_at.values())
     assert ledger.sources[FOOD_SOURCE].authorised == frozenset(ledger.roster)
 

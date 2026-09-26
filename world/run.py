@@ -166,6 +166,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--warmth", choices=("on", "off"), default=None,
                         help="cold as a third need, met by sheltering at home (default on; never with "
                              "--scoring on, since scoring has no warmth actions yet)")
+    parser.add_argument("--stagger", choices=("on", "off"), default="on",
+                        help="spread starting hunger and thirst across the roster (default on) so people do "
+                             "not all reach a need on the same tick")
     parser.add_argument("--trips", choices=("on", "off"), default="on",
                         help="leave for the source in time when holding no food (default on)")
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
@@ -212,6 +215,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["yield_on"] = args.yield_mode == "on"
     levers["scoring_on"] = args.scoring == "on"
     levers["plan_trips"] = args.trips == "on"
+    levers["stagger_start"] = args.stagger == "on"
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")
     levers["water_on"] = water == "on"
     warmth = args.warmth if args.warmth is not None else ("off" if args.scoring == "on" else "on")

@@ -49,11 +49,11 @@ DEFAULT_YIELD_SET = (1, 2, 3)
 # WorldConfig(seed=..., **SHORT_RANGE_LEVERS).
 SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
                       "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
-                      "food_sources": 1, "water_on": False, "warmth_on": False}
+                      "food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False}
 
 # The world before the second food source and default water (2026-09-25): one
 # food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
-ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False}
+ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -96,6 +96,7 @@ class WorldConfig:
     food_sources: int = 2         # 1 or 2 food sources (the second from 2026-09-25), each with the levers above
     water_sources: int = 2        # 1 or 2 water sources when water is on, each with the water levers
     warmth_on: bool = True        # a third need: cold, met by sheltering at home (2026-09-27; default on)
+    stagger_start: bool = True    # spread starting hunger and thirst across the roster so nobody runs in step
     cold_rate: int = 1            # cold added per tick spent away from shelter
     warming: int = 3              # cold removed per tick spent at shelter
     cold_at: int = 25             # cold at which a person seeks shelter
@@ -245,6 +246,11 @@ class WorldConfig:
                 "person chose; warm at shelter if cold; walk to shelter if cold, or when cold + cold_rate * steps "
                 "home reaches cold_at (leave in time)")
 
+        if self.stagger_start:
+            # Written only when on, so the worlds that started level round-trip.
+            out["stagger_start"] = "on"
+            out["genesis_stagger"] = ("person i of n starts at hunger i * hungry_at // n, and with water on at "
+                                      "thirst i * thirsty_at // n, so the roster does not get hungry in step")
         if self.water_on or self.warmth_on:
             out["decision"] += (
                 "; when more than one need calls, serve the one with the least slack, where a need's slack is "
@@ -302,6 +308,9 @@ class WorldConfig:
         warmth = described.get("warmth", "off")
         if not isinstance(warmth, str) or warmth not in switches:
             raise ValueError("warmth must be 'on' or 'off'")
+        stagger = described.get("stagger_start", "off")
+        if not isinstance(stagger, str) or stagger not in switches:
+            raise ValueError("stagger_start must be 'on' or 'off'")
         need_values: dict[str, Any] = {}
         if switches[water]:
             for name in WATER_LEVERS:
@@ -325,7 +334,8 @@ class WorldConfig:
             counts["water_sources"] = cls.__dataclass_fields__["water_sources"].default   # unused when off
         config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
-                     water_on=switches[water], warmth_on=switches[warmth], **need_values, **counts)
+                     water_on=switches[water], warmth_on=switches[warmth],
+                     stagger_start=switches[stagger], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config
@@ -363,6 +373,16 @@ def yield_at_for(config: WorldConfig) -> dict[str, int]:
     return _yield_from(rng, config)
 
 
+def staggered(config: WorldConfig, level_at: int) -> dict[str, int]:
+    """Starting levels spread evenly across the roster, so people do not all
+    reach a need on the same tick. No randomness: person i of n starts at
+    i * level_at // n."""
+    actors = config.actor_ids()
+    if not config.stagger_start:
+        return {actor: 0 for actor in actors}
+    return {actor: index * level_at // len(actors) for index, actor in enumerate(actors)}
+
+
 def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
     """The saved initial state: a kernel ledger and the overlay beside it."""
     actors = config.actor_ids()
@@ -384,10 +404,10 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         tick=0,
         homes=homes,
         positions=dict(homes),
-        hunger={actor: 0 for actor in actors},
+        hunger=staggered(config, config.hungry_at),
         yield_at=_yield_from(rng, config),
         died_at={},
-        thirst={actor: 0 for actor in actors} if config.water_on else {},
+        thirst=staggered(config, config.thirsty_at) if config.water_on else {},
         cold={actor: 0 for actor in actors} if config.warmth_on else {},
     )
     return ledger, overlay

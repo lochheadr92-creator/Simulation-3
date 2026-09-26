@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from stream.run_file import read_run
-from world.config import ONE_SOURCE_FOOD_ONLY, WATER, WATER_SOURCE, WorldConfig, genesis
+from world.config import ONE_SOURCE_FOOD_ONLY, WATER, WATER_SOURCE, WorldConfig, genesis, staggered
 from world.decide import DRAW, DRINK, EAT, GO_WATER, WAIT_WATER, decide, water_trip_due
 from world.observe import Observation
 from world.replay import replay_world
@@ -33,7 +33,9 @@ def test_water_on_genesis():
     well = ledger.sources[WATER_SOURCE]
     assert well.resource == WATER and well.stock == cfg.water_stock
     assert dict(ledger.holdings[WATER]) == {actor: cfg.starting_water for actor in cfg.actor_ids()}
-    assert dict(overlay.thirst) == {actor: 0 for actor in cfg.actor_ids()}
+    # the roster starts spread out, so nobody gets thirsty in step with anyone else
+    assert dict(overlay.thirst) == staggered(cfg, cfg.thirsty_at)
+    assert sorted(overlay.thirst.values()) == [0, 4, 8, 12, 16, 20]
     homes = set(overlay.homes.values())
     assert cfg.water_position not in homes and cfg.source_position not in homes
     assert WorldConfig.from_describe(cfg.describe()) == cfg
@@ -82,4 +84,5 @@ def test_without_water_everyone_dies_of_thirst_even_with_food(tmp_path: Path):
                       starting_food=3)
     run_world(cfg, 60, tmp_path / "dry.jsonl")
     died = read_run(tmp_path / "dry.jsonl").ticks[-1]["world"]["died_at"]
-    assert len(died) == cfg.actors and set(died.values()) == {40}   # thirst 2 per tick reaches 80 at tick 40
+    # thirst 2 a tick reaches 80 at tick 40, sooner for those who started part way there
+    assert len(died) == cfg.actors and set(died.values()) == {30, 32, 34, 36, 38, 40}
