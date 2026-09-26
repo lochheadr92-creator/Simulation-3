@@ -52,6 +52,33 @@ adjacent cells for a few ticks running, a new person arrives with a home on
 the nearest free cell. They hold nothing: a birth creates no food and no
 water. A run whose roster changes still seals, verifies and replays.
 
+**Asking for food, built but switched off.** `--requests on` gives a hungry
+person holding nothing the ability to ask somebody they can see carrying food
+for it. Asking is speech: they call out and walk on, so it costs no tick. The
+person asked answers next tick, and agrees only if nothing of their own is
+calling, they hold a unit, and they are not already carrying one for somebody
+else. An agreement is held in the world state until the unit is handed over
+or they lose sight of the asker, so an errand once taken on is not dropped
+for a nearer stranger. The handover is a kernel transfer. The whole exchange
+is in the viewer: who asked, who agreed, who went unanswered, who delivered.
+
+It is off by default because it costs a growing world about half its people.
+Over 400 ticks it took seed 11 from 24 alive of 62 down to 3 of 25, and seed
+23 from 12 of 53 to 4 of 31. Six-person worlds that never grow are unaffected.
+The reason is not the price of asking, which is nothing: it is that carrying
+food to somebody takes the helper away from home for many ticks, and a birth
+needs two well, sheltered neighbours standing adjacent. Helping and settling
+down compete for the same time, and the handful of units delivered does not
+pay for the children not had.
+
+That looked at first like a brittle birth rule, so we tried making time
+together decay by a tick when a pair separates instead of resetting to
+nothing. It did not help — births still fell by more than half with asking on
+— and it made the world worse without asking, taking seed 11 from 24 survivors
+to 6, because pairs who were barely together at all accumulated enough credit
+to breed. The change was dropped and the consecutive rule kept. The trade-off
+is real, not an artefact.
+
 **A map viewer.** `world/viewer.py` renders a saved run as a self-contained
 HTML page: the grid with terrain, sources and their stock, built shelters,
 people coloured by hunger band, trails, perception boxes, a table of
@@ -60,11 +87,11 @@ a tick. It reads the saved file and never runs the world.
 
 ### Where these systems stop
 
-**Help only happens when distress is seen.** There is no way to ask. A
-person in trouble cannot signal, and nobody looks for them. Help depends
-entirely on a well-supplied person happening to have someone starving inside
-their perception radius while nothing of their own is calling. Offers are
-consequently rare. Comparing runs with offers on and off across a handful of
+**In the default world, help only happens when distress is seen.** With
+asking switched off, a person in trouble cannot signal and nobody looks for
+them. Help depends entirely on a well-supplied person happening to have
+someone starving inside their perception radius while nothing of their own is
+calling. Offers are consequently rare. Comparing runs with offers on and off across a handful of
 seeds showed no overall gain in the number of survivors — slightly fewer, in
 fact, within the noise of a few runs. That says the practice does not lift
 survival overall; it does not say individual outcomes are unchanged. A unit
@@ -324,11 +351,16 @@ it, and a practice disappearing because nobody learned it.
 
 ## 4. What to try next
 
-**First: asking for food.**
-**Second: terrain-aware movement.**
-**Third: childhood and caregiving.**
+Asking for food is built. It is switched off, and whether the cost it
+carries is one we want is an open question rather than a settled no — a world
+where people are less often at the edge might pay it easily.
 
-### The first piece in full
+**First: terrain-aware movement.**
+**Second: childhood and caregiving.**
+**Then: whether asking can pay its way**, either in a gentler world or by
+making helping cost the helper less time.
+
+### What asking looked like, and what it cost
 
 A complete food request, from need to consequence:
 
