@@ -96,22 +96,36 @@ or they lose sight of the asker, so an errand once taken on is not dropped
 for a nearer stranger. The handover is a kernel transfer. The whole exchange
 is in the viewer: who asked, who agreed, who went unanswered, who delivered.
 
-It is off by default because it costs a growing world about half its people.
-Over 400 ticks it took seed 11 from 24 alive of 62 down to 3 of 25, and seed
-23 from 12 of 53 to 4 of 31. Six-person worlds that never grow are unaffected.
-The reason is not the price of asking, which is nothing: it is that carrying
-food to somebody takes the helper away from home for many ticks, and a birth
-needs two well, sheltered neighbours standing adjacent. Helping and settling
-down compete for the same time, and the handful of units delivered does not
-pay for the children not had.
+It is off by default because it costs the world more than it gives, and three
+separate attempts to make it pay have failed.
 
-That looked at first like a brittle birth rule, so we tried making time
-together decay by a tick when a pair separates instead of resetting to
-nothing. It did not help — births still fell by more than half with asking on
-— and it made the world worse without asking, taking seed 11 from 24 survivors
-to 6, because pairs who were barely together at all accumulated enough credit
-to breed. The change was dropped and the consecutive rule kept. The trade-off
-is real, not an artefact.
+The first version charged the asker a tick, which was fatal: they stopped to
+ask, almost nobody was ever free to answer, and populations died of the delay.
+Making asking free, and then refusing free as well, did not rescue it — seed 11
+still went from 24 alive of 62 to 3 of 25.
+
+That looked like a brittle birth rule, so we tried letting time together decay
+by a tick on separation rather than resetting to nothing. It did not recover
+the lost births, and it made the world worse without asking at all: seed 11
+fell from 24 survivors to 6, because pairs barely together accumulated enough
+credit to breed anyway. Reverted.
+
+The third attempt came after routing and childhood had made the world much
+steadier, on the theory that it could now afford the cost. It cannot. Over 400
+ticks seed 23 went from 20 alive of 33 to 9 of 21, seed 11 from 10 of 22 to 6
+of 23, and on seed 11 the number of children dying before they grew up rose
+from 7 to 13. That last number named the mechanism: an adult away on a
+stranger's errand is an adult not feeding their own child. A kin-first rule —
+nobody with a dependent child takes a stranger's errand — saved some of those
+children, 10 deaths down to 8 on seed 23, but not the world: 20 of 33 became
+7 of 18.
+
+So this is settled rather than open. Carrying food to somebody takes many ticks
+away from home, and those are the same ticks that feed children and make new
+ones; a dozen delivered units does not pay for them. The kin-first rule was
+kept, because it is right on its own terms and costs nothing while asking is
+off. What might yet make asking worth it is a cheaper kind of help: handing a
+unit to somebody already beside you, with no journey at all.
 
 **A map viewer.** `world/viewer.py` renders a saved run as a self-contained
 HTML page: the grid with terrain, sources and their stock, built shelters,
@@ -394,15 +408,16 @@ Terrain-aware movement is built and on by default.
 
 Childhood is built and on by default.
 
-**First: whether asking can pay its way.** It was switched off for costing a
-world at the edge too much, and the world is now markedly steadier — routing
-and childhood between them have taken survival from about a third to two
-thirds. This is the cheapest thing on the list to retry: turn it on and watch.
-**Second: remembered terrain**, so a route learned is a route kept, which is
+Asking was retried in the steadier world and still does not pay; see above.
+
+**First: remembered terrain**, so a route learned is a route kept, which is
 also the first piece of memory the world has ever had.
-**Third: ageing and the rest of the family**, now that parentage is recorded —
+**Second: ageing and the rest of the family**, now that parentage is recorded —
 grown children leaving to establish a home of their own, and spacing between
 births.
+**Third: help that costs no journey** — handing a unit to somebody already
+beside you. That is the one shape of giving the world has never tried, and the
+only obvious way asking might yet pay.
 
 ### What asking looked like, and what it cost
 

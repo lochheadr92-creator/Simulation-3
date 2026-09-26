@@ -299,8 +299,12 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
         if trip_due(observation, config):
             found.append(GO)
         elif (config.requests_on and observation.asked_by is not None
-                and observation.food >= 1 and observation.owed_to is None):
-            found.append(AGREE)          # one errand at a time; anyone else lets the asking go unanswered
+                and observation.food >= 1 and observation.owed_to is None
+                and not observation.dependents):
+            # one errand at a time, and never while a child of your own still
+            # needs you: an adult away on a stranger's errand is an adult not
+            # feeding their own, and that killed more children than it saved
+            found.append(AGREE)
         elif someone_to_help(observation, config) is not None:
             hurt = someone_to_help(observation, config)
             found.append(OFFER if steps_to(observation.position, _seen(observation, hurt)) <= 1 else GO_OFFER)

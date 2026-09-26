@@ -114,6 +114,7 @@ class Observation:
     rough_in_view: frozenset[Position] = frozenset()   # rough cells they can see, for choosing a way round
     age: int = 10 ** 6                     # ticks lived; the default is somebody long grown
     children: frozenset[str] = frozenset() # who this person is a parent to
+    dependents: frozenset[str] = frozenset()   # those of them still too young to fend for themselves
 
     @property
     def at_source(self) -> bool:
@@ -193,7 +194,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         waiting_on=overlay.requests.get(actor),
         rough_in_view=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         **({"age": overlay.age.get(actor, config.adult_at),
-           "children": frozenset(kid for kid, mum in overlay.parent.items() if mum == actor)}
+           "children": frozenset(kid for kid, mum in overlay.parent.items() if mum == actor),
+           "dependents": frozenset(kid for kid, mum in overlay.parent.items()
+                                   if mum == actor and overlay.alive(kid)
+                                   and overlay.age.get(kid, config.adult_at) < config.adult_at)}
           if config.childhood_on else {}),
         **_water_view(actor, origin, overlay, config, available),
     )

@@ -316,10 +316,12 @@ class WorldConfig:
             out["decision"] += ("; a hungry person holding no food who can see somebody carrying some asks "
                                 "them for it - nearest by steps, then id, never somebody visibly starving - "
                                 "and walks on towards the source while they ask, because asking is speech and "
-                                "costs no tick. The person asked answers on their next tick: if nothing "
-                                "of their own is calling and they hold a unit they agree, and the errand becomes "
-                                "theirs until it is delivered or they lose sight of the asker; anybody else "
-                                "does not answer at all, and the asking lapses - saying no is not an act either")
+                                "costs no tick. The person asked answers on their next tick: they agree "
+                                "if nothing of their own is calling, they hold a unit, they are not already "
+                                "carrying one for somebody else, and no child of their own still depends on "
+                                "them; the errand is then theirs until it is delivered or they lose sight of "
+                                "the asker. Anybody else does not answer at all and the asking lapses, because "
+                                "saying no is not an act either")
         if self.childhood_on:
             out["childhood"] = "on"
             out["adult_at"], out["child_leash"] = self.adult_at, self.child_leash
