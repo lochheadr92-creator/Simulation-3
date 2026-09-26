@@ -52,6 +52,24 @@ adjacent cells for a few ticks running, a new person arrives with a home on
 the nearest free cell. They hold nothing: a birth creates no food and no
 water. A run whose roster changes still seals, verifies and replays.
 
+**Walking round rough ground.** A person heading anywhere picks their way
+round the rough ground they can see, counting a rough cell as two ticks and
+everything else as one, and counting whatever lies beyond their sight as open
+in a straight line. Only the edge of sight is judged: measuring a cell in the
+middle of what they can see would pretend the rough beyond it was not there,
+and a cell just short of a wall would look like the best place on the map.
+Going round one rough cell costs more than crossing it, so nobody bothers; a
+run of three is worth avoiding, and that is the case this exists for.
+`--routing off` restores straight-line walking.
+
+It made a large difference. Over 400 ticks the time people spend bogged in
+rough ground fell by about nine tenths — 321 stuck ticks to 17 on seed 7, 739
+to 116 on seed 23 — and three seeds of four ended much better off, seed 7
+going from 5 alive of 6 to 14 of 18 and seed 23 from 12 of 53 to 28 of 75.
+Seed 11 went the other way, 24 of 62 down to 5 of 41: a more efficient world
+breeds faster and can overshoot its food. The 50-person cost check still meets
+every target.
+
 **Asking for food, built but switched off.** `--requests on` gives a hungry
 person holding nothing the ability to ask somebody they can see carrying food
 for it. Asking is speech: they call out and walk on, so it costs no tick. The
@@ -98,10 +116,11 @@ survival overall; it does not say individual outcomes are unchanged. A unit
 carried to a neighbour plainly helps whoever receives it and costs whoever
 gave it.
 
-**Movement ignores alternative routes.** A step is taken along the longer
-axis toward the target, x on ties. Nothing in the decision code consults
-terrain at all. Rough ground is therefore a tax paid on arrival, not a
-choice to route around, and two paths of equal length are never compared.
+**Nobody remembers a route.** Routing uses only what is in view this tick.
+Beyond the perception radius the map is assumed open, so a person walks
+confidently into a wall of rough they have crossed a dozen times before and
+discovers it again each time. Remembered terrain is the next step in this
+domain, and it needs memory.
 
 **Newborns act immediately and independently.** A new person is given a
 home, a crowd-yield trait and needs at zero. They are a full adult on their
@@ -355,10 +374,14 @@ Asking for food is built. It is switched off, and whether the cost it
 carries is one we want is an open question rather than a settled no — a world
 where people are less often at the edge might pay it easily.
 
-**First: terrain-aware movement.**
-**Second: childhood and caregiving.**
+Terrain-aware movement is built and on by default.
+
+**First: childhood and caregiving.**
+**Second: remembered terrain**, so a route learned is a route kept, which is
+also the first piece of memory the world has ever had.
 **Then: whether asking can pay its way**, either in a gentler world or by
-making helping cost the helper less time.
+making helping cost the helper less time. The world is markedly gentler since
+routing landed, so this is worth retrying sooner rather than later.
 
 ### What asking looked like, and what it cost
 

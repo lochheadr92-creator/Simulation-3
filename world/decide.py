@@ -57,6 +57,7 @@ recorded, so those decisions are exactly as before.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from heapq import heappop, heappush
 from math import inf as INF
 from typing import Any
 
@@ -110,6 +111,67 @@ def step_toward(origin: Position, target: Position) -> Position:
     if abs(dx) >= abs(dy):
         return (origin[0] + (1 if dx > 0 else -1), origin[1])
     return (origin[0], origin[1] + (1 if dy > 0 else -1))
+
+
+def route_step(observation: Observation, target: Position, config: WorldConfig) -> Position:
+    """One step towards target, picking a way round the rough ground this
+    person can see.
+
+    Only what is inside the perception radius counts. Within it a rough cell
+    costs two ticks to enter and anything else costs one; beyond it nothing is
+    known, so the rest of the journey is counted as open ground in a straight
+    line. The cheapest total wins. With nothing rough in view this is the plain
+    step along the longer axis, x on ties, so a world without terrain moves
+    exactly as it always did.
+
+    Detouring round a single rough cell costs two extra steps against the one
+    tick of crossing it, so nobody bothers; a wall of them is worth going
+    round, and that is the case this exists for."""
+    origin = observation.position
+    if origin == target or not config.route_around or not observation.rough_in_view:
+        return step_toward(origin, target)
+    radius, rough = config.perception_radius, observation.rough_in_view
+    straight = step_toward(origin, target)
+
+    def neighbours(cell: Position) -> list[Position]:
+        x, y = cell
+        near = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+        return [c for c in near if 0 <= c[0] < config.width and 0 <= c[1] < config.height
+                and chebyshev_steps(origin, c) <= radius]
+
+    # rank the first step so ties fall the way the plain rule would have gone
+    order = {cell: i for i, cell in enumerate([straight] + neighbours(origin))}
+    best_first: dict[Position, Position] = {}
+    seen: dict[Position, int] = {origin: 0}
+    queue: list[tuple[int, int, int, int, Position]] = [(0, 0, origin[1], origin[0], origin)]
+    while queue:
+        cost, rank, _, _, cell = heappop(queue)
+        if cost > seen.get(cell, INF):
+            continue
+        for nxt in neighbours(cell):
+            step = cost + (2 if nxt in rough else 1)
+            first = nxt if cell == origin else best_first[cell]
+            nrank = order.get(first, len(order)) if cell == origin else rank
+            if step < seen.get(nxt, INF):
+                seen[nxt], best_first[nxt] = step, first
+                heappush(queue, (step, nrank, nxt[1], nxt[0], nxt))
+    # Judge only where sight runs out, or the target itself. At a cell in the
+    # middle of the window the straight-line estimate pretends the rough beyond
+    # it is not there, even though the person can see it, and a cell just short
+    # of a wall then looks like the best place in the world to be.
+    def edge(cell: Position) -> bool:
+        return cell == target or chebyshev_steps(origin, cell) == radius
+
+    ends = [c for c in best_first if edge(c)] or list(best_first)
+    if not ends:
+        return straight
+    choice = min(ends, key=lambda c: (seen[c] + steps_to(c, target),
+                                      order.get(best_first[c], len(order)), c[1], c[0]))
+    return best_first[choice]
+
+
+def chebyshev_steps(a: Position, b: Position) -> int:
+    return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
 
 
 def steps_to_source(observation: Observation) -> int:
@@ -362,7 +424,7 @@ def _warmth_decision(observation: Observation, config: WorldConfig, selected: st
     reason = (f"{urgency}, walking to shelter" if observation.cold >= config.cold_at
               else f"leaving in time for shelter: cold {observation.cold}, "
                    f"{steps_to(observation.position, observation.home)} steps home")
-    return Decision(actor, GO_SHELTER, reason, (), step=step_toward(observation.position, observation.home))
+    return Decision(actor, GO_SHELTER, reason, (), step=route_step(observation, observation.home, config))
 
 
 def _water_decision(observation: Observation, config: WorldConfig, selected: str) -> Decision:
@@ -383,7 +445,7 @@ def _water_decision(observation: Observation, config: WorldConfig, selected: str
     reason = (f"{urgency}, walking to water" if observation.thirst >= config.thirsty_at
               else f"leaving in time for water: thirst {observation.thirst}, {steps_to(observation.position, well)} "
                    f"steps, none held")
-    return Decision(actor, GO_WATER, reason, (), step=step_toward(observation.position, well), target=target)
+    return Decision(actor, GO_WATER, reason, (), step=route_step(observation, well, config), target=target)
 
 
 def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
@@ -425,13 +487,13 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
                   else f"fed, leaving in time: hunger {observation.hunger}, "
                        f"{steps_to_source(observation)} steps to source, no food held")
         return Decision(actor, GO, reason, options,
-                        step=step_toward(observation.position, observation.source), scores=scores, target=target)
+                        step=route_step(observation, observation.source, config), scores=scores, target=target)
     if selected == HOME:
-        return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)
+        return Decision(actor, HOME, "fed, walking home", options, step=route_step(observation, observation.home, config), scores=scores)
     if selected == ASK:
         who = someone_to_ask(observation, config)
         return Decision(actor, ASK, f"{urgency}, holding none; asking {who} for food while walking on",
-                        options, target=who, step=step_toward(observation.position, observation.source),
+                        options, target=who, step=route_step(observation, observation.source, config),
                         scores=scores)
     if selected == AGREE:
         return Decision(actor, AGREE, f"{observation.asked_by} asked; holding {observation.food}, so taking it to them",
@@ -443,7 +505,7 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
             return Decision(actor, OFFER, f"{hurt} is starving alongside; handing over one of {observation.food}",
                             options, amount=1, target=hurt, scores=scores)
         return Decision(actor, GO_OFFER, f"{hurt} is starving {steps_to(observation.position, where)} steps away",
-                        options, step=step_toward(observation.position, where), target=hurt, scores=scores)
+                        options, step=route_step(observation, where, config), target=hurt, scores=scores)
     if selected == BUILD:
         return Decision(actor, BUILD, "nothing wanting, building a shelter at home", options, scores=scores)
     return Decision(actor, REST, "fed, at home", options, scores=scores)

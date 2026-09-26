@@ -178,6 +178,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--building", choices=("on", "off"), default="on",
                         help="people build a permanent shelter on their home cell when nothing else is "
                              "calling (default on)")
+    parser.add_argument("--routing", choices=("on", "off"), default="on",
+                        help="walk round rough ground you can see, instead of straight through it (default on)")
     parser.add_argument("--terrain", choices=("on", "off"), default="on",
                         help="rough ground and shelter spots over the grid (default on)")
     parser.add_argument("--stagger", choices=("on", "off"), default="on",
@@ -231,6 +233,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["plan_trips"] = args.trips == "on"
     levers["stagger_start"] = args.stagger == "on"
     levers["terrain_on"] = args.terrain == "on"
+    levers["route_around"] = args.routing == "on"
     levers["building_on"] = args.building == "on"
     levers["offers_on"] = args.offers == "on"
     levers["births_on"] = args.births == "on"

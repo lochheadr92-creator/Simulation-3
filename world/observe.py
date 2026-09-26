@@ -25,6 +25,10 @@ in view. Their positions and free food are the tick-start world positions and
 ledger availability already in the same file, so they are not repeated; older
 files recorded them per observation as `others`.
 
+Rough ground (2026-09-28) is seen like anything else: `rough_in_view` holds
+the rough cells inside the radius, and nothing beyond it. A person picks their
+way around what they can see and walks blind into what they cannot.
+
 Warmth (2026-09-27) needs no landmark: shelter is the person's own home cell,
 which the observation already carries, so `cold` is the only field it adds.
 
@@ -107,6 +111,7 @@ class Observation:
     asked_by: str | None = None            # somebody asked this person for food last tick
     owed_to: str | None = None             # this person agreed to bring food to somebody
     waiting_on: str | None = None          # this person asked somebody and has had no answer yet
+    rough_in_view: frozenset[Position] = frozenset()   # rough cells they can see, for choosing a way round
 
     @property
     def at_source(self) -> bool:
@@ -184,6 +189,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         asked_by=next((who for who, asked in overlay.requests.items() if asked == actor), None),
         owed_to=overlay.promises.get(actor),
         waiting_on=overlay.requests.get(actor),
+        rough_in_view=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         **_water_view(actor, origin, overlay, config, available),
     )
 
