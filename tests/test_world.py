@@ -17,7 +17,7 @@ import pytest
 
 from kernel import Engine, claim
 from stream.run_file import RunFileError, RunWriter, apply_production, read_run
-from world.config import FOOD_SOURCE, WorldConfig, genesis, homes_for
+from world.config import FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, WorldConfig, genesis, homes_for
 from world.decide import CLAIM, EAT, GO, HOME, REST, WAIT, candidates, decide, step_toward
 from world.observe import Observation, observe
 from world.overlay import Overlay
@@ -93,7 +93,8 @@ def test_selection_rule_follows_the_declared_priority():
 # --- processes -----------------------------------------------------------------
 
 def test_hunger_rises_every_tick_only_settled_eating_lowers_it_and_death_freezes():
-    cfg = small(hunger_rate=2, satiation=6, death_at=8, emergency_at=7, hungry_at=3, starting_food=1)
+    cfg = small(hunger_rate=2, satiation=6, death_at=8, emergency_at=7, hungry_at=3, starting_food=1,
+                **ONE_SOURCE_FOOD_ONLY)   # one food total; water production would enter the sums
     ledger, overlay = genesis(cfg)
     engine = Engine(ledger)
     # nobody proposes: hunger rises by the rate for everyone
@@ -125,7 +126,8 @@ def test_hunger_rises_every_tick_only_settled_eating_lowers_it_and_death_freezes
 
 
 def test_renewal_is_the_only_production_and_respects_cap_and_cadence():
-    cfg = small(source_stock=4, source_cap=5, renewal_every=2, renewal_amount=3)
+    cfg = small(source_stock=4, source_cap=5, renewal_every=2, renewal_amount=3,
+                **ONE_SOURCE_FOOD_ONLY)   # one source; several are in test_sources.py
     ledger, overlay = genesis(cfg)
     engine = Engine(ledger)
     first = advance(overlay, {}, engine.tick([]), engine.state, cfg)      # tick 1: no renewal
@@ -143,7 +145,8 @@ def test_renewal_is_the_only_production_and_respects_cap_and_cadence():
 
 
 def test_movement_takes_one_cell_per_tick_and_contention_is_settled_by_the_kernel(tmp_path: Path):
-    cfg = small(seed=11, starting_food=0, source_stock=1, renewal_amount=0, hungry_at=0, death_at=60, emergency_at=30)
+    cfg = small(seed=11, starting_food=0, source_stock=1, renewal_amount=0, hungry_at=0, death_at=60, emergency_at=30,
+                **ONE_SOURCE_FOOD_ONLY)   # one unit at one source: exactly one claim can win
     run_world(cfg, 12, tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     assert run.complete

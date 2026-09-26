@@ -22,6 +22,15 @@ living others in view in roster order, plus `source_food` when the source is
 in view. Their positions and free food are the tick-start world positions and
 ledger availability already in the same file, so they are not repeated; older
 files recorded them per observation as `others`.
+
+Several sources of a kind (2026-09-26): every source position is a known
+landmark. The one a person heads for (`target_source`) is the nearest (steps,
+then id) seen with free stock; when none in view has stock, it is the nearest.
+A source out of view never attracts anyone, so without memory nobody walks
+back and forth at the edge of their sight. `source` / `source_food` (and
+`water_source` / `water_stock`) then describe that target, and the record adds
+`seen_stock`: the free stock of every source in view. With one source of each
+kind nothing changes, and the record is exactly as before.
 """
 
 from __future__ import annotations
@@ -73,6 +82,9 @@ class Observation:
     water: int = 0                         # own free water units at tick start
     water_source: Position | None = None   # a known landmark, like the food source
     water_stock: int | None = None         # free water stock if its cell is in view; else None
+    source_id: str = FOOD_SOURCE           # which food source `source` is: the one this person heads for
+    water_source_id: str = WATER_SOURCE    # likewise for water
+    seen_stock: tuple[tuple[str, int], ...] = ()   # several sources of a kind: free stock of each source in view
 
     @property
     def at_source(self) -> bool:
@@ -98,6 +110,8 @@ class Observation:
             out["source_food"] = self.source_food
         if self.water_stock is not None:
             out["water_stock"] = self.water_stock
+        if self.seen_stock:
+            out["seen_stock"] = dict(self.seen_stock)
         return out
 
 
@@ -115,8 +129,12 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
-    source = config.source_position
-    source_food = view.sources[FOOD_SOURCE].available_stock if in_view(origin, source, radius) else None
+    food_known = tuple(zip(config.food_source_ids(), config.food_positions()))
+    source_id, source, source_food = target_source(origin, food_known, radius, available)
+    known = food_known + tuple(zip(config.water_source_ids(), config.water_positions()))
+    several = len(food_known) > 1 or len(config.water_source_ids()) > 1
+    seen_stock = tuple((sid, available[source_account(sid)]) for sid, position in known
+                       if in_view(origin, position, radius)) if several else ()
     return Observation(
         actor=actor,
         tick=ledger.tick,
@@ -129,18 +147,40 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         source_food=source_food,
         yield_at=overlay.yield_at[actor],
         others=others,
+        source_id=source_id,
+        seen_stock=seen_stock,
         **_water_view(actor, origin, overlay, config, available),
     )
+
+
+def steps_between(a: Position, b: Position) -> int:
+    """Moves between two cells: movement is one four-neighbour step per tick."""
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+def target_source(origin: Position, known: tuple[tuple[str, Position], ...], radius: int,
+                  available: Mapping[str, int]) -> tuple[str, Position, int | None]:
+    """The source of one kind a person heads for, from what they can see now:
+    the nearest (steps, then id) seen with free stock; if none in view has
+    stock, the nearest. Returns its id, position, and free stock when in view
+    (None when out of view). With one source it is always that source."""
+    ranked = sorted(known, key=lambda item: (steps_between(origin, item[1]), item[0]))
+    options = [(sid, position, available[source_account(sid)] if in_view(origin, position, radius) else None)
+               for sid, position in ranked]
+    stocked = [option for option in options if option[2] is not None and option[2] > 0]
+    return (stocked or options)[0]
 
 
 def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldConfig,
                 available: Mapping[str, int]) -> dict[str, Any]:
     if not config.water_on:
         return {}
-    well = config.water_position
+    known = tuple(zip(config.water_source_ids(), config.water_positions()))
+    well_id, well, stock = target_source(origin, known, config.perception_radius, available)
     return {
         "thirst": overlay.thirst[actor],
         "water": available[actor_account(actor, WATER)],
         "water_source": well,
-        "water_stock": available[source_account(WATER_SOURCE)] if in_view(origin, well, config.perception_radius) else None,
+        "water_stock": stock,
+        "water_source_id": well_id,
     }

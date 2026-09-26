@@ -6,6 +6,11 @@ decide, settle and process. The world's rules are unchanged; only the food
 levers are raised and the grid kept small enough (every home within 8 steps
 of the source) that 50 people can live. This is a cost
 workload, not a behaviour result.
+
+It stays the world it was recorded with (evidence/stage-02/world-cost/): one
+food source and no water (`ONE_SOURCE_FOOD_ONLY`). The default world gained a
+second food source and water on 2026-09-26, and at 50 people with default
+water levers most would die of thirst, which is not this workload.
 """
 
 from __future__ import annotations
@@ -20,11 +25,11 @@ from typing import Any
 from kernel import Engine
 from stream.bench import GIB, KIB, MIB, TARGETS, machine, memory
 from stream.run_file import RunWriter
-from world.config import WorldConfig
+from world.config import ONE_SOURCE_FOOD_ONLY, WorldConfig
 from world.run import genesis, run_id_for, world_step
 
 BENCH_LEVERS = {"width": 9, "height": 9, "actors": 50, "starting_food": 3, "source_stock": 200,
-                "source_cap": 400, "renewal_every": 1, "renewal_amount": 12}
+                "source_cap": 400, "renewal_every": 1, "renewal_amount": 12, **ONE_SOURCE_FOOD_ONLY}
 
 
 def bench_config(seed: int = 1) -> WorldConfig:

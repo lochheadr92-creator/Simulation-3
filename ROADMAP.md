@@ -28,9 +28,17 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   `world/config.py`.
 - Water (2026-09-25): the kernel has named resources beside the base one
   (per-resource accounts, holds and conservation), and the world has water
-  and thirst as a second need behind `--water on` (off by default, and off
-  leaves everything as it was). Pack carrying covers water too. Next: decide
-  whether water becomes the default, and look at the viewer.
+  and thirst as a second need. Pack carrying covers water too.
+- Default world (2026-09-26): two food sources and two wells, water on. A
+  person heads for the nearest source they can see with stock, else the
+  nearest; a source out of sight never pulls anyone, so there is no walking
+  back and forth. In 1,500-tick runs on four seeds all 6 lived, each ate about
+  55 times after their starting food ran out, and a hungry person could see
+  two others carrying spare food on 211 to 426 person-ticks (the one-source
+  world, seed 7: 26). The old world is `ONE_SOURCE_FOOD_ONLY` in `world/config.py`,
+  unchanged byte for byte, and the 50-person cost check still uses it.
+  Open: Stage 2 below also lists warmth and shelter; Stage 3 (asking for
+  food) needs the moments above, which this world now has.
 
 ## 1. Kernel
 

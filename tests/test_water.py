@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from stream.run_file import read_run
-from world.config import WATER, WATER_SOURCE, WorldConfig, genesis
+from world.config import ONE_SOURCE_FOOD_ONLY, WATER, WATER_SOURCE, WorldConfig, genesis
 from world.decide import DRAW, DRINK, EAT, GO_WATER, WAIT_WATER, decide, water_trip_due
 from world.observe import Observation
 from world.replay import replay_world
@@ -20,7 +20,7 @@ from world.run import run_id_for, run_world
 
 
 def test_water_off_leaves_the_world_as_it_was():
-    cfg = WorldConfig(seed=7)
+    cfg = WorldConfig(seed=7, **ONE_SOURCE_FOOD_ONLY)   # water is on by default from 2026-09-26
     assert "water" not in cfg.describe() and not run_id_for(cfg, 10).endswith("-wateron")
     ledger, overlay = genesis(cfg)
     assert "holdings" not in ledger.canonical() and "thirst" not in overlay.canonical()

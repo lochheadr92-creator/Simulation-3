@@ -6,11 +6,15 @@ trait set. Changing one is a new configuration, and every value is written
 into the run header so a run is readable on its own.
 
 Genesis uses one named deterministic generator, `homes-uniform-v1+yield-v1`:
-homes are drawn without replacement from every cell except the source cell
-using `random.Random(seed)`, then `yield_at` is drawn from the same RNG
-instance. Home draws are unchanged from `homes-uniform-v1`. Nothing else in a
-run uses randomness; decisions and processes are pure rules (DOCTRINE: no
-runtime randomness through Stage 3).
+homes are drawn without replacement from every cell except the source cells
+(every food and water source) using `random.Random(seed)`, then `yield_at` is
+drawn from the same RNG instance. Home draws are unchanged from
+`homes-uniform-v1`. Nothing else in a run uses randomness; decisions and
+processes are pure rules (DOCTRINE: no runtime randomness through Stage 3).
+
+The default world (2026-09-26) has two food sources and, with water on, two
+water sources. The world before that, one food source and no water, is
+`ONE_SOURCE_FOOD_ONLY`; its headers, decisions and records are unchanged.
 """
 
 from __future__ import annotations
@@ -39,7 +43,12 @@ DEFAULT_YIELD_SET = (1, 2, 3)
 # departure. Kept so earlier checkpoint results and fixtures can be reproduced:
 # WorldConfig(seed=..., **SHORT_RANGE_LEVERS).
 SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
-                      "renewal_every": 3, "claim_amount": 2, "plan_trips": False}
+                      "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
+                      "food_sources": 1, "water_on": False}
+
+# The world before the second food source and default water (2026-09-25): one
+# food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
+ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -67,7 +76,7 @@ class WorldConfig:
     yield_on: bool = True         # False assigns yield_at = actors + 1 so the rule never fires
     scoring_on: bool = False      # opt in; OFF preserves the leg-5 selector and decision shape
     plan_trips: bool = True       # holding no food, leave for the source in time to arrive as hunger reaches hungry_at
-    water_on: bool = False        # a second need: thirst, met from a water source (2026-09-25)
+    water_on: bool = True         # a second need: thirst, met from water sources (2026-09-25; default on)
     starting_water: int = 1       # water units each person holds at genesis
     water_stock: int = 6          # units in the water source at genesis
     water_cap: int = 12           # water renewal never lifts stock above this
@@ -79,6 +88,8 @@ class WorldConfig:
     thirsty_at: int = 25
     thirst_emergency_at: int = 50
     thirst_death_at: int = 80
+    food_sources: int = 2         # 1 or 2 food sources (the second from 2026-09-25), each with the levers above
+    water_sources: int = 2        # 1 or 2 water sources when water is on, each with the water levers
 
     def __post_init__(self) -> None:
         checks = {
@@ -94,7 +105,9 @@ class WorldConfig:
                 len(self.yield_set) >= 1
                 and all(type(value) is int and value >= 1 for value in self.yield_set)
             ),
-            "capacity": self.actors <= self.width * self.height - (2 if self.water_on else 1),
+            "capacity": self.actors <= self.width * self.height - len(self.all_source_positions()),
+            "sources": (self.food_sources in (1, 2) and self.water_sources in (1, 2)
+                        and len(set(self.all_source_positions())) == len(self.all_source_positions())),
             "water": (not self.water_on) or (
                 self.starting_water >= 0 and 0 <= self.water_stock <= self.water_cap
                 and self.water_renewal_every >= 1 and self.water_renewal_amount >= 0 and self.draw_amount >= 1
@@ -119,6 +132,23 @@ class WorldConfig:
     @property
     def water_position(self) -> tuple[int, int]:
         return (self.width // 4, self.height // 4)
+
+    def food_source_ids(self) -> tuple[str, ...]:
+        return (FOOD_SOURCE, FOOD_SOURCE + "2")[: self.food_sources]
+
+    def food_positions(self) -> tuple[tuple[int, int], ...]:
+        return ((self.width // 2, self.height // 2), (3 * self.width // 4, self.height // 4))[: self.food_sources]
+
+    def water_source_ids(self) -> tuple[str, ...]:
+        return (WATER_SOURCE, WATER_SOURCE + "2")[: self.water_sources] if self.water_on else ()
+
+    def water_positions(self) -> tuple[tuple[int, int], ...]:
+        if not self.water_on:
+            return ()
+        return ((self.width // 4, self.height // 4), (self.width // 4, 3 * self.height // 4))[: self.water_sources]
+
+    def all_source_positions(self) -> tuple[tuple[int, int], ...]:
+        return self.food_positions() + self.water_positions()
 
     def actor_ids(self) -> tuple[str, ...]:
         return tuple(f"p{index:02d}" for index in range(1, self.actors + 1))
@@ -190,6 +220,19 @@ class WorldConfig:
                 "wait if thirsty at empty water; walk to the water if thirsty, or holding none when thirst + "
                 "thirst_rate * steps reaches thirsty_at; when both needs call, serve the one nearer its lethal "
                 "level (hunger/death_at against thirst/thirst_death_at, thirst on ties)")
+        # Written only when there is more than one, so earlier headers round-trip.
+        if self.food_sources > 1:
+            out["food_sources"] = [{"id": i, "position": list(p)}
+                                   for i, p in zip(self.food_source_ids(), self.food_positions())]
+        if self.water_on and self.water_sources > 1:
+            out["water_sources"] = [{"id": i, "position": list(p)}
+                                    for i, p in zip(self.water_source_ids(), self.water_positions())]
+        if self.food_sources > 1 or (self.water_on and self.water_sources > 1):
+            out["decision"] += ("; with several sources of a kind, head for the nearest (steps, then id) seen "
+                                "with free stock, or the nearest if none in view has stock; a claim or draw "
+                                "takes from that source, recorded as the decision's target")
+            out["perception"] += ("; with several sources, every source position is a known landmark and "
+                                  "seen_stock records the free stock of each source in view")
         return out
 
     @classmethod
@@ -232,18 +275,26 @@ class WorldConfig:
                 if type(value) is not int:
                     raise ValueError(f"water lever {name} must be an integer, got {value!r}")
                 water_values[name] = value
+        counts: dict[str, int] = {}
+        for key in ("food_sources", "water_sources"):
+            listed = described.get(key)
+            if listed is not None and not isinstance(listed, list):
+                raise ValueError(f"{key} must be a list when present, got {listed!r}")
+            counts[key] = len(listed) if listed is not None else 1
+        if not switches[water]:
+            counts["water_sources"] = cls.__dataclass_fields__["water_sources"].default   # unused when off
         config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
-                     water_on=switches[water], **water_values)
+                     water_on=switches[water], **water_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config
 
 
 def _homes_from(rng: random.Random, config: WorldConfig) -> dict[str, tuple[int, int]]:
-    """First RNG draw: distinct cells for every person, never the source cell."""
+    """First RNG draw: distinct cells for every person, never a source cell."""
     cells = [(x, y) for y in range(config.height) for x in range(config.width)
-             if (x, y) != config.source_position and not (config.water_on and (x, y) == config.water_position)]
+             if (x, y) not in config.all_source_positions()]
     picks = rng.sample(cells, config.actors)
     return dict(zip(config.actor_ids(), picks))
 
@@ -275,10 +326,12 @@ def yield_at_for(config: WorldConfig) -> dict[str, int]:
 def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
     """The saved initial state: a kernel ledger and the overlay beside it."""
     actors = config.actor_ids()
-    sources = {FOOD_SOURCE: Source(stock=config.source_stock, authorised=frozenset(actors))}
+    sources = {source_id: Source(stock=config.source_stock, authorised=frozenset(actors))
+               for source_id in config.food_source_ids()}
     water: dict[str, Any] = {}
     if config.water_on:
-        sources[WATER_SOURCE] = Source(stock=config.water_stock, authorised=frozenset(actors), resource=WATER)
+        sources.update({source_id: Source(stock=config.water_stock, authorised=frozenset(actors), resource=WATER)
+                        for source_id in config.water_source_ids()})
         water = {"holdings": {WATER: {actor: config.starting_water for actor in actors}}, "consumed_by": {WATER: 0}}
     ledger = WorldState.genesis(
         balances={actor: config.starting_food for actor in actors},

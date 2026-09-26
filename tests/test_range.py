@@ -16,7 +16,7 @@ import pytest
 
 from kernel import Source, WorldState
 from stream.run_file import read_run
-from world.config import FOOD_SOURCE, SHORT_RANGE_LEVERS, WorldConfig
+from world.config import FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, SHORT_RANGE_LEVERS, WorldConfig
 from world.decide import GO, HOME, REST, candidates, decide, trip_due
 from world.observe import Observation
 from world.overlay import Overlay
@@ -62,7 +62,8 @@ def far_home_genesis(cfg):
 def test_a_home_60_steps_from_food_is_survivable_only_by_leaving_in_time(tmp_path: Path, monkeypatch, trips: bool):
     module = importlib.import_module("world.run")
     monkeypatch.setattr(module, "genesis", far_home_genesis)
-    cfg = WorldConfig(seed=1, width=121, height=3, actors=1, plan_trips=trips)   # source at (60, 1)
+    cfg = WorldConfig(seed=1, width=121, height=3, actors=1, plan_trips=trips,
+                      **ONE_SOURCE_FOOD_ONLY)   # source at (60, 1); far_home_genesis builds this world
     assert cfg.source_position == (60, 1)
     run_world(cfg, 400, tmp_path / "far.jsonl")
     run = read_run(tmp_path / "far.jsonl")

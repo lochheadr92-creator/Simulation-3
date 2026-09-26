@@ -5,9 +5,12 @@
                 only units the kernel actually settled as consumed count
   3. death      hunger' >= death_at ends the person at this tick; hunger and
                 position freeze, their held units stay in the ledger
-  4. renewal    every `renewal_every` ticks the source gains `renewal_amount`
-                up to `source_cap`; this is the one production rule, and it
-                is recorded on the tick line and re-checked by the reader
+  4. renewal    every `renewal_every` ticks each food source gains
+                `renewal_amount` up to `source_cap`, and with water on each
+                water source does the same with the water levers (food
+                sources first, then water, each in id order); this is the one
+                production rule, and it is recorded on the tick line and
+                re-checked by the reader
 
 Needs never pause: a rejected claim or an empty source leaves hunger rising
 (DOCTRINE 1). Production is the only way stock enters the world and it goes
@@ -23,7 +26,7 @@ from kernel import TickRecord, WorldState
 from kernel.proposals import OP_CONSUME
 from kernel.state import SINK_ACCOUNT, sink_account
 
-from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig
+from world.config import WATER, WorldConfig
 from world.decide import Decision
 from world.overlay import Overlay
 
@@ -85,21 +88,18 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
 
     production: list[dict[str, Any]] = []
     ledger = settled
-    if config.renewal_amount > 0 and settled.tick % config.renewal_every == 0:
-        source = settled.sources[FOOD_SOURCE]
-        amount = min(config.renewal_amount, config.source_cap - source.stock)
-        if amount > 0:
-            production.append({"source": FOOD_SOURCE, "amount": amount})
-            sources = dict(settled.sources)
-            sources[FOOD_SOURCE] = replace(source, stock=source.stock + amount)
-            ledger = replace(settled, sources=sources)
-    if config.water_on and config.water_renewal_amount > 0 and settled.tick % config.water_renewal_every == 0:
-        well = ledger.sources[WATER_SOURCE]
-        amount = min(config.water_renewal_amount, config.water_cap - well.stock)
-        if amount > 0:
-            production.append({"source": WATER_SOURCE, "amount": amount})
-            sources = dict(ledger.sources)
-            sources[WATER_SOURCE] = replace(well, stock=well.stock + amount)
-            ledger = replace(ledger, sources=sources)
+    renewals = [(source_id, config.renewal_every, config.renewal_amount, config.source_cap)
+                for source_id in config.food_source_ids()]
+    renewals += [(source_id, config.water_renewal_every, config.water_renewal_amount, config.water_cap)
+                 for source_id in config.water_source_ids()]
+    for source_id, every, per_renewal, cap in renewals:
+        if per_renewal > 0 and settled.tick % every == 0:
+            source = ledger.sources[source_id]
+            amount = min(per_renewal, cap - source.stock)
+            if amount > 0:
+                production.append({"source": source_id, "amount": amount})
+                sources = dict(ledger.sources)
+                sources[source_id] = replace(source, stock=source.stock + amount)
+                ledger = replace(ledger, sources=sources)
     return Processed(overlay=next_overlay, ledger=ledger, production=tuple(production),
                      eaten=eaten, died=tuple(died))

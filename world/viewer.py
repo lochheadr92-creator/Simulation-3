@@ -24,10 +24,10 @@ from typing import Any
 from stream.run_file import Run, read_run
 
 CSS = """
-:root { --bg:#f7f7f4; --fg:#1d1d1b; --muted:#6b6b66; --line:#d9d9d2; --panel:#ffffff; --cell:#efefe9;
+:root { --bg:#f7f7f4; --fg:#1d1d1b; --muted:#6b6b66; --line:#d9d9d2; --panel:#ffffff; --cell:#efefe9; --water:#2563eb;
         --fed:#2f7d4f; --hungry:#c98a1b; --emergency:#a63d2f; --dead:#7a7a74; --source:#2f5f9f; --sourcebg:#dbe7f7; --yield:#6b4c9a;
         --ok:#2f7d4f; --okbg:#e3f3e8; --no:#a63d2f; --nobg:#f8e6e2; }
-@media (prefers-color-scheme: dark) { :root { --bg:#161614; --fg:#ecece6; --muted:#9a9a92; --line:#33332f; --panel:#1f1f1c; --cell:#242421;
+@media (prefers-color-scheme: dark) { :root { --bg:#161614; --fg:#ecece6; --muted:#9a9a92; --line:#33332f; --panel:#1f1f1c; --cell:#242421; --water:#7aa7f7;
         --fed:#7fd39a; --hungry:#e2b25a; --emergency:#f09a8a; --dead:#8d8d86; --source:#8ab4f0; --sourcebg:#22314a; --yield:#c4a6ef;
         --ok:#7fd39a; --okbg:#1f3427; --no:#f09a8a; --nobg:#3a221e; } }
 * { box-sizing:border-box; } body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
@@ -61,12 +61,15 @@ const band = (h, dead) => dead ? 'dead' : h >= C.death_at ? 'dead' : h >= C.emer
 const colour = b => `var(--${b})`;
 function world(k) { return k === 0 ? H.world : ticks[k - 1].world; }
 function food(k, p) { if (k === 0) return H.genesis.balances[p]; const a = ticks[k - 1].availability['actor:' + p]; return a === undefined ? ticks[k - 1].state.balances[p] : a; }
-function stock(k) { if (k === 0) return H.genesis.sources[C.source].stock; const t = ticks[k - 1]; let s = t.state.sources[C.source].stock; for (const e of (t.production || [])) if (e.source === C.source) s += e.amount; return s; }
-function waterStock(k) { const w = C.water_source; if (k === 0) return H.genesis.sources[w].stock; const t = ticks[k - 1]; let s = t.state.sources[w].stock; for (const e of (t.production || [])) if (e.source === w) s += e.amount; return s; }
+const FOOD = C.food_sources || [{id: C.source, position: C.source_position}];
+const WELLS = C.water === 'on' ? (C.water_sources || [{id: C.water_source, position: C.water_position}]) : [];
+const foodCells = new Set(FOOD.map(f => f.position.join(',')));
+function stockOf(k, id) { if (k === 0) return H.genesis.sources[id].stock; const t = ticks[k - 1]; let s = t.state.sources[id].stock; for (const e of (t.production || [])) if (e.source === id) s += e.amount; return s; }
+function stock(k) { let s = 0; for (const f of FOOD) s += stockOf(k, f.id); return s; }
 function waterHeld(k, p) { if (k === 0) return H.genesis.holdings.water[p]; const t = ticks[k - 1]; const a = (t.availability || {})['actor@water:' + p]; return a === undefined ? t.state.holdings.water[p] : a; }
 function outcomeOf(t, p) { for (const o of t.record.outcomes) if (o.actor === p) return o; return null; }
 function traitOf(p) { const t = (H.world.yield_at || {})[p]; return t === undefined ? null : t; }
-function crowdAt(k) { const w = world(k), key = C.source_position.join(','); let c = 0; for (const p of people) if (!(p in w.died_at) && w.positions[p].join(',') === key) c++; return c; }
+function crowdAt(k) { const w = world(k); let c = 0; for (const p of people) if (!(p in w.died_at) && foodCells.has(w.positions[p].join(','))) c++; return c; }
 const series = { stock: [], alive: [], hunger: {}, crowd: [] }; for (const p of people) series.hunger[p] = [];
 const totals = { claimsOk: 0, claimsNo: 0, eats: 0, emergencyTicks: 0, deaths: [], sawOther: 0, sawSource: 0, yields: 0, emergencyBy: {}, deathsBy: {}, yieldTicks: [] };
 for (let k = 0; k <= n; k++) {
@@ -96,12 +99,13 @@ function drawMap(k) {
     const x1 = (Math.min(C.width - 1, x + radius) + 1) * cell, y1 = (Math.min(C.height - 1, y + radius) + 1) * cell;
     s += `<rect x="${x0+0.5}" y="${y0+0.5}" width="${x1-x0-1}" height="${y1-y0-1}" fill="none" stroke="var(--fg)" stroke-opacity="0.18"/>`;
   }
-  const [sx, sy] = C.source_position; const st = stock(k);
-  s += `<rect x="${sx*cell+2}" y="${sy*cell+2}" width="${cell-4}" height="${cell-4}" fill="var(--sourcebg)" stroke="var(--source)" stroke-width="2"/>`;
-  s += `<text x="${sx*cell+cell/2}" y="${sy*cell+cell/2+5}" text-anchor="middle" font-size="15" font-weight="600" fill="var(--source)">${st}</text>`;
-  if (C.water === 'on') { const [wx, wy] = C.water_position; const ws = waterStock(k);
-    s += `<rect x="${wx*cell+2}" y="${wy*cell+2}" width="${cell-4}" height="${cell-4}" fill="#2563eb" fill-opacity="0.15" stroke="#2563eb" stroke-width="2"/>`;
-    s += `<text x="${wx*cell+cell/2}" y="${wy*cell+cell/2+5}" text-anchor="middle" font-size="15" font-weight="600" fill="#2563eb">${ws}</text>`; }
+  const named = FOOD.length > 1 || WELLS.length > 1;
+  const place = (src, fill, opacity, stroke, st) => { const [x, y] = src.position;
+    s += `<rect x="${x*cell+2}" y="${y*cell+2}" width="${cell-4}" height="${cell-4}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="2"><title>${esc(src.id)}</title></rect>`;
+    s += `<text x="${x*cell+cell/2}" y="${y*cell+cell/2+5}" text-anchor="middle" font-size="15" font-weight="600" fill="${stroke}">${st}</text>`;
+    if (named) s += `<text x="${x*cell+cell/2}" y="${y*cell+cell-4}" text-anchor="middle" font-size="8" fill="${stroke}">${esc(src.id)}</text>`; };
+  for (const f of FOOD) place(f, 'var(--sourcebg)', 1, 'var(--source)', stockOf(k, f.id));
+  for (const wl of WELLS) place(wl, 'var(--water)', 0.15, 'var(--water)', stockOf(k, wl.id));
   if (trails && k > 0) for (const p of people) { const pts = []; for (let j = Math.max(0, k - 12); j <= k; j++) { const [x, y] = world(j).positions[p]; pts.push(`${x*cell+cell/2},${y*cell+cell/2}`); }
     s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${colour(band(w.hunger[p], p in w.died_at))}" stroke-width="2" stroke-opacity="0.35"/>`; }
   const at = {}; for (const p of people) { const key = w.positions[p].join(','); (at[key] = at[key] || []).push(p); }
@@ -119,7 +123,7 @@ function drawMap(k) {
   return s + '</svg>';
 }
 function drawChart() {
-  const W = 800, Hh = 150, pad = 28, maxH = Math.max(C.death_at, C.source_cap, people.length, 1); const xs = k => pad + (W - pad - 8) * (n ? k / n : 0), ys = val => Hh - 18 - (Hh - 30) * val / maxH;
+  const W = 800, Hh = 150, pad = 28, maxH = Math.max(C.death_at, C.source_cap * FOOD.length, people.length, 1); const xs = k => pad + (W - pad - 8) * (n ? k / n : 0), ys = val => Hh - 18 - (Hh - 30) * val / maxH;
   let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">`;
   for (const [lvl, name] of [[C.hungry_at, 'hungry'], [C.emergency_at, 'emergency'], [C.death_at, 'dead']]) s += `<line x1="${pad}" x2="${W-8}" y1="${ys(lvl)}" y2="${ys(lvl)}" stroke="${colour(name)}" stroke-dasharray="2 4" stroke-opacity="0.6"/><text x="${W-6}" y="${ys(lvl)+4}" font-size="9" fill="var(--muted)" text-anchor="end">${name} ${lvl}</text>`;
   for (const p of people) { let d = '', pen = false; series.hunger[p].forEach((h, k) => { if (h === null) { pen = false; return; } d += (pen ? 'L' : 'M') + xs(k).toFixed(1) + ' ' + ys(h).toFixed(1); pen = true; }); s += `<path d="${d}" fill="none" stroke="var(--fg)" stroke-opacity="0.35" stroke-width="1"/>`; }
@@ -138,9 +142,12 @@ function show(k) {
   for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
     const ob = t && t.observations && t.observations[p];
     let sees = '';
-    if (ob) { const names = ob.sees ? ob.sees.slice() : (ob.others || []).map(x => x.id); if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S'); sees = names.join(', '); }
+    if (ob) { const names = ob.sees ? ob.sees.slice() : (ob.others || []).map(x => x.id);
+      if (ob.seen_stock) { for (const [id, st] of Object.entries(ob.seen_stock)) names.push(id + '=' + st); }
+      else if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S');
+      sees = names.join(', '); }
     const ya = traitOf(p);
-    const kindCell = d ? (d.kind === 'yield' ? `<span style="color:var(--yield)">&#9675; yield</span>` : esc(d.kind) + (d.amount ? ' ' + d.amount : '')) + ' <span class="meta">' + esc(d.reason) + '</span>' : '';
+    const kindCell = d ? (d.kind === 'yield' ? `<span style="color:var(--yield)">&#9675; yield</span>` : esc(d.kind) + (d.amount ? ' ' + d.amount : '') + (d.target ? ' \u2192 ' + esc(d.target) : '')) + ' <span class="meta">' + esc(d.reason) + '</span>' : '';
     rows += `<tr><td>${p}</td><td class="num">${ya === null ? '' : ya}</td><td class="mono">${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td>${C.water === 'on' ? '<td class="num">' + w.thirst[p] + '</td>' : ''}<td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>${C.water === 'on' ? '<td class="num">' + waterHeld(v, p) + '</td>' : ''}`
           + `<td class="mono">${esc(sees)}</td>`
           + `<td>${kindCell}</td>`
@@ -149,7 +156,7 @@ function show(k) {
   $('selection').textContent = RUN.details[v].selection;
   $('settlement').textContent = RUN.details[v].settlement;
   const prod = t && t.production ? t.production.map(e => `+${e.amount} ${e.source}`).join(', ') : '';
-  $('summary').innerHTML = `<span>alive <b>${alive}</b>/${people.length}</span><span>source stock <b>${stock(v)}</b>/${C.source_cap}</span><span>consumed <b>${v ? t.state.consumed : H.genesis.consumed}</b></span><span>renewal this tick <b>${prod || 'none'}</b></span>`;
+  $('summary').innerHTML = `<span>alive <b>${alive}</b>/${people.length}</span>${FOOD.length === 1 ? `<span>source stock <b>${stock(v)}</b>/${C.source_cap}</span>` : FOOD.map(f => `<span>${esc(f.id)} <b>${stockOf(v, f.id)}</b>/${C.source_cap}</span>`).join('')}${WELLS.map(wl => `<span>${esc(wl.id)} <b>${stockOf(v, wl.id)}</b>/${C.water_cap}</span>`).join('')}<span>consumed <b>${v ? t.state.consumed : H.genesis.consumed}</b></span>${WELLS.length ? `<span>drunk <b>${v ? t.state.consumed_by.water : H.genesis.consumed_by.water}</b></span>` : ''}<span>renewal this tick <b>${prod || 'none'}</b></span>`;
   const cur = document.getElementById('cursor'); if (cur) { const x = 28 + (800 - 36) * (n ? v / n : 0); cur.setAttribute('x1', x); cur.setAttribute('x2', x); }
   $('timing').textContent = t && RUN.timings[String(t.tick)] !== undefined ? `tick ${t.tick} cost ${(RUN.timings[String(t.tick)] / 1e6).toFixed(3)} ms` : '';
 }
@@ -200,6 +207,18 @@ def _seen_positions(observation: dict, start_world: dict) -> list:
     return [entry["at"] for entry in observation.get("others", [])]
 
 
+def _food_sources(cfg: dict) -> list[dict]:
+    """Every food source a header declares: `food_sources` when there are
+    several (from 2026-09-26), else the one `source`."""
+    return cfg.get("food_sources") or [{"id": cfg["source"], "position": cfg["source_position"]}]
+
+
+def _water_sources(cfg: dict) -> list[dict]:
+    if cfg.get("water") != "on":
+        return []
+    return cfg.get("water_sources") or [{"id": cfg["water_source"], "position": cfg["water_position"]}]
+
+
 def _tick_details(run: Run, view: int) -> dict[str, str]:
     """Shared HTML/text presentation of native fields, with boundary labels."""
     if not view:
@@ -207,10 +226,12 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
     tick = run.ticks[view - 1]
     prior = run.header["world"] if view == 1 else run.ticks[view - 2]["world"]
     cfg = run.header["scenario"]
+    food_at = {entry["id"]: entry["position"] for entry in _food_sources(cfg)}
     selection = [f"Tick {tick['tick']} — personal selection from tick-start inputs"]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         ob = tick.get("observations", {}).get(actor, {})
-        crowd = sum(position == cfg["source_position"] for position in _seen_positions(ob, prior))
+        aimed = food_at.get(d.get("target"), cfg["source_position"])
+        crowd = sum(position == aimed for position in _seen_positions(ob, prior))
         scores = d.get("scores")
         pairs = "; ".join(f"{action} {tuple(scores[action])}" if scores is not None and action in scores
                           else f"{action} (score not recorded)" for action in d["candidates"])
@@ -218,22 +239,28 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
             f"{actor}: tick-start at {tuple(prior['positions'][actor])}, hunger {prior['hunger'][actor]}, "
             + (f"thirst {prior['thirst'][actor]}, " if "thirst" in prior else "")
             + f"yield_at {prior.get('yield_at', {}).get(actor, 'not recorded')}, "
-            f"seen crowd {crowd}, seen source stock {ob.get('source_food', 'not observed')}; "
-            f"eligible: {pairs}; selected {d['kind']}"
+            f"seen crowd {crowd}, seen source stock {ob.get('source_food', 'not observed')}"
+            + (f", seen stocks {ob['seen_stock']}" if "seen_stock" in ob else "")
+            + f"; eligible: {pairs}; selected {d['kind']}"
+            + (f" -> {d['target']}" if "target" in d else "")
         )
     settlement = [f"Tick {tick['tick']} — kernel settlement (personal scores confer no priority)",
                   "Recorded rotation: " + " -> ".join(tick["record"]["rotated_roster"])]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         if d["kind"] == "claim":
-            settlement.append(f"Food claim request: {actor}, {d['amount']} from {cfg['source']}")
+            settlement.append(f"Food claim request: {actor}, {d['amount']} from {d.get('target', cfg['source'])}")
+        elif d["kind"] == "draw":
+            settlement.append(f"Water draw request: {actor}, {d['amount']} from {d.get('target', cfg.get('water_source'))}")
     for o in tick["record"]["outcomes"]:
         effects = ", ".join(f"{e['account']} {e['delta']:+d}" for e in o["effects"]) or "none"
         settlement.append(f"{o['proposal_id']}: {o['actor']} {o['operation']} "
                           f"{'accepted' if o['accepted'] else 'denied'} ({o['reason']}); effects: {effects}")
     if not tick["record"]["outcomes"]:
         settlement.append("No kernel transactions this tick.")
-    settlement.append(f"After settlement: source stock {tick['state']['sources'][cfg['source']]['stock']}; "
-                      f"subsequent renewal: {tick.get('production', [])}")
+    sources = tick["state"]["sources"]
+    stocks = (f"source stock {sources[cfg['source']]['stock']}" if len(sources) == 1 else
+              "source stocks " + ", ".join(f"{sid} {entry['stock']}" for sid, entry in sources.items()))
+    settlement.append(f"After settlement: {stocks}; subsequent renewal: {tick.get('production', [])}")
     settlement.append("Post-tick positions, hunger, deaths and food appear in the map/people view. "
                       "Claimed food becomes available at the next tick; it was not eaten by claiming.")
     return {"selection": "\n".join(selection), "settlement": "\n".join(settlement)}
@@ -283,14 +310,14 @@ def render_html(run: Run) -> str:
 <div class="stats" id="summary"></div>
 <div class="grid">
   <div class="panel"><h2>Map</h2><div id="map"></div>
-    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span><span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span><span>small number: yield_at</span></div></div>
+    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span><span>small number: yield_at</span></div></div>
   <div class="panel"><h2>People after this tick</h2>
     <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th class="num water-col">thirst</th><th>state</th><th class="num">food</th><th class="num water-col">water</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
     <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start. yield_at is the person's own crowd-yield trait.</p></div>
 </div>
 <div class="panel" style="margin-top:12px"><h2>Personal selection — tick-start inputs and recorded scores</h2><pre id="selection" class="native mono"></pre></div>
 <div class="panel" style="margin-top:12px"><h2>Resource settlement — recorded kernel order and effects</h2><pre id="settlement" class="native mono"></pre></div>
-<div class="panel" style="margin-top:12px"><h2>Over time: hunger per person (grey), source stock (blue), crowd on source (purple dashed), yield events (dots), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
+<div class="panel" style="margin-top:12px"><h2>Over time: hunger per person (grey), food stock in all food sources (blue), crowd on source (purple dashed), yield events (dots), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
 <p class="meta">Emergency person-ticks count living tick-start people, excluding the final post-tick boundary. Exploration output under OD-009. Rendered from the run file alone; nothing here is a second calculation of what the engine decided. Checkpoint C is not owner acceptance.</p>
 <script id="run-data" type="application/json">{data}</script>
 <script>{JS}</script>
@@ -305,14 +332,26 @@ def render_text(run: Run, view: int) -> str:
         raise ValueError(f"view must be between 0 and {len(run.ticks)}")
     cfg = run.header["scenario"]
     world = run.header["world"] if view == 0 else run.ticks[view - 1]["world"]
-    stock = run.header["genesis"]["sources"][cfg["source"]]["stock"] if view == 0 else run.ticks[view - 1]["state"]["sources"][cfg["source"]]["stock"] + sum(e["amount"] for e in run.ticks[view - 1].get("production", []))
+    def stock_of(source_id: str) -> int:
+        if view == 0:
+            return run.header["genesis"]["sources"][source_id]["stock"]
+        tick_line = run.ticks[view - 1]
+        return tick_line["state"]["sources"][source_id]["stock"] + sum(
+            e["amount"] for e in tick_line.get("production", []) if e["source"] == source_id)
+    stock = stock_of(cfg["source"])
     grid = [["." for _ in range(cfg["width"])] for _ in range(cfg["height"])]
     sx, sy = cfg["source_position"]
-    grid[sy][sx] = "S"
+    extra = []
+    for mark, entries in (("S", _food_sources(cfg)), ("W", _water_sources(cfg))):
+        for entry in entries:
+            x, y = entry["position"]
+            grid[y][x] = mark
+            if entry["id"] != cfg["source"]:
+                extra.append(f"; {entry['id']} {mark} at ({x}, {y}) stock {stock_of(entry['id'])}")
     for actor in sorted(world["positions"]):
         x, y = world["positions"][actor]
         mark = "x" if actor in world["died_at"] else actor[-1]
-        grid[y][x] = mark if grid[y][x] in ".S" else "+"
+        grid[y][x] = mark if grid[y][x] in ".SW" else "+"
     saw_other = saw_source = yields = 0
     for entry in run.ticks:
         for observation in entry.get("observations", {}).values():
@@ -322,7 +361,7 @@ def render_text(run: Run, view: int) -> str:
                 saw_source += 1
         yields += sum(1 for d in entry.get("decisions", {}).values() if d.get("kind") == "yield")
     traits = world.get("yield_at", run.header["world"].get("yield_at", {}))
-    lines = [f"{run.run_id} view {view}/{len(run.ticks)}  source S at ({sx}, {sy}) stock {stock}",
+    lines = [f"{run.run_id} view {view}/{len(run.ticks)}  source S at ({sx}, {sy}) stock {stock}" + "".join(extra),
              f"person-ticks with another in view {saw_other}; with source in view {saw_source}; yield events {yields}",
              *(" ".join(row) for row in grid), "",
              "positions and hunger after the tick; sees, decision and outcome are the tick's that produced them"]

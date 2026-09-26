@@ -15,7 +15,8 @@ import pytest
 
 from kernel import canonical_bytes
 from stream.run_file import read_run
-from world.config import DEFAULT_YIELD_SET, FOOD_SOURCE, SHORT_RANGE_LEVERS, WorldConfig, genesis, homes_for, yield_at_for
+from world.config import (DEFAULT_YIELD_SET, FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, SHORT_RANGE_LEVERS, WorldConfig, genesis,
+                          homes_for, yield_at_for)
 from world.decide import GO, WAIT, YIELD, candidates, crowd_on_source, decide, yield_eligible
 from world.observe import Observation, SeenPerson
 from world.run import run_world
@@ -46,9 +47,10 @@ def crowded(n: int, stock: int = 2) -> tuple[SeenPerson, ...]:
 
 
 def test_seed_7_homes_match_head_fixture_genesis():
-    assert homes_for(WorldConfig(seed=7)) == SEED7_HOMES
-    assert homes_for(WorldConfig(seed=7, yield_on=False)) == SEED7_HOMES
-    assert genesis(WorldConfig(seed=7))[1].homes == SEED7_HOMES
+    # the fixture's world: one source cell excluded from the home draw
+    assert homes_for(WorldConfig(seed=7, **ONE_SOURCE_FOOD_ONLY)) == SEED7_HOMES
+    assert homes_for(WorldConfig(seed=7, yield_on=False, **ONE_SOURCE_FOOD_ONLY)) == SEED7_HOMES
+    assert genesis(WorldConfig(seed=7, **ONE_SOURCE_FOOD_ONLY))[1].homes == SEED7_HOMES
 
 
 def test_off_assigns_beyond_actor_count_and_on_draws_from_the_set():
@@ -67,7 +69,7 @@ def test_off_assigns_beyond_actor_count_and_on_draws_from_the_set():
 
 
 def test_yield_rule_and_priority():
-    cfg = small()
+    cfg = small(**ONE_SOURCE_FOOD_ONLY)   # one source: decisions carry no target
     others = crowded(3, stock=2)
     view = obs(hunger=cfg.hungry_at, source_food=2, yield_at=2, others=others, position=(0, 0))
     assert crowd_on_source(view) == 3 and yield_eligible(view, cfg)

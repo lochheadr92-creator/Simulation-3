@@ -16,7 +16,8 @@ import pytest
 
 from kernel import Source, WorldState, canonical_bytes
 from stream.run_file import apply_production, read_run
-from world.config import DISTANCE_METRIC, FOOD_SOURCE, PERCEPTION_BOUNDARY, SHORT_RANGE_LEVERS, WorldConfig
+from world.config import (DISTANCE_METRIC, FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, PERCEPTION_BOUNDARY, SHORT_RANGE_LEVERS,
+                          WorldConfig)
 from world.decide import CLAIM, GO, candidates, decide
 from world.observe import Observation, chebyshev, in_view, observe
 from world.overlay import Overlay
@@ -44,7 +45,7 @@ def placed(positions: dict[str, tuple[int, int]], *, radius: int, stock: int = 4
            food: dict[str, int] | None = None, died_at: dict[str, int] | None = None) -> tuple[WorldState, Overlay, WorldConfig]:
     actors = tuple(sorted(positions))
     cfg = WorldConfig(seed=0, width=7, height=7, actors=len(actors), perception_radius=radius,
-                      starting_food=0, source_stock=stock)
+                      starting_food=0, source_stock=stock, **ONE_SOURCE_FOOD_ONLY)   # the world built below
     held = food or {actor: 0 for actor in actors}
     ledger = WorldState.genesis(
         balances=held,
@@ -93,7 +94,7 @@ def test_claim_requires_observed_stock_and_does_not_invent_actions():
 def test_recorded_sees_are_exactly_the_living_others_in_the_radius(tmp_path: Path):
     """The run file records who each person saw as identities only; their
     positions come from the tick-start world block in the same file."""
-    cfg = small(perception_radius=2)
+    cfg = small(perception_radius=2, **ONE_SOURCE_FOOD_ONLY)   # the one-source record; see test_sources.py
     run_world(cfg, 40, tmp_path / "w.jsonl")
     run = read_run(tmp_path / "w.jsonl")
     assert run.complete

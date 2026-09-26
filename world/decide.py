@@ -29,6 +29,12 @@ cannot be at the source; that is asserted, not defaulted.
 YIELD uses only the observation: crowd is the number of seen others whose
 position equals the source cell. Dead people are neither seen nor counted.
 Emergency never yields. A yield proposes nothing and does not step.
+
+With several sources of a kind, "the source" is the one the observation
+targets (world/observe.py `target_source`), and the decision records it as
+`target` on every claim, wait, yield, go, draw, wait_water and go_water; a
+claim or draw takes from that source. With one source of a kind no target is
+recorded, so those decisions are exactly as before.
 """
 
 from __future__ import annotations
@@ -57,6 +63,7 @@ class Decision:
     amount: int = 0                      # units to eat or claim
     step: Position | None = None         # the cell a move ends on
     scores: tuple[tuple[str, tuple[int, int]], ...] | None = None
+    target: str | None = None            # the source aimed at, when its kind has several
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -66,6 +73,8 @@ class Decision:
             out["step"] = list(self.step)
         if self.scores is not None:
             out["scores"] = {action: list(pair) for action, pair in self.scores}
+        if self.target is not None:
+            out["target"] = self.target
         return out
 
 
@@ -211,23 +220,26 @@ def _water_decision(observation: Observation, config: WorldConfig, selected: str
     urgency = "thirst emergency" if observation.thirst >= config.thirst_emergency_at else "thirsty"
     if selected == DRINK:
         return Decision(actor, DRINK, f"{urgency}, holding {observation.water} water", (), amount=1)
+    target = observation.water_source_id if len(config.water_source_ids()) > 1 else None
     if selected == DRAW:
         stock = observation.water_stock
         if stock is None:
             raise AssertionError("draw selected without observed water stock")
-        return Decision(actor, DRAW, f"{urgency}, at water with {stock} free", (), amount=min(config.draw_amount, stock))
+        return Decision(actor, DRAW, f"{urgency}, at water with {stock} free", (), amount=min(config.draw_amount, stock),
+                        target=target)
     if selected == WAIT_WATER:
-        return Decision(actor, WAIT_WATER, f"{urgency}, water empty", ())
+        return Decision(actor, WAIT_WATER, f"{urgency}, water empty", (), target=target)
     well = observation.water_source
     reason = (f"{urgency}, walking to water" if observation.thirst >= config.thirsty_at
               else f"leaving in time for water: thirst {observation.thirst}, {steps_to(observation.position, well)} "
                    f"steps, none held")
-    return Decision(actor, GO_WATER, reason, (), step=step_toward(observation.position, well))
+    return Decision(actor, GO_WATER, reason, (), step=step_toward(observation.position, well), target=target)
 
 
 def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     options = candidates(observation, config)
     actor = observation.actor
+    target = observation.source_id if config.food_sources > 1 else None
     if not options:
         return Decision(actor, DEAD, "dead", ())
     scores = None
@@ -247,22 +259,23 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
         if seen is None:
             raise AssertionError("claim selected without observed source stock")
         amount = min(config.claim_amount, seen)
-        return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount, scores=scores)
+        return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount, scores=scores,
+                        target=target)
     if selected == WAIT:
-        return Decision(actor, WAIT, f"{urgency}, source empty", options, scores=scores)
+        return Decision(actor, WAIT, f"{urgency}, source empty", options, scores=scores, target=target)
     if selected == YIELD:
         crowd = crowd_on_source(observation)
         return Decision(
             actor, YIELD,
             f"{urgency}, saw {crowd} on source, stock {observation.source_food}, yield_at {observation.yield_at}",
-            options, scores=scores,
+            options, scores=scores, target=target,
         )
     if selected == GO:
         reason = (f"{urgency}, walking to source" if observation.hunger >= config.hungry_at
                   else f"fed, leaving in time: hunger {observation.hunger}, "
                        f"{steps_to_source(observation)} steps to source, no food held")
         return Decision(actor, GO, reason, options,
-                        step=step_toward(observation.position, observation.source), scores=scores)
+                        step=step_toward(observation.position, observation.source), scores=scores, target=target)
     if selected == HOME:
         return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)
     return Decision(actor, REST, "fed, at home", options, scores=scores)
