@@ -31,7 +31,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
-from kernel import TickRecord, WorldState
+from kernel import Source, TickRecord, WorldState
 from kernel.proposals import OP_CONSUME
 from kernel.state import SINK_ACCOUNT, sink_account
 
@@ -67,6 +67,36 @@ def units_eaten(record: TickRecord) -> dict[str, int]:
 
 def units_drunk(record: TickRecord) -> dict[str, int]:
     return _consumed(record, sink_account(WATER))
+
+
+def settled_pairs(overlay: Overlay, config: WorldConfig) -> list[tuple[str, str]]:
+    """Pairs standing on adjacent cells who are both doing well: a finished
+    shelter of their own, and no need calling."""
+    homes_built = set(overlay.shelters)
+
+    def well(actor: str) -> bool:
+        return (overlay.alive(actor) and overlay.homes[actor] in homes_built
+                and overlay.hunger[actor] < config.hungry_at
+                and (not config.water_on or overlay.thirst[actor] < config.thirsty_at)
+                and (not config.warmth_on or overlay.cold[actor] < config.cold_at))
+
+    living = [actor for actor in overlay.roster if well(actor)]
+    out = []
+    for i, a in enumerate(living):
+        for b in living[i + 1:]:
+            (ax, ay), (bx, by) = overlay.positions[a], overlay.positions[b]
+            if abs(ax - bx) + abs(ay - by) == 1:
+                out.append((a, b))
+    return out
+
+
+def free_cell_near(origin: tuple[int, int], taken: set[tuple[int, int]], config: WorldConfig):
+    """The nearest cell nobody lives on and no source occupies, by distance then
+    row then column, so a birth always lands in the same place for a given world."""
+    cells = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
+    if not cells:
+        return None
+    return min(cells, key=lambda c: (abs(c[0] - origin[0]) + abs(c[1] - origin[1]), c[1], c[0]))
 
 
 def eased(rate: int, relief: int) -> int:
@@ -128,7 +158,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             died.append(actor)
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
-                           shelters=tuple(sorted(shelters)))
+                           shelters=tuple(sorted(shelters)), together=dict(overlay.together))
 
     production: list[dict[str, Any]] = []
     ledger = settled
@@ -145,5 +175,55 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 sources = dict(ledger.sources)
                 sources[source_id] = replace(source, stock=source.stock + amount)
                 ledger = replace(ledger, sources=sources)
+    if config.births_on:
+        next_overlay, ledger, born = _births(next_overlay, ledger, config)
+        production.extend({"born": actor} for actor in born)
+
     return Processed(overlay=next_overlay, ledger=ledger, production=tuple(production),
                      eaten=eaten, died=tuple(died))
+
+
+def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[Overlay, WorldState, list[str]]:
+    """Count the ticks each settled pair spends side by side, and when one
+    reaches together_ticks, add a person. The newcomer holds nothing: a birth
+    is a mouth, not a meal, and no unit of anything is created by it."""
+    adjacent = {f"{a}|{b}" for a, b in settled_pairs(overlay, config)}
+    counts = {pair: overlay.together.get(pair, 0) + 1 for pair in adjacent}
+    taken = set(overlay.homes.values()) | set(config.all_source_positions())
+    homes, positions = dict(overlay.homes), dict(overlay.positions)
+    hunger, yield_at = dict(overlay.hunger), dict(overlay.yield_at)
+    thirst, cold = dict(overlay.thirst), dict(overlay.cold)
+    held, built = dict(overlay.held), dict(overlay.built)
+    born: list[str] = []
+    roster_size = len(overlay.roster)
+    for pair in sorted(counts):
+        if counts[pair] < config.together_ticks:
+            continue
+        first = pair.split("|")[0]
+        where = free_cell_near(overlay.homes[first], taken, config)
+        if where is None:
+            continue                                   # nowhere left to live
+        counts[pair] = 0                               # they start counting again
+        name = f"p{roster_size + len(born) + 1:02d}"
+        born.append(name)
+        taken.add(where)
+        homes[name] = positions[name] = where
+        hunger[name] = held[name] = built[name] = 0
+        yield_at[name] = (config.yield_set[len(overlay.roster) % len(config.yield_set)]
+                          if config.yield_on else config.actors + 1)
+        if config.water_on:
+            thirst[name] = 0
+        if config.warmth_on:
+            cold[name] = 0
+    if not born:
+        return replace(overlay, together=counts), ledger, []
+    sources = {sid: replace(source, authorised=frozenset(source.authorised) | set(born))
+               for sid, source in ledger.sources.items()}
+    balances = dict(ledger.balances) | {name: 0 for name in born}
+    holdings = {resource: dict(held_map) | {name: 0 for name in born}
+                for resource, held_map in ledger.holdings.items()}
+    grown = replace(ledger, balances=balances, sources=sources, holdings=holdings)
+    return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
+                    died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
+                    shelters=overlay.shelters, together=counts),
+            grown, born)

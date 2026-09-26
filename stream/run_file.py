@@ -183,26 +183,45 @@ def decode_input(entry: Mapping[str, Any]) -> Proposal:
 # --- production --------------------------------------------------------------------
 
 def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) -> dict[str, Any]:
-    """The production rule on a stored canonical state: each entry adds
-    `amount` (a positive integer) to the stock of an existing source and
-    nothing else changes. Pure, on plain JSON, so a reader can recompute the
-    produced state without the kernel. Raises RunFileError on a bad entry."""
+    """The two rules that change a state after settlement, on a stored canonical
+    state. A `{"source", "amount"}` entry adds that many units to an existing
+    source. A `{"born"}` entry adds a person: an account holding nothing, a
+    nothing holding of every named resource, and their name on every source.
+    Nothing else changes, and a birth creates no units. Pure, on plain JSON, so
+    a reader can recompute the state without the kernel. Raises RunFileError on
+    a bad entry."""
     produced = json.loads(json.dumps(state))
     sources = produced.get("sources")
-    if not isinstance(sources, dict):
-        raise RunFileError("production needs a state with sources")
+    balances = produced.get("balances")
+    if not isinstance(sources, dict) or not isinstance(balances, dict):
+        raise RunFileError("production needs a state with sources and balances")
     seen: set[str] = set()
     for entry in production:
-        source = entry.get("source") if isinstance(entry, dict) else None
-        amount = entry.get("amount") if isinstance(entry, dict) else None
-        if not isinstance(source, str) or source not in sources:
-            raise RunFileError(f"production names an unknown source {source!r}")
-        if source in seen:
-            raise RunFileError(f"production names {source!r} twice")
+        if not isinstance(entry, dict):
+            raise RunFileError(f"a production entry must be an object, got {entry!r}")
+        if "born" in entry:
+            born = entry.get("born")
+            if not isinstance(born, str) or not born:
+                raise RunFileError(f"a birth needs a name, got {born!r}")
+            if born in balances or born in seen:
+                raise RunFileError(f"{born!r} is born twice, or was already here")
+            seen.add(born)
+            balances[born] = 0
+            for source in sources.values():
+                source["authorised"] = sorted(set(source.get("authorised", [])) | {born})
+            for held in (produced.get("holdings") or {}).values():
+                held[born] = 0
+            continue
+        source_id = entry.get("source")
+        amount = entry.get("amount")
+        if not isinstance(source_id, str) or source_id not in sources:
+            raise RunFileError(f"production names an unknown source {source_id!r}")
+        if source_id in seen:
+            raise RunFileError(f"production names {source_id!r} twice")
         if type(amount) is not int or amount <= 0:
-            raise RunFileError(f"production of {source!r} must be a positive integer, got {amount!r}")
-        seen.add(source)
-        sources[source]["stock"] = int(sources[source]["stock"]) + amount
+            raise RunFileError(f"production of {source_id!r} must be a positive integer, got {amount!r}")
+        seen.add(source_id)
+        sources[source_id]["stock"] = int(sources[source_id]["stock"]) + amount
     return produced
 
 

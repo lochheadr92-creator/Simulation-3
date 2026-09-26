@@ -62,6 +62,7 @@ class Overlay:
     held: Mapping[str, int] = field(default_factory=dict)     # ticks still owed to the rough cell underfoot
     built: Mapping[str, int] = field(default_factory=dict)    # ticks of work each person has put into their shelter
     shelters: tuple[Position, ...] = ()                       # cells somebody has finished; permanent
+    together: Mapping[str, int] = field(default_factory=dict) # "a|b" -> consecutive ticks side by side and well
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -83,6 +84,14 @@ class Overlay:
         object.__setattr__(self, "cold", _levels(self.cold, positions=positions, name="cold"))
         object.__setattr__(self, "held", _levels(self.held, positions=positions, name="held"))
         object.__setattr__(self, "built", _levels(self.built, positions=positions, name="built"))
+        together = {pair: self.together[pair] for pair in sorted(self.together)}
+        for pair, value in together.items():
+            ends = pair.split("|") if isinstance(pair, str) else []
+            if len(ends) != 2 or any(end not in positions for end in ends) or ends[0] >= ends[1]:
+                raise ValueError(f"a pair must name two known people in order, got {pair!r}")
+            if type(value) is not int or value < 0:
+                raise ValueError(f"the count for {pair!r} must be an integer of zero or more")
+        object.__setattr__(self, "together", MappingProxyType(together))
         shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
         for cell in shelters:
             if (len(cell) != 2 or type(cell[0]) is not int or type(cell[1]) is not int
@@ -121,6 +130,7 @@ class Overlay:
             **({"held": dict(self.held)} if any(self.held.values()) else {}),
             **({"built": dict(self.built)} if any(self.built.values()) else {}),
             **({"shelters": [list(cell) for cell in self.shelters]} if self.shelters else {}),
+            **({"together": dict(self.together)} if self.together else {}),
         }
 
     @classmethod
@@ -129,7 +139,7 @@ class Overlay:
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
-            for extra in ("thirst", "cold", "held", "built", "shelters"):
+            for extra in ("thirst", "cold", "held", "built", "shelters", "together"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -152,7 +162,8 @@ class Overlay:
                    hunger=dict(data["hunger"]), yield_at=dict(data["yield_at"]), died_at=dict(data["died_at"]),
                    thirst=dict(data.get("thirst", {})), cold=dict(data.get("cold", {})),
                    held=dict(data.get("held", {})), built=dict(data.get("built", {})),
-                   shelters=tuple(tuple(cell) for cell in data.get("shelters", ())))
+                   shelters=tuple(tuple(cell) for cell in data.get("shelters", ())),
+                   together=dict(data.get("together", {})))
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

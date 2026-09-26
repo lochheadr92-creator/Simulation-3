@@ -168,7 +168,7 @@ def test_the_runner_defaults_and_switches():
     assert default.water_on and default.warmth_on and default.food_sources == 2 and default.water_sources == 2
     old = config_from(parser.parse_args(["--seed", "7", "--food-sources", "1", "--water", "off", "--warmth", "off",
                                         "--stagger", "off", "--terrain", "off", "--building", "off",
-                                        "--offers", "off"]))
+                                        "--offers", "off", "--births", "off"]))
     assert old == WorldConfig(seed=7, **ONE_SOURCE_FOOD_ONLY)
     scoring = config_from(parser.parse_args(["--seed", "7", "--scoring", "on"]))
     assert scoring.scoring_on and not scoring.water_on and not scoring.warmth_on

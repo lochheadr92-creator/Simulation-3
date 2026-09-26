@@ -65,14 +65,17 @@ button.event:hover { background:var(--cell); } button.event.now { border-color:v
 JS = r"""
 const RUN = JSON.parse(document.getElementById('run-data').textContent);
 const H = RUN.header, C = H.scenario, ticks = RUN.ticks, n = ticks.length;
-const people = Object.keys(H.world.positions).sort();
+const LAST = ticks.length ? ticks[ticks.length - 1].world : H.world;
+const people = Object.keys(LAST.positions).sort();   // everyone who ever lived, including the newly born
+const bornAt = {};   // filled while the events are gathered: the tick each newcomer arrived
+const present = (w, p) => p in w.positions;          // somebody not born yet is not in the world
 let v = 0, timer = null, trails = true;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const band = (h, dead) => dead ? 'dead' : h >= C.death_at ? 'dead' : h >= C.emergency_at ? 'emergency' : h >= C.hungry_at ? 'hungry' : 'fed';
 const colour = b => `var(--${b})`;
 function world(k) { return k === 0 ? H.world : ticks[k - 1].world; }
-function food(k, p) { if (k === 0) return H.genesis.balances[p]; const a = ticks[k - 1].availability['actor:' + p]; return a === undefined ? ticks[k - 1].state.balances[p] : a; }
+function food(k, p) { if (k === 0) return H.genesis.balances[p] || 0; const a = ticks[k - 1].availability['actor:' + p]; const b = a === undefined ? ticks[k - 1].state.balances[p] : a; return b === undefined ? 0 : b; }
 const FOOD = C.food_sources || [{id: C.source, position: C.source_position}];
 const WELLS = C.water === 'on' ? (C.water_sources || [{id: C.water_source, position: C.water_position}]) : [];
 const foodCells = new Set(FOOD.map(f => f.position.join(',')));
@@ -80,11 +83,13 @@ const ROUGH = new Set((C.rough || []).map(c => c.join(',')));
 const SHELTER = new Set((C.shelter_spots || []).map(c => c.join(',')));
 function stockOf(k, id) { if (k === 0) return H.genesis.sources[id].stock; const t = ticks[k - 1]; let s = t.state.sources[id].stock; for (const e of (t.production || [])) if (e.source === id) s += e.amount; return s; }
 function stock(k) { let s = 0; for (const f of FOOD) s += stockOf(k, f.id); return s; }
-function waterHeld(k, p) { if (k === 0) return H.genesis.holdings.water[p]; const t = ticks[k - 1]; const a = (t.availability || {})['actor@water:' + p]; return a === undefined ? t.state.holdings.water[p] : a; }
+function waterHeld(k, p) { if (k === 0) return (H.genesis.holdings.water || {})[p] || 0; const t = ticks[k - 1]; const a = (t.availability || {})['actor@water:' + p]; const h = a === undefined ? t.state.holdings.water[p] : a; return h === undefined ? 0 : h; }
 function outcomeOf(t, p) { for (const o of t.record.outcomes) if (o.actor === p) return o; return null; }
 function personTip(k, p) {
   const w = world(k), dead = p in w.died_at, t = k >= 1 ? ticks[k - 1] : null;
-  const bits = [p + (dead ? ' (died tick ' + w.died_at[p] + ')' : ' - ' + band(w.hunger[p], false))];
+  if (!present(w, p)) return p + ' is not born yet';
+  const bits = [p + (dead ? ' (died tick ' + w.died_at[p] + ')' : ' - ' + band(w.hunger[p], false))
+    + (bornAt[p] ? ', born tick ' + bornAt[p] : '')];
   bits.push('hunger ' + w.hunger[p] + ' / ' + C.death_at + '   food held ' + food(k, p));
   if (C.water === 'on') bits.push('thirst ' + w.thirst[p] + ' / ' + C.thirst_death_at + '   water held ' + waterHeld(k, p));
   if (C.warmth === 'on') bits.push('cold ' + w.cold[p] + ' / ' + C.cold_death_at
@@ -100,13 +105,13 @@ function personTip(k, p) {
   if (d) bits.push('chose: ' + d.kind + (d.target ? ' -> ' + d.target : '') + ' (' + d.reason + ')');
   return bits.join('\n');
 }
-function traitOf(p) { const t = (H.world.yield_at || {})[p]; return t === undefined ? null : t; }
-function crowdAt(k) { const w = world(k); let c = 0; for (const p of people) if (!(p in w.died_at) && foodCells.has(w.positions[p].join(','))) c++; return c; }
+function traitOf(p) { const t = (LAST.yield_at || {})[p]; return t === undefined ? null : t; }
+function crowdAt(k) { const w = world(k); let c = 0; for (const p of people) if (present(w, p) && !(p in w.died_at) && foodCells.has(w.positions[p].join(','))) c++; return c; }
 const series = { stock: [], alive: [], hunger: {}, crowd: [] }; for (const p of people) series.hunger[p] = [];
 const totals = { claimsOk: 0, claimsNo: 0, eats: 0, emergencyTicks: 0, deaths: [], sawOther: 0, sawSource: 0, yields: 0, emergencyBy: {}, deathsBy: {}, yieldTicks: [] };
 for (let k = 0; k <= n; k++) {
   const w = world(k); series.stock.push(stock(k)); series.crowd.push(crowdAt(k)); let alive = 0;
-  for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; series.hunger[p].push(dead ? null : w.hunger[p]); if (k < n && !dead && w.hunger[p] >= C.emergency_at) { totals.emergencyTicks++; const tr = traitOf(p); if (tr !== null) totals.emergencyBy[tr] = (totals.emergencyBy[tr] || 0) + 1; } }
+  for (const p of people) { if (!present(w, p)) { series.hunger[p].push(null); continue; } const dead = p in w.died_at; if (!dead) alive++; series.hunger[p].push(dead ? null : w.hunger[p]); if (k < n && !dead && w.hunger[p] >= C.emergency_at) { totals.emergencyTicks++; const tr = traitOf(p); if (tr !== null) totals.emergencyBy[tr] = (totals.emergencyBy[tr] || 0) + 1; } }
   series.alive.push(alive);
   if (k >= 1) { for (const o of ticks[k - 1].record.outcomes) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
     const block = ticks[k - 1].observations || {};
@@ -114,7 +119,7 @@ for (let k = 0; k <= n; k++) {
     let anyYield = false; for (const p of people) { const d = ticks[k - 1].decisions && ticks[k - 1].decisions[p]; if (d && d.kind === 'yield') { totals.yields++; anyYield = true; } }
     if (anyYield) totals.yieldTicks.push(k); }
 }
-for (const p of people) { const w = world(n); if (p in w.died_at) { totals.deaths.push([p, w.died_at[p]]); const tr = traitOf(p); if (tr !== null) totals.deathsBy[tr] = (totals.deathsBy[tr] || 0) + 1; } }
+for (const p of people) { const w = world(n); if (present(w, p) && p in w.died_at) { totals.deaths.push([p, w.died_at[p]]); const tr = traitOf(p); if (tr !== null) totals.deathsBy[tr] = (totals.deathsBy[tr] || 0) + 1; } }
 totals.deaths.sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
 const traitKeys = [...new Set(people.map(traitOf).filter(v => v !== null))].sort((a, b) => a - b);
 function fmtBy(map) { return traitKeys.map(v => v + ':' + (map[v] || 0)).join(', ') || 'none'; }
@@ -122,6 +127,7 @@ const EVENTS = [];
 for (let k = 1; k <= n; k++) {
   const w = world(k), before = world(k - 1), t = ticks[k - 1];
   for (const p of people) {
+    if (!present(w, p)) continue;
     if (p in w.died_at && !(p in before.died_at)) {
       const why = w.hunger[p] >= C.death_at ? 'starved'
         : (C.water === 'on' && w.thirst[p] >= C.thirst_death_at) ? 'died of thirst'
@@ -155,6 +161,10 @@ for (let k = 1; k <= n; k++) {
     if (C.warmth === 'on' && w.cold[p] >= C.cold_emergency_at && before.cold[p] < C.cold_emergency_at)
       EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is freezing (cold ' + w.cold[p] + ')' });
   }
+  for (const e of (t.production || [])) if (e.born) {
+    bornAt[e.born] = k;
+    EVENTS.push({ k, who: e.born, band: 'fed', what: e.born + ' was born' });
+  }
   for (const f of FOOD) if (stockOf(k, f.id) === 0 && stockOf(k - 1, f.id) > 0)
     EVENTS.push({ k, who: null, band: 'hungry', what: f.id + ' is picked clean' });
   for (const wl of WELLS) if (stockOf(k, wl.id) === 0 && stockOf(k - 1, wl.id) > 0)
@@ -185,10 +195,10 @@ function drawMap(k) {
     if (shelterSpot) s += `<path d="M${x*cell+9} ${y*cell+cell-10} l${cell/2-9} -8 l${cell/2-9} 8 z" fill="none" stroke="var(--shelterline)" stroke-width="2"/>`;
     if (made) s += `<path d="M${x*cell+6} ${y*cell+cell-6} l${cell/2-6} -11 l${cell/2-6} 11 z" fill="var(--builtline)" fill-opacity="0.85"><title>a shelter somebody built: hunger and thirst rise slower here</title></path>`;
   }
-  for (const p of people) { const [hx, hy] = w.homes[p]; s += `<rect x="${hx*cell+4}" y="${hy*cell+4}" width="${cell-8}" height="${cell-8}" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`; }
+  for (const p of people) { if (!present(w, p)) continue; const [hx, hy] = w.homes[p]; s += `<rect x="${hx*cell+4}" y="${hy*cell+4}" width="${cell-8}" height="${cell-8}" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`; }
   const radius = C.perception_radius;
   if (typeof radius === 'number') for (const p of people) {
-    if (p in w.died_at) continue;
+    if (p in w.died_at || !present(w, p)) continue;
     const [x, y] = w.positions[p];
     const x0 = Math.max(0, x - radius) * cell, y0 = Math.max(0, y - radius) * cell;
     const x1 = (Math.min(C.width - 1, x + radius) + 1) * cell, y1 = (Math.min(C.height - 1, y + radius) + 1) * cell;
@@ -201,13 +211,17 @@ function drawMap(k) {
     if (named) s += `<text x="${x*cell+cell/2}" y="${y*cell+cell-4}" text-anchor="middle" font-size="8" fill="${stroke}">${esc(src.id)}</text>`; };
   for (const f of FOOD) place(f, 'var(--sourcebg)', 1, 'var(--source)', stockOf(k, f.id));
   for (const wl of WELLS) place(wl, 'var(--water)', 0.15, 'var(--water)', stockOf(k, wl.id));
-  if (trails && k > 0) for (const p of people) { const pts = []; for (let j = Math.max(0, k - 12); j <= k; j++) { const [x, y] = world(j).positions[p]; pts.push(`${x*cell+cell/2},${y*cell+cell/2}`); }
+  if (trails && k > 0) for (const p of people) { if (!present(w, p)) continue; const pts = []; for (let j = Math.max(0, k - 12); j <= k; j++) { const cellAt = world(j).positions[p]; if (!cellAt) continue; const [x, y] = cellAt; pts.push(`${x*cell+cell/2},${y*cell+cell/2}`); } if (pts.length < 2) continue;
     s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${colour(band(w.hunger[p], p in w.died_at))}" stroke-width="2" stroke-opacity="0.35"/>`; }
-  const at = {}; for (const p of people) { const key = w.positions[p].join(','); (at[key] = at[key] || []).push(p); }
+  const at = {}; for (const p of people) { if (!present(w, p)) continue; const key = w.positions[p].join(','); (at[key] = at[key] || []).push(p); }
   for (const key in at) { const [x, y] = key.split(',').map(Number); const dead = at[key].filter(p => p in w.died_at), live = at[key].filter(p => !(p in w.died_at));
     // the dead lie along the top edge of the cell, small, so a stock number or a living person stays readable
-    dead.forEach((p, i) => { const cx = x*cell+8+i*11, cy = y*cell+9;
-      if (w.died_at[p] === k) s += `<circle cx="${x*cell+cell/2}" cy="${y*cell+cell/2}" r="${cell/2-2}" fill="none" stroke="var(--emergency)" stroke-width="3" stroke-opacity="0.9"/>`;
+    for (const p of dead) if (w.died_at[p] === k)
+      s += `<circle cx="${x*cell+cell/2}" cy="${y*cell+cell/2}" r="${cell/2-2}" fill="none" stroke="var(--emergency)" stroke-width="3" stroke-opacity="0.9"/>`;
+    if (dead.length > 3) {
+      // a pile of bodies, not a list of names: sources end up carpeted with them
+      s += `<text x="${x*cell+cell/2}" y="${y*cell+11}" text-anchor="middle" font-size="11" fill="var(--dead)" font-weight="600">&#215;${dead.length}<title>${esc(dead.join(', '))} died here</title></text>`;
+    } else dead.forEach((p, i) => { const cx = x*cell+8+i*11, cy = y*cell+9;
       s += `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="11" fill="var(--dead)">&#215;</text><text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="7" fill="var(--dead)">${p.slice(1)}</text>`; });
     const m = live.length; const tDec = k >= 1 ? ticks[k - 1] : null; live.forEach((p, i) => { const b = band(w.hunger[p], false); const off = m === 1 ? 0 : (i - (m - 1) / 2) * 12;
       const cx = x*cell+cell/2+off, cy = y*cell+cell/2 + (m > 3 ? (i % 2) * 10 - 5 : 0);
@@ -237,7 +251,7 @@ function show(k) {
   v = Math.max(0, Math.min(n, k)); $('slider').value = v; $('tick').textContent = `view ${v} / ${n}`; $('map').innerHTML = drawMap(v);
   markEvents(v);
   const w = world(v), t = v >= 1 ? ticks[v - 1] : null; let alive = 0; let rows = '';
-  for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
+  for (const p of people) { if (!present(w, p)) continue; const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
     const ob = t && t.observations && t.observations[p];
     let sees = '';
     if (ob) { const names = ob.sees ? ob.sees.slice() : (ob.others || []).map(x => x.id);
