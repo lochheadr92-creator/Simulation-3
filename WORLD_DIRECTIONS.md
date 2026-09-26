@@ -64,8 +64,12 @@ a tick. It reads the saved file and never runs the world.
 person in trouble cannot signal, and nobody looks for them. Help depends
 entirely on a well-supplied person happening to have someone starving inside
 their perception radius while nothing of their own is calling. Offers are
-consequently rare, and in the runs we have watched they have not changed who
-survives: the unit helps whoever receives it and costs whoever gave it.
+consequently rare. Comparing runs with offers on and off across a handful of
+seeds showed no overall gain in the number of survivors — slightly fewer, in
+fact, within the noise of a few runs. That says the practice does not lift
+survival overall; it does not say individual outcomes are unchanged. A unit
+carried to a neighbour plainly helps whoever receives it and costs whoever
+gave it.
 
 **Movement ignores alternative routes.** A step is taken along the longer
 axis toward the target, x on ties. Nothing in the decision code consults
@@ -226,8 +230,10 @@ asked, who helped, who refused — and letting those memories influence whom a
 person asks or helps next.
 
 **Primitives.** A short dated memory of encounters, and a partner choice
-that reads it. This only becomes meaningful once asking exists, which is why
-it sits behind it.
+that reads it. Asking would give memory far more to record — a refusal is a
+sharper thing to remember than a gift — which is why asking is the earlier
+priority. But memory does not wait on it: the unsolicited gifts that already
+happen are real encounters, and could shape who a person walks to next.
 
 **In the viewer.** The same pairs helping each other repeatedly,
 reciprocity, someone avoided after a refusal, and a relationship visibly
@@ -342,15 +348,32 @@ A complete food request, from need to consequence:
    hand over a unit through the kernel, exactly as the existing offer does.
    Their own needs keep rising on the way, so they may turn back before they
    arrive.
-6. **Later decision.** The asker either eats and lives, or does not and
-   keeps deteriorating. Whoever gave is a unit poorer and may need it later.
+6. **Later decision.** A unit that arrives is a chance to eat, not a
+   reprieve: the asker still has to spend a tick eating it, and thirst and
+   cold have gone on rising throughout. It may also arrive too late to
+   matter. Whoever gave is a unit poorer and may need it themselves later.
 
 ### How it meets what already exists
 
-The delivery half is built. The offer behaviour already finds a target,
-walks to them, and transfers a unit through the kernel's settlement path.
-What asking adds is the other direction: a person in need choosing a
-particular helper, and that helper giving an answer that can be no.
+The offer behaviour supplies the mechanics of delivery: finding somebody,
+walking to them, and transferring a unit through the kernel's settlement
+path. It does not supply an agreement. The target is worked out afresh from
+the current observation on every tick, and nothing in the world state
+records who a helper is on their way to. A helper part-way through a
+journey will silently re-pick the nearest visibly starving person, and will
+switch recipients if a nearer one appears or drop the errand entirely if the
+first one leaves their view.
+
+So a requested delivery needs a little state the offer behaviour has never
+needed: an outstanding request, and the agreement it turns into, held long
+enough to be completed, refused or interrupted. That is a short-lived record
+of one piece of business in progress. It is not the same thing as the social
+memory in domain 4, which is about remembering encounters after they have
+finished in order to choose differently later.
+
+What asking adds on top of that is the other direction of the exchange: a
+person in need choosing a particular helper, and that helper giving an answer
+that can be no.
 
 Things worth exploring as it is built: perception radius decides who can be
 asked at all; distance decides whether help can arrive in time; carrying
