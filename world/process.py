@@ -1,5 +1,9 @@
 """World processes: the rules applied after settlement, in a fixed order.
 
+  0. errands    a request made this tick waits for an answer; one that was
+                already waiting has now been answered or has lapsed, so it is
+                gone. Agreeing takes on an errand, which lasts until the unit
+                is handed over or the person who asked dies
   1. movement   a person who decided to step is now on that cell, unless the
                 rough cell under them still owes a tick: rough ground costs an
                 extra tick, so stepping onto it holds the next step back
@@ -32,11 +36,11 @@ from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
 from kernel import Source, TickRecord, WorldState
-from kernel.proposals import OP_CONSUME
+from kernel.proposals import OP_CONSUME, OP_TRANSFER
 from kernel.state import SINK_ACCOUNT, sink_account
 
 from world.config import WATER, WorldConfig
-from world.decide import BUILD, Decision
+from world.decide import AGREE, ASK, BUILD, Decision
 from world.overlay import Overlay
 
 
@@ -119,6 +123,14 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     rough, shelter_spots = config.terrain()
     rough, shelter_spots = set(rough), set(shelter_spots)
     shelters = set(overlay.shelters)
+    # a request is answered or lapses on the tick after it is made, so only
+    # this tick's asking survives into the next one
+    requests = {actor: d.target for actor, d in decisions.items() if d.kind == ASK and d.target}
+    promises = dict(overlay.promises)
+    promises.update({actor: d.target for actor, d in decisions.items() if d.kind == AGREE and d.target})
+    for outcome in record.outcomes:
+        if outcome.accepted and outcome.operation == OP_TRANSFER:
+            promises.pop(outcome.actor, None)          # delivered, so the errand is over
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
     died_at = dict(overlay.died_at)
     died: list[str] = []
@@ -158,7 +170,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             died.append(actor)
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
-                           shelters=tuple(sorted(shelters)), together=dict(overlay.together))
+                           shelters=tuple(sorted(shelters)), together=dict(overlay.together),
+                           requests=requests,
+                           promises={who: owed for who, owed in promises.items() if owed not in died_at})
 
     production: list[dict[str, Any]] = []
     ledger = settled
@@ -225,5 +239,6 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     grown = replace(ledger, balances=balances, sources=sources, holdings=holdings)
     return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
-                    shelters=overlay.shelters, together=counts),
+                    shelters=overlay.shelters, together=counts,
+                    requests=dict(overlay.requests), promises=dict(overlay.promises)),
             grown, born)

@@ -108,6 +108,7 @@ class WorldConfig:
     building_on: bool = True      # a fed, watered person at home spends their spare ticks building there
     build_ticks: int = 12         # ticks of work a shelter takes; interrupted work keeps its progress
     offers_on: bool = True        # carry a spare unit to somebody visibly starving nearby (2026-09-27)
+    requests_on: bool = False     # asking for food: built and watchable, but see WORLD_DIRECTIONS.md (2026-09-28)
     births_on: bool = True        # the roster grows when life is good (2026-09-27)
     together_ticks: int = 3       # consecutive ticks two settled neighbours must spend side by side
     cold_rate: int = 1            # cold added per tick spent away from shelter
@@ -144,6 +145,7 @@ class WorldConfig:
                 self.cold_rate >= 0 and self.warming >= 1
                 and 0 <= self.cold_at <= self.cold_emergency_at < self.cold_death_at),
             "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
+            "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
             "building": (not self.building_on) or self.build_ticks >= 1,
             "terrain": (not self.terrain_on) or (
                 0 <= self.rough_pct and 0 <= self.shelter_pct and self.rough_pct + self.shelter_pct <= 90
@@ -297,6 +299,15 @@ class WorldConfig:
                                 "who can see somebody in a hunger emergency goes to them - nearest by steps, "
                                 "then id - and hands over one unit when they are alongside; the kernel settles "
                                 "the handover like any other move of food, and it can be refused")
+        if self.requests_on:
+            out["requests"] = "on"
+            out["decision"] += ("; a hungry person holding no food who can see somebody carrying some asks "
+                                "them for it - nearest by steps, then id, never somebody visibly starving - "
+                                "and walks on towards the source while they ask, because asking is speech and "
+                                "costs no tick. The person asked answers on their next tick: if nothing "
+                                "of their own is calling and they hold a unit they agree, and the errand becomes "
+                                "theirs until it is delivered or they lose sight of the asker; anybody else "
+                                "does not answer at all, and the asking lapses - saying no is not an act either")
         if self.births_on:
             out["births"] = "on"
             out["together_ticks"] = self.together_ticks
@@ -384,6 +395,9 @@ class WorldConfig:
             if type(value) is not int:
                 raise ValueError(f"build_ticks must be an integer, got {value!r}")
             need_values["build_ticks"] = value
+        requests = described.get("requests", "off")
+        if not isinstance(requests, str) or requests not in switches:
+            raise ValueError("requests must be 'on' or 'off'")
         births = described.get("births", "off")
         if not isinstance(births, str) or births not in switches:
             raise ValueError("births must be 'on' or 'off'")
@@ -423,7 +437,7 @@ class WorldConfig:
                      water_on=switches[water], warmth_on=switches[warmth],
                      stagger_start=switches[stagger], terrain_on=switches[terrain],
                      building_on=switches[building], offers_on=switches[offers],
-                     births_on=switches[births], **need_values, **counts)
+                     births_on=switches[births], requests_on=switches[requests], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config

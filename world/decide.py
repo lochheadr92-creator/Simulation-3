@@ -17,6 +17,13 @@ Priority, highest first:
          >= hungry_at, so a person far from food leaves in time to arrive as
          hunger reaches hungry_at (once due, it stays due on the way)
   home   not hungry, away from home: one step toward home
+  ask    hungry, holding nothing, and somebody in view is carrying food:
+         ask them for it, and keep walking to the source meanwhile. Asking
+         is speech and costs no tick; the walk happens either way
+  agree  somebody asked last tick, nothing of one's own is calling, and
+         there is a unit in hand and no errand already running: take it on.
+         Anyone who cannot, or is busy with their own need, simply does not
+         answer, and the asking lapses - saying no is not an act either
   offer  no need calling, holding a spare unit, and somebody visibly
          starving is alongside: hand them one unit through the kernel
   go_offer  the same, but they are further off: one step towards them
@@ -62,12 +69,13 @@ EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
 )
 BUILD = "build"
 OFFER, GO_OFFER = "offer", "go_offer"
-LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, OFFER, GO_OFFER, HOME, BUILD, REST)
+ASK, AGREE = "ask", "agree"
+LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, ASK, GO, AGREE, OFFER, GO_OFFER, HOME, BUILD, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
 WATER_PRIORITY = (DRINK, DRAW, WAIT_WATER, GO_WATER)
 WARM, GO_SHELTER = "warm", "go_shelter"
 WARMTH_PRIORITY = (WARM, GO_SHELTER)
-IDLE = (HOME, REST, BUILD, OFFER, GO_OFFER)   # nothing of one's own is calling
+IDLE = (HOME, REST, BUILD, OFFER, GO_OFFER, AGREE)   # nothing of one's own is calling
 
 
 @dataclass(frozen=True)
@@ -133,16 +141,50 @@ def yield_eligible(observation: Observation, config: WorldConfig) -> bool:
     return crowd >= observation.yield_at and observation.source_food < crowd
 
 
+def in_view(observation: Observation, actor: str | None) -> bool:
+    return actor is not None and any(seen.actor == actor for seen in observation.others)
+
+
 def someone_to_help(observation: Observation, config: WorldConfig) -> str | None:
-    """The person this one would carry a spare unit to: the nearest visibly
+    """The person this one is carrying a spare unit to.
+
+    Somebody they agreed to supply comes first, and keeps coming first for as
+    long as they can see them: an errand taken on is not dropped because a
+    nearer stranger starts to look worse. Failing that, the nearest visibly
     starving other, by steps then id. Thirst shows too, but food does not help
-    it, so only hunger draws an offer."""
-    if not config.offers_on or observation.food < 1:
+    it, so only hunger draws anyone out."""
+    if observation.food < 1:
+        return None
+    if in_view(observation, observation.owed_to):
+        return observation.owed_to
+    if not config.offers_on:
         return None
     starving = [seen for seen in observation.others if seen.starving]
     if not starving:
         return None
     return min(starving, key=lambda seen: (steps_to(observation.position, seen.position), seen.actor)).actor
+
+
+def someone_to_ask(observation: Observation, config: WorldConfig) -> str | None:
+    """Who a hungry person with nothing asks: the nearest other they can see
+    carrying food, by steps then id. Never somebody visibly starving - their
+    need is plain and they need it more.
+
+    Asking is speech, not work: they call out while they carry on walking to
+    the source, so it costs them nothing and does not replace the journey. An
+    earlier version made asking its own action, and the tick it cost was fatal
+    - people stopped to ask, almost nobody was ever free to answer, and whole
+    populations died of the delay. Nobody asks twice while an answer is still
+    owed to them, and nobody asks while they are busy answering somebody
+    else."""
+    if not config.requests_on or observation.food >= 1:
+        return None
+    if observation.waiting_on is not None or observation.asked_by is not None:
+        return None
+    holders = [seen for seen in observation.others if seen.food >= 1 and not seen.starving]
+    if not holders:
+        return None
+    return min(holders, key=lambda seen: (steps_to(observation.position, seen.position), seen.actor)).actor
 
 
 def _seen(observation: Observation, actor: str) -> Position:
@@ -163,10 +205,15 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if hungry and not observation.at_source:
         if yield_eligible(observation, config):
             found.append(YIELD)
+        if someone_to_ask(observation, config) is not None:
+            found.append(ASK)
         found.append(GO)
     if not hungry:
         if trip_due(observation, config):
             found.append(GO)
+        elif (config.requests_on and observation.asked_by is not None
+                and observation.food >= 1 and observation.owed_to is None):
+            found.append(AGREE)          # one errand at a time; anyone else lets the asking go unanswered
         elif someone_to_help(observation, config) is not None:
             hurt = someone_to_help(observation, config)
             found.append(OFFER if steps_to(observation.position, _seen(observation, hurt)) <= 1 else GO_OFFER)
@@ -381,6 +428,14 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
                         step=step_toward(observation.position, observation.source), scores=scores, target=target)
     if selected == HOME:
         return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)
+    if selected == ASK:
+        who = someone_to_ask(observation, config)
+        return Decision(actor, ASK, f"{urgency}, holding none; asking {who} for food while walking on",
+                        options, target=who, step=step_toward(observation.position, observation.source),
+                        scores=scores)
+    if selected == AGREE:
+        return Decision(actor, AGREE, f"{observation.asked_by} asked; holding {observation.food}, so taking it to them",
+                        options, target=observation.asked_by, scores=scores)
     if selected in (OFFER, GO_OFFER):
         hurt = someone_to_help(observation, config)
         where = _seen(observation, hurt)

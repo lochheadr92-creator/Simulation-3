@@ -104,6 +104,9 @@ class Observation:
     cold: int = 0                          # warmth on only; shelter is `home`, so it needs no separate landmark
     home_built: bool = False               # a shelter already stands on this person's home cell
     work_done: int = 0                     # ticks of work already put into it
+    asked_by: str | None = None            # somebody asked this person for food last tick
+    owed_to: str | None = None             # this person agreed to bring food to somebody
+    waiting_on: str | None = None          # this person asked somebody and has had no answer yet
 
     @property
     def at_source(self) -> bool:
@@ -178,6 +181,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         **({"cold": overlay.cold[actor]} if config.warmth_on else {}),
         home_built=overlay.homes[actor] in set(overlay.shelters),
         work_done=overlay.built.get(actor, 0),
+        asked_by=next((who for who, asked in overlay.requests.items() if asked == actor), None),
+        owed_to=overlay.promises.get(actor),
+        waiting_on=overlay.requests.get(actor),
         **_water_view(actor, origin, overlay, config, available),
     )
 

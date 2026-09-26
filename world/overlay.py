@@ -39,6 +39,16 @@ def _levels(raw: Mapping[str, Any], *, positions: Mapping[str, Position], name: 
     return MappingProxyType(out)
 
 
+def _links(raw: Mapping[str, Any], *, positions: Mapping[str, Position], name: str) -> Mapping[str, str]:
+    """One person naming another: who asked whom, who owes whom. Both ends must
+    be people the world knows, and nobody names themselves."""
+    out = {actor: raw[actor] for actor in sorted(raw)}
+    for actor, other in out.items():
+        if actor not in positions or not isinstance(other, str) or other not in positions or other == actor:
+            raise ValueError(f"{name} must name two different known people, got {actor!r} -> {other!r}")
+    return MappingProxyType(out)
+
+
 def _positive_ints(raw: Mapping[str, Any], *, roster: set[str], name: str) -> Mapping[str, int]:
     if set(raw) != roster:
         raise ValueError(f"{name} must name the same people as homes")
@@ -63,6 +73,8 @@ class Overlay:
     built: Mapping[str, int] = field(default_factory=dict)    # ticks of work each person has put into their shelter
     shelters: tuple[Position, ...] = ()                       # cells somebody has finished; permanent
     together: Mapping[str, int] = field(default_factory=dict) # "a|b" -> consecutive ticks side by side and well
+    requests: Mapping[str, str] = field(default_factory=dict) # asker -> the person they asked, awaiting an answer
+    promises: Mapping[str, str] = field(default_factory=dict) # helper -> the person they agreed to bring food to
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -92,6 +104,8 @@ class Overlay:
             if type(value) is not int or value < 0:
                 raise ValueError(f"the count for {pair!r} must be an integer of zero or more")
         object.__setattr__(self, "together", MappingProxyType(together))
+        object.__setattr__(self, "requests", _links(self.requests, positions=positions, name="requests"))
+        object.__setattr__(self, "promises", _links(self.promises, positions=positions, name="promises"))
         shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
         for cell in shelters:
             if (len(cell) != 2 or type(cell[0]) is not int or type(cell[1]) is not int
@@ -131,6 +145,8 @@ class Overlay:
             **({"built": dict(self.built)} if any(self.built.values()) else {}),
             **({"shelters": [list(cell) for cell in self.shelters]} if self.shelters else {}),
             **({"together": dict(self.together)} if self.together else {}),
+            **({"requests": dict(self.requests)} if self.requests else {}),
+            **({"promises": dict(self.promises)} if self.promises else {}),
         }
 
     @classmethod
@@ -139,7 +155,7 @@ class Overlay:
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
-            for extra in ("thirst", "cold", "held", "built", "shelters", "together"):
+            for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -163,7 +179,8 @@ class Overlay:
                    thirst=dict(data.get("thirst", {})), cold=dict(data.get("cold", {})),
                    held=dict(data.get("held", {})), built=dict(data.get("built", {})),
                    shelters=tuple(tuple(cell) for cell in data.get("shelters", ())),
-                   together=dict(data.get("together", {})))
+                   together=dict(data.get("together", {})),
+                   requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})))
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

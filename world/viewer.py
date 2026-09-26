@@ -138,6 +138,14 @@ for (let k = 1; k <= n; k++) {
     if (p in w.died_at) continue;
     const d = t.decisions && t.decisions[p];
     if (d && d.kind === 'yield') EVENTS.push({ k, who: p, band: 'yield', what: p + ' stood back from the crowded source' });
+    if (d && d.kind === 'ask')
+      EVENTS.push({ k, who: p, band: 'hungry', what: p + ' asked ' + d.target + ' for food' });
+    if (d && d.kind === 'agree')
+      EVENTS.push({ k, who: p, band: 'fed', what: p + ' agreed to bring food to ' + d.target });
+    const wasAsking = (before.requests || {})[p];
+    if (wasAsking && !(w.requests || {})[p]
+        && !Object.values(t.decisions).some(x => x.kind === 'agree' && x.target === p))
+      EVENTS.push({ k, who: p, band: 'emergency', what: 'nobody answered ' + p });
     if (d && d.kind === 'offer') {
       const took = (t.record.outcomes || []).some(o => o.actor === p && o.operation === 'transfer' && o.accepted);
       EVENTS.push({ k, who: p, band: took ? 'fed' : 'emergency',
