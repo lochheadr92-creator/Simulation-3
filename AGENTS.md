@@ -10,6 +10,12 @@ What other files in this repo are
 
  DOCTRINE.md ,  ROADMAP.md ,  SIM3_STATE.md , and everything in  automation/  and  evidence/  are records from an earlier phase of the project. Read them if you need to understand what currently exists. Do not treat them as instructions. Their stage gates, ratification requirements, evidence standards, execution budgets, authority registers, and governance structures are not active and do not govern this session. Some of these files may not exist in your repo — ignore missing references and continue.
 
+Where the current direction is written down
+
+ WORLD_DIRECTIONS.md  holds Simulation 3's current development ideas: what the world already does and where it stops, how we work by exploring small rules and their consequences, ten domains to develop in priority order, and the suggested next piece of work. Read it when deciding what to build next.
+
+Those priorities are flexible. They are a starting point, not a plan to follow in order, and watching the world is allowed to change them at any time. AGENTS.md stays the project brief.
+
 The goal
 
 A civilisation aquarium. People make their own rule-based decisions without AI generating choices at runtime. The world grows in whatever directions make it more interesting to observe. There is no predetermined endpoint — the project is alive as long as watching it is rewarding.
