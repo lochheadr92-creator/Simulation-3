@@ -52,12 +52,12 @@ DEFAULT_YIELD_SET = (1, 2, 3)
 SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
                       "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
                       "food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
-                      "terrain_on": False}
+                      "terrain_on": False, "building_on": False}
 
 # The world before the second food source and default water (2026-09-25): one
 # food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
 ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
-                        "terrain_on": False}
+                        "terrain_on": False, "building_on": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -105,6 +105,8 @@ class WorldConfig:
     rough_pct: int = 18           # percent of free cells that are rough: crossing one costs an extra tick
     shelter_pct: int = 6          # percent of free cells that are shelter spots
     shelter_relief: int = 1       # hunger and thirst each rise this much slower on a shelter spot
+    building_on: bool = True      # a fed, watered person at home spends their spare ticks building there
+    build_ticks: int = 12         # ticks of work a shelter takes; interrupted work keeps its progress
     cold_rate: int = 1            # cold added per tick spent away from shelter
     warming: int = 3              # cold removed per tick spent at shelter
     cold_at: int = 25             # cold at which a person seeks shelter
@@ -139,6 +141,7 @@ class WorldConfig:
                 self.cold_rate >= 0 and self.warming >= 1
                 and 0 <= self.cold_at <= self.cold_emergency_at < self.cold_death_at),
             "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
+            "building": (not self.building_on) or self.build_ticks >= 1,
             "terrain": (not self.terrain_on) or (
                 0 <= self.rough_pct and 0 <= self.shelter_pct and self.rough_pct + self.shelter_pct <= 90
                 and self.shelter_relief >= 0),
@@ -277,6 +280,14 @@ class WorldConfig:
             out["ground"] = ("rough ground costs an extra tick to cross: a person who steps onto it spends the "
                              "next tick getting off again; on a shelter spot hunger and thirst each rise "
                              "shelter_relief slower; sources and homes are always open ground")
+        if self.building_on:
+            out["building"] = "on"
+            out["build_ticks"] = self.build_ticks
+            out["decision"] += ("; a person who is fed, watered and standing at home with no shelter on it "
+                                "spends the tick working on one; a shelter takes build_ticks ticks of work, "
+                                "and work already done is kept when a need calls them away; a finished shelter "
+                                "is permanent and slows hunger and thirst by shelter_relief for whoever stands "
+                                "on it, like a shelter spot")
         if self.stagger_start:
             # Written only when on, so the worlds that started level round-trip.
             out["stagger_start"] = "on"
@@ -349,6 +360,14 @@ class WorldConfig:
                 if type(value) is not int:
                     raise ValueError(f"terrain lever {name} must be an integer, got {value!r}")
                 need_values[name] = value
+        building = described.get("building", "off")
+        if not isinstance(building, str) or building not in switches:
+            raise ValueError("building must be 'on' or 'off'")
+        if switches[building]:
+            value = described.get("build_ticks")
+            if type(value) is not int:
+                raise ValueError(f"build_ticks must be an integer, got {value!r}")
+            need_values["build_ticks"] = value
         stagger = described.get("stagger_start", "off")
         if not isinstance(stagger, str) or stagger not in switches:
             raise ValueError("stagger_start must be 'on' or 'off'")
@@ -375,7 +394,8 @@ class WorldConfig:
         config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
                      water_on=switches[water], warmth_on=switches[warmth],
-                     stagger_start=switches[stagger], terrain_on=switches[terrain], **need_values, **counts)
+                     stagger_start=switches[stagger], terrain_on=switches[terrain],
+                     building_on=switches[building], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config

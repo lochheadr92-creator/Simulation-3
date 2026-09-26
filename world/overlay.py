@@ -1,4 +1,5 @@
-"""The world state the kernel does not hold: homes, positions, needs, deaths.
+"""The world state the kernel does not hold: homes, positions, needs, deaths,
+and the shelters people have built.
 
 Immutable and canonical like the kernel's WorldState; replaced, never edited.
 Food units are not here on purpose: they live in the kernel ledger, and the
@@ -59,6 +60,8 @@ class Overlay:
     thirst: Mapping[str, int] = field(default_factory=dict)   # empty unless water is on
     cold: Mapping[str, int] = field(default_factory=dict)     # empty unless warmth is on
     held: Mapping[str, int] = field(default_factory=dict)     # ticks still owed to the rough cell underfoot
+    built: Mapping[str, int] = field(default_factory=dict)    # ticks of work each person has put into their shelter
+    shelters: tuple[Position, ...] = ()                       # cells somebody has finished; permanent
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -79,6 +82,15 @@ class Overlay:
         object.__setattr__(self, "thirst", _levels(self.thirst, positions=positions, name="thirst"))
         object.__setattr__(self, "cold", _levels(self.cold, positions=positions, name="cold"))
         object.__setattr__(self, "held", _levels(self.held, positions=positions, name="held"))
+        object.__setattr__(self, "built", _levels(self.built, positions=positions, name="built"))
+        shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
+        for cell in shelters:
+            if (len(cell) != 2 or type(cell[0]) is not int or type(cell[1]) is not int
+                    or cell[0] < 0 or cell[1] < 0):
+                raise ValueError(f"a shelter needs a non-negative integer cell, got {cell!r}")
+        if len(set(shelters)) != len(shelters):
+            raise ValueError("a cell cannot hold two shelters")
+        object.__setattr__(self, "shelters", shelters)
         object.__setattr__(self, "homes", homes)
         object.__setattr__(self, "positions", positions)
         object.__setattr__(self, "hunger", MappingProxyType(hunger))
@@ -107,6 +119,8 @@ class Overlay:
             **({"thirst": dict(self.thirst)} if self.thirst else {}),
             **({"cold": dict(self.cold)} if self.cold else {}),
             **({"held": dict(self.held)} if any(self.held.values()) else {}),
+            **({"built": dict(self.built)} if any(self.built.values()) else {}),
+            **({"shelters": [list(cell) for cell in self.shelters]} if self.shelters else {}),
         }
 
     @classmethod
@@ -115,14 +129,16 @@ class Overlay:
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
-            for extra in ("thirst", "cold", "held"):
+            for extra in ("thirst", "cold", "held", "built", "shelters"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
             raise ValueError(f"a canonical overlay needs exactly the keys {sorted(keys)}")
-        for name in sorted(keys - {"tick"}):
+        for name in sorted(keys - {"tick", "shelters"}):
             if not isinstance(data[name], Mapping):
                 raise ValueError(f"a canonical overlay needs a mapping of {name}")
+        if "shelters" in keys and not isinstance(data["shelters"], list):
+            raise ValueError("a canonical overlay needs a list of shelters")
 
         def cells(raw: Mapping[str, Any]) -> dict[str, Position]:
             out: dict[str, Position] = {}
@@ -135,7 +151,8 @@ class Overlay:
         return cls(tick=data["tick"], homes=cells(data["homes"]), positions=cells(data["positions"]),
                    hunger=dict(data["hunger"]), yield_at=dict(data["yield_at"]), died_at=dict(data["died_at"]),
                    thirst=dict(data.get("thirst", {})), cold=dict(data.get("cold", {})),
-                   held=dict(data.get("held", {})))
+                   held=dict(data.get("held", {})), built=dict(data.get("built", {})),
+                   shelters=tuple(tuple(cell) for cell in data.get("shelters", ())))
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

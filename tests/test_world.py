@@ -17,7 +17,7 @@ import pytest
 from kernel import Engine, claim
 from stream.run_file import RunFileError, RunWriter, apply_production, read_run
 from world.config import FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, WorldConfig, genesis, homes_for
-from world.decide import CLAIM, EAT, GO, HOME, REST, WAIT, candidates, decide, step_toward
+from world.decide import BUILD, CLAIM, EAT, GO, HOME, REST, WAIT, candidates, decide, step_toward
 from world.observe import Observation, observe
 from world.overlay import Overlay
 from world.process import advance
@@ -87,7 +87,9 @@ def test_selection_rule_follows_the_declared_priority():
     d = decide(obs(hunger=cfg.hungry_at - 1, food=1, position=(1, 0), home=(0, 0)), cfg)
     assert d.kind == HOME and d.step == (0, 0)
     d = decide(obs(hunger=0, food=0), cfg)
-    assert d.kind == REST and d.step is None
+    assert d.kind == BUILD and d.step is None            # nothing calling, at home, no shelter there yet
+    d = decide(obs(hunger=0, food=0, home_built=True), cfg)
+    assert d.kind == REST and d.step is None             # already built: nothing left to do
     assert candidates(obs(alive=False, hunger=99), cfg) == () and decide(obs(alive=False), cfg).kind == "dead"
 
 

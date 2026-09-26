@@ -5,8 +5,9 @@
                 extra tick, so stepping onto it holds the next step back
   2. hunger     hunger' = max(0, hunger + rate - satiation * units eaten);
                 only units the kernel actually settled as consumed count
-  2a. shelter   a tick that ends on a shelter spot adds shelter_relief less
-                hunger and thirst than one that ends anywhere else
+  2a. shelter   anyone who decided to build now has a shelter on their home
+                cell, for good; a tick that ends on a shelter spot or on any
+                built shelter adds shelter_relief less hunger and thirst
   2b. cold      warmth on: a tick that ends on the person's own home cell
                 (their shelter) takes `warming` off their cold, and any other
                 tick adds `cold_rate`, whatever they decided; floored at zero
@@ -35,7 +36,7 @@ from kernel.proposals import OP_CONSUME
 from kernel.state import SINK_ACCOUNT, sink_account
 
 from world.config import WATER, WorldConfig
-from world.decide import Decision
+from world.decide import BUILD, Decision
 from world.overlay import Overlay
 
 
@@ -68,6 +69,12 @@ def units_drunk(record: TickRecord) -> dict[str, int]:
     return _consumed(record, sink_account(WATER))
 
 
+def eased(rate: int, relief: int) -> int:
+    """A need's rate under shelter. Never below 1 while the rate itself is at
+    least 1: shelter makes a need slower, not survivable without eating."""
+    return max(1, rate - relief) if rate >= 1 else rate
+
+
 def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRecord,
             settled: WorldState, config: WorldConfig) -> Processed:
     if settled.tick != overlay.tick + 1:
@@ -81,6 +88,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     held = {actor: overlay.held.get(actor, 0) for actor in overlay.roster}   # full, or the overlay refuses it
     rough, shelter_spots = config.terrain()
     rough, shelter_spots = set(rough), set(shelter_spots)
+    shelters = set(overlay.shelters)
+    built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
     died_at = dict(overlay.died_at)
     died: list[str] = []
     for actor in overlay.roster:
@@ -95,11 +104,18 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             positions[actor] = decision.step
             if decision.step in rough:
                 held[actor] = 1
-        relief = config.shelter_relief if positions[actor] in shelter_spots else 0
-        hunger[actor] = max(0, hunger[actor] + max(0, config.hunger_rate - relief)
+        if decision is not None and decision.kind == BUILD:
+            built[actor] += 1                           # interrupted work is never lost
+            if built[actor] >= config.build_ticks:
+                shelters.add(overlay.homes[actor])      # permanent, and it shelters whoever stands there
+        under = positions[actor]
+        relief = config.shelter_relief if under in shelter_spots or under in shelters else 0
+        # shelter slows a need, it never suspends one: a living person always gets
+        # hungrier and thirstier, or a roof would be immortality.
+        hunger[actor] = max(0, hunger[actor] + eased(config.hunger_rate, relief)
                             - config.satiation * eaten.get(actor, 0))
         if config.water_on:
-            thirst[actor] = max(0, thirst[actor] + max(0, config.thirst_rate - relief)
+            thirst[actor] = max(0, thirst[actor] + eased(config.thirst_rate, relief)
                                 - config.quench * drunk.get(actor, 0))
         if config.warmth_on:
             # Shelter is the person's own home cell, and this is where the tick left them.
@@ -111,7 +127,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             died_at[actor] = settled.tick
             died.append(actor)
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
-                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held)
+                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
+                           shelters=tuple(sorted(shelters)))
 
     production: list[dict[str, Any]] = []
     ledger = settled

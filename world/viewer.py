@@ -27,11 +27,13 @@ CSS = """
 :root { --bg:#f7f7f4; --fg:#1d1d1b; --muted:#6b6b66; --line:#d9d9d2; --panel:#ffffff; --cell:#efefe9; --water:#2563eb;
         --fed:#2f7d4f; --hungry:#c98a1b; --emergency:#a63d2f; --dead:#7a7a74; --source:#2f5f9f; --sourcebg:#dbe7f7; --yield:#6b4c9a;
         --ok:#2f7d4f; --okbg:#e3f3e8; --no:#a63d2f; --nobg:#f8e6e2;
-        --rough:#ddd6c6; --roughline:#b9ac90; --shelterbg:#dcecdc; --shelterline:#6f9a6f; }
+        --rough:#ddd6c6; --roughline:#b9ac90; --shelterbg:#dcecdc; --shelterline:#6f9a6f;
+        --builtbg:#cfe3f0; --builtline:#3d7fa8; }
 @media (prefers-color-scheme: dark) { :root { --bg:#161614; --fg:#ecece6; --muted:#9a9a92; --line:#33332f; --panel:#1f1f1c; --cell:#242421; --water:#7aa7f7;
         --fed:#7fd39a; --hungry:#e2b25a; --emergency:#f09a8a; --dead:#8d8d86; --source:#8ab4f0; --sourcebg:#22314a; --yield:#c4a6ef;
         --ok:#7fd39a; --okbg:#1f3427; --no:#f09a8a; --nobg:#3a221e;
-        --rough:#302c24; --roughline:#6f6450; --shelterbg:#20301f; --shelterline:#5d8a5d; } }
+        --rough:#302c24; --roughline:#6f6450; --shelterbg:#20301f; --shelterline:#5d8a5d;
+        --builtbg:#1d2c36; --builtline:#5e9dc4; } }
 * { box-sizing:border-box; } body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
   font:14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 h1 { font-size:18px; margin:0 0 4px; } h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:18px 0 6px; }
@@ -91,6 +93,9 @@ function personTip(k, p) {
   const here = w.positions[p].join(',');
   if (ROUGH.has(here)) bits.push('on rough ground' + ((w.held || {})[p] ? ' - held up this tick' : ''));
   if (SHELTER.has(here)) bits.push('on a shelter spot: needs rise slower here');
+  if ((w.shelters || []).some(c => c.join(',') === here)) bits.push('under a shelter somebody built');
+  const work = (w.built || {})[p] || 0;
+  if (work && C.build_ticks && work < C.build_ticks) bits.push('shelter ' + work + '/' + C.build_ticks + ' built');
   const d = t && t.decisions && t.decisions[p];
   if (d) bits.push('chose: ' + d.kind + (d.target ? ' -> ' + d.target : '') + ' (' + d.reason + ')');
   return bits.join('\n');
@@ -127,6 +132,12 @@ for (let k = 1; k <= n; k++) {
     if (p in w.died_at) continue;
     const d = t.decisions && t.decisions[p];
     if (d && d.kind === 'yield') EVENTS.push({ k, who: p, band: 'yield', what: p + ' stood back from the crowded source' });
+    if (d && d.kind === 'build') {
+      const done = (w.built || {})[p] || 0, was = (before.built || {})[p] || 0;
+      if (was === 0) EVENTS.push({ k, who: p, band: 'fed', what: p + ' started building a shelter' });
+      if (done >= (C.build_ticks || 1) && was < (C.build_ticks || 1))
+        EVENTS.push({ k, who: p, band: 'fed', what: p + ' finished their shelter (' + done + ' ticks of work)' });
+    }
     if (w.hunger[p] >= C.emergency_at && before.hunger[p] < C.emergency_at)
       EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is starving (hunger ' + w.hunger[p] + ')' });
     if (C.water === 'on' && w.thirst[p] >= C.thirst_emergency_at && before.thirst[p] < C.thirst_emergency_at)
@@ -152,15 +163,17 @@ function markEvents(k) {
 }
 function drawMap(k) {
   const w = world(k), cell = 40, W = C.width * cell, Hh = C.height * cell;
+  const builtNow = new Set((w.shelters || []).map(c => c.join(',')));
   let s = `<svg class="map" viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">`;
   for (let y = 0; y < C.height; y++) for (let x = 0; x < C.width; x++) {
-    const key = x + ',' + y, rough = ROUGH.has(key), shelterSpot = SHELTER.has(key);
-    const fill = rough ? 'var(--rough)' : shelterSpot ? 'var(--shelterbg)' : 'var(--cell)';
+    const key = x + ',' + y, rough = ROUGH.has(key), shelterSpot = SHELTER.has(key), made = builtNow.has(key);
+    const fill = made ? 'var(--builtbg)' : rough ? 'var(--rough)' : shelterSpot ? 'var(--shelterbg)' : 'var(--cell)';
     s += `<rect x="${x*cell}" y="${y*cell}" width="${cell}" height="${cell}" fill="${fill}" stroke="var(--bg)">`
        + (rough ? '<title>rough ground: crossing it costs an extra tick</title>'
         : shelterSpot ? '<title>shelter spot: hunger and thirst rise slower here</title>' : '') + '</rect>';
     if (rough) s += `<path d="M${x*cell+7} ${y*cell+cell-7} l6 -7 l5 5 l7 -9" fill="none" stroke="var(--roughline)" stroke-width="2"/>`;
     if (shelterSpot) s += `<path d="M${x*cell+9} ${y*cell+cell-10} l${cell/2-9} -8 l${cell/2-9} 8 z" fill="none" stroke="var(--shelterline)" stroke-width="2"/>`;
+    if (made) s += `<path d="M${x*cell+6} ${y*cell+cell-6} l${cell/2-6} -11 l${cell/2-6} 11 z" fill="var(--builtline)" fill-opacity="0.85"><title>a shelter somebody built: hunger and thirst rise slower here</title></path>`;
   }
   for (const p of people) { const [hx, hy] = w.homes[p]; s += `<rect x="${hx*cell+4}" y="${hy*cell+4}" width="${cell-8}" height="${cell-8}" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`; }
   const radius = C.perception_radius;
@@ -388,7 +401,7 @@ def render_html(run: Run) -> str:
 <div class="stats" id="summary"></div>
 <div class="grid">
   <div class="panel"><h2>Map</h2><div id="map"></div>
-    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span>{'<span style="color:var(--roughline)">rough ground (an extra tick to cross)</span><span style="color:var(--shelterline)">shelter spot (needs rise slower)</span>' if scenario.get('terrain') == 'on' else ''}<span>small number: yield_at</span>{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
+    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span>{'<span style="color:var(--roughline)">rough ground (an extra tick to cross)</span><span style="color:var(--shelterline)">shelter spot (needs rise slower)</span>' if scenario.get('terrain') == 'on' else ''}{'<span style="color:var(--builtline)">&#9650; a shelter somebody built</span>' if scenario.get('building') == 'on' else ''}<span>small number: yield_at</span>{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
   <div class="panel"><h2>What happened</h2><div id="events"></div>
     <p class="meta">Every death, every time someone stood back from a crowded source, every time a need turned
     critical, and every time a source ran out. Click a line to jump to that tick.</p></div>

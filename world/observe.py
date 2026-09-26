@@ -89,6 +89,8 @@ class Observation:
     water_source_id: str = WATER_SOURCE    # likewise for water
     seen_stock: tuple[tuple[str, int], ...] = ()   # several sources of a kind: free stock of each source in view
     cold: int = 0                          # warmth on only; shelter is `home`, so it needs no separate landmark
+    home_built: bool = False               # a shelter already stands on this person's home cell
+    work_done: int = 0                     # ticks of work already put into it
 
     @property
     def at_source(self) -> bool:
@@ -159,6 +161,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         source_id=source_id,
         seen_stock=seen_stock,
         **({"cold": overlay.cold[actor]} if config.warmth_on else {}),
+        home_built=overlay.homes[actor] in set(overlay.shelters),
+        work_done=overlay.built.get(actor, 0),
         **_water_view(actor, origin, overlay, config, available),
     )
 

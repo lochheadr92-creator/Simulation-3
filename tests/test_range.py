@@ -17,7 +17,7 @@ import pytest
 from kernel import Source, WorldState
 from stream.run_file import read_run
 from world.config import FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, SHORT_RANGE_LEVERS, WorldConfig
-from world.decide import GO, HOME, REST, candidates, decide, trip_due
+from world.decide import BUILD, GO, HOME, candidates, decide, trip_due
 from world.observe import Observation
 from world.overlay import Overlay
 from world.run import run_world
@@ -31,7 +31,7 @@ def view(position=(0, 1), hunger=0, food=0, home=(0, 1), source=(60, 1)) -> Obse
 def test_a_person_with_no_food_leaves_in_time_and_stays_due_on_the_way():
     cfg = WorldConfig(seed=1)
     assert not trip_due(view(hunger=0, source=(20, 1)), cfg)            # 0 + 20 < 25: rest
-    assert candidates(view(hunger=0, source=(20, 1)), cfg) == (REST,)
+    assert candidates(view(hunger=0, source=(20, 1)), cfg) == (BUILD,)   # at home with nothing to do
     assert trip_due(view(hunger=5, source=(20, 1)), cfg)                # 5 + 20 = 25: leave
     d = decide(view(hunger=5, source=(20, 1)), cfg)
     assert d.kind == GO and d.step == (1, 1) and "leaving in time" in d.reason

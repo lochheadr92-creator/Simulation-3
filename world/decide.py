@@ -17,6 +17,9 @@ Priority, highest first:
          >= hungry_at, so a person far from food leaves in time to arrive as
          hunger reaches hungry_at (once due, it stays due on the way)
   home   not hungry, away from home: one step toward home
+  build  no need calling, at home, no shelter there yet: spend the tick
+         putting one up. It is permanent, and it slows hunger and thirst
+         for whoever stands on it afterwards
   rest   not hungry, at home
 A dead person has no candidates and decides nothing.
 
@@ -54,12 +57,13 @@ from world.overlay import Position
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
     "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
 )
-LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, HOME, REST)
+BUILD = "build"
+LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, HOME, BUILD, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
 WATER_PRIORITY = (DRINK, DRAW, WAIT_WATER, GO_WATER)
 WARM, GO_SHELTER = "warm", "go_shelter"
 WARMTH_PRIORITY = (WARM, GO_SHELTER)
-IDLE = (HOME, REST)                  # the food rule's fallback: no need is calling
+IDLE = (HOME, REST, BUILD)           # the food rule's fallback: no need is calling
 
 
 @dataclass(frozen=True)
@@ -143,8 +147,12 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if not hungry:
         if trip_due(observation, config):
             found.append(GO)
+        elif not observation.at_home:
+            found.append(HOME)
+        elif config.building_on and not observation.home_built:
+            found.append(BUILD)          # nothing is calling and home has no shelter yet
         else:
-            found.append(REST if observation.at_home else HOME)
+            found.append(REST)
     return tuple(found)
 
 
@@ -163,7 +171,7 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
         return (0, 2 * (observation.hunger - config.hungry_at) + 1)
     if action == YIELD:
         return (0, 2 * (crowd_on_source(observation) - observation.yield_at + 1))
-    if action in (HOME, REST):
+    if action in IDLE:
         return (0, 0)
     raise ValueError(f"no score for action {action!r}")
 
@@ -350,4 +358,6 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
                         step=step_toward(observation.position, observation.source), scores=scores, target=target)
     if selected == HOME:
         return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)
+    if selected == BUILD:
+        return Decision(actor, BUILD, "nothing wanting, building a shelter at home", options, scores=scores)
     return Decision(actor, REST, "fed, at home", options, scores=scores)
