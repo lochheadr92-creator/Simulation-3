@@ -1,8 +1,7 @@
-"""Record stream and viewer (slice 1c as re-scoped by OD-009).
+"""Record stream and viewer.
 
-These check that the stream is a faithful, verifiable, reproducible write-down
-of what the engine did, and that the viewer renders from it alone. They are
-not evidence of any world property; the scenario is exploration input.
+These check that a run file is a faithful, verifiable, reproducible write-down
+of what the engine did, and that the viewer renders from it alone.
 """
 
 from __future__ import annotations
@@ -106,7 +105,7 @@ def test_viewer_renders_every_tick_from_the_file_with_no_external_resources(tmp_
     assert not re.search(r"https?://", page)
     embedded = json.loads(re.search(r'<script id="run-data" type="application/json">(.*?)</script>', page, re.S).group(1))
     assert len(embedded["ticks"]) == 30 and embedded["header"]["genesis_digest"] == run.header["genesis_digest"]
-    assert "file verifies" in page and "not evidence" in page
+    assert "file verifies" in page and "Rendered from the saved run file alone" in page
     text = render_text(run, 10)
     assert "after tick 10" in text and "actors:" in text and "outcomes" in text
     for actor in run.ticks[10]["state"]["balances"]:

@@ -118,7 +118,7 @@ def render_html(run: Run) -> str:
 <div class="meta">engine {html.escape(str(header.get('engine_version')))} · schema {html.escape(str(header.get('schema_version')))} ·
 scenario {html.escape(str(scenario.get('version')))} seed {html.escape(str(scenario.get('seed')))} · {len(run.ticks)} ticks · file {status} ·
 trail {html.escape(run.trail_digest[:16])}… · genesis {html.escape(str(header.get('genesis_digest', ''))[:16])}…</div>
-<div class="meta">exploration output under OD-009: rendered from the run file only; not evidence, not acceptance</div>
+<div class="meta">Rendered from the saved run file alone. Every number here was recorded by the run.</div>
 {f'<ul>{problems}</ul>' if problems else ''}
 <div class="controls">
 <button id="first">⏮</button><button id="prev">◀</button><button id="play">play</button><button id="next">▶</button><button id="last">⏭</button>

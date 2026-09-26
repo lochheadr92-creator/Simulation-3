@@ -7,7 +7,7 @@
     py -3 -B -m stream.run --recover runs/<cut>.jsonl --out runs/<new>.jsonl   # slice 1c: recovery
 
 Output goes to runs/<run_id>.jsonl (and .html). runs/ is ignored by git: a
-checkpoint run is exploration output, not evidence. The per-tick timing lines
+run file is a saved world you can replay and watch. The per-tick timing lines
 are the visible cost signal until slice 1d measures cost. Every run file is
 sealed (v3.stream.3) and records the proposals submitted each tick.
 """
@@ -152,7 +152,6 @@ def main(argv: list[str] | None = None) -> int:
         html_path = path.with_suffix(".html")
         html_path.write_text(render_html(checked), encoding="utf-8")
         lines.append(f"viewer: {html_path}")
-    lines.append("note: a run file is evidence only where a stage record cites it; never acceptance")
     sys.stdout.write("\n".join(lines) + "\n")
     return 0 if checked.complete else 1
 

@@ -48,6 +48,12 @@ svg.map { width:100%; height:auto; display:block; max-height:70vh; } svg.chart {
 .mono { font-family:ui-monospace, Consolas, monospace; font-size:12px; } .problem { color:var(--no); }
 .stats { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; } .stats b { font-variant-numeric:tabular-nums; }
 pre.native { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; margin:0; }
+#events { max-height:420px; overflow:auto; display:flex; flex-direction:column; gap:2px; }
+button.event { text-align:left; border:1px solid transparent; background:none; padding:2px 6px; border-radius:5px;
+  font:inherit; color:var(--fg); cursor:pointer; white-space:nowrap; }
+button.event:hover { background:var(--cell); } button.event.now { border-color:var(--line); background:var(--cell); font-weight:600; }
+.evtick { color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px; margin-right:6px; }
+.b-yield { color:var(--yield); }
 """
 
 JS = r"""
@@ -68,6 +74,18 @@ function stockOf(k, id) { if (k === 0) return H.genesis.sources[id].stock; const
 function stock(k) { let s = 0; for (const f of FOOD) s += stockOf(k, f.id); return s; }
 function waterHeld(k, p) { if (k === 0) return H.genesis.holdings.water[p]; const t = ticks[k - 1]; const a = (t.availability || {})['actor@water:' + p]; return a === undefined ? t.state.holdings.water[p] : a; }
 function outcomeOf(t, p) { for (const o of t.record.outcomes) if (o.actor === p) return o; return null; }
+function personTip(k, p) {
+  const w = world(k), dead = p in w.died_at, t = k >= 1 ? ticks[k - 1] : null;
+  const bits = [p + (dead ? ' (died tick ' + w.died_at[p] + ')' : ' - ' + band(w.hunger[p], false))];
+  bits.push('hunger ' + w.hunger[p] + ' / ' + C.death_at + '   food held ' + food(k, p));
+  if (C.water === 'on') bits.push('thirst ' + w.thirst[p] + ' / ' + C.thirst_death_at + '   water held ' + waterHeld(k, p));
+  if (C.warmth === 'on') bits.push('cold ' + w.cold[p] + ' / ' + C.cold_death_at
+    + (w.positions[p].join(',') === w.homes[p].join(',') ? '   sheltered' : '   out in the cold'));
+  const ya = traitOf(p); if (ya !== null) bits.push('yields to a crowd of ' + ya);
+  const d = t && t.decisions && t.decisions[p];
+  if (d) bits.push('chose: ' + d.kind + (d.target ? ' -> ' + d.target : '') + ' (' + d.reason + ')');
+  return bits.join('\n');
+}
 function traitOf(p) { const t = (H.world.yield_at || {})[p]; return t === undefined ? null : t; }
 function crowdAt(k) { const w = world(k); let c = 0; for (const p of people) if (!(p in w.died_at) && foodCells.has(w.positions[p].join(','))) c++; return c; }
 const series = { stock: [], alive: [], hunger: {}, crowd: [] }; for (const p of people) series.hunger[p] = [];
@@ -86,6 +104,43 @@ for (const p of people) { const w = world(n); if (p in w.died_at) { totals.death
 totals.deaths.sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
 const traitKeys = [...new Set(people.map(traitOf).filter(v => v !== null))].sort((a, b) => a - b);
 function fmtBy(map) { return traitKeys.map(v => v + ':' + (map[v] || 0)).join(', ') || 'none'; }
+const EVENTS = [];
+for (let k = 1; k <= n; k++) {
+  const w = world(k), before = world(k - 1), t = ticks[k - 1];
+  for (const p of people) {
+    if (p in w.died_at && !(p in before.died_at)) {
+      const why = w.hunger[p] >= C.death_at ? 'starved'
+        : (C.water === 'on' && w.thirst[p] >= C.thirst_death_at) ? 'died of thirst'
+        : (C.warmth === 'on' && w.cold[p] >= C.cold_death_at) ? 'froze to death' : 'died';
+      EVENTS.push({ k, who: p, band: 'dead', what: p + ' ' + why });
+      continue;
+    }
+    if (p in w.died_at) continue;
+    const d = t.decisions && t.decisions[p];
+    if (d && d.kind === 'yield') EVENTS.push({ k, who: p, band: 'yield', what: p + ' stood back from the crowded source' });
+    if (w.hunger[p] >= C.emergency_at && before.hunger[p] < C.emergency_at)
+      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is starving (hunger ' + w.hunger[p] + ')' });
+    if (C.water === 'on' && w.thirst[p] >= C.thirst_emergency_at && before.thirst[p] < C.thirst_emergency_at)
+      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is parched (thirst ' + w.thirst[p] + ')' });
+    if (C.warmth === 'on' && w.cold[p] >= C.cold_emergency_at && before.cold[p] < C.cold_emergency_at)
+      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is freezing (cold ' + w.cold[p] + ')' });
+  }
+  for (const f of FOOD) if (stockOf(k, f.id) === 0 && stockOf(k - 1, f.id) > 0)
+    EVENTS.push({ k, who: null, band: 'hungry', what: f.id + ' is picked clean' });
+  for (const wl of WELLS) if (stockOf(k, wl.id) === 0 && stockOf(k - 1, wl.id) > 0)
+    EVENTS.push({ k, who: null, band: 'hungry', what: wl.id + ' has run dry' });
+}
+function renderEvents() {
+  if (!EVENTS.length) { $('events').innerHTML = '<p class="meta">Nothing dramatic happened: nobody starved, nobody stood back, no source ran out.</p>'; return; }
+  $('events').innerHTML = EVENTS.map((e, i) =>
+    `<button class="event" data-k="${e.k}" id="ev${i}"><span class="evtick">t${e.k}</span> <span class="b-${e.band}">${esc(e.what)}</span></button>`).join('');
+  $('events').querySelectorAll('.event').forEach(b => b.addEventListener('click', () => show(Number(b.dataset.k))));
+}
+function markEvents(k) {
+  const rows = $('events').querySelectorAll('.event'); let seen = null;
+  rows.forEach(b => { const at = Number(b.dataset.k); b.classList.toggle('now', at === k); if (at <= k) seen = b; });
+  if (seen) seen.scrollIntoView({ block: 'nearest' });
+}
 function drawMap(k) {
   const w = world(k), cell = 40, W = C.width * cell, Hh = C.height * cell;
   let s = `<svg class="map" viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">`;
@@ -112,12 +167,13 @@ function drawMap(k) {
   for (const key in at) { const [x, y] = key.split(',').map(Number); const dead = at[key].filter(p => p in w.died_at), live = at[key].filter(p => !(p in w.died_at));
     // the dead lie along the top edge of the cell, small, so a stock number or a living person stays readable
     dead.forEach((p, i) => { const cx = x*cell+8+i*11, cy = y*cell+9;
+      if (w.died_at[p] === k) s += `<circle cx="${x*cell+cell/2}" cy="${y*cell+cell/2}" r="${cell/2-2}" fill="none" stroke="var(--emergency)" stroke-width="3" stroke-opacity="0.9"/>`;
       s += `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="11" fill="var(--dead)">&#215;</text><text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="7" fill="var(--dead)">${p.slice(1)}</text>`; });
     const m = live.length; const tDec = k >= 1 ? ticks[k - 1] : null; live.forEach((p, i) => { const b = band(w.hunger[p], false); const off = m === 1 ? 0 : (i - (m - 1) / 2) * 12;
       const cx = x*cell+cell/2+off, cy = y*cell+cell/2 + (m > 3 ? (i % 2) * 10 - 5 : 0);
       const yielded = tDec && tDec.decisions && tDec.decisions[p] && tDec.decisions[p].kind === 'yield';
       if (yielded) s += `<circle cx="${cx}" cy="${cy}" r="${m === 1 ? 15 : 12}" fill="none" stroke="var(--yield)" stroke-width="2"/>`;
-      s += `<circle cx="${cx}" cy="${cy}" r="${m === 1 ? 11 : 8}" fill="${colour(b)}" stroke="var(--panel)" stroke-width="2"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="${m === 1 ? 11 : 8}" fill="${colour(b)}" stroke="var(--panel)" stroke-width="2"><title>${esc(personTip(k, p))}</title></circle>`;
       s += `<text x="${cx}" y="${cy + (m === 1 ? 4 : 3)}" text-anchor="middle" font-size="${m === 1 ? 10 : 8}" fill="#fff" font-weight="600">${p.slice(1)}</text>`;
       const ya = traitOf(p); if (ya !== null) s += `<text x="${cx + (m === 1 ? 12 : 9)}" y="${cy - (m === 1 ? 8 : 6)}" font-size="8" fill="var(--muted)">${ya}</text>`; }); }
   return s + '</svg>';
@@ -139,6 +195,7 @@ function show(k) {
   if (C.water !== 'on') document.querySelectorAll('.water-col').forEach(e => e.remove());
   if (C.warmth !== 'on') document.querySelectorAll('.warmth-col').forEach(e => e.remove());
   v = Math.max(0, Math.min(n, k)); $('slider').value = v; $('tick').textContent = `view ${v} / ${n}`; $('map').innerHTML = drawMap(v);
+  markEvents(v);
   const w = world(v), t = v >= 1 ? ticks[v - 1] : null; let alive = 0; let rows = '';
   for (const p of people) { const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
     const ob = t && t.observations && t.observations[p];
@@ -172,6 +229,7 @@ for (const name of ['scored', 'crossover', 'contested']) {
   $(name).addEventListener('click', () => show(views.find(k => k > v) || views[0]));
 }
 document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') show(v - 1); else if (e.key === 'ArrowRight') show(v + 1); else if (e.key === ' ') { e.preventDefault(); play(); } else if (e.key === 'Home') show(0); else if (e.key === 'End') show(n); });
+renderEvents();
 $('chart').innerHTML = drawChart();
 $('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten <b>${totals.eats}</b></span><span>yield events <b>${totals.yields}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b>${traitKeys.length ? ' (by yield_at ' + fmtBy(totals.emergencyBy) + ')' : ''}</span><span>person-ticks with another in view <b>${totals.sawOther}</b></span><span>person-ticks with source in view <b>${totals.sawSource}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.map(d => d[0] + ' t' + d[1]).join(', ') + ')' : ''}${traitKeys.length ? '; by yield_at ' + fmtBy(totals.deathsBy) : ''}</span>`;
 show(0);
@@ -313,6 +371,9 @@ def render_html(run: Run) -> str:
 <div class="grid">
   <div class="panel"><h2>Map</h2><div id="map"></div>
     <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span><span>small number: yield_at</span>{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
+  <div class="panel"><h2>What happened</h2><div id="events"></div>
+    <p class="meta">Every death, every time someone stood back from a crowded source, every time a need turned
+    critical, and every time a source ran out. Click a line to jump to that tick.</p></div>
   <div class="panel"><h2>People after this tick</h2>
     <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th class="num water-col">thirst</th><th class="num warmth-col">cold</th><th>state</th><th class="num">food</th><th class="num water-col">water</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
     <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start.{' Cold is the warmth need: it rises away from home and falls at home, the shelter each person has.' if scenario.get('warmth') == 'on' else ''} yield_at is the person's own crowd-yield trait.</p></div>
@@ -320,7 +381,7 @@ def render_html(run: Run) -> str:
 <div class="panel" style="margin-top:12px"><h2>Personal selection — tick-start inputs and recorded scores</h2><pre id="selection" class="native mono"></pre></div>
 <div class="panel" style="margin-top:12px"><h2>Resource settlement — recorded kernel order and effects</h2><pre id="settlement" class="native mono"></pre></div>
 <div class="panel" style="margin-top:12px"><h2>Over time: hunger per person (grey), food stock in all food sources (blue), crowd on source (purple dashed), yield events (dots), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
-<p class="meta">Emergency person-ticks count living tick-start people, excluding the final post-tick boundary. Exploration output under OD-009. Rendered from the run file alone; nothing here is a second calculation of what the engine decided. Checkpoint C is not owner acceptance.</p>
+<p class="meta">Emergency person-ticks count living people at tick start. Everything here is read straight from the saved run: the page never recalculates what the world decided.</p>
 <script id="run-data" type="application/json">{data}</script>
 <script>{JS}</script>
 </body></html>

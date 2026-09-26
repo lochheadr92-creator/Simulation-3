@@ -19,7 +19,7 @@ Steps 1-4 are `world_step`, the one path both a run and its replay take.
     py -3 -B -m world.run --recover runs/<cut>.jsonl --out runs/<new>.jsonl   # slice 1c: recovery
 
 Output goes to runs/<run_id>.jsonl (and .html). runs/ is ignored by git: a
-checkpoint run is exploration output, not evidence.
+run file is a saved world you can replay and watch.
 """
 
 from __future__ import annotations
@@ -279,7 +279,6 @@ def main(argv: list[str] | None = None) -> int:
         html_path = path.with_suffix(".html")
         html_path.write_text(render_html(checked), encoding="utf-8")
         lines.append(f"viewer: {html_path}")
-    lines.append("note: a run file is evidence only where a stage record cites it; never acceptance")
     sys.stdout.write("\n".join(lines) + "\n")
     return 0 if checked.complete else 1
 

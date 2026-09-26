@@ -37,36 +37,23 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   two others carrying spare food on 211 to 426 person-ticks (the one-source
   world, seed 7: 26). The old world is `ONE_SOURCE_FOOD_ONLY` in `world/config.py`,
   unchanged byte for byte, and the 50-person cost check still uses it.
-- Warmth and shelter (2026-09-27), the last Stage 2 needs, opt in with
-  `--warmth on`. Warmth is the only need with no resource behind it: shelter
-  is a person's own home cell, cold rises by 1 on every tick that ends away
-  from it and falls by 3 on every tick that ends on it, and death is at 80 as
-  for the other two. Nothing is claimed, carried or consumed, so the kernel is
-  not involved. When several needs call, the one nearest its lethal level is
-  served, thirst then cold then hunger on ties; with warmth off that is the
-  old two-need rule unchanged, and every earlier run file still replays.
-  In 1,500-tick runs on four seeds, warmth on against warmth off: all 6 lived
-  on three seeds and 5 on seed 3, eating was unchanged (about 53 times after
-  starting food ran out), and the help moments that Stage 3 needs held up
-  (196 to 433, against 204 to 411 with warmth off). Cold averaged 6 to 10 and
-  peaked at 40 to 73, so the need bites without dominating.
-  Open finding, not yet ruled on: the arbitration ranks needs by level over
-  lethal level, which ignores how fast a need rises and how far away its
-  remedy is. Thirst rises twice as fast as cold, and a well can be ten steps
-  off while shelter is under your feet, so a need with plenty of time in hand
-  can outrank one that is about to kill. Seed 3, p02, home at (11, 11): from
-  tick 1338 to 1347 cold (50 to 61) outranked thirst (44 to 62) by level and
-  sent p02 home, while the slack in each need - ticks to its lethal level at
-  its own rate, less the steps to reach its remedy - was never below 18 for
-  cold and fell from 15 to below zero for thirst. Walking home also took p02
-  from 6 steps to 10 steps from the nearest well, so the trip destroyed the
-  margin it needed. p02 died of thirst at 1356, one step short of the water,
-  having been unsavable since 1347. Holding a person at shelter until they
-  are warm (hysteresis) would have made this worse, not better: p02 had 9
-  ticks of thirst left and warming would have taken about 20. Ranking by
-  slack rather than by level is the candidate fix, and it is Ryan's call, as
-  is whether warmth becomes a default like water. The levers are untouched:
-  this is recorded, not tuned away.
+- Warmth and shelter (2026-09-27): cold is the third need, and the only one
+  with no resource behind it. Shelter is a person's own home cell. Cold rises
+  by 1 each tick that ends away from it and falls by 3 each tick that ends on
+  it, whatever the person was doing, and 80 kills as hunger and thirst do.
+  Nothing is claimed, carried or consumed, so the kernel is not involved.
+  Warmth is on by default; `--warmth off` turns it off.
+- Needs are ranked by time to death (2026-09-27): when more than one need
+  calls, a person serves the one whose lethal level arrives soonest at the
+  rate it rises, (lethal - level) // rate, least first, ties to thirst, then
+  cold, then hunger. Ranking by level alone ignored rate, so cold at 56 beat
+  thirst at 50 even though thirst rises twice as fast and had nine fewer ticks
+  in it; that killed p02 on seed 3. The rule ignores how far the remedy is on
+  purpose: subtracting the walk makes two needs swap places every step, and
+  people thrash between food and shelter and reach neither.
+  Over 1,500 ticks on seeds 7, 11, 23 and 3, all six people live on every
+  seed. Cold averages 6 to 11 and peaks at 40 to 70. A hungry person can see
+  two others holding spare food on 366 to 713 person-ticks.
 
 ## 1. Kernel
 
@@ -129,9 +116,9 @@ inputs is the independent check.
 ## 2. Viable world
 
 Six people with movement, bounded perception, food, water, warmth, shelter and
-renewable resources. All of these are now built; warmth and shelter are opt
-in. Levers: geometry, resource placement, renewal, starting supplies,
-perception radius and consumption rates. Don't add social systems to
+renewable resources, all of which are now built. Levers: geometry, resource
+placement, renewal, starting supplies, perception radius and consumption
+rates. Don't add social systems to
 create need. The goal: repeated ordinary obtain-and-eat cycles after starting
 food runs out, exact accounting, needs that keep rising when an action fails,
 and enough moments where a hungry person can see at least two others with

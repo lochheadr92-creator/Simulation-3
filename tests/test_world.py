@@ -1,9 +1,8 @@
 """Stage 2 first step: position, movement, one renewable source, hunger.
 
-What is checked here is the part OD-009 keeps for every leg: seeded runs
-reproduce byte for byte, the run file verifies and detects tampering with the
-new blocks, the kernel is still the only place food moves, the world rules do
-what their declarations say, and the viewer renders from the file alone.
+What is checked here: seeded runs reproduce byte for byte, the run file
+verifies and detects tampering, the kernel is still the only place food moves,
+the world rules do what they say, and the viewer renders from the file alone.
 """
 
 from __future__ import annotations
