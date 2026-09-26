@@ -58,6 +58,7 @@ class Overlay:
     died_at: Mapping[str, int] = field(default_factory=dict)
     thirst: Mapping[str, int] = field(default_factory=dict)   # empty unless water is on
     cold: Mapping[str, int] = field(default_factory=dict)     # empty unless warmth is on
+    held: Mapping[str, int] = field(default_factory=dict)     # ticks still owed to the rough cell underfoot
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -77,6 +78,7 @@ class Overlay:
         yield_at = _positive_ints(self.yield_at, roster=set(homes), name="yield_at")
         object.__setattr__(self, "thirst", _levels(self.thirst, positions=positions, name="thirst"))
         object.__setattr__(self, "cold", _levels(self.cold, positions=positions, name="cold"))
+        object.__setattr__(self, "held", _levels(self.held, positions=positions, name="held"))
         object.__setattr__(self, "homes", homes)
         object.__setattr__(self, "positions", positions)
         object.__setattr__(self, "hunger", MappingProxyType(hunger))
@@ -104,6 +106,7 @@ class Overlay:
             "died_at": dict(self.died_at),
             **({"thirst": dict(self.thirst)} if self.thirst else {}),
             **({"cold": dict(self.cold)} if self.cold else {}),
+            **({"held": dict(self.held)} if any(self.held.values()) else {}),
         }
 
     @classmethod
@@ -112,7 +115,9 @@ class Overlay:
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
-            keys = keys | ({"thirst"} if "thirst" in data else set()) | ({"cold"} if "cold" in data else set())
+            for extra in ("thirst", "cold", "held"):
+                if extra in data:
+                    keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
             raise ValueError(f"a canonical overlay needs exactly the keys {sorted(keys)}")
         for name in sorted(keys - {"tick"}):
@@ -129,7 +134,8 @@ class Overlay:
 
         return cls(tick=data["tick"], homes=cells(data["homes"]), positions=cells(data["positions"]),
                    hunger=dict(data["hunger"]), yield_at=dict(data["yield_at"]), died_at=dict(data["died_at"]),
-                   thirst=dict(data.get("thirst", {})), cold=dict(data.get("cold", {})))
+                   thirst=dict(data.get("thirst", {})), cold=dict(data.get("cold", {})),
+                   held=dict(data.get("held", {})))
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

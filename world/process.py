@@ -1,8 +1,12 @@
 """World processes: the rules applied after settlement, in a fixed order.
 
-  1. movement   a person who decided to step is now on that cell
+  1. movement   a person who decided to step is now on that cell, unless the
+                rough cell under them still owes a tick: rough ground costs an
+                extra tick, so stepping onto it holds the next step back
   2. hunger     hunger' = max(0, hunger + rate - satiation * units eaten);
                 only units the kernel actually settled as consumed count
+  2a. shelter   a tick that ends on a shelter spot adds shelter_relief less
+                hunger and thirst than one that ends anywhere else
   2b. cold      warmth on: a tick that ends on the person's own home cell
                 (their shelter) takes `warming` off their cold, and any other
                 tick adds `cold_rate`, whatever they decided; floored at zero
@@ -74,17 +78,29 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     hunger = dict(overlay.hunger)
     thirst = dict(overlay.thirst)
     cold = dict(overlay.cold)
+    held = {actor: overlay.held.get(actor, 0) for actor in overlay.roster}   # full, or the overlay refuses it
+    rough, shelter_spots = config.terrain()
+    rough, shelter_spots = set(rough), set(shelter_spots)
     died_at = dict(overlay.died_at)
     died: list[str] = []
     for actor in overlay.roster:
         if not overlay.alive(actor):
             continue
         decision = decisions.get(actor)
-        if decision is not None and decision.step is not None:
+        owed = held.get(actor, 0)
+        if owed > 0:
+            # still climbing out of rough ground: the step waits a tick
+            held[actor] = owed - 1
+        elif decision is not None and decision.step is not None:
             positions[actor] = decision.step
-        hunger[actor] = max(0, hunger[actor] + config.hunger_rate - config.satiation * eaten.get(actor, 0))
+            if decision.step in rough:
+                held[actor] = 1
+        relief = config.shelter_relief if positions[actor] in shelter_spots else 0
+        hunger[actor] = max(0, hunger[actor] + max(0, config.hunger_rate - relief)
+                            - config.satiation * eaten.get(actor, 0))
         if config.water_on:
-            thirst[actor] = max(0, thirst[actor] + config.thirst_rate - config.quench * drunk.get(actor, 0))
+            thirst[actor] = max(0, thirst[actor] + max(0, config.thirst_rate - relief)
+                                - config.quench * drunk.get(actor, 0))
         if config.warmth_on:
             # Shelter is the person's own home cell, and this is where the tick left them.
             sheltered = positions[actor] == overlay.homes[actor]
@@ -95,7 +111,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             died_at[actor] = settled.tick
             died.append(actor)
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
-                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold)
+                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held)
 
     production: list[dict[str, Any]] = []
     ledger = settled

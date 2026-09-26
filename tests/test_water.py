@@ -81,7 +81,7 @@ def test_a_water_world_is_sealed_replays_and_keeps_food_and_water_apart(tmp_path
 
 def test_without_water_everyone_dies_of_thirst_even_with_food(tmp_path: Path):
     cfg = WorldConfig(seed=7, water_on=True, starting_water=0, water_stock=0, water_renewal_amount=0,
-                      starting_food=3)
+                      starting_food=3, terrain_on=False)   # plain ground: this is about the thirst arithmetic
     run_world(cfg, 60, tmp_path / "dry.jsonl")
     died = read_run(tmp_path / "dry.jsonl").ticks[-1]["world"]["died_at"]
     # thirst 2 a tick reaches 80 at tick 40, sooner for those who started part way there
