@@ -101,7 +101,7 @@ def test_off_keeps_exact_leg5_shape_values_and_default_cli():
     on = config_from(parser.parse_args(["--seed", "7", "--scoring", "on"]))
     assert default == explicit and not default.scoring_on and on.scoring_on
     # water and warmth are on by default, so the default run id carries both; --scoring on turns them off
-    assert run_id_for(default, 300) == "one-source-grid-seed7-ticks300-yieldon-wateron-warmthon"
+    assert run_id_for(default, 300) == "grid-world-seed7-ticks300-yieldon-wateron-warmthon"
     assert not on.water_on and not on.warmth_on
     assert run_id_for(on, 300).endswith("-scoringon")
 

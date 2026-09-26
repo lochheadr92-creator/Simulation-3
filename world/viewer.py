@@ -48,6 +48,8 @@ svg.map { width:100%; height:auto; display:block; max-height:70vh; } svg.chart {
 .mono { font-family:ui-monospace, Consolas, monospace; font-size:12px; } .problem { color:var(--no); }
 .stats { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; } .stats b { font-variant-numeric:tabular-nums; }
 pre.native { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; margin:0; }
+details.rules { margin:6px 0; } details.rules summary { cursor:pointer; }
+details.rules summary:hover { color:var(--fg); } details.rules > div { margin-top:6px; }
 #events { max-height:420px; overflow:auto; display:flex; flex-direction:column; gap:2px; }
 button.event { text-align:left; border:1px solid transparent; background:none; padding:2px 6px; border-radius:5px;
   font:inherit; color:var(--fg); cursor:pointer; white-space:nowrap; }
@@ -356,7 +358,8 @@ def render_html(run: Run) -> str:
 <div class="meta">{html.escape(levers)}</div>
 <details><summary>Scoring: {html.escape(str(scenario.get('scoring', 'off (legacy file)')))} — recorded model declarations</summary>
 <pre class="native mono">{html.escape(json.dumps({k: v for k, v in scenario.items() if k.startswith('scoring') or k == 'food_allocation'}, indent=2))}</pre></details>
-<div class="meta">movement: {html.escape(str(scenario.get('movement', '')))}<br>decision: {html.escape(str(scenario.get('decision', '')))}<br>perception: {html.escape(str(scenario.get('distance_metric', '')))} radius {html.escape(str(scenario.get('perception_radius', '')))} ({html.escape(str(scenario.get('perception_boundary', '')))}) {html.escape(str(scenario.get('perception', '')))}<br>yield: {html.escape(str(scenario.get('yield', '')))} set {html.escape(str(scenario.get('yield_set', '')))} · {html.escape(str(scenario.get('dead_are_not_seen', '')))}</div>
+<details class="rules"><summary class="meta">How these people decide &mdash; the rules they all follow</summary>
+<div class="meta">movement: {html.escape(str(scenario.get('movement', '')))}<br>decision: {html.escape(str(scenario.get('decision', '')))}<br>perception: {html.escape(str(scenario.get('distance_metric', '')))} radius {html.escape(str(scenario.get('perception_radius', '')))} ({html.escape(str(scenario.get('perception_boundary', '')))}) {html.escape(str(scenario.get('perception', '')))}<br>yield: {html.escape(str(scenario.get('yield', '')))} set {html.escape(str(scenario.get('yield_set', '')))} · {html.escape(str(scenario.get('dead_are_not_seen', '')))}</div></details>
 {f'<ul>{problems}</ul>' if problems else ''}
 <div class="controls">
   <button id="prev">&#8592;</button><button id="play">play</button><button id="next">&#8594;</button>

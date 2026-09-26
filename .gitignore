@@ -2,12 +2,15 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Local run_gate packages. These are execution receipts, not accepted
-# stage evidence, and must not enter a commit.
+# Local run_gate packages: execution receipts, not part of the project.
 evidence/automation-runs/*
 !evidence/automation-runs/README.md
 
 
-# Checkpoint run streams (exploration output under OD-009, not evidence)
+# Saved worlds and their viewer pages: regenerate them, do not commit them
 runs/
+
+# Playwright, used to screenshot the viewer
+node_modules/
+
 

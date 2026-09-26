@@ -139,7 +139,7 @@ class WorldConfig:
 
     @property
     def name(self) -> str:
-        return "one-source-grid"
+        return "grid-world"
 
     @property
     def source_position(self) -> tuple[int, int]:
@@ -283,7 +283,7 @@ class WorldConfig:
         """
         if not isinstance(described, Mapping):
             raise ValueError("a world description must be a mapping")
-        if described.get("name") != "one-source-grid" or described.get("genesis_generator") != GENESIS_GENERATOR:
+        if described.get("name") != "grid-world" or described.get("genesis_generator") != GENESIS_GENERATOR:
             raise ValueError(f"unknown world or genesis generator: "
                              f"{described.get('name')!r} {described.get('genesis_generator')!r}")
         values: dict[str, Any] = {}
