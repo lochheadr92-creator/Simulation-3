@@ -92,7 +92,7 @@ def one_person(cfg: WorldConfig, at: tuple[int, int], stocks: dict[str, int], *,
 
 
 def test_a_person_on_an_empty_source_walks_to_one_in_view_with_stock_or_waits():
-    cfg = WorldConfig(seed=1, actors=1, water_on=False)                 # food at (6, 6) and (9, 3), in view of each other
+    cfg = WorldConfig(seed=1, actors=1, water_on=False, warmth_on=False)   # food at (6, 6) and (9, 3), in view of each other
     ledger, overlay = one_person(cfg, (6, 6), {"food": 0, "food2": 3}, hunger=30)
     d = decide(observe("p01", ledger, overlay, cfg), cfg)
     assert (d.kind, d.target, d.step) == (GO, "food2", (7, 6))
@@ -106,7 +106,7 @@ def test_a_person_on_an_empty_source_walks_to_one_in_view_with_stock_or_waits():
 
 
 def test_a_thirsty_person_at_an_empty_well_waits_rather_than_chase_one_out_of_sight():
-    cfg = WorldConfig(seed=1, actors=1)                                   # wells at (3, 3) and (3, 9): not in view of each other
+    cfg = WorldConfig(seed=1, actors=1, warmth_on=False)                  # wells at (3, 3) and (3, 9): not in view of each other
     stocks = {"food": 4, "food2": 4, "water": 0, "water2": 5}
     ledger, overlay = one_person(cfg, (3, 3), stocks, thirst=30)
     d = decide(observe("p01", ledger, overlay, cfg), cfg)
@@ -163,11 +163,11 @@ def test_a_default_world_run_claims_from_its_targets_records_what_was_seen_and_r
 def test_the_runner_defaults_and_switches():
     parser = build_parser()
     default = config_from(parser.parse_args(["--seed", "7"]))
-    assert default.water_on and default.food_sources == 2 and default.water_sources == 2
-    old = config_from(parser.parse_args(["--seed", "7", "--food-sources", "1", "--water", "off"]))
+    assert default.water_on and default.warmth_on and default.food_sources == 2 and default.water_sources == 2
+    old = config_from(parser.parse_args(["--seed", "7", "--food-sources", "1", "--water", "off", "--warmth", "off"]))
     assert old == WorldConfig(seed=7, **ONE_SOURCE_FOOD_ONLY)
     scoring = config_from(parser.parse_args(["--seed", "7", "--scoring", "on"]))
-    assert scoring.scoring_on and not scoring.water_on
+    assert scoring.scoring_on and not scoring.water_on and not scoring.warmth_on
     with pytest.raises(ValueError):
         config_from(parser.parse_args(["--seed", "7", "--scoring", "on", "--water", "on"]))
 

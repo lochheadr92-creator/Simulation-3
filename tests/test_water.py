@@ -37,7 +37,7 @@ def test_water_on_genesis():
     homes = set(overlay.homes.values())
     assert cfg.water_position not in homes and cfg.source_position not in homes
     assert WorldConfig.from_describe(cfg.describe()) == cfg
-    assert run_id_for(cfg, 10).endswith("-wateron")
+    assert "-wateron" in run_id_for(cfg, 10)
 
 
 def ob(**changes) -> Observation:

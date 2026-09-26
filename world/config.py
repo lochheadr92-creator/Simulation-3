@@ -49,11 +49,11 @@ DEFAULT_YIELD_SET = (1, 2, 3)
 # WorldConfig(seed=..., **SHORT_RANGE_LEVERS).
 SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
                       "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
-                      "food_sources": 1, "water_on": False}
+                      "food_sources": 1, "water_on": False, "warmth_on": False}
 
 # The world before the second food source and default water (2026-09-25): one
 # food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
-ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False}
+ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -95,7 +95,7 @@ class WorldConfig:
     thirst_death_at: int = 80
     food_sources: int = 2         # 1 or 2 food sources (the second from 2026-09-25), each with the levers above
     water_sources: int = 2        # 1 or 2 water sources when water is on, each with the water levers
-    warmth_on: bool = False       # a third need: cold, met by sheltering at home (2026-09-27)
+    warmth_on: bool = True        # a third need: cold, met by sheltering at home (2026-09-27; default on)
     cold_rate: int = 1            # cold added per tick spent away from shelter
     warming: int = 3              # cold removed per tick spent at shelter
     cold_at: int = 25             # cold at which a person seeks shelter
@@ -233,8 +233,7 @@ class WorldConfig:
             out["decision"] += (
                 "; water, the second need: drink if thirsty and holding water; draw if thirsty at the water; "
                 "wait if thirsty at empty water; walk to the water if thirsty, or holding none when thirst + "
-                "thirst_rate * steps reaches thirsty_at; when both needs call, serve the one nearer its lethal "
-                "level (hunger/death_at against thirst/thirst_death_at, thirst on ties)")
+                "thirst_rate * steps reaches thirsty_at")
         if self.warmth_on:
             # Written only when on, so every earlier header still round-trips.
             out["warmth"] = "on"
@@ -245,10 +244,13 @@ class WorldConfig:
                 "each tick that ends away from it and falls by warming each tick that ends on it, whatever the "
                 "person chose; warm at shelter if cold; walk to shelter if cold, or when cold + cold_rate * steps "
                 "home reaches cold_at (leave in time)")
+
+        if self.water_on or self.warmth_on:
             out["decision"] += (
-                "; when more than one need calls, serve the one nearest its lethal level (each need compared "
-                "against its own lethal level by exact integer cross-multiplication); on ties thirst, then cold, "
-                "then hunger")
+                "; when more than one need calls, serve the one with the least slack, where a need's slack is "
+                "(its lethal level - its level) // its rate, the ticks before it kills at the rate it rises; "
+                "how far its remedy is does not enter, because subtracting the walk makes two needs swap places "
+                "every step; a need that does not rise never runs out; on ties thirst, then cold, then hunger")
         # Written only when there is more than one, so earlier headers round-trip.
         if self.food_sources > 1:
             out["food_sources"] = [{"id": i, "position": list(p)}

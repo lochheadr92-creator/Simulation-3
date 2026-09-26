@@ -44,7 +44,7 @@ recorded, so those decisions are exactly as before.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from fractions import Fraction
+from math import inf as INF
 from typing import Any
 
 from world.config import WorldConfig
@@ -207,14 +207,27 @@ def water_candidates(observation: Observation, config: WorldConfig) -> tuple[str
     return tuple(found)
 
 
+def slack(level: int, lethal: int, rate: int) -> int | float:
+    """Ticks before this need kills, at the rate it rises: (lethal - level) //
+    rate. A need that does not rise never runs out.
+
+    Deliberately blind to how far the remedy is. Subtracting the steps to the
+    remedy looks more informed and oscillates: walking towards food shortens
+    the way to food and lengthens the way to shelter, so the two needs swap
+    places every step and the person thrashes between them and reaches
+    neither. Rate alone is stable, and rate is what the seed 3 death turned
+    on - thirst rising twice as fast as cold."""
+    return (lethal - level) // rate if rate > 0 else INF
+
+
 def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
-    """Serve the need nearest its lethal level: each calling need is ranked by
-    its level over its own lethal level, exactly, and the greatest wins. Ties go
-    to thirst, then cold, then hunger - the order they are listed here, which is
-    the order they rise. Hunger only enters the ranking when food is actually
-    calling; a person with nothing to do falls back to the food rule's walk home
-    or rest. With water on and warmth off this is the two-need rule unchanged:
-    thirst beats hunger exactly when thirst * death_at >= hunger * thirst_death_at.
+    """Serve the need with the least slack - the one whose lethal level arrives
+    soonest at the rate it rises. Ranking by level alone ignored rate, so a need
+    with ticks to spare could outrank one about to kill (ROADMAP, seed 3). Ties
+    go to thirst, then cold, then hunger, the order they are listed here.
+
+    Hunger only enters the ranking when food is actually calling; a person with
+    nothing to do falls back to the food rule's walk home or rest.
 
     The candidate block records every action that was open, food first, then
     water, then warmth, whichever need was served."""
@@ -224,18 +237,18 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
     water = water_candidates(observation, config)
     warmth = warmth_candidates(observation, config)
     every = food + water + warmth
-    calling: list[tuple[Fraction, tuple[str, ...], tuple[str, ...], Any]] = []
+    calling: list[tuple[int | float, tuple[str, ...], tuple[str, ...], Any]] = []
     if water:
-        calling.append((Fraction(observation.thirst, config.thirst_death_at),
+        calling.append((slack(observation.thirst, config.thirst_death_at, config.thirst_rate),
                         WATER_PRIORITY, water, _water_decision))
     if warmth:
-        calling.append((Fraction(observation.cold, config.cold_death_at),
+        calling.append((slack(observation.cold, config.cold_death_at, config.cold_rate),
                         WARMTH_PRIORITY, warmth, _warmth_decision))
     if calling and any(action not in IDLE for action in food):
-        calling.append((Fraction(observation.hunger, config.death_at), (), (), None))
+        calling.append((slack(observation.hunger, config.death_at, config.hunger_rate), (), (), None))
     if not calling:
         return replace(_decide_food(observation, config), candidates=every)
-    _, priority, options, build = max(calling, key=lambda ranked: ranked[0])
+    _, priority, options, build = min(calling, key=lambda ranked: ranked[0])
     if build is None:
         return replace(_decide_food(observation, config), candidates=every)
     chosen = next(action for action in priority if action in options)

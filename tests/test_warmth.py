@@ -6,7 +6,8 @@ every tick ending away from a person's own home cell and falls on every tick
 ending on it. Nothing is produced, moved or conserved, so the kernel is not
 involved at all: shelter is a place, not a stock.
 
-Warmth is off by default, and off leaves the world exactly as it was.
+Warmth is on by default from 2026-09-27; off leaves the world exactly as it
+was before it existed.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ import pytest
 from kernel import Engine
 from stream.run_file import read_run
 from world.config import WorldConfig, genesis
-from world.decide import (DRINK, EAT, GO, GO_SHELTER, GO_WATER, HOME, WARM, decide, shelter_trip_due,
+from world.decide import (DRINK, EAT, GO, GO_SHELTER, GO_WATER, HOME, WARM, decide, shelter_trip_due, slack,
                           warmth_candidates)
 from world.observe import Observation
 from world.overlay import Overlay
@@ -44,7 +45,7 @@ def ob(**changes) -> Observation:
 # --- off is off ----------------------------------------------------------------
 
 def test_warmth_off_leaves_the_world_as_it_was():
-    cfg = WorldConfig(seed=7)
+    cfg = WorldConfig(seed=7, warmth_on=False)   # warmth is on by default from 2026-09-27
     assert not cfg.warmth_on
     assert "warmth" not in cfg.describe() and not run_id_for(cfg, 10).endswith("-warmthon")
     _, overlay = genesis(cfg)
@@ -136,18 +137,41 @@ def three_need_view(**changes) -> dict:
     return view
 
 
-def test_the_need_nearest_its_lethal_level_wins_with_thirst_then_cold_then_hunger_on_ties():
+def test_the_need_with_the_least_slack_wins_with_thirst_then_cold_then_hunger_on_ties():
+    """Slack is (lethal - level) // rate: the ticks a need leaves at the rate it
+    rises. Thirst rises twice as fast, so the same level buys half the time."""
     cfg = WorldConfig(seed=1, warmth_on=True)      # water on too: all three needs live
-    both = three_need_view()
-    assert cfg.death_at == cfg.thirst_death_at == cfg.cold_death_at      # equal lethals: ties are reachable
-    assert decide(ob(thirst=30, cold=30, hunger=30, **both), cfg).kind == DRINK        # thirst first
-    assert decide(ob(thirst=0, cold=30, hunger=30, **both), cfg).kind == GO_SHELTER    # then cold
-    assert decide(ob(thirst=0, cold=0, hunger=30, **both), cfg).kind == EAT            # then hunger
-    assert decide(ob(thirst=0, cold=30, hunger=60, **both), cfg).kind == EAT           # hunger is nearer death
-    assert decide(ob(thirst=60, cold=30, hunger=30, **both), cfg).kind == DRINK
+    held = three_need_view()
+    assert slack(40, cfg.thirst_death_at, cfg.thirst_rate) == 20           # thirst 40 at 2 a tick
+    assert slack(60, cfg.cold_death_at, cfg.cold_rate) == 20               # cold 60 at 1 a tick
+    assert slack(60, cfg.death_at, cfg.hunger_rate) == 20                  # hunger 60 at 1 a tick
+    assert decide(ob(thirst=40, cold=60, hunger=60, **held), cfg).kind == DRINK        # all 20: thirst first
+    assert decide(ob(thirst=0, cold=60, hunger=60, **held), cfg).kind == GO_SHELTER    # then cold
+    assert decide(ob(thirst=0, cold=0, hunger=60, **held), cfg).kind == EAT            # then hunger
     # a need that is not calling never wins, however the other levels stand
-    idle = decide(ob(thirst=0, cold=0, hunger=0, **both), cfg)
+    idle = decide(ob(thirst=0, cold=0, hunger=0, **held), cfg)
     assert idle.kind == HOME and GO_SHELTER not in idle.candidates
+
+
+def test_a_need_with_time_in_hand_does_not_outrank_one_about_to_kill():
+    """The seed 3 lesson (ROADMAP): ranking by level sent p02 to shelter it did
+    not need and it died of thirst. Cold has the higher level here, thirst the
+    nearer death, because thirst rises twice as fast."""
+    cfg = WorldConfig(seed=1, warmth_on=True)
+    walk = three_need_view(water=0)
+    assert slack(50, cfg.thirst_death_at, cfg.thirst_rate) == 15           # thirst: 15 ticks
+    assert slack(56, cfg.cold_death_at, cfg.cold_rate) == 24               # cold: 24, though its level is higher
+    assert decide(ob(thirst=50, cold=56, hunger=30, **walk), cfg).kind == GO_WATER
+
+
+def test_slack_ignores_how_far_the_remedy_is_so_nobody_thrashes():
+    """Subtracting the steps to the remedy oscillated: a step towards food
+    shortened the way to food and lengthened the way to shelter, so the two
+    swapped places every tick and people reached neither and starved."""
+    cfg = WorldConfig(seed=1, warmth_on=True)
+    near = decide(ob(thirst=0, cold=40, hunger=40, **three_need_view(position=(1, 0))), cfg)
+    far = decide(ob(thirst=0, cold=40, hunger=40, **three_need_view(position=(9, 0))), cfg)
+    assert near.kind == far.kind        # the same needs, the same choice, wherever they stand
 
 
 def test_the_candidate_block_records_every_open_action_food_then_water_then_warmth():
@@ -158,9 +182,9 @@ def test_the_candidate_block_records_every_open_action_food_then_water_then_warm
 
 def test_warmth_off_and_on_reach_the_same_two_need_decisions_until_cold_calls():
     """Off, the two-need rule is untouched; on, it only differs once cold bites."""
-    off, on = WorldConfig(seed=1), WorldConfig(seed=1, warmth_on=True)
+    off, on = WorldConfig(seed=1, warmth_on=False), WorldConfig(seed=1, warmth_on=True)
     view = three_need_view()
-    for level in (0, 10, 24):
+    for level in (0, 10, 20):      # 21 and up is a due shelter trip at 4 steps out
         assert (decide(ob(hunger=30, cold=level, **view), off).kind
                 == decide(ob(hunger=30, cold=level, **view), on).kind)
     assert decide(ob(hunger=30, cold=30, **view), off).kind == EAT
@@ -187,6 +211,6 @@ def kinds_of(path: Path) -> list[str]:
 
 def test_warmth_changes_what_people_do(tmp_path: Path):
     """DOCTRINE 1: a need that changed no decision would be a stored field, not a need."""
-    run_world(WorldConfig(seed=7), 200, tmp_path / "plain.jsonl")
+    run_world(WorldConfig(seed=7, warmth_on=False), 200, tmp_path / "plain.jsonl")
     run_world(WorldConfig(seed=7, warmth_on=True), 200, tmp_path / "warm.jsonl")
     assert kinds_of(tmp_path / "plain.jsonl") != kinds_of(tmp_path / "warm.jsonl")

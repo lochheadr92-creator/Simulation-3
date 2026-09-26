@@ -184,7 +184,7 @@ def test_scenario_and_world_descriptions_round_trip_exactly():
     for scenario in (Scenario(seed=7), Scenario(seed=11, actors=4, sources=3, max_proposals_per_tick=5)):
         assert Scenario.from_describe(json.loads(json.dumps(scenario.describe()))) == scenario
     for config in (WorldConfig(seed=7), WorldConfig(seed=11, yield_on=False, scoring_on=True, renewal_every=2,
-                                                     water_on=False),   # scoring has no water actions
+                                                     water_on=False, warmth_on=False),   # scoring has neither
                    WorldConfig(seed=23, yield_set=(2, 3), perception_radius=5)):
         assert WorldConfig.from_describe(json.loads(json.dumps(config.describe()))) == config
 
@@ -310,8 +310,8 @@ def test_a_header_whose_genesis_its_configuration_does_not_produce_is_reported(t
 @pytest.mark.parametrize("scoring_on", [False, True])
 def test_world_runs_replay_identically(tmp_path: Path, seed: int, yield_on: bool, scoring_on: bool):
     path = tmp_path / "world.jsonl"
-    run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on,
-                          water_on=not scoring_on), 120, path)   # scoring has no water actions
+    run_world(WorldConfig(seed=seed, yield_on=yield_on, scoring_on=scoring_on, water_on=not scoring_on,
+                          warmth_on=not scoring_on), 120, path)   # scoring has no water or warmth actions
     result = replay_world(path)
     assert result.identical and result.ticks == 120 and result.code_identity_matches
 

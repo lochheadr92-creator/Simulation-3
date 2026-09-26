@@ -164,7 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="water and thirst as a second need (default on; off with --scoring on, "
                              "since scoring has no water actions yet)")
     parser.add_argument("--warmth", choices=("on", "off"), default=None,
-                        help="cold as a third need, met by sheltering at home (default off; never with "
+                        help="cold as a third need, met by sheltering at home (default on; never with "
                              "--scoring on, since scoring has no warmth actions yet)")
     parser.add_argument("--trips", choices=("on", "off"), default="on",
                         help="leave for the source in time when holding no food (default on)")
@@ -214,7 +214,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["plan_trips"] = args.trips == "on"
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")
     levers["water_on"] = water == "on"
-    warmth = args.warmth if args.warmth is not None else "off"
+    warmth = args.warmth if args.warmth is not None else ("off" if args.scoring == "on" else "on")
     levers["warmth_on"] = warmth == "on"
     return WorldConfig(seed=args.seed, **levers)
 
