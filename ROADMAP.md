@@ -50,15 +50,23 @@ cards) is in `archive/governance/ROADMAP.md` if it is ever useful again.
   starting food ran out), and the help moments that Stage 3 needs held up
   (196 to 433, against 204 to 411 with warmth off). Cold averaged 6 to 10 and
   peaked at 40 to 73, so the need bites without dominating.
-  Open finding, not yet ruled on: food and water are each met by a single
-  action, but warmth is met only over many ticks at shelter, and arbitration
-  re-runs every tick. So warmth is the one need that can be pre-empted
-  indefinitely. On seed 3, p02 (home at (11, 11), 10 steps from the nearest
-  well) reached shelter at tick 1347, left after a single tick when thirst
-  edged past cold, and died of thirst at 1356 one step from the water. The
-  levers are untouched: this is recorded, not tuned away. Whether warmth
-  should hold a person at shelter until they are warm (hysteresis) is Ryan's
-  call, as is whether warmth becomes a default like water.
+  Open finding, not yet ruled on: the arbitration ranks needs by level over
+  lethal level, which ignores how fast a need rises and how far away its
+  remedy is. Thirst rises twice as fast as cold, and a well can be ten steps
+  off while shelter is under your feet, so a need with plenty of time in hand
+  can outrank one that is about to kill. Seed 3, p02, home at (11, 11): from
+  tick 1338 to 1347 cold (50 to 61) outranked thirst (44 to 62) by level and
+  sent p02 home, while the slack in each need - ticks to its lethal level at
+  its own rate, less the steps to reach its remedy - was never below 18 for
+  cold and fell from 15 to below zero for thirst. Walking home also took p02
+  from 6 steps to 10 steps from the nearest well, so the trip destroyed the
+  margin it needed. p02 died of thirst at 1356, one step short of the water,
+  having been unsavable since 1347. Holding a person at shelter until they
+  are warm (hysteresis) would have made this worse, not better: p02 had 9
+  ticks of thirst left and warming would have taken about 20. Ranking by
+  slack rather than by level is the candidate fix, and it is Ryan's call, as
+  is whether warmth becomes a default like water. The levers are untouched:
+  this is recorded, not tuned away.
 
 ## 1. Kernel
 
