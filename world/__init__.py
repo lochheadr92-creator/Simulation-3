@@ -13,7 +13,9 @@ Ownership, in the order a tick runs (world/run.py):
   process.py   movement, hunger, death, renewal: rules applied after settlement
   config.py    the declared levers and the seeded, saved genesis
   overlay.py   the immutable world state beside the kernel state
-  viewer.py    a map over time rendered from the run file alone
+  viewer.py    the isometric map viewer, rendered from the run file alone:
+               viewer_index.py reads the run once into events and threads,
+               viewer.js and viewer.css draw it; none of them runs a rule
 """
 
 from __future__ import annotations

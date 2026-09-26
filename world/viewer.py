@@ -1,12 +1,22 @@
-"""Render a world run as a map over time: a self-contained HTML page, or text.
+"""Render a world run as a place you can watch: a self-contained HTML page, or text.
 
     py -3 -B -m world.viewer runs/<run>.jsonl            # writes runs/<run>.html
     py -3 -B -m world.viewer runs/<run>.jsonl --text 40  # print the map at view 40
+    py -3 -B -m world.run --seed 11 --ticks 300 --html   # run a world and write its page
 
-The page embeds the run file's content and reads nothing else: no network,
-no scripts from elsewhere, no live engine. Every number shown is a value the
-run recorded (positions, hunger, balances, stocks, decisions, observations,
-outcomes) or a count of those values. It is a way to look, not a second scorer.
+The page is an isometric diorama of the saved run: terrain, sources and their
+stock, homes and the shelters people build, people with their needs and what
+they are doing, and the asking, answering and handing over that passes
+between them. A timeline plays, steps and scrubs through it; a list of what
+happened jumps to any moment; an inspector follows one person through time.
+
+It embeds the run file's content and reads nothing else: no network, no
+scripts or fonts from elsewhere, no live engine. world/viewer_index.py reads
+the saved run once into the events, request threads and counts the page
+lists; world/viewer.js and world/viewer.css are the drawing, inlined into the
+page. Every number shown is a value the run recorded or a count of them, and
+animation only moves the picture between two recorded ticks. It is a way to
+look, not a second simulation.
 
 View k shows the world after tick k-1 (view 0 is genesis) together with the
 decisions and outcomes of tick k-1, the ones that produced it.
@@ -22,291 +32,11 @@ from pathlib import Path
 from typing import Any
 
 from stream.run_file import Run, read_run
+from world.viewer_index import build_index
 
-CSS = """
-:root { --bg:#f7f7f4; --fg:#1d1d1b; --muted:#6b6b66; --line:#d9d9d2; --panel:#ffffff; --cell:#efefe9; --water:#2563eb;
-        --fed:#2f7d4f; --hungry:#c98a1b; --emergency:#a63d2f; --dead:#7a7a74; --source:#2f5f9f; --sourcebg:#dbe7f7; --yield:#6b4c9a;
-        --ok:#2f7d4f; --okbg:#e3f3e8; --no:#a63d2f; --nobg:#f8e6e2;
-        --rough:#ddd6c6; --roughline:#b9ac90; --shelterbg:#dcecdc; --shelterline:#6f9a6f;
-        --builtbg:#cfe3f0; --builtline:#3d7fa8; }
-@media (prefers-color-scheme: dark) { :root { --bg:#161614; --fg:#ecece6; --muted:#9a9a92; --line:#33332f; --panel:#1f1f1c; --cell:#242421; --water:#7aa7f7;
-        --fed:#7fd39a; --hungry:#e2b25a; --emergency:#f09a8a; --dead:#8d8d86; --source:#8ab4f0; --sourcebg:#22314a; --yield:#c4a6ef;
-        --ok:#7fd39a; --okbg:#1f3427; --no:#f09a8a; --nobg:#3a221e;
-        --rough:#302c24; --roughline:#6f6450; --shelterbg:#20301f; --shelterline:#5d8a5d;
-        --builtbg:#1d2c36; --builtline:#5e9dc4; } }
-* { box-sizing:border-box; } body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
-  font:14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-h1 { font-size:18px; margin:0 0 4px; } h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:18px 0 6px; }
-.meta { color:var(--muted); font-size:12px; word-break:break-all; }
-.controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:12px 0; position:sticky; top:0; background:var(--bg); padding:8px 0; z-index:2; }
-.controls input[type=range] { flex:1 1 240px; } button { font:inherit; padding:4px 10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); border-radius:6px; cursor:pointer; }
-label.toggle { font-size:12px; color:var(--muted); } .tick { font-variant-numeric:tabular-nums; font-weight:600; min-width:9ch; }
-.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; }
-.panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; overflow:auto; }
-table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; } th, td { text-align:left; padding:3px 14px 3px 0; border-bottom:1px solid var(--line); vertical-align:top; white-space:nowrap; }
-th { color:var(--muted); font-weight:500; font-size:12px; } td.num, th.num { text-align:right; padding-right:14px; }
-.ok { color:var(--ok); background:var(--okbg); border-radius:4px; padding:0 5px; } .no { color:var(--no); background:var(--nobg); border-radius:4px; padding:0 5px; }
-.b-fed { color:var(--fed); } .b-hungry { color:var(--hungry); } .b-emergency { color:var(--emergency); font-weight:600; } .b-dead { color:var(--dead); }
-svg.map { width:100%; height:auto; display:block; max-height:70vh; } svg.chart { width:100%; height:auto; display:block; }
-.legend { font-size:12px; color:var(--muted); } .legend span { display:inline-block; margin-right:12px; }
-.mono { font-family:ui-monospace, Consolas, monospace; font-size:12px; } .problem { color:var(--no); }
-.stats { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; } .stats b { font-variant-numeric:tabular-nums; }
-pre.native { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.7; margin:0; }
-details.rules { margin:6px 0; } details.rules summary { cursor:pointer; }
-details.rules summary:hover { color:var(--fg); } details.rules > div { margin-top:6px; }
-#events { max-height:420px; overflow:auto; display:flex; flex-direction:column; gap:2px; }
-button.event { text-align:left; border:1px solid transparent; background:none; padding:2px 6px; border-radius:5px;
-  font:inherit; color:var(--fg); cursor:pointer; white-space:nowrap; }
-button.event:hover { background:var(--cell); } button.event.now { border-color:var(--line); background:var(--cell); font-weight:600; }
-.evtick { color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px; margin-right:6px; }
-.b-yield { color:var(--yield); }
-"""
-
-JS = r"""
-const RUN = JSON.parse(document.getElementById('run-data').textContent);
-const H = RUN.header, C = H.scenario, ticks = RUN.ticks, n = ticks.length;
-const LAST = ticks.length ? ticks[ticks.length - 1].world : H.world;
-const people = Object.keys(LAST.positions).sort();   // everyone who ever lived, including the newly born
-const bornAt = {};   // filled while the events are gathered: the tick each newcomer arrived
-const present = (w, p) => p in w.positions;          // somebody not born yet is not in the world
-let v = 0, timer = null, trails = true;
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const band = (h, dead) => dead ? 'dead' : h >= C.death_at ? 'dead' : h >= C.emergency_at ? 'emergency' : h >= C.hungry_at ? 'hungry' : 'fed';
-const colour = b => `var(--${b})`;
-function world(k) { return k === 0 ? H.world : ticks[k - 1].world; }
-function food(k, p) { if (k === 0) return H.genesis.balances[p] || 0; const a = ticks[k - 1].availability['actor:' + p]; const b = a === undefined ? ticks[k - 1].state.balances[p] : a; return b === undefined ? 0 : b; }
-const FOOD = C.food_sources || [{id: C.source, position: C.source_position}];
-const WELLS = C.water === 'on' ? (C.water_sources || [{id: C.water_source, position: C.water_position}]) : [];
-const foodCells = new Set(FOOD.map(f => f.position.join(',')));
-const ROUGH = new Set((C.rough || []).map(c => c.join(',')));
-const SHELTER = new Set((C.shelter_spots || []).map(c => c.join(',')));
-function stockOf(k, id) { if (k === 0) return H.genesis.sources[id].stock; const t = ticks[k - 1]; let s = t.state.sources[id].stock; for (const e of (t.production || [])) if (e.source === id) s += e.amount; return s; }
-function stock(k) { let s = 0; for (const f of FOOD) s += stockOf(k, f.id); return s; }
-function waterHeld(k, p) { if (k === 0) return (H.genesis.holdings.water || {})[p] || 0; const t = ticks[k - 1]; const a = (t.availability || {})['actor@water:' + p]; const h = a === undefined ? t.state.holdings.water[p] : a; return h === undefined ? 0 : h; }
-function outcomeOf(t, p) { for (const o of t.record.outcomes) if (o.actor === p) return o; return null; }
-function personTip(k, p) {
-  const w = world(k), dead = p in w.died_at, t = k >= 1 ? ticks[k - 1] : null;
-  if (!present(w, p)) return p + ' is not born yet';
-  const bits = [p + (dead ? ' (died tick ' + w.died_at[p] + ')' : ' - ' + band(w.hunger[p], false))
-    + (bornAt[p] ? ', born tick ' + bornAt[p] : '')];
-  bits.push('hunger ' + w.hunger[p] + ' / ' + C.death_at + '   food held ' + food(k, p));
-  if (C.water === 'on') bits.push('thirst ' + w.thirst[p] + ' / ' + C.thirst_death_at + '   water held ' + waterHeld(k, p));
-  if (C.warmth === 'on') bits.push('cold ' + w.cold[p] + ' / ' + C.cold_death_at
-    + (w.positions[p].join(',') === w.homes[p].join(',') ? '   sheltered' : '   out in the cold'));
-  const years = (w.age || {})[p];
-  if (C.adult_at && years !== undefined)
-    bits.push(years < C.adult_at ? 'a child, ' + years + ' of ' + C.adult_at + ' ticks old'
-              : 'grown (' + years + ' ticks old)');
-  const mum = (w.parent || {})[p]; if (mum) bits.push('born beside ' + mum);
-  const ya = traitOf(p); if (ya !== null) bits.push('yields to a crowd of ' + ya);
-  const here = w.positions[p].join(',');
-  if (ROUGH.has(here)) bits.push('on rough ground' + ((w.held || {})[p] ? ' - held up this tick' : ''));
-  if (SHELTER.has(here)) bits.push('on a shelter spot: needs rise slower here');
-  if ((w.shelters || []).some(c => c.join(',') === here)) bits.push('under a shelter somebody built');
-  const work = (w.built || {})[p] || 0;
-  if (work && C.build_ticks && work < C.build_ticks) bits.push('shelter ' + work + '/' + C.build_ticks + ' built');
-  const d = t && t.decisions && t.decisions[p];
-  if (d) bits.push('chose: ' + d.kind + (d.target ? ' -> ' + d.target : '') + ' (' + d.reason + ')');
-  return bits.join('\n');
-}
-function traitOf(p) { const t = (LAST.yield_at || {})[p]; return t === undefined ? null : t; }
-function crowdAt(k) { const w = world(k); let c = 0; for (const p of people) if (present(w, p) && !(p in w.died_at) && foodCells.has(w.positions[p].join(','))) c++; return c; }
-const series = { stock: [], alive: [], hunger: {}, crowd: [] }; for (const p of people) series.hunger[p] = [];
-const totals = { claimsOk: 0, claimsNo: 0, eats: 0, emergencyTicks: 0, deaths: [], sawOther: 0, sawSource: 0, yields: 0, emergencyBy: {}, deathsBy: {}, yieldTicks: [] };
-for (let k = 0; k <= n; k++) {
-  const w = world(k); series.stock.push(stock(k)); series.crowd.push(crowdAt(k)); let alive = 0;
-  for (const p of people) { if (!present(w, p)) { series.hunger[p].push(null); continue; } const dead = p in w.died_at; if (!dead) alive++; series.hunger[p].push(dead ? null : w.hunger[p]); if (k < n && !dead && w.hunger[p] >= C.emergency_at) { totals.emergencyTicks++; const tr = traitOf(p); if (tr !== null) totals.emergencyBy[tr] = (totals.emergencyBy[tr] || 0) + 1; } }
-  series.alive.push(alive);
-  if (k >= 1) { for (const o of ticks[k - 1].record.outcomes) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
-    const block = ticks[k - 1].observations || {};
-    for (const p of Object.keys(block)) { if ((block[p].sees || block[p].others || []).length) totals.sawOther++; if (Object.prototype.hasOwnProperty.call(block[p], 'source_food')) totals.sawSource++; }
-    let anyYield = false; for (const p of people) { const d = ticks[k - 1].decisions && ticks[k - 1].decisions[p]; if (d && d.kind === 'yield') { totals.yields++; anyYield = true; } }
-    if (anyYield) totals.yieldTicks.push(k); }
-}
-for (const p of people) { const w = world(n); if (present(w, p) && p in w.died_at) { totals.deaths.push([p, w.died_at[p]]); const tr = traitOf(p); if (tr !== null) totals.deathsBy[tr] = (totals.deathsBy[tr] || 0) + 1; } }
-totals.deaths.sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));
-const traitKeys = [...new Set(people.map(traitOf).filter(v => v !== null))].sort((a, b) => a - b);
-function fmtBy(map) { return traitKeys.map(v => v + ':' + (map[v] || 0)).join(', ') || 'none'; }
-const EVENTS = [];
-for (let k = 1; k <= n; k++) {
-  const w = world(k), before = world(k - 1), t = ticks[k - 1];
-  for (const p of people) {
-    if (!present(w, p)) continue;
-    if (p in w.died_at && !(p in before.died_at)) {
-      const why = w.hunger[p] >= C.death_at ? 'starved'
-        : (C.water === 'on' && w.thirst[p] >= C.thirst_death_at) ? 'died of thirst'
-        : (C.warmth === 'on' && w.cold[p] >= C.cold_death_at) ? 'froze to death' : 'died';
-      EVENTS.push({ k, who: p, band: 'dead', what: p + ' ' + why });
-      continue;
-    }
-    if (p in w.died_at) continue;
-    const d = t.decisions && t.decisions[p];
-    if (d && d.kind === 'yield') EVENTS.push({ k, who: p, band: 'yield', what: p + ' stood back from the crowded source' });
-    if (d && d.kind === 'ask')
-      EVENTS.push({ k, who: p, band: 'hungry', what: p + ' asked ' + d.target + ' for food' });
-    if (d && d.kind === 'agree')
-      EVENTS.push({ k, who: p, band: 'fed', what: p + ' agreed to bring food to ' + d.target });
-    const wasAsking = (before.requests || {})[p];
-    if (wasAsking && !(w.requests || {})[p]
-        && !Object.values(t.decisions).some(x => x.kind === 'agree' && x.target === p))
-      EVENTS.push({ k, who: p, band: 'emergency', what: 'nobody answered ' + p });
-    if (d && d.kind === 'offer') {
-      const took = (t.record.outcomes || []).some(o => o.actor === p && o.operation === 'transfer' && o.accepted);
-      EVENTS.push({ k, who: p, band: took ? 'fed' : 'emergency',
-        what: !took ? p + ' offered food to ' + d.target + ', refused'
-          : ((w.parent || {})[d.target] === p ? p + ' fed their child ' + d.target
-             : p + ' gave a unit of food to ' + d.target) });
-    }
-    const earlier = k >= 2 ? ticks[k - 2].decisions[p] : null;
-    if (d && d.kind === 'go_offer' && !(earlier && earlier.kind === 'go_offer'))
-      EVENTS.push({ k, who: p, band: 'hungry', what: p + ' set out to help ' + d.target });
-    if (earlier && earlier.kind === 'go_offer' && d && d.kind !== 'go_offer' && d.kind !== 'offer')
-      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' turned back from helping ' + earlier.target });
-    if (d && d.kind === 'build') {
-      const done = (w.built || {})[p] || 0, was = (before.built || {})[p] || 0;
-      if (was === 0) EVENTS.push({ k, who: p, band: 'fed', what: p + ' started building a shelter' });
-      if (done >= (C.build_ticks || 1) && was < (C.build_ticks || 1))
-        EVENTS.push({ k, who: p, band: 'fed', what: p + ' finished their shelter (' + done + ' ticks of work)' });
-    }
-    if (w.hunger[p] >= C.emergency_at && before.hunger[p] < C.emergency_at)
-      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is starving (hunger ' + w.hunger[p] + ')' });
-    if (C.water === 'on' && w.thirst[p] >= C.thirst_emergency_at && before.thirst[p] < C.thirst_emergency_at)
-      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is parched (thirst ' + w.thirst[p] + ')' });
-    if (C.warmth === 'on' && w.cold[p] >= C.cold_emergency_at && before.cold[p] < C.cold_emergency_at)
-      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is freezing (cold ' + w.cold[p] + ')' });
-    if (C.adult_at && (w.age || {})[p] === C.adult_at && (before.age || {})[p] < C.adult_at)
-      EVENTS.push({ k, who: p, band: 'fed', what: p + ' grew up' });
-  }
-  for (const e of (t.production || [])) if (e.born) {
-    bornAt[e.born] = k;
-    EVENTS.push({ k, who: e.born, band: 'fed', what: e.born + ' was born' });
-  }
-  for (const f of FOOD) if (stockOf(k, f.id) === 0 && stockOf(k - 1, f.id) > 0)
-    EVENTS.push({ k, who: null, band: 'hungry', what: f.id + ' is picked clean' });
-  for (const wl of WELLS) if (stockOf(k, wl.id) === 0 && stockOf(k - 1, wl.id) > 0)
-    EVENTS.push({ k, who: null, band: 'hungry', what: wl.id + ' has run dry' });
-}
-function renderEvents() {
-  if (!EVENTS.length) { $('events').innerHTML = '<p class="meta">Nothing dramatic happened: nobody starved, nobody stood back, no source ran out.</p>'; return; }
-  $('events').innerHTML = EVENTS.map((e, i) =>
-    `<button class="event" data-k="${e.k}" id="ev${i}"><span class="evtick">t${e.k}</span> <span class="b-${e.band}">${esc(e.what)}</span></button>`).join('');
-  $('events').querySelectorAll('.event').forEach(b => b.addEventListener('click', () => show(Number(b.dataset.k))));
-}
-function markEvents(k) {
-  const rows = $('events').querySelectorAll('.event'); let seen = null;
-  rows.forEach(b => { const at = Number(b.dataset.k); b.classList.toggle('now', at === k); if (at <= k) seen = b; });
-  if (seen) seen.scrollIntoView({ block: 'nearest' });
-}
-function drawMap(k) {
-  const w = world(k), cell = 40, W = C.width * cell, Hh = C.height * cell;
-  const builtNow = new Set((w.shelters || []).map(c => c.join(',')));
-  let s = `<svg class="map" viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">`;
-  for (let y = 0; y < C.height; y++) for (let x = 0; x < C.width; x++) {
-    const key = x + ',' + y, rough = ROUGH.has(key), shelterSpot = SHELTER.has(key), made = builtNow.has(key);
-    const fill = made ? 'var(--builtbg)' : rough ? 'var(--rough)' : shelterSpot ? 'var(--shelterbg)' : 'var(--cell)';
-    s += `<rect x="${x*cell}" y="${y*cell}" width="${cell}" height="${cell}" fill="${fill}" stroke="var(--bg)">`
-       + (rough ? '<title>rough ground: crossing it costs an extra tick</title>'
-        : shelterSpot ? '<title>shelter spot: hunger and thirst rise slower here</title>' : '') + '</rect>';
-    if (rough) s += `<path d="M${x*cell+7} ${y*cell+cell-7} l6 -7 l5 5 l7 -9" fill="none" stroke="var(--roughline)" stroke-width="2"/>`;
-    if (shelterSpot) s += `<path d="M${x*cell+9} ${y*cell+cell-10} l${cell/2-9} -8 l${cell/2-9} 8 z" fill="none" stroke="var(--shelterline)" stroke-width="2"/>`;
-    if (made) s += `<path d="M${x*cell+6} ${y*cell+cell-6} l${cell/2-6} -11 l${cell/2-6} 11 z" fill="var(--builtline)" fill-opacity="0.85"><title>a shelter somebody built: hunger and thirst rise slower here</title></path>`;
-  }
-  for (const p of people) { if (!present(w, p)) continue; const [hx, hy] = w.homes[p]; s += `<rect x="${hx*cell+4}" y="${hy*cell+4}" width="${cell-8}" height="${cell-8}" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>`; }
-  const radius = C.perception_radius;
-  if (typeof radius === 'number') for (const p of people) {
-    if (p in w.died_at || !present(w, p)) continue;
-    const [x, y] = w.positions[p];
-    const x0 = Math.max(0, x - radius) * cell, y0 = Math.max(0, y - radius) * cell;
-    const x1 = (Math.min(C.width - 1, x + radius) + 1) * cell, y1 = (Math.min(C.height - 1, y + radius) + 1) * cell;
-    s += `<rect x="${x0+0.5}" y="${y0+0.5}" width="${x1-x0-1}" height="${y1-y0-1}" fill="none" stroke="var(--fg)" stroke-opacity="0.18"/>`;
-  }
-  const named = FOOD.length > 1 || WELLS.length > 1;
-  const place = (src, fill, opacity, stroke, st) => { const [x, y] = src.position;
-    s += `<rect x="${x*cell+2}" y="${y*cell+2}" width="${cell-4}" height="${cell-4}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="2"><title>${esc(src.id)}</title></rect>`;
-    s += `<text x="${x*cell+cell/2}" y="${y*cell+cell/2+5}" text-anchor="middle" font-size="15" font-weight="600" fill="${stroke}">${st}</text>`;
-    if (named) s += `<text x="${x*cell+cell/2}" y="${y*cell+cell-4}" text-anchor="middle" font-size="8" fill="${stroke}">${esc(src.id)}</text>`; };
-  for (const f of FOOD) place(f, 'var(--sourcebg)', 1, 'var(--source)', stockOf(k, f.id));
-  for (const wl of WELLS) place(wl, 'var(--water)', 0.15, 'var(--water)', stockOf(k, wl.id));
-  if (trails && k > 0) for (const p of people) { if (!present(w, p)) continue; const pts = []; for (let j = Math.max(0, k - 12); j <= k; j++) { const cellAt = world(j).positions[p]; if (!cellAt) continue; const [x, y] = cellAt; pts.push(`${x*cell+cell/2},${y*cell+cell/2}`); } if (pts.length < 2) continue;
-    s += `<polyline points="${pts.join(' ')}" fill="none" stroke="${colour(band(w.hunger[p], p in w.died_at))}" stroke-width="2" stroke-opacity="0.35"/>`; }
-  const at = {}; for (const p of people) { if (!present(w, p)) continue; const key = w.positions[p].join(','); (at[key] = at[key] || []).push(p); }
-  for (const key in at) { const [x, y] = key.split(',').map(Number); const dead = at[key].filter(p => p in w.died_at), live = at[key].filter(p => !(p in w.died_at));
-    // the dead lie along the top edge of the cell, small, so a stock number or a living person stays readable
-    for (const p of dead) if (w.died_at[p] === k)
-      s += `<circle cx="${x*cell+cell/2}" cy="${y*cell+cell/2}" r="${cell/2-2}" fill="none" stroke="var(--emergency)" stroke-width="3" stroke-opacity="0.9"/>`;
-    if (dead.length > 3) {
-      // a pile of bodies, not a list of names: sources end up carpeted with them
-      s += `<text x="${x*cell+cell/2}" y="${y*cell+11}" text-anchor="middle" font-size="11" fill="var(--dead)" font-weight="600">&#215;${dead.length}<title>${esc(dead.join(', '))} died here</title></text>`;
-    } else dead.forEach((p, i) => { const cx = x*cell+8+i*11, cy = y*cell+9;
-      s += `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="11" fill="var(--dead)">&#215;</text><text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="7" fill="var(--dead)">${p.slice(1)}</text>`; });
-    const m = live.length; const tDec = k >= 1 ? ticks[k - 1] : null; live.forEach((p, i) => { const b = band(w.hunger[p], false); const off = m === 1 ? 0 : (i - (m - 1) / 2) * 12;
-      const cx = x*cell+cell/2+off, cy = y*cell+cell/2 + (m > 3 ? (i % 2) * 10 - 5 : 0);
-      const yielded = tDec && tDec.decisions && tDec.decisions[p] && tDec.decisions[p].kind === 'yield';
-      if (yielded) s += `<circle cx="${cx}" cy="${cy}" r="${m === 1 ? 15 : 12}" fill="none" stroke="var(--yield)" stroke-width="2"/>`;
-      const young = C.adult_at && (w.age || {})[p] < C.adult_at;
-      const size = (m === 1 ? 11 : 8) - (young ? 3 : 0);
-      s += `<circle cx="${cx}" cy="${cy}" r="${size}" fill="${colour(b)}" stroke="var(--panel)" stroke-width="2"><title>${esc(personTip(k, p))}</title></circle>`;
-      s += `<text x="${cx}" y="${cy + (m === 1 ? 4 : 3)}" text-anchor="middle" font-size="${m === 1 ? 10 : 8}" fill="#fff" font-weight="600">${p.slice(1)}</text>`;
-      const ya = traitOf(p); if (ya !== null) s += `<text x="${cx + (m === 1 ? 12 : 9)}" y="${cy - (m === 1 ? 8 : 6)}" font-size="8" fill="var(--muted)">${ya}</text>`; }); }
-  return s + '</svg>';
-}
-function drawChart() {
-  const W = 800, Hh = 150, pad = 28, maxH = Math.max(C.death_at, C.source_cap * FOOD.length, people.length, 1); const xs = k => pad + (W - pad - 8) * (n ? k / n : 0), ys = val => Hh - 18 - (Hh - 30) * val / maxH;
-  let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}" xmlns="http://www.w3.org/2000/svg">`;
-  for (const [lvl, name] of [[C.hungry_at, 'hungry'], [C.emergency_at, 'emergency'], [C.death_at, 'dead']]) s += `<line x1="${pad}" x2="${W-8}" y1="${ys(lvl)}" y2="${ys(lvl)}" stroke="${colour(name)}" stroke-dasharray="2 4" stroke-opacity="0.6"/><text x="${W-6}" y="${ys(lvl)+4}" font-size="9" fill="var(--muted)" text-anchor="end">${name} ${lvl}</text>`;
-  for (const p of people) { let d = '', pen = false; series.hunger[p].forEach((h, k) => { if (h === null) { pen = false; return; } d += (pen ? 'L' : 'M') + xs(k).toFixed(1) + ' ' + ys(h).toFixed(1); pen = true; }); s += `<path d="${d}" fill="none" stroke="var(--fg)" stroke-opacity="0.35" stroke-width="1"/>`; }
-  let d = ''; series.stock.forEach((st, k) => { d += (k ? 'L' : 'M') + xs(k).toFixed(1) + ' ' + ys(st).toFixed(1); }); s += `<path d="${d}" fill="none" stroke="var(--source)" stroke-width="2"/>`;
-  d = ''; series.crowd.forEach((c, k) => { d += (k ? 'L' : 'M') + xs(k).toFixed(1) + ' ' + ys(c).toFixed(1); }); s += `<path d="${d}" fill="none" stroke="var(--yield)" stroke-width="2" stroke-dasharray="4 3"/>`;
-  for (const k of totals.yieldTicks) s += `<circle cx="${xs(k)}" cy="${ys(series.crowd[k])}" r="3" fill="var(--yield)"/>`;
-  for (const [p, t] of totals.deaths) s += `<line x1="${xs(t)}" x2="${xs(t)}" y1="8" y2="${Hh-18}" stroke="var(--dead)" stroke-dasharray="3 3"/><text x="${xs(t)+2}" y="14" font-size="9" fill="var(--dead)">${p} dies</text>`;
-  s += `<line id="cursor" x1="${xs(v)}" x2="${xs(v)}" y1="4" y2="${Hh-18}" stroke="var(--fg)"/>`;
-  s += `<text x="${pad}" y="${Hh-4}" font-size="10" fill="var(--muted)">view 0</text><text x="${W-8}" y="${Hh-4}" font-size="10" fill="var(--muted)" text-anchor="end">view ${n}</text>`;
-  return s + '</svg>';
-}
-function show(k) {
-  if (C.water !== 'on') document.querySelectorAll('.water-col').forEach(e => e.remove());
-  if (C.warmth !== 'on') document.querySelectorAll('.warmth-col').forEach(e => e.remove());
-  v = Math.max(0, Math.min(n, k)); $('slider').value = v; $('tick').textContent = `view ${v} / ${n}`; $('map').innerHTML = drawMap(v);
-  markEvents(v);
-  const w = world(v), t = v >= 1 ? ticks[v - 1] : null; let alive = 0; let rows = '';
-  for (const p of people) { if (!present(w, p)) continue; const dead = p in w.died_at; if (!dead) alive++; const b = band(w.hunger[p], dead); const d = t && t.decisions[p]; const o = t && outcomeOf(t, p);
-    const ob = t && t.observations && t.observations[p];
-    let sees = '';
-    if (ob) { const names = ob.sees ? ob.sees.slice() : (ob.others || []).map(x => x.id);
-      if (ob.seen_stock) { for (const [id, st] of Object.entries(ob.seen_stock)) names.push(id + '=' + st); }
-      else if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S');
-      sees = names.join(', '); }
-    const ya = traitOf(p);
-    const kindCell = d ? (d.kind === 'yield' ? `<span style="color:var(--yield)">&#9675; yield</span>` : esc(d.kind) + (d.amount ? ' ' + d.amount : '') + (d.target ? ' \u2192 ' + esc(d.target) : '')) + ' <span class="meta">' + esc(d.reason) + '</span>' : '';
-    rows += `<tr><td>${p}</td><td class="num">${ya === null ? '' : ya}</td><td class="mono">${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td>${C.water === 'on' ? '<td class="num">' + w.thirst[p] + '</td>' : ''}${C.warmth === 'on' ? '<td class="num">' + w.cold[p] + (w.positions[p].join(',') === w.homes[p].join(',') ? ' ⌂' : '') + '</td>' : ''}<td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>${C.water === 'on' ? '<td class="num">' + waterHeld(v, p) + '</td>' : ''}`
-          + `<td class="mono">${esc(sees)}</td>`
-          + `<td>${kindCell}</td>`
-          + `<td>${o ? `<span class="${o.accepted ? 'ok' : 'no'}">${esc(o.reason)}</span>` : ''}</td></tr>`; }
-  $('people').innerHTML = rows;
-  $('selection').textContent = RUN.details[v].selection;
-  $('settlement').textContent = RUN.details[v].settlement;
-  const prod = t && t.production ? t.production.map(e => `+${e.amount} ${e.source}`).join(', ') : '';
-  $('summary').innerHTML = `<span>alive <b>${alive}</b>/${people.length}</span>${FOOD.length === 1 ? `<span>source stock <b>${stock(v)}</b>/${C.source_cap}</span>` : FOOD.map(f => `<span>${esc(f.id)} <b>${stockOf(v, f.id)}</b>/${C.source_cap}</span>`).join('')}${WELLS.map(wl => `<span>${esc(wl.id)} <b>${stockOf(v, wl.id)}</b>/${C.water_cap}</span>`).join('')}<span>consumed <b>${v ? t.state.consumed : H.genesis.consumed}</b></span>${WELLS.length ? `<span>drunk <b>${v ? t.state.consumed_by.water : H.genesis.consumed_by.water}</b></span>` : ''}<span>renewal this tick <b>${prod || 'none'}</b></span>`;
-  const cur = document.getElementById('cursor'); if (cur) { const x = 28 + (800 - 36) * (n ? v / n : 0); cur.setAttribute('x1', x); cur.setAttribute('x2', x); }
-  $('timing').textContent = t && RUN.timings[String(t.tick)] !== undefined ? `tick ${t.tick} cost ${(RUN.timings[String(t.tick)] / 1e6).toFixed(3)} ms` : '';
-}
-function play() { if (timer) { clearInterval(timer); timer = null; $('play').textContent = 'play'; return; } $('play').textContent = 'pause'; timer = setInterval(() => { if (v >= n) { play(); return; } show(v + 1); }, 120); }
-$('slider').max = n; $('slider').addEventListener('input', e => show(Number(e.target.value)));
-$('play').addEventListener('click', play); $('prev').addEventListener('click', () => show(v - 1)); $('next').addEventListener('click', () => show(v + 1));
-$('trails').addEventListener('change', e => { trails = e.target.checked; show(v); });
-for (const name of ['scored', 'crossover', 'contested']) {
-  const views = RUN.checkpoints[name];
-  $(name).disabled = !views.length;
-  $(name).title = views.length ? 'views ' + views.join(', ') : 'absent from this saved run';
-  $(name).addEventListener('click', () => show(views.find(k => k > v) || views[0]));
-}
-document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') show(v - 1); else if (e.key === 'ArrowRight') show(v + 1); else if (e.key === ' ') { e.preventDefault(); play(); } else if (e.key === 'Home') show(0); else if (e.key === 'End') show(n); });
-renderEvents();
-$('chart').innerHTML = drawChart();
-$('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten <b>${totals.eats}</b></span><span>yield events <b>${totals.yields}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b>${traitKeys.length ? ' (by yield_at ' + fmtBy(totals.emergencyBy) + ')' : ''}</span><span>person-ticks with another in view <b>${totals.sawOther}</b></span><span>person-ticks with source in view <b>${totals.sawSource}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.map(d => d[0] + ' t' + d[1]).join(', ') + ')' : ''}${traitKeys.length ? '; by yield_at ' + fmtBy(totals.deathsBy) : ''}</span>`;
-show(0);
-"""
+HERE = Path(__file__).resolve().parent
+CSS_FILE = HERE / "viewer.css"
+JS_FILE = HERE / "viewer.js"
 
 
 def _checkpoints(run: Run) -> dict[str, list[int]]:
@@ -411,55 +141,226 @@ def _run_payload(run: Run) -> dict[str, Any]:
     }
 
 
+def _embed(value: Any) -> str:
+    """JSON for a <script type="application/json"> block: nothing in it can close the tag."""
+    return json.dumps(value, separators=(",", ":")).replace("<", "\\u003c")
+
+
+def _asset(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    if "</script" in text.lower() or "</style" in text.lower():
+        raise ValueError(f"{path.name} must not close its own tag")
+    return text
+
+
+ICONS = {
+    "start": '<path d="M5 4v12M16 4l-8 6 8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    "prev": '<path d="M13 4l-7 6 7 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    "next": '<path d="M7 4l7 6-7 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    "end": '<path d="M15 4v12M4 4l8 6-8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    "play": '<path d="M6 4l10 6-10 6z" fill="currentColor"/>',
+    "plus": '<path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    "minus": '<path d="M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    "fit": '<path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    "reset": '<path d="M4 10a6 6 0 1 0 2-4.5M4 3v3.5h3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    "drift": '<path d="M2 12c3-4 5-4 8 0s5 4 8 0M2 7c3-4 5-4 8 0s5 4 8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+    "layers": '<path d="M10 3l7 4-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    "follow": '<circle cx="10" cy="10" r="3" fill="currentColor"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.4"/>',
+}
+
+
+def _svg(name: str) -> str:
+    return f'<svg viewBox="0 0 20 20" aria-hidden="true">{ICONS[name]}</svg>'
+
+
+# Legend swatches, drawn the way the map draws them.
+LEGEND = (
+    ('<circle cx="10" cy="5" r="2.6" fill="#f2e5d0"/><rect x="7" y="7.5" width="6" height="6.5" rx="2.4" fill="#7fb3d9"/>'
+     '<path d="M8.5 14v2.5M11.5 14v2.5" stroke="#2c4a5e" stroke-width="1.4"/>', "a person, in their own colour"),
+    ('<circle cx="5" cy="8" r="2.4" fill="#f2a65e"/><path d="M10 5.5c1.6 2 1.6 3.6 0 4.6-1.6-1-1.6-2.6 0-4.6z" fill="#72c8ea"/>'
+     '<path d="M14 6l3 4M17 6l-3 4M13.4 8h4.2" stroke="#b9dcff" stroke-width="1.1"/>',
+     "hungry, thirsty, cold; red when it is an emergency"),
+    ('<circle cx="7" cy="9" r="4.5" fill="#3f7440"/><circle cx="13" cy="9" r="4.5" fill="#56904f"/>'
+     '<circle cx="7" cy="8" r="1.3" fill="#e2553e"/><circle cx="12" cy="10" r="1.3" fill="#f0a04a"/>',
+     "food source: its berries are its stock"),
+    ('<ellipse cx="10" cy="11" rx="8" ry="4" fill="#9d988c"/><ellipse cx="10" cy="10.5" rx="5.5" ry="2.4" fill="#3f9fc7"/>',
+     "well: water (stock) shows as the water level"),
+    ('<path d="M4 9l6-5 6 5v6H4z" fill="#a07a52"/><path d="M3 9.5l7-6.5 7 6.5" fill="#d6aa62"/>'
+     '<rect x="12" y="10" width="2.5" height="2.5" fill="#ffd27a"/>',
+     "a shelter somebody built; a lit window means somebody is home"),
+    ('<path d="M3 10l7-4 7 4-7 4z" fill="none" stroke="#9fd0c0" stroke-dasharray="2 1.6"/>', "a home with no shelter yet"),
+    ('<path d="M3 10l7-4 7 4-7 4z" fill="#6d7682"/><path d="M6 10l2-1.5 2 1 3-1.5" stroke="#2a2e34" fill="none"/>',
+     "rough ground: an extra tick to cross"),
+    ('<path d="M3 10l7-4 7 4-7 4z" fill="#a8a08a"/><circle cx="10" cy="10" r="4" fill="#ffc46e" fill-opacity=".35"/>',
+     "shelter spot: hunger and thirst rise slower"),
+    ('<path d="M2 12q8-9 16 0" fill="none" stroke="#ffd68c" stroke-dasharray="3 2"/>', "asked for food, waiting on the answer"),
+    ('<path d="M2 12q8-9 16 0" fill="none" stroke="#f1c56e" stroke-width="1.6" stroke-dasharray="1 3" stroke-linecap="round"/>',
+     "agreed to bring food, on the way"),
+    ('<path d="M7 15v-6q3-4 6 0v6z" fill="#8f8a82"/>', "somebody died here"),
+    ('<path d="M3 10l7-4 7 4-7 4z" fill="#ffe3a3" fill-opacity=".08" stroke="#ffe3a3" stroke-dasharray="3 2"/>',
+     "Chebyshev perception: the square a person can see"),
+)
+
+
+def _layer(key: str, label: str, note: str = "", checked: bool = True) -> str:
+    return (f'<label class="layer"><input type="checkbox" data-layer="{key}"{" checked" if checked else ""}>'
+            f'<span>{html.escape(label)}</span><small>{html.escape(note)}</small></label>')
+
+
 def render_html(run: Run) -> str:
     if not run.has_world:
         raise ValueError("this run has no world overlay; use stream.viewer for a kernel-only run")
     scenario = run.header.get("scenario", {})
-    data = json.dumps(_run_payload(run), separators=(",", ":")).replace("<", "\\u003c")
+    data = _embed(_run_payload(run))
+    index = _embed(build_index(run))
     problems = "".join(f'<li class="problem">{html.escape(p)}</li>' for p in run.problems)
-    title = f"{run.run_id or run.path.name} — map over time"
-    levers = ", ".join(f"{k} {v}" for k, v in scenario.items() if isinstance(v, int) and k != "seed")
+    name = run.run_id or run.path.name
     status = "verifies" if run.complete else "DOES NOT VERIFY"
+    water = scenario.get("water") == "on"
+    warmth = scenario.get("warmth") == "on"
+    terrain = scenario.get("terrain") == "on"
+    building = scenario.get("building") == "on"
+    levers = ", ".join(f"{k} {v}" for k, v in scenario.items() if isinstance(v, int) and k != "seed")
+    switches = [key for key in ("water", "warmth", "terrain", "building", "offers", "requests", "births", "trips")
+                if scenario.get(key) == "on"]
+    rules = "".join(f"<dt>{html.escape(k)}</dt><dd>{html.escape(v)}</dd>" for k, v in scenario.items()
+                    if isinstance(v, str) and len(v) > 24)
+    layers = "".join([
+        "<h3>On the map</h3>",
+        _layer("people", "People"), _layer("names", "Names"), _layer("needs", "Need badges"),
+        _layer("trails", "Trails", "last 12 ticks"),
+        _layer("links", "Requests and handovers"), _layer("deaths", "Where people died"),
+        _layer("moments", "Moments", "births, renewals, gathering"),
+        '<label class="layer"><span></span><span>Perception radius</span><select data-layer="perception" '
+        'aria-label="Perception radius"><option value="off">off</option><option value="selected" selected>'
+        'selected person</option><option value="everyone">everyone</option></select></label>',
+        "<h3>Places</h3>",
+        _layer("food", "Food sources"),
+        _layer("water", "Wells") if water else "",
+        _layer("stock", "Stock labels"), _layer("homes", "Homes"),
+        _layer("shelters", "Shelters") if building else "",
+        _layer("rough", "Rough ground") if terrain else "",
+        _layer("spots", "Shelter spots") if terrain else "",
+        '<h3>Legend</h3><div class="legend">',
+        "".join(f'<div><svg viewBox="0 0 20 20" aria-hidden="true">{art}</svg><span>{html.escape(text)}</span></div>'
+                for art, text in LEGEND
+                if (water or "well" not in text) and (terrain or ("rough" not in text and "shelter spot" not in text))
+                and (building or "built" not in text)),
+        "</div>",
+    ])
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title><style>{CSS}</style></head>
+<meta name="color-scheme" content="dark">
+<title>{html.escape(name)} — Simulation 3</title><style>{_asset(CSS_FILE)}</style></head>
 <body>
-<h1>{html.escape(run.run_id or run.path.name)}</h1>
-<div class="meta">{html.escape(scenario.get('name', ''))} · seed {html.escape(str(scenario.get('seed', '')))} · {len(run.ticks)} ticks · engine {html.escape(str(run.header.get('engine_version', '')))} · {html.escape(str(run.header.get('format', '')))} · file {status}</div>
-<div class="meta">{html.escape(levers)}</div>
-<details><summary>Scoring: {html.escape(str(scenario.get('scoring', 'off (legacy file)')))} — recorded model declarations</summary>
-<pre class="native mono">{html.escape(json.dumps({k: v for k, v in scenario.items() if k.startswith('scoring') or k == 'food_allocation'}, indent=2))}</pre></details>
-<details class="rules"><summary class="meta">How these people decide &mdash; the rules they all follow</summary>
-<div class="meta">movement: {html.escape(str(scenario.get('movement', '')))}<br>decision: {html.escape(str(scenario.get('decision', '')))}<br>perception: {html.escape(str(scenario.get('distance_metric', '')))} radius {html.escape(str(scenario.get('perception_radius', '')))} ({html.escape(str(scenario.get('perception_boundary', '')))}) {html.escape(str(scenario.get('perception', '')))}<br>yield: {html.escape(str(scenario.get('yield', '')))} set {html.escape(str(scenario.get('yield_set', '')))} · {html.escape(str(scenario.get('dead_are_not_seen', '')))}</div></details>
-{f'<ul>{problems}</ul>' if problems else ''}
-<div class="controls">
-  <button id="prev">&#8592;</button><button id="play">play</button><button id="next">&#8594;</button>
-  <input id="slider" type="range" min="0" max="0" value="0"><span id="tick" class="tick"></span>
-  <label class="toggle"><input id="trails" type="checkbox" checked> trails (last 12 views)</label>
-  <span id="timing" class="meta"></span>
-  <button id="scored">Next GO/YIELD scored choice</button>
-  <button id="crossover">Next GO over eligible YIELD</button>
-  <button id="contested">Next contested food claim</button>
+<div class="app">
+<header class="top">
+  <div class="brand"><svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2l9 5-9 5-9-5z" fill="#77955a"/><path d="M2 7v5l9 5v-5z" fill="#5a4431"/><path d="M20 7v5l-9 5v-5z" fill="#46362a"/><circle cx="11" cy="7" r="1.8" fill="#f1c56e"/></svg>
+    <span class="kicker">Simulation 3</span><h1 title="{html.escape(name)}">{html.escape(name)}</h1></div>
+  <div class="chips">
+    <span class="chip">seed <b>{html.escape(str(scenario.get('seed', '')))}</b></span>
+    <span class="chip"><b>{html.escape(str(scenario.get('width', '')))} × {html.escape(str(scenario.get('height', '')))}</b> grid</span>
+    <span class="chip"><b>{len(run.ticks)}</b> ticks</span>
+    {''.join(f'<span class="chip switch">{html.escape(s)}</span>' for s in switches)}
+    <span class="chip{'' if run.complete else ' bad'}" title="{html.escape(str(run.header.get('format', '')))} · engine {html.escape(str(run.header.get('engine_version', '')))}">file {status}</span>
+  </div>
+</header>
+
+<section id="map" aria-label="The world">
+  <canvas id="world" role="img" aria-label="Isometric map of the world"></canvas>
+  <div class="hud hud-tl">
+    <div class="clock" aria-hidden="true"><div class="big num" id="hud-tick"></div><div class="line" id="hud-line"></div></div>
+  </div>
+  <div class="hud hud-tr">
+    <div class="toolbar" role="toolbar" aria-label="Camera">
+      <button class="tool" id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in">{_svg('plus')}</button>
+      <button class="tool" id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out">{_svg('minus')}</button>
+      <button class="tool" id="fit" type="button" aria-label="Fit the world" title="Fit the world">{_svg('fit')}</button>
+      <button class="tool" id="reset" type="button" aria-label="Reset the view" title="Reset the view">{_svg('reset')}</button>
+      <button class="tool" id="drift" type="button" aria-pressed="false" aria-label="Drift gently while playing" title="Drift gently while playing">{_svg('drift')}</button>
+      <button class="tool wide" id="layers-btn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="layers" aria-label="Layers and legend">{_svg('layers')}<span class="word">Layers</span></button>
+    </div>
+    <div class="layers" id="layers" role="group" aria-label="Layers and legend">{layers}</div>
+  </div>
+  <div class="hud hud-bl">
+    <div class="focus-card" id="focus" role="status">
+      <span class="swatch" id="focus-sw"></span>
+      <div class="grow"><div class="who" id="focus-who"></div><div class="what" id="focus-what"></div></div>
+      <button class="tool" id="follow" type="button" aria-pressed="false" aria-label="Follow with the camera" title="Follow with the camera">{_svg('follow')}</button>
+      <button class="linkbtn" id="focus-more" type="button">Inspect</button>
+      <button class="x" id="focus-close" type="button" aria-label="Clear the selection">×</button>
+    </div>
+  </div>
+  <div class="tip" id="tip" role="tooltip"></div>
+</section>
+
+<section class="timeline" aria-label="Timeline">
+  <div class="transport">
+    <button class="tool" id="start" type="button" aria-label="Jump to the start" title="Start (Home)">{_svg('start')}</button>
+    <button class="tool" id="prev" type="button" aria-label="Previous tick" title="Previous tick (←)">{_svg('prev')}</button>
+    <button class="tool play" id="play" type="button" aria-pressed="false" aria-label="Play" title="Play or pause (Space)">{_svg('play')}</button>
+    <button class="tool" id="next" type="button" aria-label="Next tick" title="Next tick (→)">{_svg('next')}</button>
+    <button class="tool" id="end" type="button" aria-label="Jump to the end" title="End (End)">{_svg('end')}</button>
+  </div>
+  <span id="tick" class="tick" aria-live="off"></span>
+  <div class="scrub"><canvas id="strip" aria-hidden="true"></canvas>
+    <input id="slider" type="range" min="0" max="0" value="0" step="1" aria-label="Tick"></div>
+  <label class="speed">Speed <select id="speed" aria-label="Playback speed">
+    <option value="1">1 tick/s</option><option value="2">2 ticks/s</option><option value="4">4 ticks/s</option>
+    <option value="8">8 ticks/s</option><option value="16">16 ticks/s</option><option value="32">32 ticks/s</option></select></label>
+  <span class="keys">Space play · ← → step · Home / End</span>
+</section>
+
+<aside class="side">
+  <section class="card summary" aria-label="Run summary">
+    <h2>This run</h2>
+    <div class="sgrid" id="stats"></div>
+    <div class="sources" id="sources"></div>
+    <div class="helpline" id="helpline"></div>
+  </section>
+  <section class="card tabs-card">
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tab-events" role="tab" type="button" aria-selected="true" aria-controls="panel-events">Happenings<span class="count" id="ev-count"></span></button>
+      <button class="tab" id="tab-inspector" role="tab" type="button" aria-selected="false" aria-controls="panel-inspector">Inspector</button>
+    </div>
+    <div class="tabpanel on" id="panel-events" role="tabpanel" aria-labelledby="tab-events">
+      <div class="cats" id="cats" aria-label="Show or hide kinds of event"></div>
+      <div id="events" aria-label="What happened, in order; click a line to go there"></div>
+    </div>
+    <div class="tabpanel" id="panel-inspector" role="tabpanel" aria-labelledby="tab-inspector"><div id="inspector"></div></div>
+  </section>
+</aside>
 </div>
-<div class="stats" id="summary"></div>
-<div class="grid">
-  <div class="panel"><h2>Map</h2><div id="map"></div>
-    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span>{'<span style="color:var(--roughline)">rough ground (an extra tick to cross)</span><span style="color:var(--shelterline)">shelter spot (needs rise slower)</span>' if scenario.get('terrain') == 'on' else ''}{'<span style="color:var(--builtline)">&#9650; a shelter somebody built</span>' if scenario.get('building') == 'on' else ''}<span>small number: yield_at</span>{'<span>a smaller dot is a child</span>' if scenario.get('childhood') == 'on' else ''}{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
-  <div class="panel"><h2>What happened</h2><div id="events"></div>
-    <p class="meta">Every death, every time someone stood back from a crowded source, every time a need turned
-    critical, and every time a source ran out. Click a line to jump to that tick.</p></div>
-  <div class="panel"><h2>People after this tick</h2>
-    <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th class="num water-col">thirst</th><th class="num warmth-col">cold</th><th>state</th><th class="num">food</th><th class="num water-col">water</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
-    <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Hunger is the world's value after the tick. Sees lists other people (and S for the source) inside the perception radius at tick start.{' Cold is the warmth need: it rises away from home and falls at home, the shelter each person has.' if scenario.get('warmth') == 'on' else ''} yield_at is the person's own crowd-yield trait.</p></div>
-</div>
-<div class="panel" style="margin-top:12px"><h2>Personal selection — tick-start inputs and recorded scores</h2><pre id="selection" class="native mono"></pre></div>
-<div class="panel" style="margin-top:12px"><h2>Resource settlement — recorded kernel order and effects</h2><pre id="settlement" class="native mono"></pre></div>
-<div class="panel" style="margin-top:12px"><h2>Over time: hunger per person (grey), food stock in all food sources (blue), crowd on source (purple dashed), yield events (dots), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
-<p class="meta">Emergency person-ticks count living people at tick start. Everything here is read straight from the saved run: the page never recalculates what the world decided.</p>
+<p class="sr" id="live" aria-live="polite"></p>
+
+<details class="deep" id="deep">
+  <summary>Under the hood — the saved record for this tick, and whole-run counts</summary>
+  <div class="deep-body">
+    <div class="meta">{html.escape(scenario.get('name', ''))} · seed {html.escape(str(scenario.get('seed', '')))} · {len(run.ticks)} ticks · engine {html.escape(str(run.header.get('engine_version', '')))} · {html.escape(str(run.header.get('format', '')))} · file {status} · <span id="timing"></span></div>
+    <div class="meta">{html.escape(levers)}</div>
+    {f'<ul>{problems}</ul>' if problems else ''}
+    <div class="checks">
+      <button id="scored" type="button">Next GO/YIELD scored choice</button>
+      <button id="crossover" type="button">Next GO over eligible YIELD</button>
+      <button id="contested" type="button">Next contested food claim</button>
+    </div>
+    <div class="box"><h2>People after this tick</h2>
+      <table><thead><tr><th>person</th><th class="num">yield_at</th><th>at</th><th class="num">hunger</th><th class="num water-col">thirst</th><th class="num warmth-col">cold</th><th>state</th><th class="num">food</th><th class="num water-col">water</th><th>sees (tick before)</th><th>decided (tick before)</th><th>kernel outcome</th></tr></thead><tbody id="people"></tbody></table>
+      <p class="meta">Decision, observation and outcome are those of the tick that produced this view. Food is the kernel's free balance. Sees lists other people (and S for the source) inside the perception radius at tick start.{' Cold rises away from home and falls at home; ⌂ marks somebody sheltered at home.' if warmth else ''} yield_at is the person's own crowd-yield trait.</p></div>
+    <div class="box"><h2>Over time: hunger per person (grey), food stock in all food sources (blue), crowd on source (purple dashed), yield events (dots), deaths</h2><div id="chart"></div><div class="stats" id="totals" style="margin-top:8px"></div></div>
+    <div class="box"><h2>Personal selection — tick-start inputs and recorded scores</h2><pre id="selection"></pre></div>
+    <div class="box"><h2>Resource settlement — recorded kernel order and effects</h2><pre id="settlement"></pre></div>
+    <div class="box"><h2>The rules these people follow, as the run declares them</h2><dl class="rules">{rules}</dl>
+      <p class="meta">Scoring: {html.escape(str(scenario.get('scoring', 'off (legacy file)')))}. Everything on this page is read straight from the saved run: the page never recalculates what the world decided.</p></div>
+  </div>
+</details>
 <script id="run-data" type="application/json">{data}</script>
-<script>{JS}</script>
+<script id="view-index" type="application/json">{index}</script>
+<script>{_asset(JS_FILE)}</script>
 </body></html>
 """
+
+
 
 
 def render_text(run: Run, view: int) -> str:

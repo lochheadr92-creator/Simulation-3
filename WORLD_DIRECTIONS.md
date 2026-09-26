@@ -128,10 +128,16 @@ off. What might yet make asking worth it is a cheaper kind of help: handing a
 unit to somebody already beside you, with no journey at all.
 
 **A map viewer.** `world/viewer.py` renders a saved run as a self-contained
-HTML page: the grid with terrain, sources and their stock, built shelters,
-people coloured by hunger band, trails, perception boxes, a table of
-everybody's needs, and a list of what happened that you can click to jump to
-a tick. It reads the saved file and never runs the world.
+HTML page: an isometric diorama of the world you can play, step and scrub
+through. Terrain, bushes whose berries are their stock, wells whose water
+level is theirs, homes and the shelters going up on them, and people who
+show what they are doing, what they carry and which needs are pressing.
+Asking, answering, errands and handovers are drawn between the people
+involved. A list of what happened jumps to any moment, and an inspector
+follows one person through time. `world/viewer_index.py` reads the saved
+file once into those events, and `viewer.js` and `viewer.css` draw them. It
+never runs the world, and the older table-and-chart record is still there
+under "Under the hood".
 
 ### Where these systems stop
 
