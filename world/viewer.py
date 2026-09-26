@@ -94,6 +94,11 @@ function personTip(k, p) {
   if (C.water === 'on') bits.push('thirst ' + w.thirst[p] + ' / ' + C.thirst_death_at + '   water held ' + waterHeld(k, p));
   if (C.warmth === 'on') bits.push('cold ' + w.cold[p] + ' / ' + C.cold_death_at
     + (w.positions[p].join(',') === w.homes[p].join(',') ? '   sheltered' : '   out in the cold'));
+  const years = (w.age || {})[p];
+  if (C.adult_at && years !== undefined)
+    bits.push(years < C.adult_at ? 'a child, ' + years + ' of ' + C.adult_at + ' ticks old'
+              : 'grown (' + years + ' ticks old)');
+  const mum = (w.parent || {})[p]; if (mum) bits.push('born beside ' + mum);
   const ya = traitOf(p); if (ya !== null) bits.push('yields to a crowd of ' + ya);
   const here = w.positions[p].join(',');
   if (ROUGH.has(here)) bits.push('on rough ground' + ((w.held || {})[p] ? ' - held up this tick' : ''));
@@ -149,7 +154,9 @@ for (let k = 1; k <= n; k++) {
     if (d && d.kind === 'offer') {
       const took = (t.record.outcomes || []).some(o => o.actor === p && o.operation === 'transfer' && o.accepted);
       EVENTS.push({ k, who: p, band: took ? 'fed' : 'emergency',
-        what: took ? p + ' gave a unit of food to ' + d.target : p + ' offered food to ' + d.target + ', refused' });
+        what: !took ? p + ' offered food to ' + d.target + ', refused'
+          : ((w.parent || {})[d.target] === p ? p + ' fed their child ' + d.target
+             : p + ' gave a unit of food to ' + d.target) });
     }
     const earlier = k >= 2 ? ticks[k - 2].decisions[p] : null;
     if (d && d.kind === 'go_offer' && !(earlier && earlier.kind === 'go_offer'))
@@ -168,6 +175,8 @@ for (let k = 1; k <= n; k++) {
       EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is parched (thirst ' + w.thirst[p] + ')' });
     if (C.warmth === 'on' && w.cold[p] >= C.cold_emergency_at && before.cold[p] < C.cold_emergency_at)
       EVENTS.push({ k, who: p, band: 'emergency', what: p + ' is freezing (cold ' + w.cold[p] + ')' });
+    if (C.adult_at && (w.age || {})[p] === C.adult_at && (before.age || {})[p] < C.adult_at)
+      EVENTS.push({ k, who: p, band: 'fed', what: p + ' grew up' });
   }
   for (const e of (t.production || [])) if (e.born) {
     bornAt[e.born] = k;
@@ -235,7 +244,9 @@ function drawMap(k) {
       const cx = x*cell+cell/2+off, cy = y*cell+cell/2 + (m > 3 ? (i % 2) * 10 - 5 : 0);
       const yielded = tDec && tDec.decisions && tDec.decisions[p] && tDec.decisions[p].kind === 'yield';
       if (yielded) s += `<circle cx="${cx}" cy="${cy}" r="${m === 1 ? 15 : 12}" fill="none" stroke="var(--yield)" stroke-width="2"/>`;
-      s += `<circle cx="${cx}" cy="${cy}" r="${m === 1 ? 11 : 8}" fill="${colour(b)}" stroke="var(--panel)" stroke-width="2"><title>${esc(personTip(k, p))}</title></circle>`;
+      const young = C.adult_at && (w.age || {})[p] < C.adult_at;
+      const size = (m === 1 ? 11 : 8) - (young ? 3 : 0);
+      s += `<circle cx="${cx}" cy="${cy}" r="${size}" fill="${colour(b)}" stroke="var(--panel)" stroke-width="2"><title>${esc(personTip(k, p))}</title></circle>`;
       s += `<text x="${cx}" y="${cy + (m === 1 ? 4 : 3)}" text-anchor="middle" font-size="${m === 1 ? 10 : 8}" fill="#fff" font-weight="600">${p.slice(1)}</text>`;
       const ya = traitOf(p); if (ya !== null) s += `<text x="${cx + (m === 1 ? 12 : 9)}" y="${cy - (m === 1 ? 8 : 6)}" font-size="8" fill="var(--muted)">${ya}</text>`; }); }
   return s + '</svg>';
@@ -433,7 +444,7 @@ def render_html(run: Run) -> str:
 <div class="stats" id="summary"></div>
 <div class="grid">
   <div class="panel"><h2>Map</h2><div id="map"></div>
-    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span>{'<span style="color:var(--roughline)">rough ground (an extra tick to cross)</span><span style="color:var(--shelterline)">shelter spot (needs rise slower)</span>' if scenario.get('terrain') == 'on' else ''}{'<span style="color:var(--builtline)">&#9650; a shelter somebody built</span>' if scenario.get('building') == 'on' else ''}<span>small number: yield_at</span>{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
+    <div class="legend"><span><b class="b-fed">&#9679;</b> fed</span><span><b class="b-hungry">&#9679;</b> hungry</span><span><b class="b-emergency">&#9679;</b> emergency</span><span><b class="b-dead">&#215;</b> dead</span><span style="color:var(--source)">&#9632; source (stock)</span>{'<span style="color:var(--water)">&#9632; water (stock)</span>' if scenario.get('water') == 'on' else ''}<span style="color:var(--yield)">&#9675; yield</span><span>dashed square: home</span><span>faint square: Chebyshev perception</span>{'<span style="color:var(--roughline)">rough ground (an extra tick to cross)</span><span style="color:var(--shelterline)">shelter spot (needs rise slower)</span>' if scenario.get('terrain') == 'on' else ''}{'<span style="color:var(--builtline)">&#9650; a shelter somebody built</span>' if scenario.get('building') == 'on' else ''}<span>small number: yield_at</span>{'<span>a smaller dot is a child</span>' if scenario.get('childhood') == 'on' else ''}{'<span>&#8962; in the cold column: sheltered at home this tick</span>' if scenario.get('warmth') == 'on' else ''}</div></div>
   <div class="panel"><h2>What happened</h2><div id="events"></div>
     <p class="meta">Every death, every time someone stood back from a crowded source, every time a need turned
     critical, and every time a source ran out. Click a line to jump to that tick.</p></div>

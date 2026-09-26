@@ -79,6 +79,8 @@ def settled_pairs(overlay: Overlay, config: WorldConfig) -> list[tuple[str, str]
     homes_built = set(overlay.shelters)
 
     def well(actor: str) -> bool:
+        if config.childhood_on and overlay.age.get(actor, config.adult_at) < config.adult_at:
+            return False                                   # a child is nobody's partner
         return (overlay.alive(actor) and overlay.homes[actor] in homes_built
                 and overlay.hunger[actor] < config.hungry_at
                 and (not config.water_on or overlay.thirst[actor] < config.thirsty_at)
@@ -132,6 +134,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         if outcome.accepted and outcome.operation == OP_TRANSFER:
             promises.pop(outcome.actor, None)          # delivered, so the errand is over
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
+    age = {actor: overlay.age.get(actor, 0) for actor in overlay.roster} if config.childhood_on else {}
     died_at = dict(overlay.died_at)
     died: list[str] = []
     for actor in overlay.roster:
@@ -159,6 +162,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         if config.water_on:
             thirst[actor] = max(0, thirst[actor] + eased(config.thirst_rate, relief)
                                 - config.quench * drunk.get(actor, 0))
+        if config.childhood_on:
+            age[actor] += 1
         if config.warmth_on:
             # Shelter is the person's own home cell, and this is where the tick left them.
             sheltered = positions[actor] == overlay.homes[actor]
@@ -171,6 +176,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)), together=dict(overlay.together),
+                           age=age, parent=dict(overlay.parent),
                            requests=requests,
                            promises={who: owed for who, owed in promises.items() if owed not in died_at})
 
@@ -208,6 +214,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     hunger, yield_at = dict(overlay.hunger), dict(overlay.yield_at)
     thirst, cold = dict(overlay.thirst), dict(overlay.cold)
     held, built = dict(overlay.held), dict(overlay.built)
+    age, parent = dict(overlay.age), dict(overlay.parent)
     born: list[str] = []
     roster_size = len(overlay.roster)
     for pair in sorted(counts):
@@ -223,6 +230,8 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
         taken.add(where)
         homes[name] = positions[name] = where
         hunger[name] = held[name] = built[name] = 0
+        if config.childhood_on:
+            age[name], parent[name] = 0, first
         yield_at[name] = (config.yield_set[len(overlay.roster) % len(config.yield_set)]
                           if config.yield_on else config.actors + 1)
         if config.water_on:
@@ -239,6 +248,6 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     grown = replace(ledger, balances=balances, sources=sources, holdings=holdings)
     return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
-                    shelters=overlay.shelters, together=counts,
+                    shelters=overlay.shelters, together=counts, age=age, parent=parent,
                     requests=dict(overlay.requests), promises=dict(overlay.promises)),
             grown, born)

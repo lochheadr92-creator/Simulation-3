@@ -75,6 +75,8 @@ class Overlay:
     together: Mapping[str, int] = field(default_factory=dict) # "a|b" -> consecutive ticks side by side and well
     requests: Mapping[str, str] = field(default_factory=dict) # asker -> the person they asked, awaiting an answer
     promises: Mapping[str, str] = field(default_factory=dict) # helper -> the person they agreed to bring food to
+    age: Mapping[str, int] = field(default_factory=dict)      # ticks lived; everyone at genesis starts grown
+    parent: Mapping[str, str] = field(default_factory=dict)   # child -> the person whose home they were born beside
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -106,6 +108,8 @@ class Overlay:
         object.__setattr__(self, "together", MappingProxyType(together))
         object.__setattr__(self, "requests", _links(self.requests, positions=positions, name="requests"))
         object.__setattr__(self, "promises", _links(self.promises, positions=positions, name="promises"))
+        object.__setattr__(self, "age", _levels(self.age, positions=positions, name="age"))
+        object.__setattr__(self, "parent", _links(self.parent, positions=positions, name="parent"))
         shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
         for cell in shelters:
             if (len(cell) != 2 or type(cell[0]) is not int or type(cell[1]) is not int
@@ -147,6 +151,8 @@ class Overlay:
             **({"together": dict(self.together)} if self.together else {}),
             **({"requests": dict(self.requests)} if self.requests else {}),
             **({"promises": dict(self.promises)} if self.promises else {}),
+            **({"age": dict(self.age)} if self.age else {}),
+            **({"parent": dict(self.parent)} if self.parent else {}),
         }
 
     @classmethod
@@ -155,7 +161,7 @@ class Overlay:
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
-            for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises"):
+            for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises", "age", "parent"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -180,7 +186,8 @@ class Overlay:
                    held=dict(data.get("held", {})), built=dict(data.get("built", {})),
                    shelters=tuple(tuple(cell) for cell in data.get("shelters", ())),
                    together=dict(data.get("together", {})),
-                   requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})))
+                   requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})),
+                   age=dict(data.get("age", {})), parent=dict(data.get("parent", {})))
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

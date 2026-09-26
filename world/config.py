@@ -52,12 +52,14 @@ DEFAULT_YIELD_SET = (1, 2, 3)
 SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
                       "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
                       "food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
-                      "terrain_on": False, "building_on": False, "offers_on": False, "births_on": False}
+                      "terrain_on": False, "building_on": False, "offers_on": False, "births_on": False,
+                      "childhood_on": False}
 
 # The world before the second food source and default water (2026-09-25): one
 # food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
 ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
-                        "terrain_on": False, "building_on": False, "offers_on": False, "births_on": False}
+                        "terrain_on": False, "building_on": False, "offers_on": False, "births_on": False,
+                        "childhood_on": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -112,6 +114,9 @@ class WorldConfig:
     requests_on: bool = False     # asking for food: built and watchable, but see WORLD_DIRECTIONS.md (2026-09-28)
     births_on: bool = True        # the roster grows when life is good (2026-09-27)
     together_ticks: int = 3       # consecutive ticks two settled neighbours must spend side by side
+    childhood_on: bool = True     # the newly born are children for a while (2026-09-28)
+    adult_at: int = 60            # ticks lived before a child is grown
+    child_leash: int = 5          # how far from home a child will go for food or water
     cold_rate: int = 1            # cold added per tick spent away from shelter
     warming: int = 3              # cold removed per tick spent at shelter
     cold_at: int = 25             # cold at which a person seeks shelter
@@ -315,6 +320,14 @@ class WorldConfig:
                                 "of their own is calling and they hold a unit they agree, and the errand becomes "
                                 "theirs until it is delivered or they lose sight of the asker; anybody else "
                                 "does not answer at all, and the asking lapses - saying no is not an act either")
+        if self.childhood_on:
+            out["childhood"] = "on"
+            out["adult_at"], out["child_leash"] = self.adult_at, self.child_leash
+            out["decision"] += ("; somebody born into the world is a child until they have lived adult_at ticks. "
+                                "A child will not go further than child_leash steps from home for food or water, "
+                                "builds nothing and has no children of their own, and a parent who is free and "
+                                "holding food takes a unit to their own child, in view and carrying none, before "
+                                "anybody else")
         if self.births_on:
             out["births"] = "on"
             out["together_ticks"] = self.together_ticks
@@ -402,6 +415,15 @@ class WorldConfig:
             if type(value) is not int:
                 raise ValueError(f"build_ticks must be an integer, got {value!r}")
             need_values["build_ticks"] = value
+        childhood = described.get("childhood", "off")
+        if not isinstance(childhood, str) or childhood not in switches:
+            raise ValueError("childhood must be 'on' or 'off'")
+        if switches[childhood]:
+            for name in ("adult_at", "child_leash"):
+                value = described.get(name)
+                if type(value) is not int:
+                    raise ValueError(f"{name} must be an integer, got {value!r}")
+                need_values[name] = value
         requests = described.get("requests", "off")
         if not isinstance(requests, str) or requests not in switches:
             raise ValueError("requests must be 'on' or 'off'")
@@ -444,7 +466,8 @@ class WorldConfig:
                      water_on=switches[water], warmth_on=switches[warmth],
                      stagger_start=switches[stagger], terrain_on=switches[terrain],
                      building_on=switches[building], offers_on=switches[offers],
-                     births_on=switches[births], requests_on=switches[requests], **need_values, **counts)
+                     births_on=switches[births], requests_on=switches[requests],
+                     childhood_on=switches[childhood], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config
@@ -530,5 +553,6 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         died_at={},
         thirst=staggered(config, config.thirsty_at) if config.water_on else {},
         cold={actor: 0 for actor in actors} if config.warmth_on else {},
+        age={actor: config.adult_at for actor in actors} if config.childhood_on else {},
     )
     return ledger, overlay

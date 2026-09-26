@@ -52,6 +52,22 @@ adjacent cells for a few ticks running, a new person arrives with a home on
 the nearest free cell. They hold nothing: a birth creates no food and no
 water. A run whose roster changes still seals, verifies and replays.
 
+**Childhood.** Somebody born into the world is a child until they have lived
+adult_at ticks. A child will not go more than child_leash steps from home for
+food or water, builds nothing, and is nobody's partner, so the newly born
+cannot immediately have children of their own. A parent who is free and
+holding food takes a unit to their own child — in view and carrying none —
+before anybody else. Everybody at genesis starts grown.
+
+It steadied the world more than anything else so far. Because a child cannot
+breed for sixty ticks, the population stops overshooting its food and then
+collapsing: over 400 ticks, seed 11 went from 5 alive of 41 to 10 of 22, and
+seed 23 from 28 of 75 to 20 of 33 — fewer people, but the share of them alive
+at the end rose from about a third to two thirds, and on seed 7 to nine tenths.
+About four children in ten still die before growing up, most of them born too
+far from a source for the leash to reach and dependent on somebody
+remembering them.
+
 **Walking round rough ground.** A person heading anywhere picks their way
 round the rough ground they can see, counting a rough cell as two ticks and
 everything else as one, and counting whatever lies beyond their sight as open
@@ -376,12 +392,17 @@ where people are less often at the edge might pay it easily.
 
 Terrain-aware movement is built and on by default.
 
-**First: childhood and caregiving.**
+Childhood is built and on by default.
+
+**First: whether asking can pay its way.** It was switched off for costing a
+world at the edge too much, and the world is now markedly steadier — routing
+and childhood between them have taken survival from about a third to two
+thirds. This is the cheapest thing on the list to retry: turn it on and watch.
 **Second: remembered terrain**, so a route learned is a route kept, which is
 also the first piece of memory the world has ever had.
-**Then: whether asking can pay its way**, either in a gentler world or by
-making helping cost the helper less time. The world is markedly gentler since
-routing landed, so this is worth retrying sooner rather than later.
+**Third: ageing and the rest of the family**, now that parentage is recorded —
+grown children leaving to establish a home of their own, and spacing between
+births.
 
 ### What asking looked like, and what it cost
 

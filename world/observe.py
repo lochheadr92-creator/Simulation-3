@@ -112,6 +112,8 @@ class Observation:
     owed_to: str | None = None             # this person agreed to bring food to somebody
     waiting_on: str | None = None          # this person asked somebody and has had no answer yet
     rough_in_view: frozenset[Position] = frozenset()   # rough cells they can see, for choosing a way round
+    age: int = 10 ** 6                     # ticks lived; the default is somebody long grown
+    children: frozenset[str] = frozenset() # who this person is a parent to
 
     @property
     def at_source(self) -> bool:
@@ -190,6 +192,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         owed_to=overlay.promises.get(actor),
         waiting_on=overlay.requests.get(actor),
         rough_in_view=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
+        **({"age": overlay.age.get(actor, config.adult_at),
+           "children": frozenset(kid for kid, mum in overlay.parent.items() if mum == actor)}
+          if config.childhood_on else {}),
         **_water_view(actor, origin, overlay, config, available),
     )
 

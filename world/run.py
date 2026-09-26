@@ -171,6 +171,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--requests", choices=("on", "off"), default=None,
                         help="a hungry person can ask somebody nearby for food (default off: it works, but "
                              "it suppresses births in a growing world - see WORLD_DIRECTIONS.md)")
+    parser.add_argument("--childhood", choices=("on", "off"), default="on",
+                        help="the newly born are children for a while: they stay near home, build nothing, "
+                             "have no children, and are fed by a parent (default on)")
     parser.add_argument("--births", choices=("on", "off"), default="on",
                         help="the roster grows when two settled neighbours spend time side by side (default on)")
     parser.add_argument("--offers", choices=("on", "off"), default="on",
@@ -237,6 +240,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["building_on"] = args.building == "on"
     levers["offers_on"] = args.offers == "on"
     levers["births_on"] = args.births == "on"
+    levers["childhood_on"] = args.childhood == "on"
     requests = args.requests if args.requests is not None else "off"
     levers["requests_on"] = requests == "on"
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")

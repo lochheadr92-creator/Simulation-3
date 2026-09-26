@@ -17,6 +17,11 @@ Priority, highest first:
          >= hungry_at, so a person far from food leaves in time to arrive as
          hunger reaches hungry_at (once due, it stays due on the way)
   home   not hungry, away from home: one step toward home
+  A child - anybody who has lived fewer than adult_at ticks - will not go
+  more than child_leash steps from home for anything, builds nothing, and is
+  nobody's partner. A parent who is free and holding food takes a unit to
+  their own child, in view and carrying none, before anybody else.
+
   ask    hungry, holding nothing, and somebody in view is carrying food:
          ask them for it, and keep walking to the source meanwhile. Asking
          is speech and costs no tick; the walk happens either way
@@ -203,6 +208,17 @@ def yield_eligible(observation: Observation, config: WorldConfig) -> bool:
     return crowd >= observation.yield_at and observation.source_food < crowd
 
 
+def is_child(observation: Observation, config: WorldConfig) -> bool:
+    return config.childhood_on and observation.age < config.adult_at
+
+
+def too_far_for_a_child(observation: Observation, config: WorldConfig, target: Position) -> bool:
+    """A child will not leave home by more than child_leash steps. One born
+    within reach of a source feeds itself; one born in a far corner is at the
+    mercy of whoever thinks to bring it something."""
+    return is_child(observation, config) and steps_to(observation.home, target) > config.child_leash
+
+
 def in_view(observation: Observation, actor: str | None) -> bool:
     return actor is not None and any(seen.actor == actor for seen in observation.others)
 
@@ -217,6 +233,12 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
     it, so only hunger draws anyone out."""
     if observation.food < 1:
         return None
+    # your own child, in front of you and carrying nothing, comes before anybody
+    hungry_children = [seen for seen in observation.others
+                       if seen.actor in observation.children and seen.food < 1]
+    if hungry_children:
+        return min(hungry_children, key=lambda seen: (steps_to(observation.position, seen.position),
+                                                      seen.actor)).actor
     if in_view(observation, observation.owed_to):
         return observation.owed_to
     if not config.offers_on:
@@ -269,7 +291,10 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             found.append(YIELD)
         if someone_to_ask(observation, config) is not None:
             found.append(ASK)
-        found.append(GO)
+        if too_far_for_a_child(observation, config, observation.source):
+            found.append(REST if observation.at_home else HOME)   # too small to go that far; wait to be fed
+        else:
+            found.append(GO)
     if not hungry:
         if trip_due(observation, config):
             found.append(GO)
@@ -281,7 +306,7 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             found.append(OFFER if steps_to(observation.position, _seen(observation, hurt)) <= 1 else GO_OFFER)
         elif not observation.at_home:
             found.append(HOME)
-        elif config.building_on and not observation.home_built:
+        elif config.building_on and not observation.home_built and not is_child(observation, config):
             found.append(BUILD)          # nothing is calling and home has no shelter yet
         else:
             found.append(REST)
@@ -342,7 +367,8 @@ def water_candidates(observation: Observation, config: WorldConfig) -> tuple[str
         if observation.water_stock is None:
             raise AssertionError(f"{observation.actor} is at the water but did not observe its stock")
         found.append(DRAW if observation.water_stock >= 1 else WAIT_WATER)
-    if not at_water and (thirsty or water_trip_due(observation, config)):
+    if (not at_water and (thirsty or water_trip_due(observation, config))
+            and not too_far_for_a_child(observation, config, observation.water_source)):
         found.append(GO_WATER)
     return tuple(found)
 
