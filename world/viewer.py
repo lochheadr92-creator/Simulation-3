@@ -132,6 +132,16 @@ for (let k = 1; k <= n; k++) {
     if (p in w.died_at) continue;
     const d = t.decisions && t.decisions[p];
     if (d && d.kind === 'yield') EVENTS.push({ k, who: p, band: 'yield', what: p + ' stood back from the crowded source' });
+    if (d && d.kind === 'offer') {
+      const took = (t.record.outcomes || []).some(o => o.actor === p && o.operation === 'transfer' && o.accepted);
+      EVENTS.push({ k, who: p, band: took ? 'fed' : 'emergency',
+        what: took ? p + ' gave a unit of food to ' + d.target : p + ' offered food to ' + d.target + ', refused' });
+    }
+    const earlier = k >= 2 ? ticks[k - 2].decisions[p] : null;
+    if (d && d.kind === 'go_offer' && !(earlier && earlier.kind === 'go_offer'))
+      EVENTS.push({ k, who: p, band: 'hungry', what: p + ' set out to help ' + d.target });
+    if (earlier && earlier.kind === 'go_offer' && d && d.kind !== 'go_offer' && d.kind !== 'offer')
+      EVENTS.push({ k, who: p, band: 'emergency', what: p + ' turned back from helping ' + earlier.target });
     if (d && d.kind === 'build') {
       const done = (w.built || {})[p] || 0, was = (before.built || {})[p] || 0;
       if (was === 0) EVENTS.push({ k, who: p, band: 'fed', what: p + ' started building a shelter' });

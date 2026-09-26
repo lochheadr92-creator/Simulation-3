@@ -52,12 +52,12 @@ DEFAULT_YIELD_SET = (1, 2, 3)
 SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satiation": 6,
                       "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
                       "food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
-                      "terrain_on": False, "building_on": False}
+                      "terrain_on": False, "building_on": False, "offers_on": False}
 
 # The world before the second food source and default water (2026-09-25): one
 # food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
 ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
-                        "terrain_on": False, "building_on": False}
+                        "terrain_on": False, "building_on": False, "offers_on": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -107,6 +107,7 @@ class WorldConfig:
     shelter_relief: int = 1       # hunger and thirst each rise this much slower on a shelter spot
     building_on: bool = True      # a fed, watered person at home spends their spare ticks building there
     build_ticks: int = 12         # ticks of work a shelter takes; interrupted work keeps its progress
+    offers_on: bool = True        # carry a spare unit to somebody visibly starving nearby (2026-09-27)
     cold_rate: int = 1            # cold added per tick spent away from shelter
     warming: int = 3              # cold removed per tick spent at shelter
     cold_at: int = 25             # cold at which a person seeks shelter
@@ -288,6 +289,12 @@ class WorldConfig:
                                 "and work already done is kept when a need calls them away; a finished shelter "
                                 "is permanent and slows hunger and thirst by shelter_relief for whoever stands "
                                 "on it, like a shelter spot")
+        if self.offers_on:
+            out["offers"] = "on"
+            out["decision"] += ("; with nothing of their own calling and a spare unit of food in hand, a person "
+                                "who can see somebody in a hunger emergency goes to them - nearest by steps, "
+                                "then id - and hands over one unit when they are alongside; the kernel settles "
+                                "the handover like any other move of food, and it can be refused")
         if self.stagger_start:
             # Written only when on, so the worlds that started level round-trip.
             out["stagger_start"] = "on"
@@ -368,6 +375,9 @@ class WorldConfig:
             if type(value) is not int:
                 raise ValueError(f"build_ticks must be an integer, got {value!r}")
             need_values["build_ticks"] = value
+        offers = described.get("offers", "off")
+        if not isinstance(offers, str) or offers not in switches:
+            raise ValueError("offers must be 'on' or 'off'")
         stagger = described.get("stagger_start", "off")
         if not isinstance(stagger, str) or stagger not in switches:
             raise ValueError("stagger_start must be 'on' or 'off'")
@@ -395,7 +405,7 @@ class WorldConfig:
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
                      water_on=switches[water], warmth_on=switches[warmth],
                      stagger_start=switches[stagger], terrain_on=switches[terrain],
-                     building_on=switches[building], **need_values, **counts)
+                     building_on=switches[building], offers_on=switches[offers], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config

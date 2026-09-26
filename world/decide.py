@@ -17,6 +17,9 @@ Priority, highest first:
          >= hungry_at, so a person far from food leaves in time to arrive as
          hunger reaches hungry_at (once due, it stays due on the way)
   home   not hungry, away from home: one step toward home
+  offer  no need calling, holding a spare unit, and somebody visibly
+         starving is alongside: hand them one unit through the kernel
+  go_offer  the same, but they are further off: one step towards them
   build  no need calling, at home, no shelter there yet: spend the tick
          putting one up. It is permanent, and it slows hunger and thirst
          for whoever stands on it afterwards
@@ -58,12 +61,13 @@ EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
     "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
 )
 BUILD = "build"
-LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, HOME, BUILD, REST)
+OFFER, GO_OFFER = "offer", "go_offer"
+LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, GO, OFFER, GO_OFFER, HOME, BUILD, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
 WATER_PRIORITY = (DRINK, DRAW, WAIT_WATER, GO_WATER)
 WARM, GO_SHELTER = "warm", "go_shelter"
 WARMTH_PRIORITY = (WARM, GO_SHELTER)
-IDLE = (HOME, REST, BUILD)           # the food rule's fallback: no need is calling
+IDLE = (HOME, REST, BUILD, OFFER, GO_OFFER)   # nothing of one's own is calling
 
 
 @dataclass(frozen=True)
@@ -129,6 +133,22 @@ def yield_eligible(observation: Observation, config: WorldConfig) -> bool:
     return crowd >= observation.yield_at and observation.source_food < crowd
 
 
+def someone_to_help(observation: Observation, config: WorldConfig) -> str | None:
+    """The person this one would carry a spare unit to: the nearest visibly
+    starving other, by steps then id. Thirst shows too, but food does not help
+    it, so only hunger draws an offer."""
+    if not config.offers_on or observation.food < 1:
+        return None
+    starving = [seen for seen in observation.others if seen.starving]
+    if not starving:
+        return None
+    return min(starving, key=lambda seen: (steps_to(observation.position, seen.position), seen.actor)).actor
+
+
+def _seen(observation: Observation, actor: str) -> Position:
+    return next(seen.position for seen in observation.others if seen.actor == actor)
+
+
 def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]:
     if not observation.alive:
         return ()
@@ -147,6 +167,9 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if not hungry:
         if trip_due(observation, config):
             found.append(GO)
+        elif someone_to_help(observation, config) is not None:
+            hurt = someone_to_help(observation, config)
+            found.append(OFFER if steps_to(observation.position, _seen(observation, hurt)) <= 1 else GO_OFFER)
         elif not observation.at_home:
             found.append(HOME)
         elif config.building_on and not observation.home_built:
@@ -358,6 +381,14 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
                         step=step_toward(observation.position, observation.source), scores=scores, target=target)
     if selected == HOME:
         return Decision(actor, HOME, "fed, walking home", options, step=step_toward(observation.position, observation.home), scores=scores)
+    if selected in (OFFER, GO_OFFER):
+        hurt = someone_to_help(observation, config)
+        where = _seen(observation, hurt)
+        if selected == OFFER:
+            return Decision(actor, OFFER, f"{hurt} is starving alongside; handing over one of {observation.food}",
+                            options, amount=1, target=hurt, scores=scores)
+        return Decision(actor, GO_OFFER, f"{hurt} is starving {steps_to(observation.position, where)} steps away",
+                        options, step=step_toward(observation.position, where), target=hurt, scores=scores)
     if selected == BUILD:
         return Decision(actor, BUILD, "nothing wanting, building a shelter at home", options, scores=scores)
     return Decision(actor, REST, "fed, at home", options, scores=scores)

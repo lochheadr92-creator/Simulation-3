@@ -31,11 +31,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume
+from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume, transfer
 
 from stream.run_file import RunFileError, RunWriter, read_run
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, genesis
-from world.decide import CLAIM, DRAW, DRINK, EAT, Decision, decide
+from world.decide import CLAIM, DRAW, DRINK, EAT, OFFER, Decision, decide
 from world.observe import Observation, observe
 from world.overlay import Overlay
 
@@ -58,6 +58,8 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
             out.append(consume(pid, actor, 0, amount=decision.amount))
         elif decision.kind == CLAIM:
             out.append(claim(pid, actor, 0, sources={decision.target or FOOD_SOURCE: decision.amount}))
+        elif decision.kind == OFFER:
+            out.append(transfer(pid, actor, 0, to=decision.target, amount=decision.amount))
         elif decision.kind == DRINK:
             out.append(consume(pid, actor, 0, amount=decision.amount, resource=WATER))
         elif decision.kind == DRAW:
@@ -166,6 +168,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--warmth", choices=("on", "off"), default=None,
                         help="cold as a third need, met by sheltering at home (default on; never with "
                              "--scoring on, since scoring has no warmth actions yet)")
+    parser.add_argument("--offers", choices=("on", "off"), default="on",
+                        help="carry a spare unit of food to somebody visibly starving nearby (default on)")
     parser.add_argument("--building", choices=("on", "off"), default="on",
                         help="people build a permanent shelter on their home cell when nothing else is "
                              "calling (default on)")
@@ -223,6 +227,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["stagger_start"] = args.stagger == "on"
     levers["terrain_on"] = args.terrain == "on"
     levers["building_on"] = args.building == "on"
+    levers["offers_on"] = args.offers == "on"
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")
     levers["water_on"] = water == "on"
     warmth = args.warmth if args.warmth is not None else ("off" if args.scoring == "on" else "on")

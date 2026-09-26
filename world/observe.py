@@ -6,9 +6,11 @@ distance <= perception_radius (inclusive). Self is always in view
 (distance 0).
 
 What is visible about another living person inside the radius: identity,
-position, and their free food (the kernel's availability). Hunger is
-internal: it is not visible, and neither is home nor the decision they
-are about to take.
+position, their free food (the kernel's availability), and whether they
+are visibly in distress - a hunger or thirst emergency, which shows.
+The level of a need is still internal: you can see that somebody is in a
+bad way, not how bad. Home and the decision they are about to take stay
+invisible.
 
 The source's POSITION is a known landmark, declared in config, and is
 always present on the observation. Its STOCK is observed only when the
@@ -63,9 +65,20 @@ class SeenPerson:
     actor: str
     position: Position
     food: int                 # free units at tick start, as the kernel reports them
+    starving: bool = False    # visibly in a hunger emergency
+    parched: bool = False     # visibly in a thirst emergency
+
+    @property
+    def in_distress(self) -> bool:
+        return self.starving or self.parched
 
     def canonical(self) -> dict[str, Any]:
-        return {"id": self.actor, "at": list(self.position), "food": self.food}
+        out: dict[str, Any] = {"id": self.actor, "at": list(self.position), "food": self.food}
+        if self.starving:
+            out["starving"] = 1
+        if self.parched:
+            out["parched"] = 1
+        return out
 
 
 @dataclass(frozen=True)
@@ -136,7 +149,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     origin = overlay.positions[actor]
     radius = config.perception_radius
     others = tuple(
-        SeenPerson(other, overlay.positions[other], available[actor_account(other)])
+        SeenPerson(other, overlay.positions[other], available[actor_account(other)],
+                   starving=overlay.hunger[other] >= config.emergency_at,
+                   parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at)
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
