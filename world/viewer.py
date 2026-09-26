@@ -196,6 +196,10 @@ LEGEND = (
     ('<path d="M2 12q8-9 16 0" fill="none" stroke="#ffd68c" stroke-dasharray="3 2"/>', "asked for food, waiting on the answer"),
     ('<path d="M2 12q8-9 16 0" fill="none" stroke="#f1c56e" stroke-width="1.6" stroke-dasharray="1 3" stroke-linecap="round"/>',
      "agreed to bring food, on the way"),
+    ('<circle cx="6" cy="6" r="2.4" fill="#f2e5d0"/><rect x="3.5" y="8" width="5" height="6" rx="2" fill="#7fb3d9"/>'
+     '<circle cx="14" cy="9" r="1.8" fill="#f2e5d0"/><rect x="12.2" y="10.6" width="3.6" height="4.2" rx="1.5" fill="#d99a7f"/>'
+     '<path d="M8.5 13l3.5-1" stroke="#ecb2d6" stroke-dasharray="1 1.6"/>',
+     "a child is smaller until grown; dotted pink joins the selected person to their parent and children"),
     ('<path d="M7 15v-6q3-4 6 0v6z" fill="#8f8a82"/>', "somebody died here"),
     ('<path d="M3 10l7-4 7 4-7 4z" fill="#ffe3a3" fill-opacity=".08" stroke="#ffe3a3" stroke-dasharray="3 2"/>',
      "Chebyshev perception: the square a person can see"),
@@ -220,8 +224,10 @@ def render_html(run: Run) -> str:
     warmth = scenario.get("warmth") == "on"
     terrain = scenario.get("terrain") == "on"
     building = scenario.get("building") == "on"
+    childhood = scenario.get("childhood") == "on"
     levers = ", ".join(f"{k} {v}" for k, v in scenario.items() if isinstance(v, int) and k != "seed")
-    switches = [key for key in ("water", "warmth", "terrain", "building", "offers", "requests", "births", "trips")
+    switches = [key for key in ("water", "warmth", "terrain", "building", "offers", "requests", "births",
+                                "childhood", "trips")
                 if scenario.get(key) == "on"]
     rules = "".join(f"<dt>{html.escape(k)}</dt><dd>{html.escape(v)}</dd>" for k, v in scenario.items()
                     if isinstance(v, str) and len(v) > 24)
@@ -229,7 +235,9 @@ def render_html(run: Run) -> str:
         "<h3>On the map</h3>",
         _layer("people", "People"), _layer("names", "Names"), _layer("needs", "Need badges"),
         _layer("trails", "Trails", "last 12 ticks"),
-        _layer("links", "Requests and handovers"), _layer("deaths", "Where people died"),
+        _layer("links", "Requests and handovers"),
+        _layer("family", "Family", "for the selected person") if childhood else "",
+        _layer("deaths", "Where people died"),
         _layer("moments", "Moments", "births, renewals, gathering"),
         '<label class="layer"><span></span><span>Perception radius</span><select data-layer="perception" '
         'aria-label="Perception radius"><option value="off">off</option><option value="selected" selected>'
@@ -245,7 +253,7 @@ def render_html(run: Run) -> str:
         "".join(f'<div><svg viewBox="0 0 20 20" aria-hidden="true">{art}</svg><span>{html.escape(text)}</span></div>'
                 for art, text in LEGEND
                 if (water or "well" not in text) and (terrain or ("rough" not in text and "shelter spot" not in text))
-                and (building or "built" not in text)),
+                and (building or "built" not in text) and (childhood or "child" not in text)),
         "</div>",
     ])
     return f"""<!DOCTYPE html>

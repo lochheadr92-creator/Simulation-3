@@ -187,14 +187,24 @@ def build_index(run: Any) -> dict[str, Any]:
             event["src"] = src
         events.append(event)
 
+    adult_at = cfg.get("adult_at") if cfg.get("childhood") == "on" else None
+
+    def children_in(world: Mapping[str, Any]) -> int:
+        """Living people the run records as not yet grown."""
+        if adult_at is None:
+            return 0
+        ages, dead = world.get("age", {}), world.get("died_at", {})
+        return sum(1 for actor, lived in ages.items() if lived < adult_at and actor not in dead)
+
     counts = {name: [0] * (n + 1) for name in
               ("alive", "people", "dead", "born", "shelters", "asked", "agreed", "unanswered",
-               "delivered", "handed", "refused", "claims", "draws")}
+               "delivered", "handed", "refused", "claims", "draws", "children", "fed_children")}
     first = worlds[0]
     counts["people"][0] = len(first.get("positions", {}))
     counts["alive"][0] = counts["people"][0] - len(first.get("died_at", {}))
     counts["dead"][0] = len(first.get("died_at", {}))
     counts["shelters"][0] = len(first.get("shelters", []))
+    counts["children"][0] = children_in(first)
 
     for k in range(1, n + 1):
         tick = ticks[k - 1]
@@ -208,6 +218,7 @@ def build_index(run: Any) -> dict[str, Any]:
         died_at, died_before = world.get("died_at", {}), before.get("died_at", {})
         promises_before = before.get("promises", {}) or {}
         promises_now = world.get("promises", {}) or {}
+        parent_of = world.get("parent", {}) or {}         # child -> parent, recorded from birth on
         tally = {name: 0 for name in counts}
 
         # answers first: a request made last tick is answered, or lapses, on this one
@@ -278,6 +289,9 @@ def build_index(run: Any) -> dict[str, Any]:
                         thread = open_threads.pop(actor, None)
                         if thread is not None:
                             thread.update(end="delivered", ended=k)
+                    elif parent_of.get(target) == actor:
+                        add(k, "help", "fed_child", f"{actor} fed their child {target}", who=actor, other=target)
+                        tally["fed_children"] += 1
                     else:
                         add(k, "help", "gave", f"{actor} handed {target} a unit of food", who=actor, other=target)
                     tally["handed"] += 1
@@ -290,6 +304,9 @@ def build_index(run: Any) -> dict[str, Any]:
             if kind == "go_offer" and target and not (was.get("kind") == "go_offer" and was.get("target") == target):
                 if promises_before.get(actor) == target:
                     add(k, "help", "set_out", f"{actor} set off with food for {target}", who=actor, other=target)
+                elif parent_of.get(target) == actor:
+                    add(k, "help", "set_out", f"{actor} set off with food for their child {target}",
+                        who=actor, other=target)
                 else:
                     add(k, "help", "set_out", f"{actor} set off to help {target}, who looked to be starving",
                         who=actor, other=target)
@@ -313,6 +330,10 @@ def build_index(run: Any) -> dict[str, Any]:
                     add(k, "build", "build_done", f"{actor} finished a shelter ({done} ticks of work)", who=actor)
             if actor in died_at and actor not in died_before:
                 continue                                    # the death line says it all
+            if adult_at is not None:
+                lived, had_lived = world.get("age", {}).get(actor), before.get("age", {}).get(actor)
+                if lived is not None and had_lived is not None and lived >= adult_at > had_lived:
+                    add(k, "life", "grew_up", f"{actor} grew up", who=actor)
             for need, level, words in (("hunger", "emergency_at", "is starving"),
                                        ("thirst", "thirst_emergency_at", "is parched"),
                                        ("cold", "cold_emergency_at", "is freezing")):
@@ -342,7 +363,9 @@ def build_index(run: Any) -> dict[str, Any]:
         for entry in tick.get("production") or []:
             if "born" in entry:
                 born[entry["born"]] = k
-                add(k, "life", "birth", f"{entry['born']} was born", who=entry["born"])
+                mother = parent_of.get(entry["born"])
+                add(k, "life", "birth", f"{entry['born']} was born" + (f" to {mother}" if mother else ""),
+                    who=entry["born"], other=mother)
                 tally["born"] += 1
 
         for source, word_out, word_back, kind in [(s, "was picked clean", "is growing back", "food") for s in food] + \
@@ -360,7 +383,9 @@ def build_index(run: Any) -> dict[str, Any]:
         counts["dead"][k] = len(died_at)
         counts["alive"][k] = len(positions) - len(died_at)
         counts["shelters"][k] = len(world.get("shelters", []))
-        for name in ("born", "asked", "agreed", "unanswered", "delivered", "handed", "refused", "claims", "draws"):
+        counts["children"][k] = children_in(world)
+        for name in ("born", "asked", "agreed", "unanswered", "delivered", "handed", "refused", "claims", "draws",
+                     "fed_children"):
             counts[name][k] = counts[name][k - 1] + tally[name]
 
     for thread in threads:
@@ -380,6 +405,8 @@ def build_index(run: Any) -> dict[str, Any]:
         "moves": sorted(MOVES),
         "food": food,
         "water": water,
+        "adult_at": adult_at,
+        "parent": dict(worlds[-1].get("parent", {}) or {}),
     }
 
 

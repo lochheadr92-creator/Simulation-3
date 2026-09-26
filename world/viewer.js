@@ -37,6 +37,11 @@
   const COUNTS = IDX.counts || {};
   const BORN = IDX.born || {}, DIED = IDX.died || {};
   const THREADS = IDX.threads || [];
+  const ADULT_AT = IDX.adult_at || null;           // set only when the run records childhood
+  const PARENT = IDX.parent || {};                 // child -> parent, as recorded at birth
+  const CHILDREN = {}; for (const kid in PARENT) (CHILDREN[PARENT[kid]] = CHILDREN[PARENT[kid]] || []).push(kid);
+  function ageOf(w, p) { const a = (w.age || {})[p]; return a === undefined ? null : a; }
+  function isChild(w, p) { const a = ageOf(w, p); return ADULT_AT !== null && a !== null && a < ADULT_AT; }
   const media = q => (window.matchMedia ? window.matchMedia(q).matches : false);
   const REDUCED = media('(prefers-reduced-motion: reduce)');
 
@@ -117,6 +122,7 @@
   const LAYERS = {
     people: true, names: true, needs: true, food: true, water: true, homes: true, shelters: true,
     rough: true, spots: true, trails: true, perception: 'selected', links: true, deaths: true, stock: true, moments: true,
+    family: true,
   };
   let v = 0;                       // the view on screen
   let anim = { from: 0, to: 0, start: 0, dur: 0 };
@@ -695,6 +701,18 @@
       }
     }
 
+    // family, as the run records it: the selected person's parent and children
+    if (LAYERS.family && selP && ADULT_AT !== null && present(w, selP)) {
+      const kin = [PARENT[selP], ...(CHILDREN[selP] || [])].filter(q => q && present(w, q) && !deadIn(w, q));
+      const me = placeOf(selP, t);
+      if (me) for (const q of kin) {
+        const other = placeOf(q, t); if (!other) continue;
+        g.save(); g.strokeStyle = 'rgba(236,178,214,0.8)'; g.lineWidth = 1.5; g.setLineDash([1, 3.5]); g.lineCap = 'round';
+        g.beginPath(); g.moveTo(me.x, me.y); g.lineTo(other.x, other.y); g.stroke(); g.restore();
+        g.fillStyle = 'rgba(236,178,214,0.9)'; g.beginPath(); g.arc(other.x, other.y, 2.2, 0, Math.PI * 2); g.fill();
+      }
+    }
+
     // standing things and people, back to front
     const items = [];
     for (const src of SOURCE_AT.values()) {
@@ -749,7 +767,7 @@
       const st = {
         pose, badges, towards, food: food(k, p), water: waterHeld(k, p),
         emergency: badges.some(x => x.em) && !diedNow, selected: p === selP, hovered: hovered === p, stride: anim.from !== anim.to || playing,
-        scale: bornNow ? 0.35 + 0.65 * t : 1, alpha: diedNow ? Math.max(0.25, 1 - t * 0.75) : 1,
+        scale: (bornNow ? 0.35 + 0.65 * t : 1) * (isChild(w, p) ? 0.72 : 1), alpha: diedNow ? Math.max(0.25, 1 - t * 0.75) : 1,
       };
       if (diedNow) {
         // lying at the front of the cell they died on, so a crowd there does not hide it
@@ -819,7 +837,7 @@
       } else if (e.kind === 'unanswered') {
         g.save(); g.setLineDash([1.5, 4]); g.strokeStyle = `rgba(200,200,190,${(0.7 * (1 - 0.5 * t)).toFixed(3)})`; g.lineWidth = 1.2; arc(g, a, b, lift); g.stroke(); g.restore();
         bubble(g, a.x + 9, a.y - 10, '…', 'rgba(210,210,200,0.9)', '#2a2a24');
-      } else if (e.kind === 'delivered' || e.kind === 'gave') {
+      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'fed_child') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(241,197,110,0.45)'; g.lineWidth = 1.2; g.stroke();
         const u = REDUCED ? 1 : t, q = along(a, b, m, u);
         g.fillStyle = '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
@@ -954,6 +972,7 @@
     if ((COUNTS.born || [])[n]) bits.push(`<span>born <b>${COUNTS.born[v]}</b></span>`);
     bits.push(`<span>died <b>${(COUNTS.dead || [])[v] ?? Object.keys(w.died_at || {}).length}</b></span>`);
     if (BUILD_TICKS) bits.push(`<span>shelters <b>${(COUNTS.shelters || [])[v] ?? 0}</b></span>`);
+    if (ADULT_AT !== null) bits.push(`<span>children <b>${(COUNTS.children || [])[v] ?? 0}</b></span>`);
     $('hud-line').innerHTML = bits.join('');
     canvas.setAttribute('aria-label', `Isometric map of the world at tick ${v} of ${n}: ${aliveAt(v)} alive.`);
     if (!playing) $('live').textContent = `Tick ${v}. ${aliveAt(v)} alive.`;
@@ -971,6 +990,7 @@
     if ((c.born || [])[n]) stats.push(['Births', `${c.born[v]} <small>/ ${c.born[n]} total</small>`]);
     else stats.push(['Births', '0']);
     if (BUILD_TICKS) stats.push(['Shelters', `${(c.shelters || [])[v] ?? 0} <small>built</small>`]);
+    if (ADULT_AT !== null) stats.push(['Children', `${(c.children || [])[v] ?? 0} <small>growing up</small>`]);
     $('stats').innerHTML = stats.map(([k2, val]) => `<div class="stat"><div class="k">${k2}</div><div class="v">${val}</div></div>`).join('');
     const rows = [];
     for (const [, src] of SOURCE_AT) {
@@ -984,6 +1004,7 @@
       help.push(`<span>asked <b>${c.asked[v]}</b></span>`, `<span>agreed <b>${c.agreed[v]}</b></span>`, `<span>unanswered <b>${c.unanswered[v]}</b></span>`, `<span>delivered <b>${c.delivered[v]}</b></span>`);
     }
     if ((c.handed || [])[n]) help.push(`<span>food handed over <b>${c.handed[v]}</b></span>`);
+    if ((c.fed_children || [])[n]) help.push(`<span>to their own children <b>${c.fed_children[v]}</b></span>`);
     if ((c.refused || [])[n]) help.push(`<span>refused <b>${c.refused[v]}</b></span>`);
     $('helpline').innerHTML = help.join('');
     $('helpline').hidden = !help.length;
@@ -1162,6 +1183,8 @@
     const trait = ((w.yield_at || {})[p]);
     if (trait !== undefined) facts.push(['Crowd trait', `stands back from a crowd of ${trait}`]);
     if (BORN[p]) facts.push(['Born', `tick ${BORN[p]}`]);
+    const lived = ageOf(w, p);
+    if (ADULT_AT !== null && lived !== null) facts.push(['Age', lived < ADULT_AT ? `a child: ${lived} of the ${ADULT_AT} ticks it takes to grow up` : 'grown']);
     h += '<div class="sec"><h4>Facts</h4><div class="kv">' + facts.map(([a, b]) => `<span class="k">${a}</span><span>${esc(b)}</span>`).join('') + '</div></div>';
     // errands and company, straight from the world state
     const links = [];
@@ -1173,6 +1196,14 @@
       const [a, b] = pair.split('|'); if (a !== p && b !== p) continue;
       const cnt = w.together[pair]; if (!cnt) continue;
       links.push(`Beside ${personLink(a === p ? b : a)} for ${cnt} tick${cnt === 1 ? '' : 's'} running`);
+    }
+    const kidsOf = CHILDREN[p] || [];
+    if (PARENT[p] || kidsOf.length) {
+      const fam = [];
+      if (PARENT[p]) fam.push(`Parent ${personLink(PARENT[p])}${deadIn(w, PARENT[p]) ? ' (died)' : ''}`);
+      const born = kidsOf.filter(q => present(w, q));
+      if (born.length) fam.push('Children ' + born.map(q => personLink(q) + (deadIn(w, q) ? ' (died)' : isChild(w, q) ? ' (a child)' : '')).join(' '));
+      h += '<div class="sec"><h4>Family</h4>' + fam.map(x => `<div style="margin:4px 0">${x}</div>`).join('') + '</div>';
     }
     if (links.length) h += '<div class="sec"><h4>With others</h4>' + links.map(x => `<div style="margin:4px 0">${x}</div>`).join('') + '</div>';
     if (ob && alive) {
@@ -1281,7 +1312,8 @@
     if (hit.type === 'person') {
       const p = hit.id, needs = NEEDS.map(nd => `${nd.label.toLowerCase()} ${needLevel(w, p, nd) ?? '–'}`).join(' · ');
       const carry = `carrying ${food(v, p)} food` + (C.water === 'on' ? `, ${waterHeld(v, p)} water` : '');
-      return `<b>${esc(p)}</b> — ${esc(describeAction(p, v))}\n${esc(needs)}\n${esc(carry)}`;
+      const kin = (isChild(w, p) ? 'a child' : '') + (PARENT[p] ? (isChild(w, p) ? ' of ' : 'child of ') + PARENT[p] : '');
+      return `<b>${esc(p)}</b> — ${esc(describeAction(p, v))}\n${esc(needs)}\n${esc(carry)}${kin ? '\n' + esc(kin) : ''}`;
     }
     const out = [], key = hit.key;
     const src = SOURCE_AT.get(key);
@@ -1385,7 +1417,7 @@
     for (const e of EVENTS) {
       if (e.kind === 'death') { g.fillStyle = 'rgba(255,148,131,0.9)'; g.fillRect(xs(e.k) - 0.5, H2 - 7, 1.5, 6); }
       else if (e.kind === 'birth') { g.fillStyle = 'rgba(159,220,170,0.95)'; g.fillRect(xs(e.k) - 0.5, 1, 1.5, 6); }
-      else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'agree') { g.fillStyle = 'rgba(241,197,110,0.95)'; g.beginPath(); g.arc(xs(e.k), H2 / 2, 1.6, 0, Math.PI * 2); g.fill(); }
+      else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'agree' || e.kind === 'fed_child') { g.fillStyle = 'rgba(241,197,110,0.95)'; g.beginPath(); g.arc(xs(e.k), H2 / 2, 1.6, 0, Math.PI * 2); g.fill(); }
     }
   }
 

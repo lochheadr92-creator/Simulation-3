@@ -167,3 +167,25 @@ def test_the_run_command_still_writes_the_page_beside_the_run(tmp_path: Path, ca
     page = out.with_suffix(".html").read_text(encoding="utf-8")
     assert 'id="view-index"' in page and 'id="run-data"' in page and "file verifies" in page
     assert f"viewer: {out.with_suffix('.html')}" in capsys.readouterr().out
+
+
+def test_family_is_shown_only_as_the_run_records_it(tmp_path: Path):
+    run_world(WorldConfig(seed=11), 90, tmp_path / "kin.jsonl")
+    run = read_run(tmp_path / "kin.jsonl")
+    index = build_index(run)
+    last = run.ticks[-1]["world"]
+    assert index["parent"] == last["parent"] and index["adult_at"] == run.header["scenario"]["adult_at"]
+    kinds = {event["kind"] for event in index["events"]}
+    assert {"fed_child", "grew_up"} <= kinds
+    for event in index["events"]:
+        world, before = run.ticks[event["k"] - 1]["world"], (
+            run.ticks[event["k"] - 2]["world"] if event["k"] >= 2 else run.header["world"])
+        if event["kind"] == "fed_child":
+            assert world["parent"][event["other"]] == event["who"]
+        elif event["kind"] == "grew_up":
+            assert world["age"][event["who"]] >= index["adult_at"] > before["age"][event["who"]]
+    assert 'data-layer="family"' in render_html(run)
+    run_world(WorldConfig(seed=11, childhood_on=False), 40, tmp_path / "nokin.jsonl")
+    plain = read_run(tmp_path / "nokin.jsonl")
+    assert build_index(plain)["parent"] == {} and build_index(plain)["adult_at"] is None
+    assert 'data-layer="family"' not in render_html(plain)
