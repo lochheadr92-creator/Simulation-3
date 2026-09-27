@@ -418,14 +418,24 @@ Remembered terrain now changes repeat journeys. In 220-tick runs of seeds
 6, 1 and 11 times compared with using current sight alone. These are local
 route comparisons in the same run, not claims about survival improvements.
 
-**Next: help that costs no journey.** Seed 23 shows p01 setting off toward
+**Direct answers beside the helper are now built.** With asking on, an
+empty-handed asker alongside a free helper can receive one unit on the answer
+tick. The helper still spends that tick giving, and their own needs take
+priority. Feeding an empty-handed child comes first. A parent may answer
+locally without taking on a journey; an existing delivery promise is kept.
+The kernel settles the transfer, and the viewer records the answer and the
+delivery on the same tick.
+
+In 220-tick runs with asking on, seeds 7, 11 and 23 produced zero, one and five
+direct handoffs. Seed 23's first is p07 feeding p06 at tick 87 after a request
+at tick 86. This does not establish a survival benefit: walking errands still
+run alongside these handoffs. Asking stays off by default.
+
+**Next: watch the cost of helping.** Seed 23 with asking off shows p01 setting off toward
 starving p12 at tick 127, then turning home for warmth at tick 128. Both food
 patches are empty. This interrupted help is the clearest next interaction to
-explore. Adjacent offers already exist; the new experiment should let a food
-request be answered by a handoff while the asker is beside the helper,
-without first agreeing to a walking errand. Keep the helper's own needs and
-the kernel transfer rules. Asking remains off by default until we have watched
-what this changes.
+explore. Compare nearby answers with walking errands before widening the
+request rule or turning it on by default.
 
 Ageing and the rest of the family can follow: grown children leaving to
 establish a home of their own, and spacing between births.

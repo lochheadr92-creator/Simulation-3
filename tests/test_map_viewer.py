@@ -74,14 +74,32 @@ def test_request_threads_follow_the_saved_world_state(asking_run):
     for thread in index["threads"]:
         if thread["answer"] in ("agreed", "no answer"):
             assert thread["answered"] == thread["asked"] + 1
-        if thread["answer"] == "agreed":
+        if thread["answer"] == "agreed" and not thread.get("direct"):
             promised = asking_run.ticks[thread["answered"] - 1]["world"]["promises"]
             assert promised[thread["helper"]] == thread["asker"]
         if thread.get("end") == "delivered":
-            assert thread["ended"] > thread["answered"]
+            if thread.get("direct"):
+                assert thread["ended"] == thread["answered"]
+            else:
+                assert thread["ended"] > thread["answered"]
     counts = index["counts"]
     assert counts["agreed"][-1] + counts["unanswered"][-1] <= counts["asked"][-1]
     assert counts["delivered"][-1] <= counts["agreed"][-1]
+
+
+def test_direct_answer_is_a_settled_handoff_not_an_unanswered_request(asking_run):
+    index = build_index(asking_run)
+    direct = [thread for thread in index["threads"] if thread.get("direct")]
+    assert direct
+    for thread in direct:
+        tick = asking_run.ticks[thread["answered"] - 1]
+        helper, asker = thread["helper"], thread["asker"]
+        assert tick["decisions"][helper]["kind"] == "offer"
+        assert tick["decisions"][helper]["target"] == asker
+        outcome = next(o for o in tick["record"]["outcomes"] if o["actor"] == helper)
+        assert outcome["accepted"] and thread["end"] == "delivered"
+        assert not any(e["kind"] == "unanswered" and e["k"] == thread["answered"]
+                       and e["who"] == asker for e in index["events"])
 
 
 def test_counts_are_the_saved_worlds(asking_run):

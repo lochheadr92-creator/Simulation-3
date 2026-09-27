@@ -227,6 +227,15 @@ def in_view(observation: Observation, actor: str | None) -> bool:
     return actor is not None and any(seen.actor == actor for seen in observation.others)
 
 
+def adjacent_request(observation: Observation, config: WorldConfig) -> str | None:
+    """A visible, empty-handed asker who can receive food without a journey."""
+    if not config.requests_on or observation.owed_to is not None:
+        return None
+    return next((seen.actor for seen in observation.others
+                 if seen.actor == observation.asked_by and seen.food < 1
+                 and steps_to(observation.position, seen.position) <= 1), None)
+
+
 def someone_to_help(observation: Observation, config: WorldConfig) -> str | None:
     """The person this one is carrying a spare unit to.
 
@@ -243,6 +252,9 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
     if hungry_children:
         return min(hungry_children, key=lambda seen: (steps_to(observation.position, seen.position),
                                                       seen.actor)).actor
+    nearby = adjacent_request(observation, config)
+    if nearby is not None:
+        return nearby
     if in_view(observation, observation.owed_to):
         return observation.owed_to
     if not config.offers_on:
@@ -304,7 +316,8 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             found.append(GO)
         elif (config.requests_on and observation.asked_by is not None
                 and observation.food >= 1 and observation.owed_to is None
-                and not observation.dependents):
+                and not observation.dependents
+                and adjacent_request(observation, config) is None):
             # one errand at a time, and never while a child of your own still
             # needs you: an adult away on a stranger's errand is an adult not
             # feeding their own, and that killed more children than it saved
@@ -536,6 +549,9 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
         hurt = someone_to_help(observation, config)
         where = _seen(observation, hurt)
         if selected == OFFER:
+            if hurt == adjacent_request(observation, config):
+                return Decision(actor, OFFER, f"{hurt} asked and is alongside; handing over one of {observation.food}",
+                                options, amount=1, target=hurt, scores=scores)
             return Decision(actor, OFFER, f"{hurt} is starving alongside; handing over one of {observation.food}",
                             options, amount=1, target=hurt, scores=scores)
         return Decision(actor, GO_OFFER, f"{hurt} is starving {steps_to(observation.position, where)} steps away",

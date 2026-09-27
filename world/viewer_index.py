@@ -225,6 +225,13 @@ def build_index(run: Any) -> dict[str, Any]:
         for asker, asked in sorted((before.get("requests") or {}).items()):
             thread = waiting.pop(asker, None)
             answer = decisions.get(asked)
+            if answer and answer.get("kind") == "offer" and answer.get("target") == asker:
+                if thread is not None:
+                    thread.update(answer="agreed", answered=k, direct=True)
+                    open_threads[asked] = thread
+                add(k, "help", "handoff", f"{asked} answered {asker} with a direct handoff", who=asked, other=asker)
+                tally["agreed"] += 1
+                continue
             if answer and answer.get("kind") == "agree" and answer.get("target") == asker:
                 if thread is not None:
                     thread.update(answer="agreed", answered=k)
@@ -280,7 +287,8 @@ def build_index(run: Any) -> dict[str, Any]:
                 change = f" ({need} {was} → {now})" if was is not None and now is not None else ""
                 add(k, "food" if kind == "eat" else "water", kind, f"{actor} {verb}{change}", who=actor)
             elif kind == "offer" and target and outcome is not None:
-                promised = promises_before.get(actor) == target
+                direct = (before.get("requests") or {}).get(target) == actor
+                promised = promises_before.get(actor) == target or direct
                 if outcome.get("accepted"):
                     if promised:
                         add(k, "help", "delivered", f"{actor} delivered the food {target} asked for",
@@ -300,6 +308,10 @@ def build_index(run: Any) -> dict[str, Any]:
                         f"{actor} tried to hand {target} food, but it was refused: "
                         f"{_plain_refusal(outcome.get('reason', ''))}", who=actor, other=target)
                     tally["refused"] += 1
+                    if direct:
+                        thread = open_threads.pop(actor, None)
+                        if thread is not None:
+                            thread.update(end="refused", ended=k)
             was = earlier.get(actor) or {}
             if kind == "go_offer" and target and not (was.get("kind") == "go_offer" and was.get("target") == target):
                 if promises_before.get(actor) == target:
