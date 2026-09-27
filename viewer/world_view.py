@@ -118,6 +118,8 @@ def load_run(path: Path) -> LoadedRun:
                 raise WorldViewError(f"line {number}: expected tick {expected_tick}, found {payload.get('tick')!r}")
             for key in ("record", "state", "world"):
                 _require(payload, key, f"tick line {number}")
+            if set(payload["world"].get("positions", {})) != set(header["world"]["positions"]):
+                raise WorldViewError("this older viewer cannot display a changing population; use python -m world.viewer")
             _require(payload["record"], "outcomes", f"tick line {number} record")
             expected_tick = int(payload["tick"]) + 1
             tick_count += 1

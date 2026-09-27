@@ -287,9 +287,13 @@ def build_index(run: Any) -> dict[str, Any]:
                 change = f" ({need} {was} → {now})" if was is not None and now is not None else ""
                 add(k, "food" if kind == "eat" else "water", kind, f"{actor} {verb}{change}", who=actor)
             elif kind == "offer" and target and outcome is not None:
+                dependent = (parent_of.get(target) == actor and adult_at is not None
+                             and before.get("age", {}).get(target, adult_at) < adult_at)
                 direct = (before.get("requests") or {}).get(target) == actor
                 promised = promises_before.get(actor) == target or direct
                 if outcome.get("accepted"):
+                    if dependent:
+                        tally["fed_children"] += 1
                     if promised:
                         add(k, "help", "delivered", f"{actor} delivered the food {target} asked for",
                             who=actor, other=target)
@@ -297,9 +301,8 @@ def build_index(run: Any) -> dict[str, Any]:
                         thread = open_threads.pop(actor, None)
                         if thread is not None:
                             thread.update(end="delivered", ended=k)
-                    elif parent_of.get(target) == actor:
+                    elif dependent:
                         add(k, "help", "fed_child", f"{actor} fed their child {target}", who=actor, other=target)
-                        tally["fed_children"] += 1
                     else:
                         add(k, "help", "gave", f"{actor} handed {target} a unit of food", who=actor, other=target)
                     tally["handed"] += 1
@@ -371,6 +374,24 @@ def build_index(run: Any) -> dict[str, Any]:
                         thread.update(end="asker died", ended=k)
                     add(k, "help", "too_late", f"{actor} died before {helper} arrived with food",
                         who=helper, other=actor)
+
+        for asker, thread in list(waiting.items()):
+            helper = thread["helper"]
+            if asker in died_at or helper in died_at:
+                reason = "asker died" if asker in died_at else "helper died"
+                thread.update(answer="interrupted", end=reason, ended=k)
+                waiting.pop(asker)
+                add(k, "help", "request_ended", f"Request from {asker} to {helper} ended: {reason}",
+                    who=asker, other=helper)
+
+        for helper, thread in list(open_threads.items()):
+            asker = thread["asker"]
+            if helper in died_at or asker in died_at or promises_now.get(helper) != asker:
+                reason = "helper died" if helper in died_at else "asker died" if asker in died_at else "errand ended without delivery"
+                thread.update(end=reason, ended=k)
+                open_threads.pop(helper)
+                add(k, "help", "errand_ended", f"{helper}'s errand for {asker} ended: {reason}",
+                    who=helper, other=asker)
 
         for entry in tick.get("production") or []:
             if "born" in entry:

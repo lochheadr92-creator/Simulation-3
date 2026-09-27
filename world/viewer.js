@@ -838,7 +838,7 @@
     // errands standing in the world state: a helper who agreed, and the person waiting on them
     for (const helper in (w.promises || {})) {
       const asker = w.promises[helper];
-      if (!present(w, helper) || !present(w, asker) || deadIn(w, helper)) continue;
+      if (!present(w, helper) || !present(w, asker) || deadIn(w, helper) || deadIn(w, asker)) continue;
       const a = headOf(helper, t), b = headOf(asker, t); if (!a || !b) continue;
       g.save(); g.setLineDash([2, 5]); g.lineDashOffset = march; g.strokeStyle = 'rgba(241,197,110,0.85)'; g.lineWidth = 1.6; g.lineCap = 'round';
       arc(g, { x: a.x, y: a.y + 10 }, { x: b.x, y: b.y + 10 }, 10); g.stroke(); g.restore();
@@ -1221,8 +1221,13 @@
     const links = [];
     const req = (w.requests || {})[p]; if (req) links.push(`Asked ${personLink(req)} for food — the answer comes next tick`);
     for (const a in (w.requests || {})) if (w.requests[a] === p) links.push(`${personLink(a)} asked them for food`);
-    const owes = (w.promises || {})[p]; if (owes) links.push(`Agreed to bring ${personLink(owes)} food`);
-    for (const hlp in (w.promises || {})) if (w.promises[hlp] === p) links.push(`${personLink(hlp)} agreed to bring them food`);
+    const owes = (w.promises || {})[p];
+    if (owes) links.push(deadIn(w, p) || deadIn(w, owes)
+      ? `Inactive promise to ${personLink(owes)}: ${deadIn(w, p) ? 'helper' : 'recipient'} died`
+      : `Agreed to bring ${personLink(owes)} food`);
+    for (const hlp in (w.promises || {})) if (w.promises[hlp] === p) links.push(deadIn(w, hlp) || deadIn(w, p)
+      ? `Inactive promise from ${personLink(hlp)}: ${deadIn(w, hlp) ? 'helper' : 'recipient'} died`
+      : `${personLink(hlp)} agreed to bring them food`);
     for (const pair in (w.together || {})) {
       const [a, b] = pair.split('|'); if (a !== p && b !== p) continue;
       const cnt = w.together[pair]; if (!cnt) continue;
@@ -1252,7 +1257,8 @@
       h += '<div class="sec"><h4>Asking for food</h4>' + mine.slice(-6).reverse().map(th => {
         const who = th.asker === p ? `asked <b>${esc(th.helper)}</b>` : `<b>${esc(th.asker)}</b> asked them`;
         let end = '';
-        if (th.answer === 'no answer') end = th.answered <= k ? `no answer${th.busy ? ' (' + esc(th.busy) + ')' : ''}` : 'waiting';
+        if (th.answer === 'interrupted') end = th.ended <= k ? `${esc(th.end)} t${th.ended}` : 'waiting';
+        else if (th.answer === 'no answer') end = th.answered <= k ? `no answer${th.busy ? ' (' + esc(th.busy) + ')' : ''}` : 'waiting';
         else if (th.answer === 'agreed') end = th.answered <= k ? (th.ended && th.ended <= k ? `agreed t${th.answered}, ${esc(th.end)} t${th.ended}` : `agreed t${th.answered}, on the way`) : 'waiting';
         else end = 'waiting';
         return `<div class="thread">t${th.asked}: ${who} — ${end}${th.detours ? `, turned aside ${th.detours}×` : ''}</div>`;

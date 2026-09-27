@@ -296,10 +296,13 @@ class WorldConfig:
                 out["routing"] = ("a person walking somewhere picks their way round rough ground they can see "
                                   "or remember, counting a known rough cell as two ticks and anything else as "
                                   "one; ground that has never been seen is still treated as open, so a route "
-                                  "learned is kept but the unknown stays unknown")
+                                  "learned is kept but the unknown stays unknown; equal-cost routes keep "
+                                  "the straight first step when possible")
             out["ground"] = ("rough ground costs an extra tick to cross: a person who steps onto it spends the "
                              "next tick getting off again; on a shelter spot hunger and thirst each rise "
                              "shelter_relief slower; sources and homes are always open ground")
+        if not self.terrain_on and not self.route_around:
+            out["route_around"] = False
         if self.building_on:
             out["building"] = "on"
             out["build_ticks"] = self.build_ticks
@@ -319,11 +322,15 @@ class WorldConfig:
             out["decision"] += ("; a hungry person holding no food who can see somebody carrying some asks "
                                 "them for it - nearest by steps, then id, never somebody visibly starving - "
                                 "and walks on towards the source while they ask, because asking is speech and "
-                                "costs no tick. The person asked answers on their next tick: they agree "
+                                "costs no tick. The person asked answers on their next tick: a direct handoff "
+                                "to an empty-handed asker alongside needs no walking agreement and is allowed "
+                                "for a parent; feeding a dependent child comes first. Otherwise they agree "
                                 "if nothing of their own is calling, they hold a unit, they are not already "
                                 "carrying one for somebody else, and no child of their own still depends on "
                                 "them; the errand is then theirs until it is delivered or they lose sight of "
-                                "the asker. Anybody else does not answer at all and the asking lapses, because "
+                                "the living asker. Promises end only when food reaches that recipient, either "
+                                "person dies, or they leave sight; feeding someone else does not complete the "
+                                "errand. Anybody else does not answer at all and the asking lapses, because "
                                 "saying no is not an act either")
         if self.adjacent_requests:
             out["request_range"] = "adjacent"
@@ -336,14 +343,18 @@ class WorldConfig:
             out["decision"] += ("; somebody born into the world is a child until they have lived adult_at ticks. "
                                 "A child will not go further than child_leash steps from home for food or water, "
                                 "builds nothing and has no children of their own, and a parent who is free and "
-                                "holding food takes a unit to their own child, in view and carrying none, before "
+                                "holding food takes a unit to their own dependent child below adult_at, in view "
+                                "and carrying none, before "
                                 "anybody else")
+            out["decision"] += ("; the child leash also bounds early departures, walking while asking, "
+                                "and route detours; an unreachable destination sends a child home")
         if self.births_on:
             out["births"] = "on"
             out["together_ticks"] = self.together_ticks
             out["decision"] += ("; when two people who have each finished a shelter, and who are neither hungry "
                                 "nor thirsty nor cold, stand on adjacent cells for together_ticks ticks running, "
-                                "a new person arrives: a home on the nearest free cell to the first of them, "
+                                "a new person arrives: a home on the nearest free open-ground cell to the first "
+                                "of them, excluding rough ground and shelter spots, "
                                 "nothing held, every need at nought. A birth creates no food and no water")
         if self.birth_spacing:
             out["birth_spacing"] = self.birth_spacing
@@ -415,6 +426,9 @@ class WorldConfig:
         terrain = described.get("terrain", "off")
         if not isinstance(terrain, str) or terrain not in switches:
             raise ValueError("terrain must be 'on' or 'off'")
+        routing = described.get("route_around", "routing" in described if switches[terrain] else True)
+        if type(routing) is not bool:
+            raise ValueError("route_around must be a boolean")
         if switches[terrain]:
             for name in ("rough_pct", "shelter_pct", "shelter_relief"):
                 value = described.get(name)
@@ -483,6 +497,7 @@ class WorldConfig:
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
                      water_on=switches[water], warmth_on=switches[warmth],
                      stagger_start=switches[stagger], terrain_on=switches[terrain],
+                     route_around=routing,
                      building_on=switches[building], offers_on=switches[offers],
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",

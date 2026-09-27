@@ -37,7 +37,8 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from kernel import Source, TickRecord, WorldState
 from kernel.proposals import OP_CONSUME, OP_TRANSFER
-from kernel.state import SINK_ACCOUNT, sink_account
+from kernel.state import SINK_ACCOUNT, actor_account, sink_account
+from world.observe import in_view
 
 from world.config import WATER, WorldConfig
 from world.decide import AGREE, ASK, BUILD, Decision
@@ -104,7 +105,9 @@ def settled_pairs(overlay: Overlay, config: WorldConfig) -> list[tuple[str, str]
 def free_cell_near(origin: tuple[int, int], taken: set[tuple[int, int]], config: WorldConfig):
     """The nearest cell nobody lives on and no source occupies, by distance then
     row then column, so a birth always lands in the same place for a given world."""
-    cells = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
+    rough, spots = config.terrain()
+    unavailable = taken | set(rough) | set(spots)
+    cells = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in unavailable]
     if not cells:
         return None
     return min(cells, key=lambda c: (abs(c[0] - origin[0]) + abs(c[1] - origin[1]), c[1], c[0]))
@@ -137,8 +140,10 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     promises = dict(overlay.promises)
     promises.update({actor: d.target for actor, d in decisions.items() if d.kind == AGREE and d.target})
     for outcome in record.outcomes:
-        if outcome.accepted and outcome.operation == OP_TRANSFER:
-            promises.pop(outcome.actor, None)          # delivered, so the errand is over
+        recipient = promises.get(outcome.actor)
+        if recipient and outcome.accepted and outcome.operation == OP_TRANSFER:
+            if any(e.account == actor_account(recipient) and e.delta > 0 for e in outcome.effects):
+                promises.pop(outcome.actor, None)
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
     age = {actor: overlay.age.get(actor, 0) for actor in overlay.roster} if config.childhood_on else {}
     terrain_memory = {actor: set(overlay.terrain_memory.get(actor, ())) for actor in overlay.roster}
@@ -191,8 +196,11 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            birth_ready=dict(overlay.birth_ready),
                            terrain_memory={actor: tuple(sorted(cells)) for actor, cells in terrain_memory.items()
                                            if cells},
-                           requests=requests,
-                           promises={who: owed for who, owed in promises.items() if owed not in died_at})
+                           requests={who: asked for who, asked in requests.items()
+                                     if who not in died_at and asked not in died_at},
+                           promises={who: owed for who, owed in promises.items()
+                                     if who not in died_at and owed not in died_at
+                                     and in_view(positions[who], positions[owed], config.perception_radius)})
 
     production: list[dict[str, Any]] = []
     ledger = settled

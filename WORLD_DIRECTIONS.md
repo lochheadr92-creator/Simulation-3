@@ -1,5 +1,58 @@
 # Simulation 3 — Development Directions
 
+## Review repairs
+
+Claude's independent review of `c1d13cb` found that early food departures and
+walking while asking could bypass the child leash. Local regression checks
+also found that a terrain detour could step outside it. These paths now obey
+the documented distance limit. Children may still ask while staying home or
+returning home, and can travel to reachable food and water. The saved rule
+text changed: old childhood runs remain readable, but are a different rule
+set and are not replayed as the corrected world.
+
+The routing switch now round-trips through run headers, including when
+terrain is off. New `--routing off` runs replay and recover after truncation.
+
+All quantitative results below this correction are historical unless stated
+otherwise. The earlier childhood and spacing comparisons used the leaky
+leash. The review also reports route tie flips affecting memory comparisons
+and adult offspring included in child-feeding totals. Both are now fixed,
+but those earlier measurements have not been redone. Do not use those
+numbers to judge the corrected childhood or learning rules.
+
+Food promises now end only on delivery to the promised recipient, either
+person's death, or loss of sight. Dead askers cannot receive new agreements.
+Child-first handoffs apply only below adulthood, and new homes avoid rough
+ground and shelter spots. Equal-cost routes keep the straight first step.
+Saved rule descriptions now reflect these changes.
+
+The map viewer closes ended errands, identifies stale promises in older
+files, counts water crowds at the water source, and can show the verified
+prefix of a damaged sealed run with a visible warning. Text output handles
+births. The older fixed-roster viewer explicitly refuses changing populations
+instead of silently omitting newborns.
+
+After the first leash repair, before the remaining repairs, 400-tick runs
+with requests off ended as follows:
+
+| Seed | Spacing | Births | Alive | Deaths |
+| --- | --- | --- | --- | --- |
+| 7 | 0 | 7 | 12 | 1 |
+| 7 | 30 | 3 | 9 | 0 |
+| 11 | 0 | 24 | 11 | 19 |
+| 11 | 30 | 9 | 7 | 8 |
+| 23 | 0 | 18 | 12 | 12 |
+| 23 | 30 | 7 | 5 | 8 |
+
+Every recorded child move in those six runs stayed within the leash. The
+later promise, terrain-placement and route repairs can change these results
+again. Fresh 400-tick requests-on runs for seeds 7, 11 and 23 replayed
+identically and retained no promises involving dead or out-of-sight people.
+The original review packet remains an unchanged snapshot of `c1d13cb`, not
+of these repairs.
+
+## Working direction
+
 This is the current working list of things to try. The order reflects our
 present priorities and can change when watching the world reveals a better
 direction. AGENTS.md remains the project brief. This document introduces no

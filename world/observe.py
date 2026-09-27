@@ -189,9 +189,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         **({"cold": overlay.cold[actor]} if config.warmth_on else {}),
         home_built=overlay.homes[actor] in set(overlay.shelters),
         work_done=overlay.built.get(actor, 0),
-        asked_by=next((who for who, asked in overlay.requests.items() if asked == actor), None),
-        owed_to=overlay.promises.get(actor),
-        waiting_on=overlay.requests.get(actor),
+        asked_by=next((who for who, asked in overlay.requests.items()
+                       if asked == actor and any(seen.actor == who for seen in others)), None),
+        owed_to=next((seen.actor for seen in others if seen.actor == overlay.promises.get(actor)), None),
+        waiting_on=next((seen.actor for seen in others if seen.actor == overlay.requests.get(actor)), None),
         rough_seen_now=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         rough_in_view=frozenset(overlay.terrain_memory.get(actor, ()))
         | frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),

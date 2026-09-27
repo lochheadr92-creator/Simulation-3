@@ -131,10 +131,19 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
     tick of crossing it, so nobody bothers; a wall of them is worth going
     round, and that is the case this exists for."""
     origin = observation.position
-    if origin == target or not config.route_around or not observation.rough_in_view:
-        return step_toward(origin, target)
-    radius, rough = config.perception_radius, observation.rough_in_view
+    if too_far_for_a_child(observation, config, target):
+        target = observation.home
     straight = step_toward(origin, target)
+    if too_far_for_a_child(observation, config, straight):
+        x, y = origin
+        legal = [cell for cell in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))
+                 if 0 <= cell[0] < config.width and 0 <= cell[1] < config.height
+                 and not too_far_for_a_child(observation, config, cell)
+                 and steps_to(cell, target) < steps_to(origin, target)]
+        straight = legal[0] if legal else origin
+    if origin == target or not config.route_around or not observation.rough_in_view:
+        return straight
+    radius, rough = config.perception_radius, observation.rough_in_view
     seen_limit = radius
     remembered_limit = max([chebyshev_steps(origin, target), seen_limit]
                            + [chebyshev_steps(origin, cell) for cell in rough])
@@ -143,23 +152,24 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
         x, y = cell
         near = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
         return [c for c in near if 0 <= c[0] < config.width and 0 <= c[1] < config.height
+                and not too_far_for_a_child(observation, config, c)
                 and chebyshev_steps(origin, c) <= remembered_limit]
 
     # rank the first step so ties fall the way the plain rule would have gone
-    order = {cell: i for i, cell in enumerate([straight] + neighbours(origin))}
+    order = {cell: i for i, cell in enumerate(dict.fromkeys([straight] + neighbours(origin)))}
     best_first: dict[Position, Position] = {}
-    seen: dict[Position, int] = {origin: 0}
+    seen: dict[Position, tuple[int, int]] = {origin: (0, 0)}
     queue: list[tuple[int, int, int, int, Position]] = [(0, 0, origin[1], origin[0], origin)]
     while queue:
         cost, rank, _, _, cell = heappop(queue)
-        if cost > seen.get(cell, INF):
+        if (cost, rank) > seen.get(cell, (INF, INF)):
             continue
         for nxt in neighbours(cell):
             step = cost + (2 if nxt in rough else 1)
             first = nxt if cell == origin else best_first[cell]
             nrank = order.get(first, len(order)) if cell == origin else rank
-            if step < seen.get(nxt, INF):
-                seen[nxt], best_first[nxt] = step, first
+            if (step, nrank) < seen.get(nxt, (INF, INF)):
+                seen[nxt], best_first[nxt] = (step, nrank), first
                 heappush(queue, (step, nrank, nxt[1], nxt[0], nxt))
     # Judge only where sight runs out, or the target itself. At a cell in the
     # middle of the window the straight-line estimate pretends the rough beyond
@@ -174,7 +184,7 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
     ends = [c for c in best_first if edge(c)] or list(best_first)
     if not ends:
         return straight
-    choice = min(ends, key=lambda c: (seen[c] + steps_to(c, target),
+    choice = min(ends, key=lambda c: (seen[c][0] + steps_to(c, target),
                                       order.get(best_first[c], len(order)), c[1], c[0]))
     return best_first[choice]
 
@@ -248,7 +258,7 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
         return None
     # your own child, in front of you and carrying nothing, comes before anybody
     hungry_children = [seen for seen in observation.others
-                       if seen.actor in observation.children and seen.food < 1]
+                       if seen.actor in observation.dependents and seen.food < 1]
     if hungry_children:
         return min(hungry_children, key=lambda seen: (steps_to(observation.position, seen.position),
                                                       seen.actor)).actor
@@ -313,9 +323,10 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
         else:
             found.append(GO)
     if not hungry:
-        if trip_due(observation, config):
+        if trip_due(observation, config) and not too_far_for_a_child(observation, config, observation.source):
             found.append(GO)
         elif (config.requests_on and not config.adjacent_requests and observation.asked_by is not None
+                and in_view(observation, observation.asked_by)
                 and observation.food >= 1 and observation.owed_to is None
                 and not observation.dependents
                 and adjacent_request(observation, config) is None):
@@ -540,6 +551,11 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
         return Decision(actor, HOME, "fed, walking home", options, step=route_step(observation, observation.home, config), scores=scores)
     if selected == ASK:
         who = someone_to_ask(observation, config)
+        if too_far_for_a_child(observation, config, observation.source):
+            return Decision(actor, ASK, f"{urgency}, asking {who} while staying near home; food is beyond child leash",
+                            options, target=who,
+                            step=None if observation.at_home else route_step(observation, observation.home, config),
+                            scores=scores)
         return Decision(actor, ASK, f"{urgency}, holding none; asking {who} for food while walking on",
                         options, target=who, step=route_step(observation, observation.source, config),
                         scores=scores)

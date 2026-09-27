@@ -28,6 +28,7 @@ import argparse
 import html
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -88,12 +89,15 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
     tick = run.ticks[view - 1]
     prior = run.header["world"] if view == 1 else run.ticks[view - 2]["world"]
     cfg = run.header["scenario"]
-    food_at = {entry["id"]: entry["position"] for entry in _food_sources(cfg)}
+    source_at = {entry["id"]: entry["position"] for entry in _food_sources(cfg) + _water_sources(cfg)}
     selection = [f"Tick {tick['tick']} — personal selection from tick-start inputs"]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         ob = tick.get("observations", {}).get(actor, {})
-        aimed = food_at.get(d.get("target"), cfg["source_position"])
+        water_action = d.get("kind") in ("drink", "draw", "wait_water", "go_water")
+        source_id = d.get("target") or cfg.get("water_source" if water_action else "source")
+        aimed = source_at.get(source_id)
         crowd = sum(position == aimed for position in _seen_positions(ob, prior))
+        stock = ob.get("seen_stock", {}).get(source_id, ob.get("water_stock" if water_action else "source_food", "not observed"))
         scores = d.get("scores")
         pairs = "; ".join(f"{action} {tuple(scores[action])}" if scores is not None and action in scores
                           else f"{action} (score not recorded)" for action in d["candidates"])
@@ -102,7 +106,7 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
             + (f"thirst {prior['thirst'][actor]}, " if "thirst" in prior else "")
             + (f"cold {prior['cold'][actor]}, " if "cold" in prior else "")
             + f"yield_at {prior.get('yield_at', {}).get(actor, 'not recorded')}, "
-            f"seen crowd {crowd}, seen source stock {ob.get('source_food', 'not observed')}"
+            f"seen crowd {crowd}, seen source stock {stock}"
             + (f", seen stocks {ob['seen_stock']}" if "seen_stock" in ob else "")
             + f"; eligible: {pairs}; selected {d['kind']}"
             + (f" -> {d['target']}" if "target" in d else "")
@@ -216,6 +220,12 @@ def _layer(key: str, label: str, note: str = "", checked: bool = True) -> str:
 def render_html(run: Run) -> str:
     if not run.has_world:
         raise ValueError("this run has no world overlay; use stream.viewer for a kernel-only run")
+    prefix_notice = ""
+    if not run.complete and run.last_sealed_tick is not None:
+        count = max(0, run.last_sealed_tick + 1)
+        prefix_notice = f"Showing only the verified prefix: {count} ticks. Later records are not displayed."
+        run = replace(run, ticks=run.ticks[:count], end=None,
+                      problems=run.problems + (f"Showing only the verified prefix: {count} ticks.",))
     scenario = run.header.get("scenario", {})
     data = _embed(_run_payload(run))
     index = _embed(build_index(run))
@@ -275,6 +285,7 @@ def render_html(run: Run) -> str:
     {''.join(f'<span class="chip switch">{html.escape(s)}</span>' for s in switches)}
     <span class="chip{'' if run.complete else ' bad'}" title="{html.escape(str(run.header.get('format', '')))} · engine {html.escape(str(run.header.get('engine_version', '')))}">file {status}</span>
   </div>
+  {f'<div class="problem" role="alert" style="flex-basis:100%">{prefix_notice}</div>' if prefix_notice else ''}
 </header>
 
 <section id="map" aria-label="The world">
@@ -386,7 +397,7 @@ def render_text(run: Run, view: int) -> str:
             return run.header["genesis"]["sources"][source_id]["stock"]
         tick_line = run.ticks[view - 1]
         return tick_line["state"]["sources"][source_id]["stock"] + sum(
-            e["amount"] for e in tick_line.get("production", []) if e["source"] == source_id)
+            e["amount"] for e in tick_line.get("production", []) if e.get("source") == source_id)
     stock = stock_of(cfg["source"])
     grid = [["." for _ in range(cfg["width"])] for _ in range(cfg["height"])]
     sx, sy = cfg["source_position"]
@@ -429,7 +440,7 @@ def render_text(run: Run, view: int) -> str:
         trait = traits.get(actor)
         needs = (f" thirst {world['thirst'][actor]}" if "thirst" in world else "") + (
             f" cold {world['cold'][actor]}" + (" sheltered" if tuple(world["positions"][actor]) == tuple(
-                run.header["world"]["homes"][actor]) else "") if "cold" in world else "")
+                world["homes"][actor]) else "") if "cold" in world else "")
         lines.append(f"{actor} yield_at {trait} at {tuple(world['positions'][actor])} hunger {world['hunger'][actor]}"
                      + needs + dead
                      + seen
