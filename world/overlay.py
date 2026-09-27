@@ -1,5 +1,5 @@
 """The world state the kernel does not hold: homes, positions, needs, deaths,
-and the shelters people have built.
+the shelters people have built, and what each person remembers seeing.
 
 Immutable and canonical like the kernel's WorldState; replaced, never edited.
 Food units are not here on purpose: they live in the kernel ledger, and the
@@ -59,6 +59,24 @@ def _positive_ints(raw: Mapping[str, Any], *, roster: set[str], name: str) -> Ma
     return MappingProxyType(out)
 
 
+def _terrain_memory(raw: Mapping[str, Any], *, roster: set[str]) -> Mapping[str, tuple[Position, ...]]:
+    """Per-person rough cells remembered from earlier views."""
+    if set(raw) - roster:
+        raise ValueError("terrain_memory must name known people")
+    out: dict[str, tuple[Position, ...]] = {}
+    for actor in sorted(raw):
+        cells: list[Position] = []
+        for cell in raw[actor]:
+            if not isinstance(cell, (list, tuple)) or len(cell) != 2:
+                raise ValueError(f"{actor!r} remembers a bad terrain cell {cell!r}")
+            x, y = cell
+            if type(x) is not int or type(y) is not int or x < 0 or y < 0:
+                raise ValueError(f"{actor!r} remembers a bad terrain cell {cell!r}")
+            cells.append((x, y))
+        out[actor] = tuple(sorted(set(cells)))
+    return MappingProxyType(out)
+
+
 @dataclass(frozen=True)
 class Overlay:
     tick: int
@@ -77,6 +95,7 @@ class Overlay:
     promises: Mapping[str, str] = field(default_factory=dict) # helper -> the person they agreed to bring food to
     age: Mapping[str, int] = field(default_factory=dict)      # ticks lived; everyone at genesis starts grown
     parent: Mapping[str, str] = field(default_factory=dict)   # child -> the person whose home they were born beside
+    terrain_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)  # actor -> rough cells remembered
 
     def __post_init__(self) -> None:
         if type(self.tick) is not int or self.tick < 0:
@@ -110,6 +129,7 @@ class Overlay:
         object.__setattr__(self, "promises", _links(self.promises, positions=positions, name="promises"))
         object.__setattr__(self, "age", _levels(self.age, positions=positions, name="age"))
         object.__setattr__(self, "parent", _links(self.parent, positions=positions, name="parent"))
+        object.__setattr__(self, "terrain_memory", _terrain_memory(self.terrain_memory, roster=set(positions)))
         shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
         for cell in shelters:
             if (len(cell) != 2 or type(cell[0]) is not int or type(cell[1]) is not int
@@ -153,6 +173,9 @@ class Overlay:
             **({"promises": dict(self.promises)} if self.promises else {}),
             **({"age": dict(self.age)} if self.age else {}),
             **({"parent": dict(self.parent)} if self.parent else {}),
+            **({"terrain_memory": {actor: [list(cell) for cell in cells]
+                                   for actor, cells in self.terrain_memory.items()}}
+               if self.terrain_memory else {}),
         }
 
     @classmethod
@@ -161,7 +184,8 @@ class Overlay:
         The shape is checked here; every value is validated by the constructor."""
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
-            for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises", "age", "parent"):
+            for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
+                          "age", "parent", "terrain_memory"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -187,7 +211,9 @@ class Overlay:
                    shelters=tuple(tuple(cell) for cell in data.get("shelters", ())),
                    together=dict(data.get("together", {})),
                    requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})),
-                   age=dict(data.get("age", {})), parent=dict(data.get("parent", {})))
+                   age=dict(data.get("age", {})), parent=dict(data.get("parent", {})),
+                   terrain_memory={actor: tuple(tuple(cell) for cell in cells)
+                                   for actor, cells in dict(data.get("terrain_memory", {})).items()})
 
     def digest(self) -> str:
         return canonical_digest(self.canonical())

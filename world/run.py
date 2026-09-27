@@ -114,7 +114,7 @@ def world_step(engine: Engine, overlay: Overlay, config: WorldConfig) -> WorldSt
     proposals = proposals_for(decisions, state.tick)
     record = engine.tick(proposals)
     committed = engine.state
-    processed = advance(overlay, decisions, record, committed, config)
+    processed = advance(overlay, decisions, record, committed, config, views)
     next_engine = Engine(processed.ledger) if processed.production else engine
     return WorldStep(views=views, decisions=decisions, proposals=proposals, record=record,
                      committed=committed, processed=processed, engine=next_engine)

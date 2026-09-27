@@ -122,7 +122,7 @@
   const LAYERS = {
     people: true, names: true, needs: true, food: true, water: true, homes: true, shelters: true,
     rough: true, spots: true, trails: true, perception: 'selected', links: true, deaths: true, stock: true, moments: true,
-    family: true,
+    family: true, memory: true,
   };
   let v = 0;                       // the view on screen
   let anim = { from: 0, to: 0, start: 0, dur: 0 };
@@ -380,6 +380,10 @@
     return { gx, gy, x: isoX(gx, gy), y: isoY(gx, gy) - e, e };
   }
   function cellCentre(x, y) { return { x: isoX(x + 0.5, y + 0.5), y: isoY(x + 0.5, y + 0.5) - elev(x, y) }; }
+  function roughMemory(w, p) {
+    const cells = ((w.terrain_memory || {})[p]) || [];
+    return cells.map(c => Array.isArray(c) ? c : null).filter(Boolean);
+  }
 
   // ------------------------------------------------------------- drawing --
   function line(g, x1, y1, x2, y2) { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
@@ -664,6 +668,27 @@
       const gr = g.createRadialGradient(c.x, c.y, 2, c.x, c.y, 26);
       gr.addColorStop(0, `rgba(255,196,110,${(0.30 * pulse).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,196,110,0)');
       g.fillStyle = gr; ell(g, c.x, c.y, 26, 13); g.fill();
+    }
+    if (LAYERS.memory && selP && present(w, selP)) {
+      const nowSeen = new Set();
+      const radius2 = C.perception_radius;
+      if (typeof radius2 === 'number' && !deadIn(w, selP)) {
+        const [px, py] = w.positions[selP];
+        for (const key of ROUGH) {
+          const [rx, ry] = key.split(',').map(Number);
+          if (Math.max(Math.abs(rx - px), Math.abs(ry - py)) <= radius2) nowSeen.add(key);
+        }
+      }
+      for (const cell of roughMemory(w, selP)) {
+        const key = cell.join(',');
+        const c = cellCentre(cell[0], cell[1]);
+        g.save();
+        g.globalAlpha = nowSeen.has(key) ? 0.22 : 0.42;
+        poly(g, [[c.x, c.y - 12], [c.x + 24, c.y], [c.x, c.y + 12], [c.x - 24, c.y]]);
+        g.fillStyle = 'rgba(255,227,163,0.12)'; g.fill();
+        g.setLineDash([4, 3]); g.strokeStyle = 'rgba(255,227,163,0.65)'; g.lineWidth = 1.1; g.stroke();
+        g.restore();
+      }
     }
     if (LAYERS.homes && w.homes) for (const p of people) {
       if (!present(w, p)) continue;
@@ -1182,6 +1207,8 @@
     ];
     const trait = ((w.yield_at || {})[p]);
     if (trait !== undefined) facts.push(['Crowd trait', `stands back from a crowd of ${trait}`]);
+    const knownRough = roughMemory(w, p).length;
+    if (knownRough) facts.push(['Map memory', `${knownRough} rough cell${knownRough === 1 ? '' : 's'} remembered`]);
     if (BORN[p]) facts.push(['Born', `tick ${BORN[p]}`]);
     const lived = ageOf(w, p);
     if (ADULT_AT !== null && lived !== null) facts.push(['Age', lived < ADULT_AT ? `a child: ${lived} of the ${ADULT_AT} ticks it takes to grow up` : 'grown']);

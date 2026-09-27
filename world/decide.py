@@ -119,15 +119,13 @@ def step_toward(origin: Position, target: Position) -> Position:
 
 
 def route_step(observation: Observation, target: Position, config: WorldConfig) -> Position:
-    """One step towards target, picking a way round the rough ground this
-    person can see.
+    """One step towards target, picking a way round known rough ground.
 
-    Only what is inside the perception radius counts. Within it a rough cell
-    costs two ticks to enter and anything else costs one; beyond it nothing is
-    known, so the rest of the journey is counted as open ground in a straight
-    line. The cheapest total wins. With nothing rough in view this is the plain
-    step along the longer axis, x on ties, so a world without terrain moves
-    exactly as it always did.
+    Rough inside sight counts, and remembered rough counts after it leaves
+    sight. Known rough costs two ticks to enter and anything else costs one;
+    unknown ground is still counted as open. The cheapest total wins. With no
+    known rough this is the plain step along the longer axis, x on ties, so a
+    world without terrain moves exactly as it always did.
 
     Detouring round a single rough cell costs two extra steps against the one
     tick of crossing it, so nobody bothers; a wall of them is worth going
@@ -137,12 +135,15 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
         return step_toward(origin, target)
     radius, rough = config.perception_radius, observation.rough_in_view
     straight = step_toward(origin, target)
+    seen_limit = radius
+    remembered_limit = max([chebyshev_steps(origin, target), seen_limit]
+                           + [chebyshev_steps(origin, cell) for cell in rough])
 
     def neighbours(cell: Position) -> list[Position]:
         x, y = cell
         near = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
         return [c for c in near if 0 <= c[0] < config.width and 0 <= c[1] < config.height
-                and chebyshev_steps(origin, c) <= radius]
+                and chebyshev_steps(origin, c) <= remembered_limit]
 
     # rank the first step so ties fall the way the plain rule would have gone
     order = {cell: i for i, cell in enumerate([straight] + neighbours(origin))}
@@ -165,7 +166,10 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
     # it is not there, even though the person can see it, and a cell just short
     # of a wall then looks like the best place in the world to be.
     def edge(cell: Position) -> bool:
-        return cell == target or chebyshev_steps(origin, cell) == radius
+        dist = chebyshev_steps(origin, cell)
+        if remembered_limit > seen_limit:
+            return cell == target or dist == remembered_limit
+        return cell == target or dist == seen_limit
 
     ends = [c for c in best_first if edge(c)] or list(best_first)
     if not ends:

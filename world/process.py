@@ -33,7 +33,7 @@ through the kernel's own validated constructor, never a balance write.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from kernel import Source, TickRecord, WorldState
 from kernel.proposals import OP_CONSUME, OP_TRANSFER
@@ -42,6 +42,9 @@ from kernel.state import SINK_ACCOUNT, sink_account
 from world.config import WATER, WorldConfig
 from world.decide import AGREE, ASK, BUILD, Decision
 from world.overlay import Overlay
+
+if TYPE_CHECKING:
+    from world.observe import Observation
 
 
 @dataclass(frozen=True)
@@ -112,7 +115,8 @@ def eased(rate: int, relief: int) -> int:
 
 
 def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRecord,
-            settled: WorldState, config: WorldConfig) -> Processed:
+            settled: WorldState, config: WorldConfig,
+            observations: Mapping[str, "Observation"] | None = None) -> Processed:
     if settled.tick != overlay.tick + 1:
         raise ValueError("settled ledger and overlay are not one tick apart")
     eaten = units_eaten(record)
@@ -135,6 +139,11 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             promises.pop(outcome.actor, None)          # delivered, so the errand is over
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
     age = {actor: overlay.age.get(actor, 0) for actor in overlay.roster} if config.childhood_on else {}
+    terrain_memory = {actor: set(overlay.terrain_memory.get(actor, ())) for actor in overlay.roster}
+    if config.terrain_on and observations:
+        for actor, view in observations.items():
+            if actor in terrain_memory:
+                terrain_memory[actor].update(view.rough_seen_now)
     died_at = dict(overlay.died_at)
     died: list[str] = []
     for actor in overlay.roster:
@@ -177,6 +186,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)), together=dict(overlay.together),
                            age=age, parent=dict(overlay.parent),
+                           terrain_memory={actor: tuple(sorted(cells)) for actor, cells in terrain_memory.items()
+                                           if cells},
                            requests=requests,
                            promises={who: owed for who, owed in promises.items() if owed not in died_at})
 
@@ -249,5 +260,6 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
                     shelters=overlay.shelters, together=counts, age=age, parent=parent,
+                    terrain_memory=dict(overlay.terrain_memory),
                     requests=dict(overlay.requests), promises=dict(overlay.promises)),
             grown, born)

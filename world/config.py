@@ -107,7 +107,7 @@ class WorldConfig:
     rough_pct: int = 18           # percent of free cells that are rough: crossing one costs an extra tick
     shelter_pct: int = 6          # percent of free cells that are shelter spots
     shelter_relief: int = 1       # hunger and thirst each rise this much slower on a shelter spot
-    route_around: bool = True     # walk round rough ground you can see, rather than straight through it
+    route_around: bool = True     # walk round known rough ground, including rough cells remembered from earlier views
     building_on: bool = True      # a fed, watered person at home spends their spare ticks building there
     build_ticks: int = 12         # ticks of work a shelter takes; interrupted work keeps its progress
     offers_on: bool = True        # carry a spare unit to somebody visibly starving nearby (2026-09-27)
@@ -289,11 +289,10 @@ class WorldConfig:
             out["rough"] = [list(cell) for cell in rough]
             out["shelter_spots"] = [list(cell) for cell in shelter]
             if self.route_around:
-                out["routing"] = ("a person walking somewhere picks their way round the rough ground they can "
-                                  "see, counting a rough cell as two ticks and anything else as one, and "
-                                  "counting whatever lies beyond their sight as open ground in a straight line; "
-                                  "going round a single rough cell costs more than crossing it, so they only "
-                                  "avoid a run of them")
+                out["routing"] = ("a person walking somewhere picks their way round rough ground they can see "
+                                  "or remember, counting a known rough cell as two ticks and anything else as "
+                                  "one; ground that has never been seen is still treated as open, so a route "
+                                  "learned is kept but the unknown stays unknown")
             out["ground"] = ("rough ground costs an extra tick to cross: a person who steps onto it spends the "
                              "next tick getting off again; on a shelter spot hunger and thirst each rise "
                              "shelter_relief slower; sources and homes are always open ground")

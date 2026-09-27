@@ -15,9 +15,7 @@ invisible.
 The source's POSITION is a known landmark, declared in config, and is
 always present on the observation. Its STOCK is observed only when the
 source cell is within the radius. Outside the radius the observation
-carries no stock value (None), not a stale number and not zero. There is
-no memory, observation age, or belief store; this is the local-knowledge
-hook without retained facts (Stage 4).
+carries no stock value (None), not a stale number and not zero.
 
 Recorded form (run file, from 2026-09-25): `sees`, the identities of the
 living others in view in roster order, plus `source_food` when the source is
@@ -25,9 +23,10 @@ in view. Their positions and free food are the tick-start world positions and
 ledger availability already in the same file, so they are not repeated; older
 files recorded them per observation as `others`.
 
-Rough ground (2026-09-28) is seen like anything else: `rough_in_view` holds
-the rough cells inside the radius, and nothing beyond it. A person picks their
-way around what they can see and walks blind into what they cannot.
+Rough ground (2026-09-28) is seen like anything else. A person remembers the
+rough cells they have seen before, so `rough_in_view` holds current rough in
+sight plus remembered rough elsewhere. Stock and people are still current-view
+only.
 
 Warmth (2026-09-27) needs no landmark: shelter is the person's own home cell,
 which the observation already carries, so `cold` is the only field it adds.
@@ -111,7 +110,8 @@ class Observation:
     asked_by: str | None = None            # somebody asked this person for food last tick
     owed_to: str | None = None             # this person agreed to bring food to somebody
     waiting_on: str | None = None          # this person asked somebody and has had no answer yet
-    rough_in_view: frozenset[Position] = frozenset()   # rough cells they can see, for choosing a way round
+    rough_in_view: frozenset[Position] = frozenset()   # visible rough plus remembered rough, for choosing a way round
+    rough_seen_now: frozenset[Position] = frozenset()  # just this tick's visible rough cells
     age: int = 10 ** 6                     # ticks lived; the default is somebody long grown
     children: frozenset[str] = frozenset() # who this person is a parent to
     dependents: frozenset[str] = frozenset()   # those of them still too young to fend for themselves
@@ -192,7 +192,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         asked_by=next((who for who, asked in overlay.requests.items() if asked == actor), None),
         owed_to=overlay.promises.get(actor),
         waiting_on=overlay.requests.get(actor),
-        rough_in_view=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
+        rough_seen_now=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
+        rough_in_view=frozenset(overlay.terrain_memory.get(actor, ()))
+        | frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         **({"age": overlay.age.get(actor, config.adult_at),
            "children": frozenset(kid for kid, mum in overlay.parent.items() if mum == actor),
            "dependents": frozenset(kid for kid, mum in overlay.parent.items()

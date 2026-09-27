@@ -10,17 +10,19 @@ from __future__ import annotations
 
 import ast
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from kernel import Source, WorldState, canonical_bytes
+from kernel import Engine, Source, WorldState, canonical_bytes
 from stream.run_file import apply_production, read_run
 from world.config import (DISTANCE_METRIC, FOOD_SOURCE, ONE_SOURCE_FOOD_ONLY, PERCEPTION_BOUNDARY, SHORT_RANGE_LEVERS,
                           WorldConfig)
-from world.decide import CLAIM, GO, candidates, decide
+from world.decide import CLAIM, GO, candidates, decide, route_step
 from world.observe import Observation, chebyshev, in_view, observe
 from world.overlay import Overlay
+from world.process import advance
 from world.run import run_world
 from world.viewer import render_html, render_text
 
@@ -127,6 +129,47 @@ def test_source_stock_absent_out_of_view_and_equal_when_in_view():
     view = observe("p01", near, overlay_near, cfg_near)
     assert view.source_food == 5 == near.view_for("p01").sources[FOOD_SOURCE].available_stock
     assert view.at_source
+
+
+def test_rough_ground_seen_once_is_remembered_for_later_routes():
+    cfg = WorldConfig(seed=0, width=7, height=7, actors=2, perception_radius=1, food_sources=1,
+                      water_on=False, warmth_on=False, stagger_start=False, building_on=False,
+                      offers_on=False, births_on=False, childhood_on=False)
+    positions = {"p01": (0, 0), "p02": (6, 6)}
+    ledger = WorldState.genesis(
+        balances={"p01": 0, "p02": 0},
+        sources={FOOD_SOURCE: Source(stock=5, authorised=frozenset(positions))},
+    )
+    overlay = Overlay(tick=0, homes=positions, positions=positions, hunger={"p01": 0, "p02": 0},
+                      yield_at={"p01": 99, "p02": 99})
+    engine = Engine(ledger)
+    seen = Observation(
+        actor="p01", tick=0, alive=True, position=(0, 0), home=(0, 0), hunger=0, food=0,
+        source=cfg.source_position, source_food=None, rough_seen_now=frozenset({(1, 0), (1, 1)}),
+    )
+    processed = advance(overlay, {}, engine.tick([]), engine.state, cfg, {"p01": seen})
+    assert processed.overlay.terrain_memory["p01"] == ((1, 0), (1, 1))
+    moved = replace(processed.overlay, positions={"p01": (6, 0), "p02": (6, 6)})
+    restored = Overlay.from_canonical(moved.canonical())
+    assert restored.digest() == moved.digest()
+    later = observe("p01", processed.ledger, restored, cfg)
+    assert not {(1, 0), (1, 1)} & later.rough_seen_now
+    assert {(1, 0), (1, 1)} <= later.rough_in_view
+    stranger = observe("p02", processed.ledger, restored, cfg)
+    assert not {(1, 0), (1, 1)} & stranger.rough_in_view
+    with pytest.raises(TypeError):
+        restored.terrain_memory["p01"] = ()
+
+
+def test_route_uses_remembered_rough_beyond_current_sight():
+    cfg = small(width=7, height=5, perception_radius=1, terrain_on=True, route_around=True)
+    view = obs(
+        position=(0, 0), source=(4, 0), source_food=None,
+        rough_in_view=frozenset({(1, 0), (2, 0), (3, 0)}),
+    )
+    assert route_step(view, view.source, cfg) == (0, 1)
+    blind = obs(position=(0, 0), source=(4, 0), source_food=None)
+    assert route_step(blind, blind.source, cfg) == (1, 0)
 
 
 def test_unrestricted_radius_decisions_match_head_b305783(tmp_path: Path):

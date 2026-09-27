@@ -68,15 +68,15 @@ About four children in ten still die before growing up, most of them born too
 far from a source for the leash to reach and dependent on somebody
 remembering them.
 
-**Walking round rough ground.** A person heading anywhere picks their way
-round the rough ground they can see, counting a rough cell as two ticks and
-everything else as one, and counting whatever lies beyond their sight as open
-in a straight line. Only the edge of sight is judged: measuring a cell in the
-middle of what they can see would pretend the rough beyond it was not there,
-and a cell just short of a wall would look like the best place on the map.
-Going round one rough cell costs more than crossing it, so nobody bothers; a
-run of three is worth avoiding, and that is the case this exists for.
-`--routing off` restores straight-line walking.
+**Walking round remembered rough ground.** A person heading anywhere picks
+their way round the rough ground they can see or remember, counting a known
+rough cell as two ticks and everything else as one. Ground nobody has seen is
+still treated as open. Only the edge of sight is judged for brand-new ground:
+measuring a cell in the middle of what they can see would pretend the rough
+beyond it was not there, and a cell just short of a wall would look like the
+best place on the map. Going round one rough cell costs more than crossing
+it, so nobody bothers; a run of three is worth avoiding, and that is the case
+this exists for. `--routing off` restores straight-line walking.
 
 It made a large difference. Over 400 ticks the time people spend bogged in
 rough ground fell by about nine tenths — 321 stuck ticks to 17 on seed 7, 739
@@ -152,21 +152,18 @@ survival overall; it does not say individual outcomes are unchanged. A unit
 carried to a neighbour plainly helps whoever receives it and costs whoever
 gave it.
 
-**Nobody remembers a route.** Routing uses only what is in view this tick.
-Beyond the perception radius the map is assumed open, so a person walks
-confidently into a wall of rough they have crossed a dozen times before and
-discovers it again each time. Remembered terrain is the next step in this
-domain, and it needs memory.
+**Memory is still only terrain memory.** A person remembers rough cells they
+have seen before, and uses those cells when choosing a route later. They do
+not yet remember empty ground, a source that was empty last time, an
+encounter, a helper or a refusal. The world now has its first remembered fact,
+but it is a map habit, not social memory.
 
-**Newborns act immediately and independently.** A new person is given a
-home, a crowd-yield trait and needs at zero. They are a full adult on their
-first tick: they walk, claim, eat, build and can themselves become a parent.
-There is no age, no record of who their parents were, and no dependency of
-any kind.
-
-**Nobody remembers anything.** Every decision is made from the current
-tick's observation. There is no memory of an encounter, a route, a person
-who helped, or a source that was empty last time.
+**Childhood exists, but family life is still thin.** Newborns have a parent,
+an age and a period of dependency. They stay near home, do not build, do not
+become parents and can be fed by their parent. What is still missing is the
+rest of a family life: grown children leaving to make homes of their own,
+spacing between births, ageing beyond childhood, and households changing as
+people mature.
 
 **Other present limits.** Scored action selection cannot run alongside water
 or warmth, because the scorer has no cases for their actions. The older
@@ -416,14 +413,22 @@ Childhood is built and on by default.
 
 Asking was retried in the steadier world and still does not pay; see above.
 
-**First: remembered terrain**, so a route learned is a route kept, which is
-also the first piece of memory the world has ever had.
-**Second: ageing and the rest of the family**, now that parentage is recorded —
-grown children leaving to establish a home of their own, and spacing between
-births.
-**Third: help that costs no journey** — handing a unit to somebody already
-beside you. That is the one shape of giving the world has never tried, and the
-only obvious way asking might yet pay.
+Remembered terrain now changes repeat journeys. In 220-tick runs of seeds
+7, 11 and 23, keeping previously seen rough cells changed the next route step
+6, 1 and 11 times compared with using current sight alone. These are local
+route comparisons in the same run, not claims about survival improvements.
+
+**Next: help that costs no journey.** Seed 23 shows p01 setting off toward
+starving p12 at tick 127, then turning home for warmth at tick 128. Both food
+patches are empty. This interrupted help is the clearest next interaction to
+explore. Adjacent offers already exist; the new experiment should let a food
+request be answered by a handoff while the asker is beside the helper,
+without first agreeing to a walking errand. Keep the helper's own needs and
+the kernel transfer rules. Asking remains off by default until we have watched
+what this changes.
+
+Ageing and the rest of the family can follow: grown children leaving to
+establish a home of their own, and spacing between births.
 
 ### What asking looked like, and what it cost
 
@@ -435,8 +440,8 @@ A complete food request, from need to consequence:
    and identify a possible helper — somebody visibly carrying food. Distance
    matters, because a request they cannot reach is worth less than one they
    can.
-3. **Request.** They ask that person. The request is an action with a cost:
-   the tick spent on it, and the needs that keep rising while they wait.
+3. **Request.** They call out while continuing toward food. Asking itself
+   costs no tick; their needs keep rising during the journey.
 4. **Answer.** The person asked decides from their own state. They may help,
    or refuse because they are hungry themselves, because they hold too
    little, or because something of their own is more urgent. A refusal is a
