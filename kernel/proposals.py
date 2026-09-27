@@ -24,6 +24,7 @@ from kernel.units import is_integer, is_valid_transaction_amount
 OP_CLAIM = "claim"
 OP_TRANSFER = "transfer"
 OP_CONSUME = "consume"
+OP_DEPOSIT = "deposit"
 OP_RESERVE = "reserve"
 OP_COMPLETE = "complete"
 OP_CANCEL = "cancel"
@@ -144,10 +145,21 @@ def expand_consume(proposal: Proposal) -> tuple[Effect, ...]:
     )
 
 
+def expand_deposit(proposal: Proposal) -> tuple[Effect, ...]:
+    target = proposal.params.get("source")
+    if not isinstance(target, str) or not target:
+        raise reasons.Rejected(reasons.DENIED_MALFORMED_PARAMS)
+    amount = _amount(proposal.params, "amount")
+    resource = _resource(proposal.params)
+    return _ordered([Effect(actor_account(proposal.actor, resource), -amount),
+                     Effect(source_account(target), amount)])
+
+
 EXPANDERS: dict[str, Callable[[Proposal], tuple[Effect, ...]]] = {
     OP_CLAIM: expand_claim,
     OP_TRANSFER: expand_transfer,
     OP_CONSUME: expand_consume,
+    OP_DEPOSIT: expand_deposit,
 }
 
 
@@ -181,6 +193,17 @@ def transfer(proposal_id: str, actor: str, order: int, *, to: str, amount: int,
 def consume(proposal_id: str, actor: str, order: int, *, amount: int, resource: str | None = None) -> Proposal:
     """Spend `amount` of the proposer's own holding into the consumption sink."""
     return Proposal(proposal_id, actor, order, OP_CONSUME, _with_resource({"amount": amount}, resource))
+
+
+def deposit(proposal_id: str, actor: str, order: int, *, source: str, amount: int,
+            resource: str | None = None) -> Proposal:
+    """Put the proposer's carried units into an existing shared source.
+
+    This is an immediate transaction. Like other credits, its units become
+    available to claim at the next tick start. Deposits cannot be reserved.
+    """
+    return Proposal(proposal_id, actor, order, OP_DEPOSIT,
+                    _with_resource({"source": source, "amount": amount}, resource))
 
 
 def reserve(proposal_id: str, actor: str, order: int, *, operation: str, params: Mapping[str, Any]) -> Proposal:

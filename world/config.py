@@ -1,8 +1,8 @@
 """The declared world levers and the seeded genesis.
 
-Levers are the ones ROADMAP Stage 2 allows: geometry, distribution, renewal,
-initial supplies, perception radius, consumption rates, and the crowd-yield
-trait set. Changing one is a new configuration, and every value is written
+Levers include geometry, distribution, renewal, initial supplies, perception
+radius, consumption rates, and the crowd-yield trait set.
+Changing one is a new configuration, and every value is written
 into the run header so a run is readable on its own.
 
 Genesis uses one named deterministic generator, `homes-uniform-v1+yield-v1`:
@@ -10,7 +10,7 @@ homes are drawn without replacement from every cell except the source cells
 (every food and water source) using `random.Random(seed)`, then `yield_at` is
 drawn from the same RNG instance. Home draws are unchanged from
 `homes-uniform-v1`. Nothing else in a run uses randomness; decisions and
-processes are pure rules (DOCTRINE: no runtime randomness through Stage 3).
+processes are pure rules.
 
 The default world (2026-09-26) has two food sources and, with water on, two
 water sources. The world before that, one food source and no water, is
@@ -32,6 +32,11 @@ from typing import Any
 from kernel import Source, WorldState
 
 from world.overlay import Overlay
+from world.storage import STORE_TARGET, store_id
+from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
+from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
+from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
+                           SEASON_TICKS, SEASONS, season_at, seasonal_growth)
 
 GENESIS_GENERATOR = "homes-uniform-v1+yield-v1"
 TERRAIN_GENERATOR = "terrain-uniform-v1"   # its own stream, so terrain levers never move a home
@@ -53,13 +58,13 @@ SHORT_RANGE_LEVERS = {"hungry_at": 5, "emergency_at": 10, "death_at": 16, "satia
                       "renewal_every": 3, "claim_amount": 2, "plan_trips": False,
                       "food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
                       "terrain_on": False, "building_on": False, "offers_on": False, "births_on": False,
-                      "childhood_on": False}
+                      "childhood_on": False, "social_memory_on": False}
 
 # The world before the second food source and default water (2026-09-25): one
 # food source and no water. WorldConfig(seed=..., **ONE_SOURCE_FOOD_ONLY).
 ONE_SOURCE_FOOD_ONLY = {"food_sources": 1, "water_on": False, "warmth_on": False, "stagger_start": False,
                         "terrain_on": False, "building_on": False, "offers_on": False, "births_on": False,
-                        "childhood_on": False}
+                        "childhood_on": False, "social_memory_on": False}
 INTEGER_LEVERS = ("seed", "width", "height", "actors", "starting_food", "source_stock", "source_cap",
                   "renewal_every", "renewal_amount", "claim_amount", "hunger_rate", "satiation",
                   "hungry_at", "emergency_at", "death_at", "perception_radius")
@@ -76,6 +81,11 @@ class WorldConfig:
     source_cap: int = 8           # renewal never lifts stock above this
     renewal_every: int = 15       # ticks between renewals
     renewal_amount: int = 2       # units added per renewal, capped
+    regrowth_on: bool = False     # food patches wear after harvest and recover on quiet ticks
+    seasons_on: bool = False      # alternate plentiful and lean food growth
+    stores_on: bool = False       # spare food at founding homes can be collected by neighbours
+    homes_on: bool = False        # grown children choose and physically move into their first adult home
+    relocation_on: bool = False   # adults can move after repeated costly supply outings
     claim_amount: int = 3         # most units one claim takes: the pack carried away
     hunger_rate: int = 1          # hunger added per tick while alive
     satiation: int = 30           # hunger removed per unit eaten
@@ -111,6 +121,7 @@ class WorldConfig:
     building_on: bool = True      # a fed, watered person at home spends their spare ticks building there
     build_ticks: int = 12         # ticks of work a shelter takes; interrupted work keeps its progress
     offers_on: bool = True        # carry a spare unit to somebody visibly starving nearby (2026-09-27)
+    social_memory_on: bool = True  # remember received food and favour former helpers in distress
     requests_on: bool = False     # asking for food: built and watchable, but see WORLD_DIRECTIONS.md (2026-09-28)
     adjacent_requests: bool = False  # requests may start a handoff, never a walking errand
     births_on: bool = True        # the roster grows when life is good (2026-09-27)
@@ -124,9 +135,17 @@ class WorldConfig:
     cold_at: int = 25             # cold at which a person seeks shelter
     cold_emergency_at: int = 50
     cold_death_at: int = 80
+    wood_on: bool = False         # gather and spend wood to build shelters
 
     def __post_init__(self) -> None:
         checks = {
+            "regrowth": type(self.regrowth_on) is bool,
+            "seasons": type(self.seasons_on) is bool,
+            "stores": type(self.stores_on) is bool,
+            "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
+            "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
+            "wood": type(self.wood_on) is bool and (not self.wood_on or self.building_on),
+            "social_memory": type(self.social_memory_on) is bool,
             "width": self.width >= 3, "height": self.height >= 3, "actors": self.actors >= 1,
             "starting_food": self.starting_food >= 0, "source_stock": self.source_stock >= 0,
             "source_cap": self.source_cap >= self.source_stock, "renewal_every": self.renewal_every >= 1,
@@ -139,9 +158,9 @@ class WorldConfig:
                 len(self.yield_set) >= 1
                 and all(type(value) is int and value >= 1 for value in self.yield_set)
             ),
-            "capacity": self.actors <= self.width * self.height - len(self.all_source_positions()),
+            "capacity": self.actors <= self.width * self.height - len(self.food_positions() + self.water_positions()),
             "sources": (self.food_sources in (1, 2) and self.water_sources in (1, 2)
-                        and len(set(self.all_source_positions())) == len(self.all_source_positions())),
+                        and len(set(self.food_positions() + self.water_positions())) == len(self.food_positions() + self.water_positions())),
             "water": (not self.water_on) or (
                 self.starting_water >= 0 and 0 <= self.water_stock <= self.water_cap
                 and self.water_renewal_every >= 1 and self.water_renewal_amount >= 0 and self.draw_amount >= 1
@@ -165,6 +184,8 @@ class WorldConfig:
         if bad:
             raise ValueError(f"invalid world configuration: {', '.join(bad)}")
         object.__setattr__(self, "yield_set", tuple(self.yield_set))
+        if self.wood_on and not wood_sites(self):
+            raise ValueError("wood needs at least one clear cell outside homes and existing sources")
 
     @property
     def name(self) -> str:
@@ -193,7 +214,7 @@ class WorldConfig:
         return ((self.width // 4, self.height // 4), (self.width // 4, 3 * self.height // 4))[: self.water_sources]
 
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
-        return self.food_positions() + self.water_positions()
+        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -254,6 +275,87 @@ class WorldConfig:
                 "walk to the source if hungry; else walk home"
             ),
         }
+        if self.regrowth_on:
+            out["regrowth"] = "on"
+            out["patch_rules"] = {"condition_max": CONDITION_MAX, "full_growth_at": FULL_GROWTH_AT,
+                                  "wear_per_unit": WEAR_PER_UNIT, "recovery_per_tick": RECOVERY_PER_TICK}
+            out["patch_recovery"] = ("Food patches start at full condition. Each unit actually harvested "
+                                     "removes wear_per_unit condition, floored at zero. A tick without a "
+                                     "successful harvest restores recovery_per_tick, capped at condition_max. "
+                                     "After that update, on the usual renewal tick, a patch below full_growth_at "
+                                     "grows half renewal_amount rounded up; otherwise it grows renewal_amount. "
+                                     "Stock remains capped, zero renewal stays zero, and water is unchanged.")
+        if self.wood_on:
+            out["wood"] = "on"
+            out["wood_sources"] = [{"id": sid, "position": list(pos)} for sid,pos in wood_sites(self)]
+            out["wood_rules"] = {"stock": WOOD_STOCK, "cap": WOOD_STOCK,
+                                 "renewal_every": WOOD_RENEWAL_EVERY, "renewal": WOOD_RENEWAL,
+                                 "pack": WOOD_PACK, "work_per_wood": WORK_PER_WOOD}
+            out["wood_rule"] = (
+                "Adults with an unfinished home gather wood when their next building work needs it. "
+                "Needs, helping and housing choices retain priority. Grove positions are known landmarks; "
+                "only visible stocks are known. Prefer the nearest visible stocked grove, otherwise the "
+                "nearest grove, by distance then id. Walk there, claim up to pack or the remaining shelter "
+                "requirement, carry it home, then build. Pay one wood through settlement before each group "
+                "of work_per_wood building ticks. A refused payment gives no work. Wood stays in the named "
+                "consumption sink after use; interrupted work is kept. Groves renew independently of food "
+                "and seasons, up to their cap. No wood trading, storage, skills or salvage is added.")
+        if self.relocation_on:
+            out["relocation"] = "on"
+            out["relocation_rules"] = {"long_outing": LONG_OUTING, "difficult_outings": DIFFICULT_OUTINGS,
+                                       "cooldown": MOVE_COOLDOWN, "route_improvement": ROUTE_IMPROVEMENT}
+            out["relocation_rule"] = (
+                "Adults remember finished shelters seen with room, refreshing vacancies only in sight. "
+                "Count ticks spent walking, waiting, asking or collecting food/water away from home, until "
+                "returning home. An outing of at least long_outing ticks raises home strain by one, up to "
+                "difficult_outings; a shorter supply outing lowers it by one. At that threshold, after "
+                "cooldown ticks since the last home choice or genesis, an adult without dependent children "
+                "can walk to a remembered shelter whose combined food/water landmark distance is shorter "
+                "by route_improvement. Prefer the shortest supply routes, then walking distance, row and "
+                "column. Needs and helping retain priority. Warm fully before leaving home; when warmth "
+                "calls en route, the chosen finished shelter can replace the old home if it is no farther "
+                "away. Keep the destination through interruptions, "
+                "but recheck room in sight and on arrival. A successful move resets strain and outing effort; "
+                "old shelters, food and family links remain. Offspring first make their adult home choice.")
+        if self.homes_on:
+            out["homes"] = "on"
+            out["home_capacity"] = HOME_CAPACITY
+            out["home_rule"] = (
+                "A grown child who would walk home, build or rest chooses an adult home once. "
+                "Only currently visible finished shelters with room or clear sites are candidates. "
+                "Prefer finished shelters, then the shortest combined distance to known food and water "
+                "landmarks, distance from the current home, row and column. A chosen destination persists "
+                "through interruptions; needs and helping keep priority. Walk there before settling. "
+                "Arrivals use the tick's rotated roster; finished homes hold up to home_capacity living "
+                "residents, while an unbuilt site must be free of other homes. Reset building progress "
+                "and time together after settling. Old shelters and food stay in place. With stores on, "
+                "record an empty cache at a new site; anyone living there can deposit. Six food is a "
+                "refill target, not a hard cap: simultaneous residents can overshoot it. Newborns retain "
+                "their own nearby childhood home until making this choice. No later relocation rule.")
+        if self.stores_on:
+            out["stores"] = "on"
+            out["food_stores"] = [{"id": sid, "position": list(pos), "resident": resident}
+                                  for sid, pos, resident in store_sites(self)]
+            out["store_target"] = STORE_TARGET
+            out["store_rule"] = (
+                "Founding homes have empty shared food caches. Once their shelter is built, "
+                "an adult resident who would rest deposits spare food, keeping one carried meal "
+                "and filling towards store_target. Needs and helping retain priority. Any person "
+                "can choose a visible stocked cache at a finished shelter alongside visible food "
+                "patches by distance then id, walk there and claim normally. Empty or unseen caches "
+                "do not attract trips. Deposits and claims settle through the kernel; deposits "
+                "become available next tick. Caches never grow food and remain after a resident "
+                "dies. Newborns can collect but have no new cache of their own.")
+        if self.seasons_on:
+            out["seasons"] = "on"
+            out["season_ticks"] = SEASON_TICKS
+            out["season_growth"] = {name: seasonal_growth(self.renewal_amount, name) for name in SEASONS}
+            out["season_rule"] = (
+                "Start plentiful at tick zero; alternate plentiful and lean every season_ticks. "
+                "The completed tick sets the season before renewal. Plentiful grows 150% of "
+                "renewal_amount rounded up; lean grows 50% rounded down. With local regrowth, "
+                "apply patch wear to that seasonal amount afterwards. Cadence and stock caps "
+                "stay the same; zero renewal stays zero. Water, cold and patch recovery are unchanged.")
         if self.plan_trips:
             # Written only when on, so a header from before this rule existed
             # (which never carried it) still round-trips, as trips off.
@@ -317,6 +419,13 @@ class WorldConfig:
                                 "who can see somebody in a hunger emergency goes to them - nearest by steps, "
                                 "then id - and hands over one unit when they are alongside; the kernel settles "
                                 "the handover like any other move of food, and it can be refused")
+        if self.social_memory_on:
+            out["social_memory"] = "on"
+            out["decision"] += ("; remember the four most recent distinct people whose food transfers "
+                                "actually arrived, dated by completed tick, keeping names after death. "
+                                "For unsolicited help, prefer remembered donors among visible people in "
+                                "a hunger emergency, then distance and id. Own needs, dependent children, "
+                                "direct answers and existing promises keep their priority")
         if self.requests_on:
             out["requests"] = "on"
             out["decision"] += ("; a hungry person holding no food who can see somebody carrying some asks "
@@ -348,6 +457,10 @@ class WorldConfig:
                                 "anybody else")
             out["decision"] += ("; the child leash also bounds early departures, walking while asking, "
                                 "and route detours; an unreachable destination sends a child home")
+            out["decision"] += ("; before an early trip home for warmth, a parent hands one food to an "
+                                "empty-handed dependent already on the same or an adjacent cell, only "
+                                "while below every active need threshold and with no water trip due. "
+                                "This does not extend a walking errand")
         if self.births_on:
             out["births"] = "on"
             out["together_ticks"] = self.together_ticks
@@ -467,6 +580,27 @@ class WorldConfig:
                 raise ValueError(f"together_ticks must be an integer, got {value!r}")
             need_values["together_ticks"] = value
         offers = described.get("offers", "off")
+        regrowth = described.get("regrowth", "off")
+        seasons = described.get("seasons", "off")
+        stores = described.get("stores", "off")
+        homes = described.get("homes", "off")
+        relocation = described.get("relocation", "off")
+        wood = described.get("wood", "off")
+        if not isinstance(wood, str) or wood not in switches:
+            raise ValueError("wood must be 'on' or 'off'")
+        if not isinstance(relocation, str) or relocation not in switches:
+            raise ValueError("relocation must be 'on' or 'off'")
+        if not isinstance(homes, str) or homes not in switches:
+            raise ValueError("homes must be 'on' or 'off'")
+        if not isinstance(stores, str) or stores not in switches:
+            raise ValueError("stores must be 'on' or 'off'")
+        if not isinstance(seasons, str) or seasons not in switches:
+            raise ValueError("seasons must be 'on' or 'off'")
+        if not isinstance(regrowth, str) or regrowth not in switches:
+            raise ValueError("regrowth must be 'on' or 'off'")
+        social_memory = described.get("social_memory", "off")
+        if not isinstance(social_memory, str) or social_memory not in switches:
+            raise ValueError("social_memory must be 'on' or 'off'")
         if not isinstance(offers, str) or offers not in switches:
             raise ValueError("offers must be 'on' or 'off'")
         stagger = described.get("stagger_start", "off")
@@ -499,6 +633,13 @@ class WorldConfig:
                      stagger_start=switches[stagger], terrain_on=switches[terrain],
                      route_around=routing,
                      building_on=switches[building], offers_on=switches[offers],
+                     social_memory_on=switches[social_memory],
+                     regrowth_on=switches[regrowth],
+                     seasons_on=switches[seasons],
+                     stores_on=switches[stores],
+                     homes_on=switches[homes],
+                     relocation_on=switches[relocation],
+                     wood_on=switches[wood],
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",
                      childhood_on=switches[childhood], **need_values, **counts)
@@ -511,7 +652,7 @@ class WorldConfig:
 def _terrain_of(config: "WorldConfig") -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
     if not config.terrain_on:
         return (), ()
-    taken = set(config.all_source_positions()) | set(homes_for(config).values())
+    taken = set(config.food_positions() + config.water_positions()) | set(homes_for(config).values())
     free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
     rough_count = len(free) * config.rough_pct // 100
     shelter_count = len(free) * config.shelter_pct // 100
@@ -522,7 +663,7 @@ def _terrain_of(config: "WorldConfig") -> tuple[tuple[tuple[int, int], ...], tup
 def _homes_from(rng: random.Random, config: WorldConfig) -> dict[str, tuple[int, int]]:
     """First RNG draw: distinct cells for every person, never a source cell."""
     cells = [(x, y) for y in range(config.height) for x in range(config.width)
-             if (x, y) not in config.all_source_positions()]
+             if (x, y) not in config.food_positions() + config.water_positions()]
     picks = rng.sample(cells, config.actors)
     return dict(zip(config.actor_ids(), picks))
 
@@ -561,16 +702,49 @@ def staggered(config: WorldConfig, level_at: int) -> dict[str, int]:
     return {actor: index * level_at // len(actors) for index, actor in enumerate(actors)}
 
 
+@lru_cache(maxsize=None)
+def store_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int], str], ...]:
+    """Fixed founding sites; residents are people, caches are source accounts."""
+    if not config.stores_on:
+        return ()
+    return tuple((store_id(actor), pos, actor) for actor, pos in homes_for(config).items())
+
+
+@lru_cache(maxsize=None)
+def wood_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """Place groves on existing clear ground without changing homes, traits or terrain."""
+    if not config.wood_on:
+        return ()
+    rough, spots = config.terrain()
+    taken = set(homes_for(config).values()) | set(config.food_positions() + config.water_positions()) | set(rough) | set(spots)
+    free = {(x,y) for y in range(config.height) for x in range(config.width) if (x,y) not in taken}
+    sites = []
+    for anchor in ((config.width//4, config.height//2), (3*config.width//4, 3*config.height//4)):
+        if not free:
+            break
+        site = min(free, key=lambda p: (abs(p[0]-anchor[0]) + abs(p[1]-anchor[1]), p[1], p[0]))
+        free.remove(site)
+        sites.append((WOOD if not sites else WOOD+"2", site))
+    return tuple(sites)
+
+
 def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
     """The saved initial state: a kernel ledger and the overlay beside it."""
     actors = config.actor_ids()
     sources = {source_id: Source(stock=config.source_stock, authorised=frozenset(actors))
                for source_id in config.food_source_ids()}
     water: dict[str, Any] = {}
+    sources.update({sid: Source(stock=0, authorised=frozenset(actors))
+                    for sid, _, _ in store_sites(config)})
     if config.water_on:
         sources.update({source_id: Source(stock=config.water_stock, authorised=frozenset(actors), resource=WATER)
                         for source_id in config.water_source_ids()})
         water = {"holdings": {WATER: {actor: config.starting_water for actor in actors}}, "consumed_by": {WATER: 0}}
+    if config.wood_on:
+        sources.update({sid: Source(stock=WOOD_STOCK, authorised=frozenset(actors), resource=WOOD)
+                        for sid,_ in wood_sites(config)})
+        water.setdefault("holdings", {})[WOOD] = {actor: 0 for actor in actors}
+        water.setdefault("consumed_by", {})[WOOD] = 0
     ledger = WorldState.genesis(
         balances={actor: config.starting_food for actor in actors},
         sources=sources,
@@ -585,6 +759,9 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         hunger=staggered(config, config.hungry_at),
         yield_at=_yield_from(rng, config),
         died_at={},
+        home_caches={sid: pos for sid, pos, _ in store_sites(config)} if config.homes_on else {},
+        season=season_at(0) if config.seasons_on else None,
+        patch_condition={source: CONDITION_MAX for source in config.food_source_ids()} if config.regrowth_on else {},
         thirst=staggered(config, config.thirsty_at) if config.water_on else {},
         cold={actor: 0 for actor in actors} if config.warmth_on else {},
         age={actor: config.adult_at for actor in actors} if config.childhood_on else {},

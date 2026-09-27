@@ -27,8 +27,9 @@
   const ROUGH = new Set((C.rough || []).map(c => c.join(',')));
   const SPOTS = new Set((C.shelter_spots || []).map(c => c.join(',')));
   const SOURCE_AT = new Map();
-  FOOD.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'food', id: s.id, position: s.position, cap: C.source_cap }));
+  FOOD.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'food', id: s.id, position: s.position, store: !!s.store, resident: s.resident, cap: s.store ? C.store_target : C.source_cap }));
   WELLS.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'water', id: s.id, position: s.position, cap: C.water_cap }));
+  (IDX.wood || []).forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'wood', id: s.id, position: s.position, cap: C.wood_rules.cap }));
   const SOURCE_BY_ID = {}; SOURCE_AT.forEach(s => { SOURCE_BY_ID[s.id] = s; });
   const PHRASE = IDX.phrases || {}, LABEL = IDX.labels || {};
   const MOVES = new Set(IDX.moves || []);
@@ -78,10 +79,34 @@
   function stockOf(k, id) {
     try {
       if (k === 0) return H.genesis.sources[id].stock;
-      const t = ticks[k - 1]; let s = t.state.sources[id].stock;
+      const t = ticks[k - 1];
+      if ((t.production || []).some(e => e.source_created === id)) return 0;
+      let s = t.state.sources[id].stock;
       for (const e of (t.production || [])) if (e.source === id) s += e.amount;
       return s;
     } catch (err) { return null; }
+  }
+  function woodHeld(k, p) {
+    const state = k === 0 ? H.genesis : ticks[k - 1].state;
+    return ((state.holdings || {}).wood || {})[p] || 0;
+  }
+  const sourceLabel = s => s.store ? 'home cache' : s.kind === 'food' ? 'food source' : s.kind === 'wood' ? 'wood grove' : 'well';
+  const sourceColor = s => s.kind === 'food' ? '#f2a65e' : s.kind === 'wood' ? '#bc9967' : '#72c8ea';
+  function drawWood(g, x, y, stock) {
+    g.fillStyle = '#896340'; g.fillRect(x - 3, y - 31, 6, 29);
+    if (stock > 0) {
+      g.fillStyle = '#4f7851';
+      poly(g, [[x, y - 55], [x + 20, y - 18], [x - 20, y - 18]]); g.fill();
+      g.fillStyle = '#71965e';
+      poly(g, [[x, y - 55], [x, y - 18], [x - 20, y - 18]]); g.fill();
+      g.fillStyle = '#bc9967';
+      for (let i=0; i<Math.min(stock,4); i++) g.fillRect(x+7, y-3-i*3, 14, 2);
+    }
+  }
+  function stockText(s, k) {
+    const stock = stockOf(k, s.id);
+    if (stock === null) return 'not created yet';
+    return s.store ? `${stock} food; refill target ${s.cap}` : `${stock} of ${s.cap} units`;
   }
   const NEEDS = [{ key: 'hunger', label: 'Hunger', at: C.hungry_at, em: C.emergency_at, max: C.death_at, color: '#f2a65e', word: 'hungry' }];
   if (C.water === 'on') NEEDS.push({ key: 'thirst', label: 'Thirst', at: C.thirsty_at, em: C.thirst_emergency_at, max: C.thirst_death_at, color: '#72c8ea', word: 'thirsty' });
@@ -97,9 +122,10 @@
     return worst;
   }
   function homeOf(w, p) { return (w.homes || {})[p] || (H.world.homes || {})[p] || null; }
-  const OWNER_AT = new Map();                     // homes never move, and a birth only adds one
-  for (const [p, cell] of Object.entries(world(n).homes || {})) OWNER_AT.set(cell.join(','), p);
-  function ownerOfCell(key) { return OWNER_AT.get(key) || null; }
+  function ownerOfCell(key, k = v) {
+    const w = world(k), residents = people.filter(p => present(w, p) && homeOf(w, p)?.join(',') === key);
+    return residents.find(p => !deadIn(w, p)) || residents[0] || null;
+  }
 
   // events: sorted by view, indexed once
   const EV_FIRST = new Int32Array(n + 2);
@@ -120,6 +146,7 @@
 
   // -------------------------------------------------------- presentation --
   const LAYERS = {
+    wood: true,
     people: true, names: true, needs: true, food: true, water: true, homes: true, shelters: true,
     rough: true, spots: true, trails: true, perception: 'selected', links: true, deaths: true, stock: true, moments: true,
     family: true, memory: true,
@@ -169,7 +196,7 @@
 
   function tileKind(x, y) {
     const key = x + ',' + y, s = SOURCE_AT.get(key);
-    if (s) return s.kind === 'food' ? 'soil' : 'cobble';
+    if (s && !s.store) return s.kind === 'water' ? 'cobble' : 'soil';
     if (LAYERS.rough && ROUGH.has(key)) return 'rough';
     if (LAYERS.spots && SPOTS.has(key)) return 'spot';
     return 'ground';
@@ -391,12 +418,14 @@
   function droplet(g, x, y, r) { g.beginPath(); g.moveTo(x, y - r * 1.6); g.bezierCurveTo(x + r * 1.1, y - r * 0.3, x + r, y + r, x, y + r); g.bezierCurveTo(x - r, y + r, x - r * 1.1, y - r * 0.3, x, y - r * 1.6); g.closePath(); }
   function flake(g, x, y, r) { g.beginPath(); for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } }
 
-  function drawBush(g, s, cx, cy, stock) {
+  function drawBush(g, s, cx, cy, stock, condition) {
     const empty = !stock;
+    const worn = condition !== undefined && condition < C.patch_rules.full_growth_at;
+    const fullness = condition === undefined ? 1 : 0.55 + 0.45 * condition / C.patch_rules.condition_max;
     g.fillStyle = 'rgba(0,0,0,0.28)'; ell(g, cx + 2, cy + 1, 16, 7); g.fill();
-    const shades = empty ? ['#5a5a3c', '#6b6a45', '#7b7850'] : ['#2f5a33', '#3f7440', '#56904f'];
+    const shades = (condition === undefined ? empty : worn) ? ['#5a5a3c', '#6b6a45', '#7b7850'] : ['#2f5a33', '#3f7440', '#56904f'];
     const blobs = [[-8, -6, 8, 0], [7, -6, 8, 0], [0, -12, 9, 1], [-3, -3, 7, 1], [4, -2, 7, 2], [0, -17, 6, 2]];
-    for (const [dx, dy, r, sh] of blobs) { g.beginPath(); g.arc(cx + dx, cy + dy, r, 0, Math.PI * 2); g.fillStyle = shades[sh]; g.fill(); }
+    for (const [dx, dy, r, sh] of blobs) { g.beginPath(); g.arc(cx + dx, cy + dy, r * fullness, 0, Math.PI * 2); g.fillStyle = shades[sh]; g.fill(); }
     g.fillStyle = empty ? 'rgba(255,240,200,0.08)' : 'rgba(210,255,190,0.16)'; g.beginPath(); g.arc(cx - 3, cy - 16, 4, 0, Math.PI * 2); g.fill();
     if (empty) {
       g.strokeStyle = '#4a3a26'; g.lineWidth = 1.1;
@@ -532,7 +561,7 @@
     if (held) return 'held';
     if (MOVES.has(kind) && moved) return 'walk';
     if (MOVES.has(kind)) return kind === 'ask' ? 'ask' : 'idle';
-    return { build: 'build', claim: 'gather', draw: 'draw', eat: 'eat', drink: 'drink', offer: 'give', agree: 'agree', wait: 'wait', wait_water: 'wait', yield: 'yield', warm: 'warm', rest: 'rest', dead: 'idle' }[kind] || 'idle';
+    return { build: 'build', gather_wood: 'gather', wait_wood: 'wait', claim: 'gather', draw: 'draw', eat: 'eat', drink: 'drink', offer: 'give', agree: 'agree', wait: 'wait', wait_water: 'wait', yield: 'yield', warm: 'warm', rest: 'rest', dead: 'idle' }[kind] || 'idle';
   }
   function drawPerson(g, p, x, y, st, now) {
     const col = COLOR[p], dark = DARK[p], i = PIDX[p] || 0;
@@ -590,6 +619,7 @@
     // what they carry, from the kernel's balances
     if (st.food > 0) { g.fillStyle = '#e39a4f'; g.beginPath(); g.arc(-5.2, -12 - bob, 2.5, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#7a4b1f'; g.lineWidth = 0.6; g.stroke(); }
     if (st.water > 0) { g.fillStyle = '#7cc8ea'; rrect(g, 3.8, -13.5 - bob, 3, 4.5, 1); g.fill(); g.strokeStyle = '#2d5d74'; g.lineWidth = 0.6; g.stroke(); }
+    if (st.wood > 0) { g.strokeStyle = '#bd9461'; g.lineWidth = 2; for (let j=0;j<Math.min(st.wood,3);j++) line(g, -7+j*2, -8-bob, -2+j*2, -3-bob); }
     g.rotate(-lean);
     // little signs above the head
     const gy = -30 - bob;
@@ -697,6 +727,13 @@
       if (LAYERS.shelters && BUILD_TICKS && ((w.built || {})[p] || 0) > 0) continue;
       drawHomeMark(g, hm[0], hm[1], p, deadIn(w, p));
     }
+    if (LAYERS.homes && selP && (w.home_targets || {})[selP] && present(w, selP)) {
+      const target = w.home_targets[selP], there = cellCentre(target[0], target[1]);
+      const here = placeOf(selP, t);
+      g.save(); g.strokeStyle = '#f0c578'; g.lineWidth = 1.7; g.setLineDash([5, 4]);
+      if (here) line(g, here.x, here.y, there.x, there.y);
+      ell(g, there.x, there.y, 19, 9); g.stroke(); g.restore();
+    }
     const radius = C.perception_radius;
     if (LAYERS.perception !== 'off' && typeof radius === 'number') {
       const whose = LAYERS.perception === 'everyone' ? people.filter(p => present(w, p) && !deadIn(w, p)) : (selP && present(w, selP) && !deadIn(w, selP) ? [selP] : []);
@@ -741,12 +778,25 @@
     // standing things and people, back to front
     const items = [];
     for (const src of SOURCE_AT.values()) {
-      if ((src.kind === 'food' && !LAYERS.food) || (src.kind === 'water' && !LAYERS.water)) continue;
-      const [x, y] = src.position; items.push({ z: x + y + 1, draw: () => { const c = cellCentre(x, y); (src.kind === 'food' ? drawBush : drawWell)(g, src, c.x, c.y, stockOf(k, src.id), now); } });
+      if (src.store && stockOf(k, src.id) === null) continue;
+      if (!LAYERS[src.kind]) continue;
+      if (src.store && !sheltersNow.has(src.position.join(','))) continue;
+      const [x, y] = src.position; items.push({ z: x + y + (src.store ? 1.2 : 1), draw: () => { const c = cellCentre(x, y);
+        if (src.store) {
+          const count = stockOf(k, src.id) || 0;
+          g.fillStyle = '#795336'; g.fillRect(c.x + 12, c.y - 4, 16, 10);
+          g.strokeStyle = '#cea875'; g.lineWidth = 1; g.strokeRect(c.x + 12, c.y - 4, 16, 10);
+          g.fillStyle = '#f2bb64';
+          for (let i = 0; i < Math.min(count, 6); i++) { g.beginPath(); g.arc(c.x + 15 + (i % 3) * 5, c.y - 2 + Math.floor(i / 3) * 4, 1.7, 0, Math.PI * 2); g.fill(); }
+        }
+        else if (src.kind === 'food') drawBush(g, src, c.x, c.y, stockOf(k, src.id), (w.patch_condition || {})[src.id]);
+        else if (src.kind === 'wood') drawWood(g, c.x, c.y, stockOf(k, src.id));
+        else drawWell(g, src, c.x, c.y, stockOf(k, src.id), now);
+      } });
     }
     if (LAYERS.shelters) {
       for (const key of sheltersNow) {
-        const [x, y] = key.split(',').map(Number), owner = ownerOfCell(key);
+        const [x, y] = key.split(',').map(Number), owner = ownerOfCell(key, k);
         const occupied = people.some(p => present(w, p) && !deadIn(w, p) && w.positions[p][0] === x && w.positions[p][1] === y);
         items.push({ z: x + y + 1, draw: () => { const c = cellCentre(x, y); drawHut(g, c.x, c.y, owner, occupied, owner ? deadIn(w, owner) : false, now); } });
       }
@@ -790,7 +840,7 @@
       let towards = 1;
       if (dec && dec.target && w.positions[dec.target]) towards = isoX(w.positions[dec.target][0], w.positions[dec.target][1]) >= isoX(b[0], b[1]) ? 1 : -1;
       const st = {
-        pose, badges, towards, food: food(k, p), water: waterHeld(k, p),
+        pose, badges, towards, food: food(k, p), water: waterHeld(k, p), wood: woodHeld(k, p),
         emergency: badges.some(x => x.em) && !diedNow, selected: p === selP, hovered: hovered === p, stride: anim.from !== anim.to || playing,
         scale: (bornNow ? 0.35 + 0.65 * t : 1) * (isChild(w, p) ? 0.72 : 1), alpha: diedNow ? Math.max(0.25, 1 - t * 0.75) : 1,
       };
@@ -903,7 +953,7 @@
     for (const e of (ticks[k - 1].production || [])) {
       if (!e.source || !SOURCE_BY_ID[e.source]) continue;
       const src = SOURCE_BY_ID[e.source];
-      if ((src.kind === 'food' && !LAYERS.food) || (src.kind === 'water' && !LAYERS.water)) continue;
+      if (!LAYERS[src.kind]) continue;
       const c = cellCentre(src.position[0], src.position[1]);
       for (let j = 0; j < 5; j++) {
         const a2 = j * 1.26 + (REDUCED ? 0 : now * 0.002), rise = REDUCED ? 8 : 4 + 16 * fade;
@@ -927,12 +977,14 @@
     labelPx = Math.round(clamp(11 * Math.sqrt(cam.z / 1.1), 8, 11));
     const overlaps = r => placed.some(q => r.x0 < q.x1 + 2 && r.x1 > q.x0 - 2 && r.y0 < q.y1 + 1 && r.y1 > q.y0 - 1);
     if (LAYERS.stock) for (const [, src] of SOURCE_AT) {
-      if ((src.kind === 'food' && !LAYERS.food) || (src.kind === 'water' && !LAYERS.water)) continue;
+      if (src.store && stockOf(k, src.id) === null) continue;
+      if (!LAYERS[src.kind]) continue;
+      if (src.store && !(w.shelters || []).some(cell => cell.join(',') === src.position.join(','))) continue;
       const c = cellCentre(src.position[0], src.position[1]);
       const [sx, sy] = toScreen(c.x, c.y + 13);
       const st = stockOf(k, src.id);
-      const text = (FOOD.length + WELLS.length > 2 ? src.id + ' ' : '') + (st === null ? '?' : st) + (src.cap ? '/' + src.cap : '');
-      placed.push(pill(g, sx, sy, text, 'rgba(8,22,25,0.82)', src.kind === 'food' ? (st ? '#f6c089' : '#b9a78c') : (st ? '#a6ddf3' : '#9aa5a8'), src.kind === 'food' ? 'rgba(242,166,94,0.55)' : 'rgba(114,200,234,0.55)'));
+      const text = (FOOD.length + WELLS.length + (IDX.wood || []).length > 2 ? src.id + ' ' : '') + (st === null ? '?' : st) + (src.cap ? '/' + src.cap : '');
+      placed.push(pill(g, sx, sy, text, 'rgba(8,22,25,0.82)', sourceColor(src), sourceColor(src)));
     }
     if (!LAYERS.people) return;
     const selP = selected && selected.type === 'person' ? selected.id : null;
@@ -994,6 +1046,7 @@
     const w = world(v);
     $('hud-tick').innerHTML = `Tick ${v}<small>of ${n}</small>`;
     const bits = [`<span>alive <b>${aliveAt(v)}</b></span>`];
+    if (w.season) bits.push(`<span>season <b>${esc(w.season)}</b></span>`);
     if ((COUNTS.born || [])[n]) bits.push(`<span>born <b>${COUNTS.born[v]}</b></span>`);
     bits.push(`<span>died <b>${(COUNTS.dead || [])[v] ?? Object.keys(w.died_at || {}).length}</b></span>`);
     if (BUILD_TICKS) bits.push(`<span>shelters <b>${(COUNTS.shelters || [])[v] ?? 0}</b></span>`);
@@ -1015,13 +1068,21 @@
     if ((c.born || [])[n]) stats.push(['Births', `${c.born[v]} <small>/ ${c.born[n]} total</small>`]);
     else stats.push(['Births', '0']);
     if (BUILD_TICKS) stats.push(['Shelters', `${(c.shelters || [])[v] ?? 0} <small>built</small>`]);
+    if (C.wood === 'on') {
+      const state = v === 0 ? H.genesis : ticks[v - 1].state;
+      stats.push(['Wood used', `${(state.consumed_by || {}).wood || 0} <small>in construction</small>`]);
+    }
     if (ADULT_AT !== null) stats.push(['Children', `${(c.children || [])[v] ?? 0} <small>growing up</small>`]);
     $('stats').innerHTML = stats.map(([k2, val]) => `<div class="stat"><div class="k">${k2}</div><div class="v">${val}</div></div>`).join('');
     const rows = [];
+    if (w.season) rows.push(`<div class="hint"><b>${esc(w.season)} season</b> — food growth allowance ${C.season_growth[w.season]} before patch wear. Seasons change every ${C.season_ticks} ticks.</div>`);
     for (const [, src] of SOURCE_AT) {
       const st = stockOf(v, src.id), cap = src.cap || 1;
-      const colour = src.kind === 'food' ? '#f2a65e' : '#72c8ea';
-      rows.push(`<div class="src"><span class="name">${esc(src.id)}</span><span class="bar"><i style="width:${clamp(100 * (st || 0) / cap, 0, 100).toFixed(1)}%;background:${colour}"></i></span><span class="n">${st ?? '?'} / ${src.cap ?? '?'}</span></div>`);
+      if (src.store && st === null) continue;
+      const colour = sourceColor(src);
+      rows.push(`<div class="src"><span class="name">${esc(src.id)}</span><span class="bar"><i style="width:${clamp(100 * (st || 0) / cap, 0, 100).toFixed(1)}%;background:${colour}"></i></span><span class="n">${st ?? '?'} / ${src.cap ?? '?'}${src.store ? ' target' : ''}</span></div>`);
+      const condition = (w.patch_condition || {})[src.id];
+      if (condition !== undefined) rows.push(`<div class="hint">${esc(src.id)} condition ${condition}/${C.patch_rules.condition_max} — ${condition < C.patch_rules.full_growth_at ? 'worn patch' : 'healthy patch'}</div>`);
     }
     $('sources').innerHTML = rows.join('');
     const help = [];
@@ -1126,9 +1187,9 @@
       $('follow').hidden = false;
     } else {
       const s = SOURCE_BY_ID[selected.id];
-      $('focus-sw').style.background = s && s.kind === 'food' ? '#f2a65e' : '#72c8ea';
+      $('focus-sw').style.background = s ? sourceColor(s) : '#72c8ea';
       $('focus-who').textContent = selected.id;
-      $('focus-what').textContent = s ? `${s.kind === 'food' ? 'food source' : 'well'} — ${stockOf(v, s.id)} of ${s.cap} units` : '';
+      $('focus-what').textContent = s ? `${sourceLabel(s)} — ${stockText(s, v)}` : '';
       $('follow').hidden = true;
     }
   }
@@ -1179,6 +1240,7 @@
     if (deadIn(w, p) && w.died_at[p] < k) h += `<div class="what">Died at tick ${w.died_at[p]}${DIED[p] ? ' — ' + esc(DIED[p].cause) : ''}</div><div class="why">A stone marks where it happened.</div>`;
     else if (d) {
       h += `<div class="what">${esc(describeAction(p, k))}</div><div class="why">“${esc(d.reason || '')}”</div>`;
+      if (d.helped_at !== undefined) h += `<button class="linkbtn" type="button" data-tick="${d.helped_at}">See the earlier gift at tick ${d.helped_at}</button>`;
       if (d.candidates && d.candidates.length) {
         h += '<div class="alts" title="What else was open to them this tick, as recorded">' + d.candidates.map(c => {
           const sc = d.scores && d.scores[c] ? `<span class="sc">${d.scores[c].join(',')}</span>` : '';
@@ -1203,7 +1265,7 @@
     const facts = [
       ['Standing', `(${pos.join(', ')})${ground.length ? ' — ' + ground.join(', ') : ''}`],
       ['Home', home ? `(${home.join(', ')})${homeState ? ' — ' + homeState : ''}` : '–'],
-      ['Carrying', `${food(k, p)} food${C.water === 'on' ? `, ${waterHeld(k, p)} water` : ''}`],
+      ['Carrying', `${food(k, p)} food${C.water === 'on' ? `, ${waterHeld(k, p)} water` : ''}${C.wood === 'on' ? `, ${woodHeld(k, p)} wood` : ''}`],
     ];
     const trait = ((w.yield_at || {})[p]);
     if (trait !== undefined) facts.push(['Crowd trait', `stands back from a crowd of ${trait}`]);
@@ -1219,6 +1281,18 @@
     h += '<div class="sec"><h4>Facts</h4><div class="kv">' + facts.map(([a, b]) => `<span class="k">${a}</span><span>${esc(b)}</span>`).join('') + '</div></div>';
     // errands and company, straight from the world state
     const links = [];
+    if (C.homes === 'on') {
+      const housemates = people.filter(other => other !== p && present(w, other) && !deadIn(w, other) && homeOf(w, other)?.join(',') === homeKey);
+      if (housemates.length) links.push(`Shares home with ${housemates.map(personLink).join(', ')}`);
+      if ((w.home_targets || {})[p]) links.push(`Chosen home at (${w.home_targets[p].join(', ')})`);
+      if ((w.home_settled || {})[p]) links.push(`Settled into this home at tick ${w.home_settled[p]}`);
+      if (C.relocation === 'on') {
+        links.push(`Home strain: ${(w.home_strain || {})[p] || 0} / ${C.relocation_rules.difficult_outings} costly outings`);
+        links.push(`Supply effort this outing: ${(w.home_trip_ticks || {})[p] || 0} ticks`);
+        const known = (w.shelter_memory || {})[p] || [];
+        if (known.length) links.push(`Shelters remembered with room: ${known.map(pos => '(' + pos.join(', ') + ')').join(', ')}; distant places may have filled`);
+      }
+    }
     const req = (w.requests || {})[p]; if (req) links.push(`Asked ${personLink(req)} for food — the answer comes next tick`);
     for (const a in (w.requests || {})) if (w.requests[a] === p) links.push(`${personLink(a)} asked them for food`);
     const owes = (w.promises || {})[p];
@@ -1240,6 +1314,12 @@
       const born = kidsOf.filter(q => present(w, q));
       if (born.length) fam.push('Children ' + born.map(q => personLink(q) + (deadIn(w, q) ? ' (died)' : isChild(w, q) ? ' (a child)' : '')).join(' '));
       h += '<div class="sec"><h4>Family</h4>' + fam.map(x => `<div style="margin:4px 0">${x}</div>`).join('') + '</div>';
+    }
+    const foodMemories = (w.food_memory || {})[p] || [];
+    if (foodMemories.length) {
+      h += '<div class="sec"><h4>People who fed me</h4>' + foodMemories.map(([donor, tick]) =>
+        `<div style="margin:4px 0">${personLink(donor)}${deadIn(w, donor) ? ' (died)' : ''} — gave food at <button class="linkbtn" type="button" data-tick="${tick}">tick ${tick}</button></div>`
+      ).join('') + '<div class="hint">Up to four recent helpers. Remembering someone does not reveal where they are.</div></div>';
     }
     if (links.length) h += '<div class="sec"><h4>With others</h4>' + links.map(x => `<div style="margin:4px 0">${x}</div>`).join('') + '</div>';
     if (ob && alive) {
@@ -1273,9 +1353,15 @@
   function renderPlace(box) {
     const s = SOURCE_BY_ID[selected.id]; if (!s) { box.innerHTML = ''; return; }
     const w = world(v), st = stockOf(v, s.id);
+    if (s.store && st === null) { box.innerHTML = '<div class="hint">This home cache has not been created yet.</div>'; return; }
     const here = people.filter(p => present(w, p) && !deadIn(w, p) && w.positions[p][0] === s.position[0] && w.positions[p][1] === s.position[1]);
-    let h = `<div class="ins-head"><span class="swatch" style="background:${s.kind === 'food' ? '#f2a65e' : '#72c8ea'};width:18px;height:18px"></span><span class="name">${esc(s.id)}</span><span class="state">${s.kind === 'food' ? 'food source' : 'well'}</span></div>`;
-    h += `<div class="sec"><div class="kv"><span class="k">Where</span><span>(${s.position.join(', ')})</span><span class="k">Stock now</span><span>${st} of ${s.cap}</span><span class="k">Renews</span><span>${s.kind === 'food' ? `+${C.renewal_amount} every ${C.renewal_every} ticks` : `+${C.water_renewal_amount} every ${C.water_renewal_every} ticks`}</span></div></div>`;
+    let h = `<div class="ins-head"><span class="swatch" style="background:${sourceColor(s)};width:18px;height:18px"></span><span class="name">${esc(s.id)}</span><span class="state">${sourceLabel(s)}</span></div>`;
+    const condition = (w.patch_condition || {})[s.id];
+    const allowance = w.season ? C.season_growth[w.season] : C.renewal_amount;
+    const renewal = s.store ? 'None — food must be carried here' : s.kind === 'wood' ? `+${C.wood_rules.renewal} every ${C.wood_rules.renewal_every} ticks` : s.kind === 'food' ? `Up to +${allowance} every ${C.renewal_every} ticks${w.season ? ` in the ${esc(w.season)} season` : ''}${condition !== undefined ? '; half when worn, rounded up' : ''}` : `+${C.water_renewal_amount} every ${C.water_renewal_every} ticks`;
+    h += `<div class="sec"><div class="kv"><span class="k">Where</span><span>(${s.position.join(', ')})</span><span class="k">Stock now</span><span>${stockText(s, v)}</span><span class="k">Renews</span><span>${renewal}</span></div></div>`;
+    if (condition !== undefined) h += `<div class="sec"><h4>Patch condition</h4><div>${condition} / ${C.patch_rules.condition_max} — ${condition < C.patch_rules.full_growth_at ? 'worn patch' : 'healthy patch'}</div><div class="hint">Each food harvested costs ${C.patch_rules.wear_per_unit} condition. A tick without a harvest restores ${C.patch_rules.recovery_per_tick}. Full growth returns at ${C.patch_rules.full_growth_at}.</div></div>`;
+    if (s.store) h += `<div class="sec"><h4>Shared home cache</h4><div>${C.homes === 'on' ? 'Residents put' : personLink(s.resident) + ' puts'} spare food here after building their shelter, keeping one meal. Nearby people can walk here and collect it. Deposited food becomes available next tick.</div></div>`;
     h += `<div class="sec"><h4>Standing here</h4><div class="people-links">${here.length ? here.map(personLink).join('') : '<span class="hint">nobody</span>'}</div></div>`;
     const evs = (EV_AT_SRC[s.id] || []).filter(i => EVENTS[i].k <= v).slice(-12).reverse();
     h += '<div class="sec"><h4>Recently</h4>' + (evs.length ? evs.map(i => { const e = EVENTS[i]; return `<button class="mini-ev" type="button" data-tick="${e.k}"><span class="evtick">t${e.k}</span><span>${esc(e.text)}</span></button>`; }).join('') : '<div class="hint">Nothing yet.</div>') + '</div>';
@@ -1348,14 +1434,14 @@
     const w = world(v);
     if (hit.type === 'person') {
       const p = hit.id, needs = NEEDS.map(nd => `${nd.label.toLowerCase()} ${needLevel(w, p, nd) ?? '–'}`).join(' · ');
-      const carry = `carrying ${food(v, p)} food` + (C.water === 'on' ? `, ${waterHeld(v, p)} water` : '');
+      const carry = `carrying ${food(v, p)} food` + (C.water === 'on' ? `, ${waterHeld(v, p)} water` : '') + (C.wood === 'on' ? `, ${woodHeld(v, p)} wood` : '');
       const kin = (isChild(w, p) ? 'a child' : '') + (PARENT[p] ? (isChild(w, p) ? ' of ' : 'child of ') + PARENT[p] : '');
       return `<b>${esc(p)}</b> — ${esc(describeAction(p, v))}\n${esc(needs)}\n${esc(carry)}${kin ? '\n' + esc(kin) : ''}`;
     }
     const out = [], key = hit.key;
     const src = SOURCE_AT.get(key);
-    if (src) out.push(`<b>${esc(src.id)}</b> — ${src.kind === 'food' ? 'food source' : 'well'}, ${stockOf(v, src.id)} of ${src.cap} units`);
-    if (sheltersAt(v).has(key)) { const o = ownerOfCell(key); out.push(`A shelter${o ? ' built by ' + esc(o) : ''}: hunger and thirst rise slower here`); }
+    if (src && stockOf(v, src.id) !== null) out.push(`<b>${esc(src.id)}</b> — ${sourceLabel(src)}, ${stockText(src, v)}`);
+    if (sheltersAt(v).has(key)) { const o = ownerOfCell(key); out.push(`A shelter${o ? ' at the home of ' + esc(o) : ''}: hunger and thirst rise slower here`); }
     else { const o = ownerOfCell(key); if (o && present(w, o)) out.push(`Home of ${esc(o)}${(w.built || {})[o] ? ` — shelter ${(w.built || {})[o]} of ${BUILD_TICKS} ticks built` : ''}`); }
     if (ROUGH.has(key)) out.push('Rough ground: an extra tick to cross');
     if (SPOTS.has(key)) out.push('Shelter spot: hunger and thirst rise slower here');

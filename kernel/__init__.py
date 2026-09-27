@@ -14,7 +14,7 @@ from kernel.diagnostics import CollectingDiagnostics, DiagnosticsSink, NullDiagn
 from kernel.engine import Engine
 from kernel.ordering import actor_ranks, rotated_roster, sorted_roster
 from kernel.outcomes import ProposalOutcome, TickRecord
-from kernel.proposals import Proposal, cancel, claim, complete, consume, reserve, transfer
+from kernel.proposals import Proposal, cancel, claim, complete, consume, deposit, reserve, transfer
 from kernel.settlement import IntegrityError, Settlement, effects_are_balanced, settle
 from kernel.state import (
     Effect, Reservation, Source, SourceView, WorldState, WorldView, actor_account, is_resource_name,
@@ -71,6 +71,7 @@ __all__ = [
     "claim",
     "complete",
     "consume",
+    "deposit",
     "diagnostics",
     "digest",
     "effects_are_balanced",

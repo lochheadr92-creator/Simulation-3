@@ -28,6 +28,10 @@ rough cells they have seen before, so `rough_in_view` holds current rough in
 sight plus remembered rough elsewhere. Stock and people are still current-view
 only.
 
+Housing observes places: a finished shelter in sight can show room for another
+resident. Optional relocation remembers those places and refreshes their
+vacancies only in sight; a distant remembered vacancy may no longer be free.
+
 Warmth (2026-09-27) needs no landmark: shelter is the person's own home cell,
 which the observation already carries, so `cold` is the only field it adds.
 
@@ -50,7 +54,9 @@ from typing import Any
 from kernel import WorldState
 from kernel.state import actor_account, source_account
 
-from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig
+from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, wood_sites
+from world.materials import WOOD
+from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
 
 
@@ -115,6 +121,19 @@ class Observation:
     age: int = 10 ** 6                     # ticks lived; the default is somebody long grown
     children: frozenset[str] = frozenset() # who this person is a parent to
     dependents: frozenset[str] = frozenset()   # those of them still too young to fend for themselves
+    food_memory: tuple[tuple[str, int], ...] = ()  # my own remembered donors and completed ticks
+    home_store_food: int | None = None  # resident's cache, seen only while at home
+    home_store_id: str | None = None
+    choosing_home: bool = False
+    home_target: Position | None = None
+    home_options: tuple[tuple[Position, bool], ...] = ()
+    relocating: bool = False
+    home_strain: int = 0
+    known_homes: tuple[Position, ...] = ()
+    wood: int = 0
+    wood_source_id: str | None = None
+    wood_source: Position | None = None
+    wood_stock: int | None = None
 
     @property
     def at_source(self) -> bool:
@@ -147,6 +166,23 @@ class Observation:
             out["water_stock"] = self.water_stock
         if self.seen_stock:
             out["seen_stock"] = dict(self.seen_stock)
+        if self.home_store_food is not None:
+            out["home_store_food"] = self.home_store_food
+        if self.wood_source_id is not None:
+            out["wood"] = self.wood
+            out["wood_source"] = self.wood_source_id
+            if self.wood_stock is not None:
+                out["wood_stock"] = self.wood_stock
+        if self.known_homes:
+            out["known_homes"] = [list(site) for site in self.known_homes]
+        if self.home_strain:
+            out["home_strain"] = self.home_strain
+        if self.relocating:
+            out["relocating"] = 1
+        if self.choosing_home or self.relocating:
+            out["home_options"] = [{"at": list(pos), "built": int(built)} for pos, built in self.home_options]
+            if self.home_target is not None:
+                out["home_target"] = list(self.home_target)
         return out
 
 
@@ -167,11 +203,29 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
     food_known = tuple(zip(config.food_source_ids(), config.food_positions()))
+    caches = (tuple((sid, pos, None) for sid, pos in overlay.home_caches.items())
+              if config.homes_on else store_sites(config))
+    own_cache = next((sid for sid, pos, resident in caches
+                      if origin == pos and (overlay.homes[actor] == pos if config.homes_on else resident == actor)), None)
+    choosing_home = (config.homes_on and overlay.alive(actor) and actor in overlay.parent
+                     and overlay.age.get(actor, 0) >= config.adult_at and actor not in overlay.home_settled)
+    relocating = can_relocate(actor, overlay, config)
+    wood_view = {}
+    if config.wood_on:
+        sid, site, stock = target_source(origin, wood_sites(config), radius, available)
+        wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
+                     "wood_source": site, "wood_stock": stock}
+    visible_caches = tuple((sid, pos) for sid, pos, _ in caches
+                           if pos in overlay.shelters and in_view(origin, pos, radius))
+    # An empty or unseen cache must never replace the ordinary patch fallback.
+    food_known += tuple((sid, pos) for sid, pos in visible_caches if available[source_account(sid)] > 0)
     source_id, source, source_food = target_source(origin, food_known, radius, available)
     known = food_known + tuple(zip(config.water_source_ids(), config.water_positions()))
     several = len(food_known) > 1 or len(config.water_source_ids()) > 1
     seen_stock = tuple((sid, available[source_account(sid)]) for sid, position in known
                        if in_view(origin, position, radius)) if several else ()
+    seen_stock = tuple(sorted(dict(seen_stock + tuple((sid, available[source_account(sid)])
+                                                    for sid, _ in visible_caches)).items()))
     return Observation(
         actor=actor,
         tick=ledger.tick,
@@ -186,8 +240,18 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         others=others,
         source_id=source_id,
         seen_stock=seen_stock,
+        food_memory=overlay.food_memory.get(actor, ()) if config.social_memory_on else (),
+        home_store_food=ledger.sources[own_cache].stock if own_cache is not None else None,
+        home_store_id=own_cache,
+        choosing_home=choosing_home,
+        home_target=overlay.home_targets.get(actor) if choosing_home or relocating else None,
+        home_options=visible_sites(actor, overlay, config) if choosing_home else (),
+        relocating=relocating,
+        home_strain=overlay.home_strain.get(actor, 0) if config.relocation_on else 0,
+        known_homes=remembered_shelters(actor, overlay, config) if config.relocation_on else (),
         **({"cold": overlay.cold[actor]} if config.warmth_on else {}),
         home_built=overlay.homes[actor] in set(overlay.shelters),
+        **wood_view,
         work_done=overlay.built.get(actor, 0),
         asked_by=next((who for who, asked in overlay.requests.items()
                        if asked == actor and any(seen.actor == who for seen in others)), None),

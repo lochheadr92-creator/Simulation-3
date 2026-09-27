@@ -51,6 +51,482 @@ identically and retained no promises involving dead or out-of-sight people.
 The original review packet remains an unchanged snapshot of `c1d13cb`, not
 of these repairs.
 
+## Families after the review repairs
+
+These are fresh 400-tick runs at `81cbd39`, with requests off and all other
+settings at their defaults except birth spacing. All six files verified and
+replayed identically. Child feedings count recipients below adulthood at
+the start of the transfer tick; peak dependents counts living children
+assigned to the same recorded parent.
+
+| Seed | Spacing | Births | Alive at 400 | Deaths | Peak dependents | Child feedings |
+| --- | --- | --- | --- | --- | --- | --- |
+| 7 | 0 | 5 | 11 | 0 | 4 | 2 |
+| 7 | 30 | 3 | 9 | 0 | 1 | 3 |
+| 11 | 0 | 23 | 7 | 22 | 7 | 10 |
+| 11 | 30 | 10 | 6 | 10 | 2 | 11 |
+| 23 | 0 | 15 | 5 | 16 | 11 | 6 |
+| 23 | 30 | 8 | 8 | 6 | 2 | 8 |
+
+Spacing reduces overlapping dependents in these three seeds. It does not
+uniformly increase the final living population, and fewer births also mean
+fewer people can die. Keep spacing optional; these runs do not pick a best
+setting. Local files and viewer pages are in
+`runs/post-review-families-81cbd39/` and are not tracked in Git.
+
+**The encounter behind nearby caregiving.** In
+seed 7 with spacing zero, p01 sets off to feed their child p07 at tick 217.
+At tick 218 the parent still holds one food. At tick 219 a handoff is eligible,
+but the parent heads home instead: cold is 23 at the decision point and home
+is two steps away. Playback and the inspector show the interruption directly.
+
+**Nearby caregiving now finishes before an early warmth trip.** A parent
+below their own hunger, thirst and cold thresholds can hand one food to an
+empty-handed dependent on the same or an adjacent cell before heading home
+early. A water trip still comes first. This gives no extra time to a walking
+errand and changes neither the child leash nor the kernel transfer. The
+inspector explains the handoff; ordinary child-feeding descriptions now say
+the child has no food instead of incorrectly calling every child starving.
+
+Fresh 400-tick runs with requests off and spacing zero show:
+
+| Seed | Births | Alive at 400 | Deaths | Child feedings before / after |
+| --- | --- | --- | --- | --- |
+| 7 | 6 | 11 | 1 | 2 / 5 |
+| 11 | 23 | 7 | 22 | 10 / 10 |
+| 23 | 15 | 5 | 16 | 6 / 6 |
+
+In seed 7, p01 hands food to p07 at viewer tick 219. The child is not hungry
+yet: they carry it home and eat at tick 226. The parent gives away their last
+food just before becoming hungry, gathers more, eats at tick 228 and reaches
+home at tick 234. Over viewer ticks 219–240 the parent's peak hunger rises
+from 25 to 33 and peak cold from 25 to 38 compared with the earlier run.
+One additional birth and a later death leave the final population unchanged.
+This is help with a cost, not an overall survival improvement.
+
+Only seed 7 used the new priority in these runs. Seeds 11 and 23 have exactly
+the same recorded world states and settlement records as before. All three
+new files verify and replay identically; a second seed-7 run has the same
+trail digest. The full test suite passed (519 tests).
+
+Files and viewer pages are in `runs/nearby-caregiving-final/`. The generated
+viewer includes the child-feeding event at tick 219 and its recorded reason.
+Browser automation blocked the local HTML URL, so the new playback has not
+been visually inspected. Older childhood files remain readable in the
+viewer; their different saved rule description prevents replay as this rule.
+
+**Next: watch the price of giving away the last food.** Follow p01 and p07
+through viewer ticks 217–240 in the new seed-7 page, alongside the earlier
+run. The child gets fed, but the parent gives away tomorrow's meal. Watch
+that choice before adding another caregiving rule.
+
+## Remembering who helped
+
+People now remember the four most recent distinct people whose food actually
+arrived through a successful transfer. Each memory carries the completed
+tick of the gift. Another gift from the same person refreshes that entry;
+a fifth distinct donor replaces the oldest, with donor ID breaking ties.
+Memories do not expire with time or reveal where someone is. A dead donor
+can remain in the person's history but cannot be chosen as a recipient.
+
+When choosing unsolicited help for someone visibly starving, a person
+prefers a remembered donor, then distance and ID. Own needs, dependent
+children, direct answers and existing promises keep their priorities.
+This is on by default; `--social-memory off` restores the previous choice.
+Asking stays off by default. Food and water collection amounts are unchanged:
+people already collect up to three of each per visit, with no separate
+carrying-capacity limit.
+
+The inspector has a **People who fed me** section with links to the original
+gift ticks. When memory changes the chosen recipient, the decision records
+the earlier gift and the event list calls out the choice. The viewer reads
+these records; it does not calculate a relationship or choose a recipient.
+
+Two ordinary seeded runs show different consequences:
+
+- Seed 14: p03 feeds p10 at tick 534. At tick 643, p10 chooses p03 instead
+  of p01 because of that gift. Both choices initially lead along the same
+  route, and both versions eventually feed p03 at tick 649. The intended
+  recipient changes, but this example does not show a different delivery.
+- Seed 26: p02 feeds p22 at tick 588. At tick 774, p22 walks west toward
+  p02; without memory, p22 walks east toward nearer p06. This is the first
+  physical difference between the paired runs. Cold repeatedly interrupts
+  the remembered errand. With memory off, p22 feeds p06 at tick 781. With
+  memory on, p22 eventually feeds p21 at tick 785 instead. Remembering help
+  changes movement and who gets food, but does not guarantee repayment.
+
+At tick 850, seed 26 has 7 living people and 21 deaths with memory, compared
+with 11 living and 22 deaths without it. Births also differ, so these totals
+are not a simple survival benefit or penalty. Seed 14 ends tick 800 with
+9 living and 9 deaths in both versions. Seeds 7, 11 and 23 at 400 ticks
+remember gifts but do not change their helping choices.
+
+Saved runs and viewer pages are in `runs/social-memory/`. The seven runs
+verify and replay identically, and a repeat of seed 26 with memory has the
+same trail digest. Tests cover accepted versus rejected transfers, food
+versus water, personal observation, bounded immutable memory, newborns,
+old files, recovery, and the changed choices in seeds 14 and 26.
+The full suite passes (536 tests), and the viewer JavaScript passes its syntax
+check. `seed26-choice.png` is a visually checked static map of the recorded
+opposite steps at tick 774.
+
+Browser automation still cannot open the local HTML pages, so the new
+playback and inspector have not been visually checked. **Next: follow p22
+in seed 26 through ticks 774–785, then jump back to the gift at tick 588.**
+Watch whether favouring an old helper is an interesting cost before adding
+more relationship rules. Refusals, trust and friendship are not built yet.
+
+## Food patches wear and recover
+
+Local regrowth is available with `--regrowth on`. The existing default remains
+off. Each food patch starts at condition 100. Every unit actually harvested
+costs 10 condition, floored at zero; a tick with no successful harvest restores
+one, up to 100. Rejected claims, drinking and eating carried food do not wear
+a patch. Standing at an empty patch does not prevent recovery.
+
+Below condition 50, a patch grows half its usual renewal amount, rounded up.
+With the normal settings that means one food instead of two every 15 ticks.
+Quiet recovery to 50 restores the full amount. The update happens after
+harvesting and before renewal, so a harvest on a renewal tick counts. Stock
+caps still apply; zero renewal stays zero; water and carrying amounts are
+unchanged. Food production still has an explicit recorded source and amount.
+
+This first rule changes how much grows at each renewal, not the renewal
+schedule. People continue to choose from visible stock; they do not know the
+hidden condition or predict when a patch will recover. The viewer shows the
+recorded condition in the source inspector and summary. Worn bushes have
+smaller, browner foliage, while berries still represent actual food stock.
+The event list marks patches becoming worn and recovering.
+
+Seed 7 shows the local cycle clearly: the first patch is picked empty at
+tick 44. At tick 45 it grows one food, while the healthier second patch grows
+two. The first patch reaches condition 50 at tick 75 and grows two again.
+The next harvest wears it down again. At tick 52, p01 changes destination
+from the empty first patch to the stocked second patch using the existing
+source-choice rule. This is a recorded journey, not a new migration rule.
+
+Fresh 400-tick runs, with all other settings at their current defaults:
+
+| Seed | Food grown, off / on | Births, off / on | Living, off / on | Deaths, off / on |
+| --- | --- | --- | --- | --- |
+| 7 | 89 / 74 | 6 / 0 | 11 / 6 | 1 / 0 |
+| 11 | 103 / 69 | 23 / 11 | 7 / 2 | 22 / 15 |
+| 23 | 102 / 72 | 15 / 14 | 5 / 7 | 16 / 13 |
+
+The rule reduces food supply in all three runs, but the population effects
+differ. It prevents births in seed 7, leaves very few people in seed 11,
+and leaves more alive in seed 23. These outcomes are a reason to keep it
+optional while watching the effect, not to tune the seeds into success.
+
+Files are in `runs/local-regrowth/`. All six files verify and replay
+identically. The focused checks cover harvest accounting, independent
+patches, caps, recovery, births, saving, replay and truncation recovery.
+The full suite passed with 556 tests. The static chart `seed7-recovery.png`
+has been visually inspected. Browser automation still blocks local HTML,
+so the new foliage and inspector have not been checked in live playback.
+
+The early patch cycle is visible in seed 7 through ticks 40–76, selecting
+the first food patch. Larger supplies and seasons have since been tried
+below. Remembering an empty patch is still not implemented.
+
+## Larger supplies and food seasons
+
+Larger supplies use the existing settings: `--source-stock 8 --source-cap 16
+--renewal-amount 3`. In the previous 400-tick comparison, increasing just
+starting food and storage had mixed results. Increasing renewal too left
+10, 5 and 10 people alive in seeds 7, 11 and 23, compared with 6, 2 and 7
+under the smaller supplies with local regrowth on. These are optional run
+settings; the default remains 4 starting food, capacity 8 and renewal 2.
+
+Seasons are available with `--seasons on`. The world starts plentiful, turns
+lean at completed tick 120, plentiful at 240, and continues alternating
+every 120 ticks. Plentiful growth is 150% of the base amount rounded up;
+lean growth is 50% rounded down. With base renewal 3, that is 5 and 1.
+Local patch wear applies afterwards, so a worn patch produces 3 and 1.
+Zero growth stays zero. The existing renewal cadence and storage cap still
+apply, and each produced unit is recorded. Water, cold and the rate at
+which patches recover are unchanged.
+
+The completed tick's season applies to renewal on a boundary tick. Season
+state is saved in the world, survives births, and is restored during replay
+and recovery. Older runs omit it. People do not receive knowledge of unseen
+food or a forecast: they respond to available stock through their existing
+decisions. Seasons remain off by default and can run with or without patch
+wear. The viewer shows the recorded season above the map, its growth
+allowance in the source panel, and an event at each change.
+
+Fresh 480-tick runs use the larger supplies and local regrowth in both
+versions. Everything except seasons is held the same:
+
+| Seed | Births, steady / seasonal | Living, steady / seasonal | Deaths, steady / seasonal |
+| --- | --- | --- | --- |
+| 7 | 5 / 0 | 11 / 6 | 0 / 0 |
+| 11 | 26 / 20 | 14 / 4 | 18 / 22 |
+| 23 | 22 / 22 | 6 / 5 | 22 / 23 |
+
+The supply cycle matters, but is harsh. In seed 11 both patches are empty
+at tick 239. At 240 the plentiful season begins and each grows three food;
+eight people have chosen to wait at food sources on that tick. Population
+continues falling after growth returns. By tick 359 the second patch is
+full again, with only four living people in the world. More food later
+does not automatically restore the previous population.
+
+Files and viewers are in `runs/seasons/`. All six files verify and replay
+identically; the earlier seed-7 larger-supply file still replays unchanged.
+The full suite passes with 578 tests, including season boundaries, rounding,
+patch wear, caps, zero growth, births, old files, replay and recovery across
+a season change. Viewer JavaScript passes its syntax check. The static
+`seed11-seasons.png` chart has been visually inspected; live HTML playback
+is still unverified because local browser access is blocked.
+
+Watch seed 11 through ticks 119–150 and 239–260 to see the season changes. Select a patch
+and follow the waiting people as lean growth arrives and plentiful growth
+returns. Shared home caches have since been added below; people still do not
+plan for the next season.
+
+## Shared food caches at homes
+
+`--stores on` gives each founding home an initially empty food cache. After
+building the shelter, its adult resident can put spare carried food there
+instead of resting. They keep one meal and fill towards six food. Their
+own needs and existing helping choices come first. No extra gathering trip
+is introduced: this first rule stores leftovers from ordinary food trips.
+
+Anyone who sees a stocked cache at a completed shelter can choose it alongside
+the food patches, by distance then source ID. They must walk to it and spend
+a tick collecting, then spend another tick eating. Children still obey their
+leash. Empty and unseen caches never attract a trip. These are shared caches,
+not private family property. With adult homes off, only the founding resident
+deposits; with adult homes on, anyone living there can deposit. Neighbours and
+children can collect. Caches persist after the resident dies. Newborns do
+not create caches until they choose an adult home. Water storage, dedicated hauling, spoilage and carrying
+limits are not added.
+
+Food remains in the kernel ledger. A new immediate `deposit` proposal debits
+the person's holding and credits the cache; ordinary `claim` takes it back
+out. Deposits cannot be reserved, and credited food becomes available on the
+next tick. Caches never receive production and never count as growing patches.
+They start empty, so enabling them adds no food. The filling target is a world
+decision rule, like the existing patch renewal cap; it is not a new kernel
+account capacity.
+
+The viewer draws a small food box beside each completed founding shelter,
+shows its stored food, and lists deposits and collections. Its inspector
+explains that food must be carried there. Stores are off by default; older
+run headers and behavior remain unchanged when they are off.
+
+**A neighbour's food reaches a child.** In seed 11, p06 puts one food in their
+cache at tick 44. Child p08 drinks first at tick 45, walks from (2, 9) to
+(3, 11) over ticks 46–48, collects the food at 49 and eats at 50. Hunger falls
+from 33 to 4. The child's recorded parent is p03, so this is a neighbour's
+stored meal reaching a child without a request or direct handoff. In the same
+run, p09 collects from p05's cache at tick 49 and p12 does so at tick 105.
+
+Fresh 480-tick runs use source stock 8, source capacity 16, renewal 3, patch
+wear and seasons. Each baseline is the earlier matching seasonal run:
+
+| Seed | Food deposited | Food collected | Collections by others | Collections by children | Living, off / on | Births, on | Deaths, on |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 7 | 24 | 24 | 15 | 0 | 6 / 10 | 4 | 0 |
+| 11 | 9 | 8 | 3 | 3 | 4 / 3 | 19 | 22 |
+| 23 | 9 | 7 | 2 | 1 | 5 / 4 | 18 | 20 |
+
+Collection columns count events, not distinct people. Child age is checked
+before collection. This is useful local sharing with mixed population
+effects, not a general cure for lean seasons. In seed 7, p05 collects from
+p02's cache at tick 89 and p02 later collects from p05's at tick 109; neither
+exchange was prescribed as repayment.
+
+The three new runs and all three older baselines verify and replay identically.
+The full suite passes with 596 tests. Checks cover deposit conservation and
+refusals, delayed credit, competing claims, local sight, needs and helping,
+children, births, no cache production, single-patch worlds, old headers,
+deterministic repeat runs and recovery after a deposit. JavaScript syntax and
+diff checks pass. A fresh code review found no remaining accounting issue in
+this change; this was a review by the builder, not an independent review.
+
+Files and viewers are in `runs/home-stores/`. The static picture
+`seed11-child-cache.png` has been visually checked. Automated live HTML
+playback remains blocked by the browser's local-file restriction.
+
+**Next: watch seed 11 through ticks 44–52, following p08 and store-p06.**
+Then follow the two-way use of neighbours' caches in seed 7 at ticks 89 and
+109. Purposeful supply trips are a possible next addition if these small
+reserves prove useful to watch; residents do not yet gather on behalf of a
+cache or prepare it for a lean season.
+
+## Grown children choose an adult home
+
+`--homes on` lets grown children make one housing choice after their immediate
+needs and helping errands are satisfied. They look at visible finished
+shelters with room and clear sites. Finished shelters come first, then short
+routes to the known food and water landmarks. There are two resident places
+in a finished shelter. Arrivals competing for the last place use the same
+rotating order as the rest of the tick.
+
+People walk to their chosen site and keep their old home until they arrive.
+They remember the destination through interrupted journeys, but choose again
+if they see that it is no longer available. They can join an occupied home,
+reuse an empty shelter, or establish a home on clear ground, including their
+own childhood plot. Joining a finished shelter makes it usable immediately;
+a bare site still needs the usual building work.
+
+With `--stores on`, a newly established home gets an empty cache and residents
+can refill the same cache. Food at the old home stays there. Cache creation
+is recorded separately from food production and adds no resources. Six food
+is a refill target: two residents depositing together can go above it.
+The viewer follows the current home and housemates and lists journeys,
+successful moves, and unsuccessful arrivals.
+
+**A full home changes p08's destination.** In seed 11, p08 grows up at tick 76
+and walks to a spare place at (3, 10). At tick 78, p07 takes that last place
+first. p08 then walks to (3, 11) and joins p06 at tick 80. At tick 124, p08
+stores one spare meal in the shared cache there.
+
+**An adult home becomes a place to find food.** In the same run, p10 chooses
+their childhood plot at (3, 8) as their adult home at tick 144, finishes the
+shelter at 178, and stores food at 289. Another adult, p24, collects it at 299
+and eats at 300. New storage is now useful beyond the founding households.
+
+Fresh 480-tick runs use the earlier store worlds, changing only adult homes:
+
+| Seed | People settling into adult homes | New caches | Living, homes off / on | Births, on | Deaths, on |
+| --- | --- | --- | --- | --- | --- |
+| 7 | 1 | 0 | 10 / 7 | 1 | 0 |
+| 11 | 9 | 4 | 3 / 3 | 20 | 23 |
+| 23 | 12 | 3 | 4 / 14 | 27 | 19 |
+
+These runs show different household and population patterns, not a general
+survival improvement. All three new runs and all three earlier comparisons
+replay exactly. The full suite passed 611 tests; the final housing and viewer
+checks passed 30 tests, including two additional cache edge cases. Those
+checks cover local choices, physical arrival, competing arrivals, death,
+cache accounting, old headers, deterministic repeat runs and recovery.
+
+Saved runs and HTML viewers are in `runs/adult-homes/`. The saved-data picture
+`seed11-adult-homes.png` has been visually checked. Live HTML playback remains
+unverified because of the browser's local-file restriction.
+
+Adult homes are off by default. The first housing choice now has an optional
+follow-up: relocation after difficult supply outings, described below. Water
+storage and purposeful supply trips remain separate possible additions.
+
+## Relocation after difficult supply outings
+
+`--homes on --relocation on` lets adults consider moving after repeated
+difficult outings. They count their actual ticks walking, waiting, asking or
+collecting food and water while away. Returning home ends the outing. Eight
+or more supply ticks raise home strain by one, up to three; a shorter supply
+outing lowers it by one. Ordinary return travel and helping someone else do
+not count as supply effort.
+
+At strain three, an adult can choose a finished shelter they remember seeing
+with room. Its combined distance to the nearest food and water landmarks must
+be at least three steps shorter than the current home's. Shelter vacancies
+are refreshed only in sight; people do not know whether a distant remembered
+place has filled. They recheck room as they approach and when they arrive,
+and drop a destination they see is full. Arrivals still compete for two
+resident places in the existing rotating order.
+
+Needs and helping interrupt moves. At home, a person preparing to relocate
+warms fully before taking a relocation step. A food or water need can still
+call them away first. During the journey, a chosen finished shelter can
+replace the old home as the warmth destination once it is no farther away.
+Without that connection to warmth, the first runs showed people repeatedly
+starting a move and retreating to their old home, with no completed moves.
+
+A move changes home only after physical arrival. The old shelter, cached food
+and family links stay in place. Effort and strain reset, and another move must
+wait at least 120 ticks. The same wait applies from genesis and from a grown
+child's first home choice. Adults with living dependent children stay put;
+moving whole families is not included in this rule.
+
+**p06 leaves a costly location.** In seed 7, p06 returns from outings with 16,
+9 and 21 supply ticks at ticks 42, 73 and 145. Shorter outings later ease the
+strain, but another costly outing brings it back up. At tick 209, p06 chooses
+the remembered shelter at (2, 3). Needs interrupt the journey, including a
+return to the old home, before p06 arrives and joins p02 at tick 235.
+The old home at (9, 11) and its shelter remain.
+
+After the move, p06's first four completed supply outings take 7, 2, 16 and 1
+supply ticks. The new location changes daily travel, but does not eliminate
+costly trips. These are recorded actions, not an estimate of travel time or
+a claim that moving improves everybody's survival.
+
+Fresh 480-tick runs change only relocation from the earlier adult-home worlds:
+
+| Seed | Completed moves | Move | Living, relocation off / on | Births, on | Deaths, on |
+| --- | --- | --- | --- | --- | --- |
+| 7 | 1 | p06, tick 235 | 7 / 6 | 0 | 0 |
+| 11 | 1 | p03, tick 217 | 3 / 4 | 20 | 22 |
+| 23 | 1 | p02, tick 363 | 14 / 14 | 26 | 18 |
+
+The viewer shows the chosen home, a line to it for the selected person,
+remembered shelters, effort on the current outing, strain, and completed
+moves. All three final runs and their three earlier comparisons replay
+exactly. The full suite passes with 626 tests; JavaScript syntax and diff
+checks also pass. Focused checks cover real effort, local and stale knowledge,
+dependent children, warmth, competing arrivals, resource preservation,
+deterministic repeat runs and recovery during a relocation journey.
+
+Final runs and viewers are in `runs/relocation/final/`. The saved-data picture
+`seed7-relocation.png` has been visually checked. Live HTML playback remains
+unverified because of the browser's local-file restriction. Relocation is
+off by default. The thresholds are starting rules, not tuned settings.
+
+## Wood gathering and construction costs
+
+`--wood on` adds a material chain to shelter building. Adults without a finished
+home walk to a wood grove, gather up to three wood, carry it home and spend it
+as they build. Needs, helping and housing choices still take priority.
+Children do not gather wood or build.
+
+One wood pays for each group of four work ticks: a normal twelve-tick shelter
+costs three wood, paid before work ticks 1, 5 and 9. The payment uses the
+existing named-resource ledger. If settlement refuses it, construction makes
+no progress. Paid work stays completed when hunger, thirst or cold calls the
+builder away. Used wood remains accounted for in its consumption sink.
+
+There are up to two groves on clear cells outside existing homes, food sources,
+wells and shelter spots. Enabling wood does not change founding homes, traits
+or terrain. Each grove begins with twelve wood and regrows one every forty
+ticks, up to twelve. Grove locations are known landmarks, but only nearby
+stocks are visible. People prefer a visible stocked grove; otherwise they try
+the nearest. Wood growth is independent of food seasons and patch wear.
+
+**p05 carries a project through interruptions.** In seed 7, p05 gathers three
+wood at tick 11. At tick 28, back home, the first wood pays for the first group
+of work. Food calls p05 away after three work ticks; that progress and the two
+carried wood remain. Further payments occur at ticks 45 and 49, with a drink
+interrupting work at 50. The shelter is finished at tick 53.
+
+Fresh 480-tick runs change only wood from the earlier relocation worlds:
+
+| Seed | Wood gathered | Wood used | Shelters completed | Living, wood off / on | Births, on | Deaths, on |
+| --- | --- | --- | --- | --- | --- | --- |
+| 7 | 18 | 18 | 6 | 6 / 7 | 2 | 1 |
+| 11 | 18 | 18 | 6 | 4 / 2 | 18 | 22 |
+| 23 | 24 | 24 | 8 | 14 / 4 | 14 | 16 |
+
+Building now competes for time and resources, with consequences for household
+formation and survival. These three seeds show mixed population effects;
+they do not establish a balanced construction cost.
+
+The viewer draws groves and carried wood, shows grove stock and total wood
+used, and lists gathering and construction payments. All three new runs and
+their three earlier comparisons replay exactly. Focused checks cover resource
+conservation, competition, refused payments, interrupted work, growth caps,
+children, unchanged starting layouts, old headers, deterministic repetition
+and recovery after gathering. The full suite passes with 638 tests; JavaScript
+syntax and diff checks also pass.
+
+Runs, viewers and the visually checked `seed7-wood-construction.png` are in
+`runs/wood/`. Live HTML playback remains unverified because of the browser's
+local-file restriction. Wood is off by default and requires building to be on.
+Wood storage, trading, salvage, repair and practical skills are not included.
+Building progress remains personal as before; abandoned unfinished work is
+not a transferable project, and spent materials are not recovered.
+
 ## Working direction
 
 This is the current working list of things to try. The order reflects our
@@ -77,7 +553,8 @@ cell. When more than one need is calling, a person serves whichever will
 kill them soonest at the rate it is rising.
 
 **Food and water sources.** Two food sources and two wells at fixed places,
-each renewing on its own cadence up to a cap. People walk to a source, claim
+each renewing on its own cadence up to a cap. Optional local regrowth makes
+harvested food patches produce less until they recover. People walk to a source, claim
 a pack of units, carry them, and eat or drink later. Claims are settled by
 the kernel, so two people wanting the last unit cannot both have it.
 
@@ -90,8 +567,9 @@ setting never moves anybody's home.
 **People build shelters.** With no need calling and standing at home on bare
 ground, a person works on a shelter. It takes several ticks of work, and
 work already done is kept when a need calls them away, so shelters go up in
-snatches between trips. A finished shelter is permanent and slows hunger and
-thirst for whoever stands on it.
+snatches between trips. Optional wood construction adds gathering and material
+payments. A finished shelter is permanent and slows hunger and thirst for
+whoever stands on it.
 
 **People carry food to someone visibly starving.** Distress is visible: you
 can see that somebody nearby is in a hunger or thirst emergency, though not
@@ -99,8 +577,8 @@ how bad it is. Someone with nothing of their own calling and a spare unit in
 hand will walk to the nearest visibly starving person and hand over one
 unit. The handover is a kernel transfer and can be refused.
 
-**Births and a changing population.** When two people who have each finished
-a shelter, and who are neither hungry nor thirsty nor cold, stand on
+**Births and a changing population.** When two people whose homes have finished
+shelters, and who are neither hungry nor thirsty nor cold, stand on
 adjacent cells for a few ticks running, a new person arrives with a home on
 the nearest free cell. They hold nothing: a birth creates no food and no
 water. A run whose roster changes still seals, verifies and replays.
@@ -205,24 +683,25 @@ survival overall; it does not say individual outcomes are unchanged. A unit
 carried to a neighbour plainly helps whoever receives it and costs whoever
 gave it.
 
-**Memory is still only terrain memory.** A person remembers rough cells they
-have seen before, and uses those cells when choosing a route later. They do
-not yet remember empty ground, a source that was empty last time, an
-encounter, a helper or a refusal. The world now has its first remembered fact,
-but it is a map habit, not social memory.
+**Memory covers terrain and received food.** A person remembers rough cells
+for later routes and up to four people who gave them food. Former helpers
+can take priority over other visibly starving neighbours. People do not yet
+remember empty sources, refusals or unsuccessful attempts to help, and they
+do not seek out a remembered person who is outside sight.
 
 **Childhood exists, but family life is still thin.** Newborns have a parent,
 an age and a period of dependency. They stay near home, do not build, do not
-become parents and can be fed by their parent. What is still missing is the
-rest of a family life: grown children leaving to make homes of their own,
-spacing between births, ageing beyond childhood, and households changing as
-people mature.
+become parents and can be fed by their parent. Optional adult homes now let
+grown children join a household or establish one. Optional relocation lets
+adults move after costly supply outings. Ageing beyond childhood, moving
+dependent families together, and richer family relationships are still absent.
 
 **Other present limits.** Scored action selection cannot run alongside water
 or warmth, because the scorer has no cases for their actions. The older
 isometric viewer in `viewer/` predates water, warmth, terrain, shelters and
-births, and shows only one food source. There is no storage, no exchange, no
-materials, no weather and no shared rules.
+births, and shows only one food source. Shared home food caches are optional;
+wood for shelter construction is optional too. There is no exchange, no other
+building material, no weather and no shared rules.
 
 ## 2. How we develop: explore the primitives
 
@@ -407,7 +886,9 @@ particular task making a person better at it.
 
 **Primitives.** A material with a source and a use, and a per-person skill
 that improves with practice. These extend the existing claim, carry and
-build primitives — building currently costs only time and consumes nothing.
+build primitives. Optional wood construction now supplies the material chain;
+building without that switch still costs only time. Practice and skills can
+follow once the work itself is worth watching.
 
 **In the viewer.** Work trips out and back, a project standing half-finished
 while its builder deals with hunger, someone who is visibly the one who

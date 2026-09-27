@@ -9,8 +9,9 @@
                 extra tick, so stepping onto it holds the next step back
   2. hunger     hunger' = max(0, hunger + rate - satiation * units eaten);
                 only units the kernel actually settled as consumed count
-  2a. shelter   anyone who decided to build now has a shelter on their home
-                cell, for good; a tick that ends on a shelter spot or on any
+  2a. shelter   building adds a work tick; with wood on, a due material payment
+                must have settled. Completed shelters remain on their home
+                cell for good; a tick that ends on a shelter spot or on any
                 built shelter adds shelter_relief less hunger and thirst
   2b. cold      warmth on: a tick that ends on the person's own home cell
                 (their shelter) takes `warming` off their cold, and any other
@@ -18,15 +19,21 @@
   3. death      hunger' >= death_at ends the person at this tick, as does
                 thirst or cold reaching its own lethal level; the needs and
                 the position freeze, their held units stay in the ledger
+  3a. housing   living grown children arrive at a chosen adult home; shared
+                shelters have two resident places. New caches start empty.
   4. renewal    every `renewal_every` ticks each food source gains
-                `renewal_amount` up to `source_cap`, and with water on each
+                `renewal_amount` up to `source_cap`. Seasons adjust the amount
+                before patch wear; with local regrowth on,
+                worn food patches grow half that amount, rounded up.
+                Harvests wear patches and quiet ticks restore them. With water on each
                 water source does the same with the water levers (food
-                sources first, then water, each in id order); this is the one
+                sources first, then water). Optional wood groves renew on
+                their own cadence, after water. This is the one
                 production rule, and it is recorded on the tick line and
                 re-checked by the reader
 
-Needs never pause: a rejected claim or an empty source leaves hunger rising
-(DOCTRINE 1). Production is the only way stock enters the world and it goes
+Needs never pause: a rejected claim or an empty source leaves hunger rising.
+Production is the only way stock enters the world and it goes
 through the kernel's own validated constructor, never a balance write.
 """
 
@@ -40,9 +47,13 @@ from kernel.proposals import OP_CONSUME, OP_TRANSFER
 from kernel.state import SINK_ACCOUNT, actor_account, sink_account
 from world.observe import in_view
 
-from world.config import WATER, WorldConfig
+from world.config import WATER, WorldConfig, wood_sites
+from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, wood_cost
 from world.decide import AGREE, ASK, BUILD, Decision
 from world.overlay import Overlay
+from world.social import remember_food
+from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
+from world.housing import apply_housing, update_experience
 
 if TYPE_CHECKING:
     from world.observe import Observation
@@ -145,6 +156,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             if any(e.account == actor_account(recipient) and e.delta > 0 for e in outcome.effects):
                 promises.pop(outcome.actor, None)
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
+    wood_spent = _consumed(record, sink_account(WOOD)) if config.wood_on else {}
     age = {actor: overlay.age.get(actor, 0) for actor in overlay.roster} if config.childhood_on else {}
     terrain_memory = {actor: set(overlay.terrain_memory.get(actor, ())) for actor in overlay.roster}
     if config.terrain_on and observations:
@@ -165,7 +177,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             positions[actor] = decision.step
             if decision.step in rough:
                 held[actor] = 1
-        if decision is not None and decision.kind == BUILD:
+        if (decision is not None and decision.kind == BUILD
+                and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
             built[actor] += 1                           # interrupted work is never lost
             if built[actor] >= config.build_ticks:
                 shelters.add(overlay.homes[actor])      # permanent, and it shelters whoever stands there
@@ -189,7 +202,17 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 or (config.warmth_on and cold[actor] >= config.cold_death_at)):
             died_at[actor] = settled.tick
             died.append(actor)
+    condition = (recover_patches(overlay.patch_condition, config.food_source_ids(), record)
+                 if config.regrowth_on else dict(overlay.patch_condition))
+    season = season_at(settled.tick) if config.seasons_on else None
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
+                           patch_condition=condition,
+                           season=season,
+                           home_targets=overlay.home_targets, home_settled=overlay.home_settled,
+                           home_caches=overlay.home_caches,
+                           home_trip_ticks=overlay.home_trip_ticks, home_strain=overlay.home_strain,
+                           shelter_memory=overlay.shelter_memory,
+                           food_memory=remember_food(overlay, record) if config.social_memory_on else overlay.food_memory,
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)), together=dict(overlay.together),
                            age=age, parent=dict(overlay.parent),
@@ -204,10 +227,19 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
 
     production: list[dict[str, Any]] = []
     ledger = settled
-    renewals = [(source_id, config.renewal_every, config.renewal_amount, config.source_cap)
+    if config.relocation_on:
+        next_overlay = update_experience(overlay, next_overlay, decisions, observations, config)
+    if config.homes_on:
+        next_overlay, ledger, created = apply_housing(next_overlay, ledger, decisions, config, record.rotated_roster, overlay)
+        production.extend(created)
+    growth = seasonal_growth(config.renewal_amount, season) if season is not None else config.renewal_amount
+    renewals = [(source_id, config.renewal_every,
+                 food_growth(growth, condition[source_id]) if config.regrowth_on else growth,
+                 config.source_cap)
                 for source_id in config.food_source_ids()]
     renewals += [(source_id, config.water_renewal_every, config.water_renewal_amount, config.water_cap)
-                 for source_id in config.water_source_ids()]
+                  for source_id in config.water_source_ids()]
+    renewals += [(sid, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_STOCK) for sid,_ in wood_sites(config)]
     for source_id, every, per_renewal, cap in renewals:
         if per_renewal > 0 and settled.tick % every == 0:
             source = ledger.sources[source_id]
@@ -281,6 +313,12 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
                     died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
                     shelters=overlay.shelters, together=counts, age=age, parent=parent,
                     birth_ready=ready if config.birth_spacing or overlay.birth_ready else {},
-                    terrain_memory=dict(overlay.terrain_memory),
+                    terrain_memory=dict(overlay.terrain_memory), food_memory=dict(overlay.food_memory),
+                    patch_condition=dict(overlay.patch_condition),
+                    season=overlay.season,
+                    home_targets=overlay.home_targets, home_settled=overlay.home_settled,
+                    home_caches=overlay.home_caches,
+                    home_trip_ticks=overlay.home_trip_ticks, home_strain=overlay.home_strain,
+                    shelter_memory=overlay.shelter_memory,
                     requests=dict(overlay.requests), promises=dict(overlay.promises)),
             grown, born)

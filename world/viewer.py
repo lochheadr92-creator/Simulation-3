@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from stream.run_file import Run, read_run
-from world.viewer_index import build_index
+from world.viewer_index import build_index, food_sources, stock_at
 
 HERE = Path(__file__).resolve().parent
 CSS_FILE = HERE / "viewer.css"
@@ -73,7 +73,7 @@ def _seen_positions(observation: dict, start_world: dict) -> list:
 def _food_sources(cfg: dict) -> list[dict]:
     """Every food source a header declares: `food_sources` when there are
     several (from 2026-09-26), else the one `source`."""
-    return cfg.get("food_sources") or [{"id": cfg["source"], "position": cfg["source_position"]}]
+    return (cfg.get("food_sources") or [{"id": cfg["source"], "position": cfg["source_position"]}]) + cfg.get("food_stores", [])
 
 
 def _water_sources(cfg: dict) -> list[dict]:
@@ -89,15 +89,16 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
     tick = run.ticks[view - 1]
     prior = run.header["world"] if view == 1 else run.ticks[view - 2]["world"]
     cfg = run.header["scenario"]
-    source_at = {entry["id"]: entry["position"] for entry in _food_sources(cfg) + _water_sources(cfg)}
+    source_at = {entry["id"]: entry["position"] for entry in food_sources(cfg, prior) + _water_sources(cfg) + cfg.get("wood_sources", [])}
     selection = [f"Tick {tick['tick']} — personal selection from tick-start inputs"]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         ob = tick.get("observations", {}).get(actor, {})
         water_action = d.get("kind") in ("drink", "draw", "wait_water", "go_water")
+        wood_action = d.get("kind") in ("gather_wood", "go_wood", "wait_wood")
         source_id = d.get("target") or cfg.get("water_source" if water_action else "source")
         aimed = source_at.get(source_id)
         crowd = sum(position == aimed for position in _seen_positions(ob, prior))
-        stock = ob.get("seen_stock", {}).get(source_id, ob.get("water_stock" if water_action else "source_food", "not observed"))
+        stock = ob.get("seen_stock", {}).get(source_id, ob.get("wood_stock" if wood_action else "water_stock" if water_action else "source_food", "not observed"))
         scores = d.get("scores")
         pairs = "; ".join(f"{action} {tuple(scores[action])}" if scores is not None and action in scores
                           else f"{action} (score not recorded)" for action in d["candidates"])
@@ -239,7 +240,7 @@ def render_html(run: Run) -> str:
     childhood = scenario.get("childhood") == "on"
     levers = ", ".join(f"{k} {v}" for k, v in scenario.items() if isinstance(v, int) and k != "seed")
     switches = [key for key in ("water", "warmth", "terrain", "building", "offers", "requests", "births",
-                                "childhood", "trips")
+                                "childhood", "trips", "regrowth", "seasons", "stores", "homes", "relocation", "wood")
                 if scenario.get(key) == "on"]
     rules = "".join(f"<dt>{html.escape(k)}</dt><dd>{html.escape(v)}</dd>" for k, v in scenario.items()
                     if isinstance(v, str) and len(v) > 24)
@@ -258,6 +259,7 @@ def render_html(run: Run) -> str:
         "<h3>Places</h3>",
         _layer("food", "Food sources"),
         _layer("water", "Wells") if water else "",
+        _layer("wood", "Wood groves") if scenario.get("wood") == "on" else "",
         _layer("stock", "Stock labels"), _layer("homes", "Homes"),
         _layer("shelters", "Shelters") if building else "",
         _layer("rough", "Rough ground") if terrain else "",
@@ -393,16 +395,12 @@ def render_text(run: Run, view: int) -> str:
     cfg = run.header["scenario"]
     world = run.header["world"] if view == 0 else run.ticks[view - 1]["world"]
     def stock_of(source_id: str) -> int:
-        if view == 0:
-            return run.header["genesis"]["sources"][source_id]["stock"]
-        tick_line = run.ticks[view - 1]
-        return tick_line["state"]["sources"][source_id]["stock"] + sum(
-            e["amount"] for e in tick_line.get("production", []) if e.get("source") == source_id)
+        return stock_at(run, view, source_id)
     stock = stock_of(cfg["source"])
     grid = [["." for _ in range(cfg["width"])] for _ in range(cfg["height"])]
     sx, sy = cfg["source_position"]
     extra = []
-    for mark, entries in (("S", _food_sources(cfg)), ("W", _water_sources(cfg))):
+    for mark, entries in (("S", food_sources(cfg, world)), ("W", _water_sources(cfg)), ("T", cfg.get("wood_sources", []))):
         for entry in entries:
             x, y = entry["position"]
             grid[y][x] = mark
@@ -411,7 +409,7 @@ def render_text(run: Run, view: int) -> str:
     for actor in sorted(world["positions"]):
         x, y = world["positions"][actor]
         mark = "x" if actor in world["died_at"] else actor[-1]
-        grid[y][x] = mark if grid[y][x] in ".SW" else "+"
+        grid[y][x] = mark if grid[y][x] in ".SWT" else "+"
     saw_other = saw_source = yields = 0
     for entry in run.ticks:
         for observation in entry.get("observations", {}).values():

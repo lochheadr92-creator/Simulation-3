@@ -31,11 +31,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume, transfer
+from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume, deposit, transfer
 
 from stream.run_file import RunFileError, RunWriter, read_run
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, genesis
-from world.decide import CLAIM, DRAW, DRINK, EAT, OFFER, Decision, decide
+from world.decide import BUILD, CLAIM, DEPOSIT, DRAW, DRINK, EAT, OFFER, Decision, decide
+from world.materials import WOOD, GATHER_WOOD
 from world.observe import Observation, observe
 from world.overlay import Overlay
 
@@ -46,7 +47,13 @@ DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
 def run_id_for(config: WorldConfig, ticks: int) -> str:
     mode = "on" if config.yield_on else "off"
-    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "")
+    if config.homes_on:
+        mode += "-homes"
+    if config.relocation_on:
+        mode += "-relocation"
+    if config.wood_on:
+        mode += "-wood"
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
 
 
 def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
@@ -60,11 +67,17 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
             out.append(claim(pid, actor, 0, sources={decision.target or FOOD_SOURCE: decision.amount}))
         elif decision.kind == OFFER:
             out.append(transfer(pid, actor, 0, to=decision.target, amount=decision.amount))
+        elif decision.kind == DEPOSIT:
+            out.append(deposit(pid, actor, 0, source=decision.target, amount=decision.amount))
         elif decision.kind == DRINK:
             out.append(consume(pid, actor, 0, amount=decision.amount, resource=WATER))
         elif decision.kind == DRAW:
             out.append(claim(pid, actor, 0, sources={decision.target or WATER_SOURCE: decision.amount},
                              resource=WATER))
+        elif decision.kind == GATHER_WOOD:
+            out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
+        elif decision.kind == BUILD and decision.amount:
+            out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
     return out
 
 
@@ -180,6 +193,20 @@ def build_parser() -> argparse.ArgumentParser:
                         help="recovery after a birth before either adult can count time together again (default 0)")
     parser.add_argument("--offers", choices=("on", "off"), default="on",
                         help="carry a spare unit of food to somebody visibly starving nearby (default on)")
+    parser.add_argument("--social-memory", choices=("on", "off"), default="on",
+                        help="remember received food and favour former helpers in distress (default on)")
+    parser.add_argument("--regrowth", choices=("on", "off"), default="off",
+                        help="harvesting wears food patches; quiet ticks restore growth (default off)")
+    parser.add_argument("--seasons", choices=("on", "off"), default="off",
+                        help="alternate plentiful and lean food growth every 120 ticks (default off)")
+    parser.add_argument("--stores", choices=("on", "off"), default="off",
+                        help="put spare food at founding homes for nearby people to collect (default off)")
+    parser.add_argument("--homes", choices=("on", "off"), default="off",
+                        help="grown children establish or join a nearby home (requires childhood; default off)")
+    parser.add_argument("--relocation", choices=("on", "off"), default="off",
+                        help="move after repeated costly supply outings (requires homes on; default off)")
+    parser.add_argument("--wood", choices=("on", "off"), default="off",
+                        help="gather and spend wood to build shelters (requires building; default off)")
     parser.add_argument("--building", choices=("on", "off"), default="on",
                         help="people build a permanent shelter on their home cell when nothing else is "
                              "calling (default on)")
@@ -241,6 +268,13 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["route_around"] = args.routing == "on"
     levers["building_on"] = args.building == "on"
     levers["offers_on"] = args.offers == "on"
+    levers["social_memory_on"] = args.social_memory == "on"
+    levers["regrowth_on"] = args.regrowth == "on"
+    levers["seasons_on"] = args.seasons == "on"
+    levers["stores_on"] = args.stores == "on"
+    levers["homes_on"] = args.homes == "on"
+    levers["relocation_on"] = args.relocation == "on"
+    levers["wood_on"] = args.wood == "on"
     levers["births_on"] = args.births == "on"
     levers["birth_spacing"] = args.birth_spacing
     levers["childhood_on"] = args.childhood == "on"

@@ -25,6 +25,10 @@ from typing import Any, Iterable, Mapping
 # same table, so a new kind the world grows shows up as its own name until a
 # phrase is added here.
 ACTION_PHRASES: dict[str, str] = {
+    "go_wood": "walking to gather wood", "gather_wood": "gathering wood", "wait_wood": "waiting for wood to regrow",
+    "go_relocate": "walking to a nearer home", "relocate": "moving into a nearer home",
+    "go_settle": "walking to an adult home", "settle_home": "settling into an adult home",
+    "deposit": "putting food in the home cache",
     "eat": "eating",
     "claim": "gathering food",
     "wait": "waiting at an empty food source",
@@ -48,6 +52,10 @@ ACTION_PHRASES: dict[str, str] = {
 
 # Short labels for the alternatives a person had, as chips in the inspector.
 ACTION_LABELS: dict[str, str] = {
+    "go_wood": "go to wood", "gather_wood": "gather wood", "wait_wood": "wait for wood",
+    "go_relocate": "walk to nearer home", "relocate": "move home",
+    "go_settle": "go to new home", "settle_home": "settle home",
+    "deposit": "store spare food",
     "eat": "eat", "claim": "take food", "wait": "wait for food", "yield": "stand back",
     "go": "go to food", "home": "go home", "rest": "rest", "build": "build",
     "offer": "hand over food", "go_offer": "carry food over", "ask": "ask for food",
@@ -62,24 +70,27 @@ CATEGORIES: tuple[tuple[str, str], ...] = (
     ("help", "Asking and helping"),
     ("need", "Emergencies"),
     ("build", "Shelters"),
+    ("wood", "Wood and construction"),
     ("food", "Food"),
     ("water", "Water"),
     ("source", "Sources running out"),
     ("crowd", "Standing back"),
 )
 
-MOVES = frozenset({"go", "home", "go_offer", "go_water", "go_shelter", "ask"})
+MOVES = frozenset({"go", "home", "go_offer", "go_water", "go_shelter", "ask", "go_settle", "go_relocate", "go_wood"})
 
 
-def food_sources(cfg: Mapping[str, Any]) -> list[dict[str, Any]]:
+def food_sources(cfg: Mapping[str, Any], world: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
     """Every food source a header declares: `food_sources` when there are
     several (from 2026-09-26), else the one `source`."""
     listed = cfg.get("food_sources")
-    if listed:
-        return [dict(entry) for entry in listed]
-    if "source" in cfg and "source_position" in cfg:
-        return [{"id": cfg["source"], "position": cfg["source_position"]}]
-    return []
+    patches = [dict(entry) for entry in listed] if listed else (
+        [{"id": cfg["source"], "position": cfg["source_position"]}]
+        if "source" in cfg and "source_position" in cfg else [])
+    sources = patches + [dict(entry, store=True) for entry in cfg.get("food_stores", [])]
+    declared = {entry["id"] for entry in sources}
+    return sources + [{"id": sid, "position": pos, "store": True}
+                      for sid, pos in (world or {}).get("home_caches", {}).items() if sid not in declared]
 
 
 def water_sources(cfg: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -107,6 +118,8 @@ def stock_at(run: Any, view: int, source_id: str) -> int | None:
         if view == 0:
             return int(run.header["genesis"]["sources"][source_id]["stock"])
         tick = run.ticks[view - 1]
+        if any(entry.get("source_created") == source_id for entry in (tick.get("production") or [])):
+            return 0
         stock = int(tick["state"]["sources"][source_id]["stock"])
     except (KeyError, TypeError, ValueError, IndexError):
         return None
@@ -163,8 +176,9 @@ def build_index(run: Any) -> dict[str, Any]:
     n = len(ticks)
     worlds = worlds_of(run)
     people = sorted({actor for world in worlds for actor in world.get("positions", {})})
-    food = food_sources(cfg)
+    food = food_sources(cfg, worlds[-1])
     water = water_sources(cfg)
+    wood = cfg.get("wood_sources", [])
     build_ticks = cfg.get("build_ticks")
 
     events: list[dict[str, Any]] = []
@@ -175,8 +189,11 @@ def build_index(run: Any) -> dict[str, Any]:
     waiting: dict[str, dict[str, Any]] = {}           # asker -> the thread waiting on an answer
 
     def add(k: int, cat: str, kind: str, text: str, who: str | None = None,
-            other: str | None = None, src: str | None = None, amount: int | None = None) -> None:
+            other: str | None = None, src: str | None = None, amount: int | None = None,
+            helped_at: int | None = None) -> None:
         event: dict[str, Any] = {"k": k, "cat": cat, "kind": kind, "text": text}
+        if helped_at is not None:
+            event["helped_at"] = helped_at
         if amount is not None:
             event["amount"] = amount
         if who:
@@ -209,8 +226,24 @@ def build_index(run: Any) -> dict[str, Any]:
     for k in range(1, n + 1):
         tick = ticks[k - 1]
         world, before = worlds[k], worlds[k - 1]
+        for actor, when in world.get("home_settled", {}).items():
+            if when != before.get("home_settled", {}).get(actor):
+                destination = world["homes"][actor]
+                if (tick.get("decisions", {}).get(actor) or {}).get("kind") == "relocate":
+                    add(k, "build", "relocated", f"{actor} moved from {tuple(before['homes'][actor])} to {tuple(destination)} after repeated costly supply outings", who=actor)
+                    continue
+                joined = any(p != actor and p not in before.get("died_at", {}) and pos == destination
+                             for p, pos in before.get("homes", {}).items())
+                add(k, "build", "home_settled",
+                    f"{actor} {'joined a home' if joined else 'established an adult home'} at {tuple(destination)}",
+                    who=actor)
+        if world.get("season") is not None and world["season"] != before.get("season"):
+            add(k, "source", "season_changed", f"The {world['season']} season begins")
         decisions: Mapping[str, Any] = tick.get("decisions") or {}
         earlier: Mapping[str, Any] = (ticks[k - 2].get("decisions") or {}) if k >= 2 else {}
+        for actor, strain in world.get("home_strain", {}).items():
+            if strain > before.get("home_strain", {}).get(actor, 0):
+                add(k, "build", "supply_strain", f"{actor} returned from a costly supply outing; home strain is now {strain}", who=actor)
         outcomes: dict[str, dict[str, Any]] = {}
         for outcome in (tick.get("record") or {}).get("outcomes", []):
             outcomes.setdefault(outcome.get("actor"), outcome)
@@ -257,8 +290,34 @@ def build_index(run: Any) -> dict[str, Any]:
                 continue
             decision = decisions.get(actor) or {}
             kind = decision.get("kind")
+            if kind == "gather_wood" and outcomes.get(actor) is not None:
+                outcome = outcomes[actor]
+                amount = _gained(outcome, f"actor@wood:{actor}") if outcome.get("accepted") else 0
+                add(k, "wood", "gather_wood" if amount else "wood_refused",
+                    f"{actor} gathered {amount} wood at {decision.get('target')}" if amount else f"{actor} came away without wood",
+                    who=actor, src=decision.get("target"), amount=amount)
+            if kind == "build" and outcomes.get(actor) is not None:
+                outcome = outcomes[actor]
+                amount = _gained(outcome, "sink@wood:consumed") if outcome.get("accepted") else 0
+                add(k, "wood", "wood_used" if amount else "wood_payment_refused",
+                    f"{actor} used {amount} wood in their shelter" if amount else f"{actor} could not pay for shelter work",
+                    who=actor, amount=amount)
+            if kind == "go_relocate" and before.get("home_targets", {}).get(actor) != decision.get("home_site"):
+                add(k, "build", "relocation_journey", f"{actor} set off for a nearer home at {tuple(decision['home_site'])}", who=actor)
+            if kind == "relocate" and world.get("home_settled", {}).get(actor) != k:
+                add(k, "build", "relocation_unavailable", f"{actor} did not move into the chosen home", who=actor)
+            if kind == "go_settle" and (earlier.get(actor) or {}).get("home_site") != decision.get("home_site"):
+                add(k, "build", "home_journey", f"{actor} set off for an adult home at {tuple(decision['home_site'])}", who=actor)
+            if kind == "settle_home" and world.get("home_settled", {}).get(actor) != k:
+                add(k, "build", "home_unavailable", f"{actor} did not settle into the chosen home", who=actor)
             target = decision.get("target")
             outcome = outcomes.get(actor)
+            if decision.get("helped_at") is not None:
+                was_choice = earlier.get(actor) or {}
+                if was_choice.get("target") != target or was_choice.get("helped_at") != decision["helped_at"]:
+                    add(k, "help", "remembered_helper",
+                        f"{actor} chose to help {target}, remembering food received at tick {decision['helped_at']}",
+                        who=actor, other=target, helped_at=decision["helped_at"])
             if kind == "ask" and target:
                 thread = {"asker": actor, "helper": target, "asked": k, "answer": "waiting"}
                 threads.append(thread)
@@ -268,6 +327,14 @@ def build_index(run: Any) -> dict[str, Any]:
             elif kind == "yield":
                 where = target or cfg.get("source", "the source")
                 add(k, "crowd", "yield", f"{actor} stood back from the crowd at {where}", who=actor, src=where)
+            elif kind == "deposit" and target and outcome is not None:
+                if outcome.get("accepted"):
+                    put = _gained(outcome, f"source:{target}")
+                    add(k, "food", "deposit", f"{actor} stored {put} food at {target}",
+                        who=actor, src=target, amount=put)
+                else:
+                    add(k, "food", "deposit_refused", f"{actor} could not store food at {target}",
+                        who=actor, src=target)
             elif kind in ("claim", "draw") and outcome is not None:
                 resource, account = ("food", f"actor:{actor}") if kind == "claim" else ("water", f"actor@water:{actor}")
                 where = target or (cfg.get("source") if kind == "claim" else cfg.get("water_source"))
@@ -402,8 +469,17 @@ def build_index(run: Any) -> dict[str, Any]:
                 tally["born"] += 1
 
         for source, word_out, word_back, kind in [(s, "was picked clean", "is growing back", "food") for s in food] + \
-                                                 [(s, "ran dry", "is filling again", "water") for s in water]:
+                                                 [(s, "ran dry", "is filling again", "water") for s in water] + \
+                                                 [(s, "has no wood left", "has grown more wood", "wood") for s in wood]:
             sid = source["id"]
+            condition = world.get("patch_condition", {}).get(sid)
+            was_condition = before.get("patch_condition", {}).get(sid)
+            threshold = cfg.get("patch_rules", {}).get("full_growth_at")
+            if condition is not None and was_condition is not None and threshold is not None:
+                if condition < threshold <= was_condition:
+                    add(k, "source", "patch_worn", f"{sid} is worn from harvesting (condition {condition})", src=sid)
+                elif was_condition < threshold <= condition:
+                    add(k, "source", "patch_recovered", f"{sid} recovered enough for full growth ({condition})", src=sid)
             now, was_stock = settled_stock(run, k, sid), stock_at(run, k - 1, sid)
             if now == 0 and was_stock:
                 add(k, "source", kind + "_out", f"{sid} {word_out}", src=sid)
@@ -438,6 +514,7 @@ def build_index(run: Any) -> dict[str, Any]:
         "moves": sorted(MOVES),
         "food": food,
         "water": water,
+        "wood": wood,
         "adult_at": adult_at,
         "parent": dict(worlds[-1].get("parent", {}) or {}),
     }

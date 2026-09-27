@@ -13,6 +13,8 @@ from types import MappingProxyType
 from typing import Any, Mapping
 
 from kernel import digest as canonical_digest
+from world.social import FOOD_MEMORY_LIMIT
+from world.ecology import CONDITION_MAX, SEASONS
 
 Position = tuple[int, int]
 
@@ -97,12 +99,44 @@ class Overlay:
     parent: Mapping[str, str] = field(default_factory=dict)   # child -> the person whose home they were born beside
     birth_ready: Mapping[str, int] = field(default_factory=dict)  # first tick eligible after birth recovery
     terrain_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)  # actor -> rough cells remembered
+    food_memory: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)  # recipient -> (donor, tick)
+    patch_condition: Mapping[str, int] = field(default_factory=dict)  # food source -> growing condition
+    season: str | None = None  # recorded world season; absent in older runs
+    home_targets: Mapping[str, Position] = field(default_factory=dict)
+    home_settled: Mapping[str, int] = field(default_factory=dict)
+    home_caches: Mapping[str, Position] = field(default_factory=dict)
+    home_trip_ticks: Mapping[str, int] = field(default_factory=dict)
+    home_strain: Mapping[str, int] = field(default_factory=dict)
+    shelter_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if self.season is not None and self.season not in SEASONS:
+            raise ValueError("season must be plentiful, lean, or absent")
         if type(self.tick) is not int or self.tick < 0:
             raise ValueError("a tick must be an integer of zero or more")
         homes = _positions(self.homes)
         positions = _positions(self.positions)
+        for name in ("home_trip_ticks", "home_strain"):
+            values = dict(getattr(self, name))
+            if any(p not in positions or type(n) is not int or n < 0 for p,n in values.items()):
+                raise ValueError(f"{name} needs known people and non-negative integer counts")
+            object.__setattr__(self, name, MappingProxyType(dict(sorted(values.items()))))
+        object.__setattr__(self, "shelter_memory", _terrain_memory(self.shelter_memory, roster=set(positions)))
+        targets = _positions(self.home_targets)
+        if set(targets) - set(positions):
+            raise ValueError("home targets must name known people")
+        settled = dict(self.home_settled)
+        for actor, when in settled.items():
+            if actor not in positions or type(when) is not int or not 0 < when <= self.tick:
+                raise ValueError("home settlement needs a known person and completed tick")
+        if any(not isinstance(sid, str) or not sid for sid in self.home_caches):
+            raise ValueError("home caches need source names")
+        caches = _positions(self.home_caches)
+        if len(set(caches.values())) != len(caches):
+            raise ValueError("a home cannot have two caches")
+        object.__setattr__(self, "home_targets", targets)
+        object.__setattr__(self, "home_settled", MappingProxyType(dict(sorted(settled.items()))))
+        object.__setattr__(self, "home_caches", caches)
         if set(homes) != set(positions) or set(positions) != set(self.hunger):
             raise ValueError("homes, positions and hunger must name the same people")
         hunger = {actor: self.hunger[actor] for actor in sorted(self.hunger)}
@@ -132,6 +166,33 @@ class Overlay:
         object.__setattr__(self, "birth_ready", _levels(self.birth_ready, positions=positions, name="birth_ready"))
         object.__setattr__(self, "parent", _links(self.parent, positions=positions, name="parent"))
         object.__setattr__(self, "terrain_memory", _terrain_memory(self.terrain_memory, roster=set(positions)))
+        memories = {}
+        if not isinstance(self.food_memory, Mapping):
+            raise ValueError("food_memory must map recipients to remembered donors")
+        for actor, entries in self.food_memory.items():
+            if actor not in positions or not isinstance(entries, (list, tuple)) or len(entries) > FOOD_MEMORY_LIMIT:
+                raise ValueError("food_memory needs a known recipient and at most four donors")
+            recent = {}
+            for entry in entries:
+                if not isinstance(entry, (list, tuple)) or len(entry) != 2:
+                    raise ValueError("a food memory needs a donor and tick")
+                donor, when = entry
+                if (not isinstance(donor, str) or donor not in positions or donor == actor or donor in recent
+                        or type(when) is not int or not 0 < when <= self.tick):
+                    raise ValueError("a food memory needs a distinct known donor and completed tick")
+                recent[donor] = when
+            if recent:
+                memories[actor] = tuple(sorted(recent.items(), key=lambda item: (-item[1], item[0])))
+        object.__setattr__(self, "food_memory", MappingProxyType(dict(sorted(memories.items()))))
+        if not isinstance(self.patch_condition, Mapping):
+            raise ValueError("patch_condition must map food sources to condition")
+        condition = {}
+        for source, value in self.patch_condition.items():
+            if (not isinstance(source, str) or not source or type(value) is not int
+                    or not 0 <= value <= CONDITION_MAX):
+                raise ValueError("patch condition needs a source name and integer from zero to 100")
+            condition[source] = value
+        object.__setattr__(self, "patch_condition", MappingProxyType(dict(sorted(condition.items()))))
         shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
         for cell in shelters:
             if (len(cell) != 2 or type(cell[0]) is not int or type(cell[1]) is not int
@@ -165,6 +226,17 @@ class Overlay:
             "hunger": dict(self.hunger),
             "yield_at": dict(self.yield_at),
             "died_at": dict(self.died_at),
+            **({"home_targets": {p: list(pos) for p, pos in self.home_targets.items()}} if self.home_targets else {}),
+            **({"home_settled": dict(self.home_settled)} if self.home_settled else {}),
+            **({"home_caches": {s: list(pos) for s, pos in self.home_caches.items()}} if self.home_caches else {}),
+            **({"home_trip_ticks": dict(self.home_trip_ticks)} if self.home_trip_ticks else {}),
+            **({"home_strain": dict(self.home_strain)} if self.home_strain else {}),
+            **({"shelter_memory": {p: [list(pos) for pos in sites] for p,sites in self.shelter_memory.items()}}
+               if self.shelter_memory else {}),
+            **({"season": self.season} if self.season is not None else {}),
+            **({"patch_condition": dict(self.patch_condition)} if self.patch_condition else {}),
+            **({"food_memory": {actor: [list(entry) for entry in entries]
+                                for actor, entries in self.food_memory.items()}} if self.food_memory else {}),
             **({"thirst": dict(self.thirst)} if self.thirst else {}),
             **({"cold": dict(self.cold)} if self.cold else {}),
             **({"held": dict(self.held)} if any(self.held.values()) else {}),
@@ -188,12 +260,13 @@ class Overlay:
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
-                          "age", "parent", "terrain_memory", "birth_ready"):
+                          "age", "parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
             raise ValueError(f"a canonical overlay needs exactly the keys {sorted(keys)}")
-        for name in sorted(keys - {"tick", "shelters"}):
+        for name in sorted(keys - {"tick", "shelters", "season"}):
             if not isinstance(data[name], Mapping):
                 raise ValueError(f"a canonical overlay needs a mapping of {name}")
         if "shelters" in keys and not isinstance(data["shelters"], list):
@@ -216,6 +289,15 @@ class Overlay:
                    requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})),
                    age=dict(data.get("age", {})), parent=dict(data.get("parent", {})),
                    birth_ready=dict(data.get("birth_ready", {})),
+                   food_memory=dict(data.get("food_memory", {})),
+                   patch_condition=dict(data.get("patch_condition", {})),
+                   season=data.get("season"),
+                   home_targets=cells(data.get("home_targets", {})),
+                   home_settled=dict(data.get("home_settled", {})),
+                   home_caches=cells(data.get("home_caches", {})),
+                   home_trip_ticks=dict(data.get("home_trip_ticks", {})),
+                   home_strain=dict(data.get("home_strain", {})),
+                   shelter_memory=dict(data.get("shelter_memory", {})),
                    terrain_memory={actor: tuple(tuple(cell) for cell in cells)
                                    for actor, cells in dict(data.get("terrain_memory", {})).items()})
 

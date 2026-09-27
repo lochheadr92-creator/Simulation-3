@@ -3,8 +3,7 @@
 `candidates` lists what a person could do this tick given their observation;
 `decide` picks one by fixed priority (OFF) or declared integer pairs (ON).
 Both are pure. The record keeps the actual scores when ON and the
-eligible set beside the choice so a later reader can see what was passed
-over (DOCTRINE 2: observation, eligibility, ranking kept separate).
+eligible set beside the choice so a later reader can see what was passed over.
 
 Priority, highest first:
   eat    hungry and holding a free unit
@@ -69,11 +68,15 @@ from typing import Any
 from world.config import WorldConfig
 from world.observe import Observation
 from world.overlay import Position
+from world.storage import spare_for_store, store_id
+from world.housing import GO_SETTLE, SETTLE, GO_RELOCATE, RELOCATE, choose_site, choose_relocation
+from world.materials import GATHER_WOOD, GO_WOOD, WAIT_WOOD, WOOD_PACK, wood_cost, remaining_wood
 
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
     "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
 )
 BUILD = "build"
+DEPOSIT = "deposit"
 OFFER, GO_OFFER = "offer", "go_offer"
 ASK, AGREE = "ask", "agree"
 LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, ASK, GO, AGREE, OFFER, GO_OFFER, HOME, BUILD, REST)
@@ -94,6 +97,8 @@ class Decision:
     step: Position | None = None         # the cell a move ends on
     scores: tuple[tuple[str, tuple[int, int]], ...] | None = None
     target: str | None = None            # the source aimed at, when its kind has several
+    helped_at: int | None = None         # remembered gift that changed this recipient choice
+    home_site: Position | None = None
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -105,6 +110,10 @@ class Decision:
             out["scores"] = {action: list(pair) for action, pair in self.scores}
         if self.target is not None:
             out["target"] = self.target
+        if self.helped_at is not None:
+            out["helped_at"] = self.helped_at
+        if self.home_site is not None:
+            out["home_site"] = list(self.home_site)
         return out
 
 
@@ -249,11 +258,10 @@ def adjacent_request(observation: Observation, config: WorldConfig) -> str | Non
 def someone_to_help(observation: Observation, config: WorldConfig) -> str | None:
     """The person this one is carrying a spare unit to.
 
-    Somebody they agreed to supply comes first, and keeps coming first for as
-    long as they can see them: an errand taken on is not dropped because a
-    nearer stranger starts to look worse. Failing that, the nearest visibly
-    starving other, by steps then id. Thirst shows too, but food does not help
-    it, so only hunger draws anyone out."""
+    Empty-handed dependents come first, then direct answers and an existing
+    promise. Otherwise help someone visibly starving, preferring a remembered
+    donor before distance and id. Memory never reveals an absent person or
+    creates a need. Thirst shows too, but food does not help it."""
     if observation.food < 1:
         return None
     # your own child, in front of you and carrying nothing, comes before anybody
@@ -272,7 +280,9 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
     starving = [seen for seen in observation.others if seen.starving]
     if not starving:
         return None
-    return min(starving, key=lambda seen: (steps_to(observation.position, seen.position), seen.actor)).actor
+    remembered = dict(observation.food_memory) if config.social_memory_on else {}
+    return min(starving, key=lambda seen: (seen.actor not in remembered,
+                                         steps_to(observation.position, seen.position), seen.actor)).actor
 
 
 def someone_to_ask(observation: Observation, config: WorldConfig) -> str | None:
@@ -370,8 +380,60 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
     """Food alone when it is the only need (the rule above, unchanged); otherwise
     every need that is on, arbitrated by `_decide_needs`."""
     if config.water_on or config.warmth_on:
-        return _decide_needs(observation, config)
-    return _decide_food(observation, config)
+        choice = _decide_needs(observation, config)
+    else:
+        choice = _decide_food(observation, config)
+    if config.homes_on and observation.choosing_home and choice.kind in (HOME, BUILD, REST):
+        site = choose_site(observation, config)
+        if site is not None:
+            arrived = observation.position == site
+            kind = SETTLE if arrived else GO_SETTLE
+            return Decision(observation.actor, kind,
+                            f"grown up; {'settling at' if arrived else 'walking to'} an adult home at {site}",
+                            choice.candidates + (kind,), home_site=site,
+                            step=None if arrived else route_step(observation, site, config),
+                            scores=choice.scores + ((kind, (0, 1)),) if choice.scores is not None else None)
+    if observation.relocating and choice.kind in (HOME, BUILD, REST, GO_SHELTER):
+        site = choose_relocation(observation, config)
+        if site is not None:
+            if config.warmth_on and observation.at_home and observation.cold > 0:
+                return Decision(observation.actor, WARM, "warming up before moving home",
+                                choice.candidates + ((WARM,) if WARM not in choice.candidates else ()),
+                                scores=choice.scores + ((WARM, (0, 1)),) if choice.scores is not None else None)
+            if choice.kind == GO_SHELTER and steps_to(observation.position, site) > steps_to(observation.position, observation.home):
+                return choice
+            arrived = observation.position == site
+            kind = RELOCATE if arrived else GO_RELOCATE
+            return Decision(observation.actor, kind,
+                            f"repeated costly supply outings; {'moving into' if arrived else 'walking to'} a nearer home at {site}",
+                            choice.candidates + (kind,), home_site=site,
+                            step=None if arrived else route_step(observation, site, config),
+                            scores=choice.scores + ((kind, (0, 1)),) if choice.scores is not None else None)
+    if config.wood_on and not observation.home_built and not is_child(observation, config) and choice.kind in (HOME, BUILD):
+        cost = wood_cost(observation.work_done)
+        if observation.wood < cost:
+            site = observation.wood_source
+            if site is None:
+                raise ValueError("wood construction requires an observed grove landmark")
+            kind = GO_WOOD if observation.position != site else GATHER_WOOD if observation.wood_stock else WAIT_WOOD
+            amount = min(WOOD_PACK, remaining_wood(observation.work_done, config.build_ticks) - observation.wood,
+                         observation.wood_stock or 0) if kind == GATHER_WOOD else 0
+            return Decision(observation.actor, kind, "shelter work needs wood; " + {
+                GO_WOOD: "walking to a grove", GATHER_WOOD: "gathering wood to carry home", WAIT_WOOD: "waiting at an empty grove"}[kind],
+                choice.candidates + (kind,), amount=amount, target=observation.wood_source_id,
+                step=route_step(observation, site, config) if kind == GO_WOOD else None,
+                scores=choice.scores + ((kind, (0, 1)),) if choice.scores is not None else None)
+        if choice.kind == BUILD:
+            return replace(choice, amount=cost, reason=f"building shelter; {cost} wood due for this work tick")
+    if config.stores_on and choice.kind == REST and not is_child(observation, config):
+        spare = spare_for_store(observation)
+        if spare:
+            return Decision(observation.actor, DEPOSIT,
+                            f"putting {spare} spare food in the shared home cache; keeping one meal",
+                            choice.candidates + (DEPOSIT,), amount=spare,
+                            target=observation.home_store_id or store_id(observation.actor),
+                            scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    return choice
 
 
 def steps_to(origin: Position, target: Position) -> int:
@@ -436,6 +498,18 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
     water = water_candidates(observation, config)
     warmth = warmth_candidates(observation, config)
     every = food + water + warmth
+    # Finish a handoff already within reach before heading home early. This
+    # buys no extra walking time and never postpones an active need or a
+    # water trip. The usual food choice still owns the recipient and transfer.
+    if (config.childhood_on and OFFER in food and not water
+            and warmth == (GO_SHELTER,) and observation.cold < config.cold_at
+            and observation.hunger < config.hungry_at
+            and (not config.water_on or observation.thirst < config.thirsty_at)
+            and someone_to_help(observation, config) in observation.dependents):
+        handoff = _decide_food(observation, config)
+        return replace(handoff, candidates=every,
+                       reason=f"{handoff.target} is my child alongside with no food; "
+                              "handing over one before heading home for warmth")
     calling: list[tuple[int | float, tuple[str, ...], tuple[str, ...], Any]] = []
     if water:
         calling.append((slack(observation.thirst, config.thirst_death_at, config.thirst_rate),
@@ -510,7 +584,7 @@ def _water_decision(observation: Observation, config: WorldConfig, selected: str
 def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     options = candidates(observation, config)
     actor = observation.actor
-    target = observation.source_id if config.food_sources > 1 else None
+    target = observation.source_id if config.food_sources > 1 or config.stores_on else None
     if not options:
         return Decision(actor, DEAD, "dead", ())
     scores = None
@@ -565,6 +639,22 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     if selected in (OFFER, GO_OFFER):
         hurt = someone_to_help(observation, config)
         where = _seen(observation, hurt)
+        if hurt in observation.dependents:
+            if selected == OFFER:
+                return Decision(actor, OFFER,
+                                f"{hurt} is my child alongside with no food; handing over one of {observation.food}",
+                                options, amount=1, target=hurt, scores=scores)
+            return Decision(actor, GO_OFFER,
+                            f"{hurt} is my child with no food, {steps_to(observation.position, where)} steps away",
+                            options, step=route_step(observation, where, config), target=hurt, scores=scores)
+        if observation.food_memory and hurt != someone_to_help(replace(observation, food_memory=()), config):
+            when = dict(observation.food_memory)[hurt]
+            action = "handing over one" if selected == OFFER else "taking food to them"
+            return Decision(actor, selected,
+                            f"{hurt} gave me food at tick {when} and now looks starving; {action}",
+                            options, amount=1 if selected == OFFER else 0,
+                            step=None if selected == OFFER else route_step(observation, where, config),
+                            target=hurt, scores=scores, helped_at=when)
         if selected == OFFER:
             if hurt == adjacent_request(observation, config):
                 return Decision(actor, OFFER, f"{hurt} asked and is alongside; handing over one of {observation.food}",
