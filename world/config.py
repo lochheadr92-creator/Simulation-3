@@ -115,6 +115,7 @@ class WorldConfig:
     adjacent_requests: bool = False  # requests may start a handoff, never a walking errand
     births_on: bool = True        # the roster grows when life is good (2026-09-27)
     together_ticks: int = 3       # consecutive ticks two settled neighbours must spend side by side
+    birth_spacing: int = 0        # recovery ticks before either adult can begin another birth countdown
     childhood_on: bool = True     # the newly born are children for a while (2026-09-28)
     adult_at: int = 60            # ticks lived before a child is grown
     child_leash: int = 5          # how far from home a child will go for food or water
@@ -155,6 +156,7 @@ class WorldConfig:
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
             "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,
+            "birth_spacing": type(self.birth_spacing) is int and self.birth_spacing >= 0,
             "terrain": (not self.terrain_on) or (
                 0 <= self.rough_pct and 0 <= self.shelter_pct and self.rough_pct + self.shelter_pct <= 90
                 and self.shelter_relief >= 0),
@@ -343,6 +345,10 @@ class WorldConfig:
                                 "nor thirsty nor cold, stand on adjacent cells for together_ticks ticks running, "
                                 "a new person arrives: a home on the nearest free cell to the first of them, "
                                 "nothing held, every need at nought. A birth creates no food and no water")
+        if self.birth_spacing:
+            out["birth_spacing"] = self.birth_spacing
+            out["decision"] += ("; after a birth both adults recover for birth_spacing ticks before "
+                                "counting time together again, including with a different partner")
         if self.stagger_start:
             # Written only when on, so the worlds that started level round-trip.
             out["stagger_start"] = "on"
@@ -472,7 +478,8 @@ class WorldConfig:
             counts[key] = len(listed) if listed is not None else 1
         if not switches[water]:
             counts["water_sources"] = cls.__dataclass_fields__["water_sources"].default   # unused when off
-        config = cls(**values, yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
+        config = cls(**values, birth_spacing=described.get("birth_spacing", 0),
+                     yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
                      water_on=switches[water], warmth_on=switches[warmth],
                      stagger_start=switches[stagger], terrain_on=switches[terrain],

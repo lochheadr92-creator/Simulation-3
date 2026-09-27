@@ -82,6 +82,8 @@ def settled_pairs(overlay: Overlay, config: WorldConfig) -> list[tuple[str, str]
     homes_built = set(overlay.shelters)
 
     def well(actor: str) -> bool:
+        if config.birth_spacing and overlay.birth_ready.get(actor, 0) > overlay.tick:
+            return False
         if config.childhood_on and overlay.age.get(actor, config.adult_at) < config.adult_at:
             return False                                   # a child is nobody's partner
         return (overlay.alive(actor) and overlay.homes[actor] in homes_built
@@ -186,6 +188,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)), together=dict(overlay.together),
                            age=age, parent=dict(overlay.parent),
+                           birth_ready=dict(overlay.birth_ready),
                            terrain_memory={actor: tuple(sorted(cells)) for actor, cells in terrain_memory.items()
                                            if cells},
                            requests=requests,
@@ -226,18 +229,24 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     thirst, cold = dict(overlay.thirst), dict(overlay.cold)
     held, built = dict(overlay.held), dict(overlay.built)
     age, parent = dict(overlay.age), dict(overlay.parent)
+    ready = {actor: overlay.birth_ready.get(actor, 0) for actor in overlay.roster}
     born: list[str] = []
     roster_size = len(overlay.roster)
     for pair in sorted(counts):
         if counts[pair] < config.together_ticks:
             continue
-        first = pair.split("|")[0]
+        first, second = pair.split("|")
+        if config.birth_spacing and any(ready[actor] > overlay.tick for actor in (first, second)):
+            continue
         where = free_cell_near(overlay.homes[first], taken, config)
         if where is None:
             continue                                   # nowhere left to live
         counts[pair] = 0                               # they start counting again
         name = f"p{roster_size + len(born) + 1:02d}"
         born.append(name)
+        ready[name] = 0
+        if config.birth_spacing:
+            ready[first] = ready[second] = overlay.tick + config.birth_spacing
         taken.add(where)
         homes[name] = positions[name] = where
         hunger[name] = held[name] = built[name] = 0
@@ -251,6 +260,9 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
             cold[name] = 0
     if not born:
         return replace(overlay, together=counts), ledger, []
+    if config.birth_spacing:
+        counts = {pair: count for pair, count in counts.items()
+                  if all(ready[actor] <= overlay.tick for actor in pair.split("|"))}
     sources = {sid: replace(source, authorised=frozenset(source.authorised) | set(born))
                for sid, source in ledger.sources.items()}
     balances = dict(ledger.balances) | {name: 0 for name in born}
@@ -260,6 +272,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
                     shelters=overlay.shelters, together=counts, age=age, parent=parent,
+                    birth_ready=ready if config.birth_spacing or overlay.birth_ready else {},
                     terrain_memory=dict(overlay.terrain_memory),
                     requests=dict(overlay.requests), promises=dict(overlay.promises)),
             grown, born)

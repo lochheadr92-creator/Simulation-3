@@ -455,8 +455,33 @@ explore. Nearby answers avoid that journey, but they do not solve a parent's
 limited food or time. Watch whether spacing births gives families more room
 to care for children before adding more kinds of help.
 
-Ageing and the rest of the family can follow: grown children leaving to
-establish a home of their own, and spacing between births.
+**Birth spacing is built as an optional rule.** `--birth-spacing 30` gives
+both adults involved in a birth a 30-tick recovery period. Neither can
+accumulate time together during recovery, even with another partner. At the
+deadline they can start the usual consecutive-tick countdown again. The
+deadline is saved per person and the viewer inspector shows the remaining
+ticks. Zero spacing is the default and preserves the previous birth rule.
+This applies to both adults, although the existing child record still names
+only one caregiving parent.
+
+With asking off, 400-tick runs gave these results. Dependents means living
+children below adulthood assigned to the same recorded parent; the peak is
+the largest such family at any tick in the run.
+
+| Seed | Spacing | Births | Alive at 400 | Deaths | Peak dependents | Child feedings |
+| --- | --- | --- | --- | --- | --- | --- |
+| 7 | 0 | 5 | 11 | 0 | 4 | 3 |
+| 7 | 30 | 4 | 9 | 1 | 1 | 3 |
+| 11 | 0 | 11 | 4 | 13 | 4 | 7 |
+| 11 | 30 | 8 | 6 | 8 | 2 | 10 |
+| 23 | 0 | 24 | 18 | 12 | 11 | 6 |
+| 23 | 30 | 8 | 6 | 8 | 2 | 10 |
+
+Spacing reduces overlapping dependents in these runs and changes caregiving,
+but it also produces fewer people. These three seeds do not establish that
+spacing improves survival, and 30 ticks is an experimental setting, not a
+chosen optimum. Keep it optional while exploring families. Ageing and grown
+children leaving to establish their own homes can follow.
 
 ### What asking looked like, and what it cost
 

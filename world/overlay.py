@@ -95,6 +95,7 @@ class Overlay:
     promises: Mapping[str, str] = field(default_factory=dict) # helper -> the person they agreed to bring food to
     age: Mapping[str, int] = field(default_factory=dict)      # ticks lived; everyone at genesis starts grown
     parent: Mapping[str, str] = field(default_factory=dict)   # child -> the person whose home they were born beside
+    birth_ready: Mapping[str, int] = field(default_factory=dict)  # first tick eligible after birth recovery
     terrain_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)  # actor -> rough cells remembered
 
     def __post_init__(self) -> None:
@@ -128,6 +129,7 @@ class Overlay:
         object.__setattr__(self, "requests", _links(self.requests, positions=positions, name="requests"))
         object.__setattr__(self, "promises", _links(self.promises, positions=positions, name="promises"))
         object.__setattr__(self, "age", _levels(self.age, positions=positions, name="age"))
+        object.__setattr__(self, "birth_ready", _levels(self.birth_ready, positions=positions, name="birth_ready"))
         object.__setattr__(self, "parent", _links(self.parent, positions=positions, name="parent"))
         object.__setattr__(self, "terrain_memory", _terrain_memory(self.terrain_memory, roster=set(positions)))
         shelters = tuple(sorted(tuple(cell) for cell in self.shelters))
@@ -172,6 +174,7 @@ class Overlay:
             **({"requests": dict(self.requests)} if self.requests else {}),
             **({"promises": dict(self.promises)} if self.promises else {}),
             **({"age": dict(self.age)} if self.age else {}),
+            **({"birth_ready": dict(self.birth_ready)} if self.birth_ready else {}),
             **({"parent": dict(self.parent)} if self.parent else {}),
             **({"terrain_memory": {actor: [list(cell) for cell in cells]
                                    for actor, cells in self.terrain_memory.items()}}
@@ -185,7 +188,7 @@ class Overlay:
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
-                          "age", "parent", "terrain_memory"):
+                          "age", "parent", "terrain_memory", "birth_ready"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -212,6 +215,7 @@ class Overlay:
                    together=dict(data.get("together", {})),
                    requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})),
                    age=dict(data.get("age", {})), parent=dict(data.get("parent", {})),
+                   birth_ready=dict(data.get("birth_ready", {})),
                    terrain_memory={actor: tuple(tuple(cell) for cell in cells)
                                    for actor, cells in dict(data.get("terrain_memory", {})).items()})
 

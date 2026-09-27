@@ -1211,6 +1211,10 @@
     if (knownRough) facts.push(['Map memory', `${knownRough} rough cell${knownRough === 1 ? '' : 's'} remembered`]);
     if (BORN[p]) facts.push(['Born', `tick ${BORN[p]}`]);
     const lived = ageOf(w, p);
+    if (C.birth_spacing) {
+      const remaining = Math.max(0, ((w.birth_ready || {})[p] || 0) - w.tick);
+      facts.push(['Birth recovery', remaining ? remaining + ' ticks remaining' : 'not recovering']);
+    }
     if (ADULT_AT !== null && lived !== null) facts.push(['Age', lived < ADULT_AT ? `a child: ${lived} of the ${ADULT_AT} ticks it takes to grow up` : 'grown']);
     h += '<div class="sec"><h4>Facts</h4><div class="kv">' + facts.map(([a, b]) => `<span class="k">${a}</span><span>${esc(b)}</span>`).join('') + '</div></div>';
     // errands and company, straight from the world state

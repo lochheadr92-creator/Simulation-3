@@ -46,7 +46,7 @@ DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
 def run_id_for(config: WorldConfig, ticks: int) -> str:
     mode = "on" if config.yield_on else "off"
-    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "")
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "")
 
 
 def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
@@ -176,6 +176,8 @@ def build_parser() -> argparse.ArgumentParser:
                              "have no children, and are fed by a parent (default on)")
     parser.add_argument("--births", choices=("on", "off"), default="on",
                         help="the roster grows when two settled neighbours spend time side by side (default on)")
+    parser.add_argument("--birth-spacing", type=int, default=0, metavar="TICKS",
+                        help="recovery after a birth before either adult can count time together again (default 0)")
     parser.add_argument("--offers", choices=("on", "off"), default="on",
                         help="carry a spare unit of food to somebody visibly starving nearby (default on)")
     parser.add_argument("--building", choices=("on", "off"), default="on",
@@ -240,6 +242,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["building_on"] = args.building == "on"
     levers["offers_on"] = args.offers == "on"
     levers["births_on"] = args.births == "on"
+    levers["birth_spacing"] = args.birth_spacing
     levers["childhood_on"] = args.childhood == "on"
     requests = args.requests if args.requests is not None else "off"
     levers["requests_on"] = requests != "off"
