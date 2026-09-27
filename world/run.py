@@ -46,7 +46,7 @@ DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
 def run_id_for(config: WorldConfig, ticks: int) -> str:
     mode = "on" if config.yield_on else "off"
-    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking" if config.requests_on else "")
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "")
 
 
 def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
@@ -168,9 +168,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--warmth", choices=("on", "off"), default=None,
                         help="cold as a third need, met by sheltering at home (default on; never with "
                              "--scoring on, since scoring has no warmth actions yet)")
-    parser.add_argument("--requests", choices=("on", "off"), default=None,
+    parser.add_argument("--requests", choices=("on", "off", "adjacent"), default=None,
                         help="a hungry person can ask somebody nearby for food (default off: it works, but "
-                             "it suppresses births in a growing world - see WORLD_DIRECTIONS.md)")
+                             "it suppresses births in a growing world; adjacent allows only nearby handoffs)")
     parser.add_argument("--childhood", choices=("on", "off"), default="on",
                         help="the newly born are children for a while: they stay near home, build nothing, "
                              "have no children, and are fed by a parent (default on)")
@@ -242,7 +242,8 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["births_on"] = args.births == "on"
     levers["childhood_on"] = args.childhood == "on"
     requests = args.requests if args.requests is not None else "off"
-    levers["requests_on"] = requests == "on"
+    levers["requests_on"] = requests != "off"
+    levers["adjacent_requests"] = requests == "adjacent"
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")
     levers["water_on"] = water == "on"
     warmth = args.warmth if args.warmth is not None else ("off" if args.scoring == "on" else "on")

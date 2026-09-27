@@ -4,7 +4,7 @@ from dataclasses import replace
 
 from kernel import Engine, WorldState
 from world.config import WorldConfig
-from world.decide import AGREE, EAT, OFFER, decide
+from world.decide import AGREE, EAT, OFFER, decide, someone_to_ask
 from world.observe import Observation, SeenPerson
 from world.run import proposals_for
 
@@ -58,3 +58,21 @@ def test_thirst_and_cold_take_priority_over_handoff():
     assert decide(thirsty, water).kind == "drink"
     warmth = replace(config, warmth_on=True)
     assert decide(replace(view, cold=warmth.cold_at), warmth).kind == "warm"
+
+
+def test_adjacent_mode_never_agrees_to_a_request_journey():
+    config, view = setup()
+    config = replace(config, adjacent_requests=True)
+    assert decide(view, config).kind == OFFER
+    distant = replace(view, others=(SeenPerson("p02", (4, 2), 0),))
+    assert decide(distant, config).kind not in (AGREE, OFFER, "go_offer")
+
+
+def test_adjacent_mode_asks_only_neighbours_and_round_trips():
+    config, view = setup()
+    config = replace(config, adjacent_requests=True)
+    asker = replace(view, food=0, hunger=config.hungry_at, asked_by=None,
+                    others=(SeenPerson("p02", (4, 2), 2),))
+    assert someone_to_ask(asker, config) is None
+    assert someone_to_ask(replace(asker, others=(SeenPerson("p02", (3, 2), 2),)), config) == "p02"
+    assert WorldConfig.from_describe(config.describe()) == config

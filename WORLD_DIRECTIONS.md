@@ -431,11 +431,29 @@ direct handoffs. Seed 23's first is p07 feeding p06 at tick 87 after a request
 at tick 86. This does not establish a survival benefit: walking errands still
 run alongside these handoffs. Asking stays off by default.
 
-**Next: watch the cost of helping.** Seed 23 with asking off shows p01 setting off toward
+**Nearby-only requests are available with `--requests adjacent`.** People
+ask only on the same or an adjacent cell, keep walking while asking, and can
+receive a direct answer next tick if still alongside. This mode creates no
+requested walking errands. Unsolicited offers and feeding children retain
+their existing rules. `--requests on` still permits walking errands, and
+the default remains off.
+
+Over 220 ticks, seeds 7, 11 and 23 ended with 7, 6 and 12 survivors in nearby
+mode, compared with 6, 7 and 9 with walking requests. Nearby mode produced
+zero, two and two direct handoffs. It is a mixed result, not a reason to
+change the default. The rules also change who asks, so this comparison does
+not isolate the cost of travel alone.
+
+The most interesting nearby exchange was in seed 23 at tick 93: p10 and p11
+had both asked their parent p05, who had one unit. p10 received it and p11's
+request went unanswered. Cheap help still has a scarce supply to divide.
+
+**Next: follow competing children and caregiving.** Seed 23 with asking off shows p01 setting off toward
 starving p12 at tick 127, then turning home for warmth at tick 128. Both food
 patches are empty. This interrupted help is the clearest next interaction to
-explore. Compare nearby answers with walking errands before widening the
-request rule or turning it on by default.
+explore. Nearby answers avoid that journey, but they do not solve a parent's
+limited food or time. Watch whether spacing births gives families more room
+to care for children before adding more kinds of help.
 
 Ageing and the rest of the family can follow: grown children leaving to
 establish a home of their own, and spacing between births.

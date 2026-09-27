@@ -112,6 +112,7 @@ class WorldConfig:
     build_ticks: int = 12         # ticks of work a shelter takes; interrupted work keeps its progress
     offers_on: bool = True        # carry a spare unit to somebody visibly starving nearby (2026-09-27)
     requests_on: bool = False     # asking for food: built and watchable, but see WORLD_DIRECTIONS.md (2026-09-28)
+    adjacent_requests: bool = False  # requests may start a handoff, never a walking errand
     births_on: bool = True        # the roster grows when life is good (2026-09-27)
     together_ticks: int = 3       # consecutive ticks two settled neighbours must spend side by side
     childhood_on: bool = True     # the newly born are children for a while (2026-09-28)
@@ -152,6 +153,7 @@ class WorldConfig:
                 and 0 <= self.cold_at <= self.cold_emergency_at < self.cold_death_at),
             "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
+            "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,
             "terrain": (not self.terrain_on) or (
                 0 <= self.rough_pct and 0 <= self.shelter_pct and self.rough_pct + self.shelter_pct <= 90
@@ -321,6 +323,11 @@ class WorldConfig:
                                 "them; the errand is then theirs until it is delivered or they lose sight of "
                                 "the asker. Anybody else does not answer at all and the asking lapses, because "
                                 "saying no is not an act either")
+        if self.adjacent_requests:
+            out["request_range"] = "adjacent"
+            out["decision"] += ("; requests are restricted to the same or an adjacent cell. A helper can "
+                                "answer with a direct handoff next tick if still alongside, but never "
+                                "agrees to a walking errand. Own needs and feeding one's child come first")
         if self.childhood_on:
             out["childhood"] = "on"
             out["adult_at"], out["child_leash"] = self.adult_at, self.child_leash
@@ -428,6 +435,9 @@ class WorldConfig:
         requests = described.get("requests", "off")
         if not isinstance(requests, str) or requests not in switches:
             raise ValueError("requests must be 'on' or 'off'")
+        request_range = described.get("request_range", "visible")
+        if request_range not in ("visible", "adjacent"):
+            raise ValueError("request_range must be 'visible' or 'adjacent'")
         births = described.get("births", "off")
         if not isinstance(births, str) or births not in switches:
             raise ValueError("births must be 'on' or 'off'")
@@ -468,6 +478,7 @@ class WorldConfig:
                      stagger_start=switches[stagger], terrain_on=switches[terrain],
                      building_on=switches[building], offers_on=switches[offers],
                      births_on=switches[births], requests_on=switches[requests],
+                     adjacent_requests=request_range == "adjacent",
                      childhood_on=switches[childhood], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")

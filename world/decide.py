@@ -281,7 +281,8 @@ def someone_to_ask(observation: Observation, config: WorldConfig) -> str | None:
         return None
     if observation.waiting_on is not None or observation.asked_by is not None:
         return None
-    holders = [seen for seen in observation.others if seen.food >= 1 and not seen.starving]
+    holders = [seen for seen in observation.others if seen.food >= 1 and not seen.starving
+               and (not config.adjacent_requests or steps_to(observation.position, seen.position) <= 1)]
     if not holders:
         return None
     return min(holders, key=lambda seen: (steps_to(observation.position, seen.position), seen.actor)).actor
@@ -314,7 +315,7 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if not hungry:
         if trip_due(observation, config):
             found.append(GO)
-        elif (config.requests_on and observation.asked_by is not None
+        elif (config.requests_on and not config.adjacent_requests and observation.asked_by is not None
                 and observation.food >= 1 and observation.owed_to is None
                 and not observation.dependents
                 and adjacent_request(observation, config) is None):
