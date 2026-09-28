@@ -12,9 +12,10 @@ Priority, highest first:
   yield  hungry, not emergency, off the source, source in view, crowd on the
          source >= yield_at and observed stock < crowd (stay; hunger continues)
   go     hungry, elsewhere: one step toward the source; or (trips on) holding
-         no food, elsewhere, and hunger + hunger_rate * steps to the source
+         no food, elsewhere, and hunger + hunger_rate * estimated travel ticks
          >= hungry_at, so a person far from food leaves in time to arrive as
-         hunger reaches hungry_at (once due, it stays due on the way).
+         hunger reaches hungry_at. With terrain and routing on, the estimate
+         uses seen and remembered rough ground; unseen ground counts as open.
           Fishing includes one casting tick: arrive and cast before hungry,
           then use the ordinary hungry claim and later eating rules.
   home   not hungry, away from home: one step toward home
@@ -105,6 +106,8 @@ class Decision:
     provisioning: str | None = None
     announced_to: tuple[str, ...] = ()
     waiting_for_food: str | None = None
+    source_report: tuple[str, int] | None = None
+    report_to: tuple[str, ...] = ()
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -124,6 +127,9 @@ class Decision:
             out["provisioning"] = self.provisioning
         if self.announced_to:
             out["announced_to"] = list(self.announced_to)
+        if self.source_report is not None:
+            out["source_report"] = list(self.source_report)
+            out["report_to"] = list(self.report_to)
         if self.waiting_for_food is not None:
             out["waiting_for_food"] = self.waiting_for_food
         return out
@@ -140,7 +146,12 @@ def step_toward(origin: Position, target: Position) -> Position:
 
 
 def route_step(observation: Observation, target: Position, config: WorldConfig) -> Position:
-    """One step towards target, picking a way round known rough ground.
+    """The next step selected by the existing personal route search."""
+    return _route_plan(observation, target, config)[0]
+
+
+def _route_plan(observation: Observation, target: Position, config: WorldConfig) -> tuple[Position, int]:
+    """Next step and estimated cost, picking a way round known rough ground.
 
     Rough inside sight counts, and remembered rough counts after it leaves
     sight. Known rough costs two ticks to enter and anything else costs one;
@@ -163,7 +174,7 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
                  and steps_to(cell, target) < steps_to(origin, target)]
         straight = legal[0] if legal else origin
     if origin == target or not config.route_around or not observation.rough_in_view:
-        return straight
+        return straight, steps_to(origin, target)
     radius, rough = config.perception_radius, observation.rough_in_view
     seen_limit = radius
     remembered_limit = max([chebyshev_steps(origin, target), seen_limit]
@@ -204,10 +215,10 @@ def route_step(observation: Observation, target: Position, config: WorldConfig) 
 
     ends = [c for c in best_first if edge(c)] or list(best_first)
     if not ends:
-        return straight
+        return straight, steps_to(origin, target)
     choice = min(ends, key=lambda c: (seen[c][0] + steps_to(c, target),
                                       order.get(best_first[c], len(order)), c[1], c[0]))
-    return best_first[choice]
+    return best_first[choice], seen[choice][0] + steps_to(choice, target)
 
 
 def chebyshev_steps(a: Position, b: Position) -> int:
@@ -219,13 +230,26 @@ def steps_to_source(observation: Observation) -> int:
     return abs(observation.source[0] - observation.position[0]) + abs(observation.source[1] - observation.position[1])
 
 
+def food_travel_ticks(observation: Observation, config: WorldConfig) -> int:
+    """Estimate the selected food trip using only personally known ground.
+
+    Share the route search and its costs, including our current movement
+    delay; unseen ground still counts as open.
+    With terrain or routing off, retain the nominal Manhattan estimate.
+    This is not a prediction of interruptions, competition or shelter relief.
+    """
+    if not config.terrain_on or not config.route_around:
+        return steps_to_source(observation)
+    if observation.at_source:
+        return 0
+    return observation.held + _route_plan(observation, observation.source, config)[1]
+
+
 def trip_due(observation: Observation, config: WorldConfig) -> bool:
-    """Leave empty-handed in time to gather at hungry_at, including a fishing cast.
-    This retains the existing Manhattan travel estimate; it does not predict
-    terrain delays, contention or interruptions."""
+    """Leave using known route cost and nominal hunger rate, plus a fishing cast."""
     casting = int(config.fishing_on and observation.source_id == FISH_SOURCE)
     return (config.plan_trips and observation.food == 0 and not observation.at_source
-            and observation.hunger + config.hunger_rate * (steps_to_source(observation) + casting) >= config.hungry_at)
+            and observation.hunger + config.hunger_rate * (food_travel_ticks(observation, config) + casting) >= config.hungry_at)
 
 
 def crowd_on_source(observation: Observation) -> int:
@@ -397,6 +421,22 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
 
 
 def decide(observation: Observation, config: WorldConfig) -> Decision:
+    choice = _decide(observation, config)
+    if not config.knowledge_sharing_on or not observation.alive:
+        return choice
+    avoided = observation.report_provision_avoided if choice.provisioning == "gather" else observation.report_food_avoided
+    report = next((e for e in observation.source_reports if e[0] == avoided), None)
+    if report is not None and choice.kind in (GO, WAIT, CLAIM, FISH, YIELD):
+        sid, speaker, seen, heard = report
+        choice = replace(choice, reason=choice.reason + f"; {speaker} reported {sid} empty at tick {seen} (heard at {heard})")
+    empty = [e for e in observation.food_sightings if e[1] == 0]
+    if empty and observation.report_listeners:
+        sid, _, seen = min(empty, key=lambda e: (-e[2], e[0]))
+        choice = replace(choice, source_report=(sid, seen), report_to=observation.report_listeners)
+    return choice
+
+
+def _decide(observation: Observation, config: WorldConfig) -> Decision:
     """Food alone when it is the only need (the rule above, unchanged); otherwise
     every need that is on, arbitrated by `_decide_needs`."""
     if config.water_on or config.warmth_on:
@@ -696,6 +736,10 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
         reason = (f"{urgency}, walking to source" if observation.hunger >= config.hungry_at
                   else f"fed, leaving in time: hunger {observation.hunger}, "
                        f"{steps_to_source(observation)} steps to source, no food held")
+        if observation.hunger < config.hungry_at:
+            travel = food_travel_ticks(observation, config)
+            if travel != steps_to_source(observation):
+                reason += f"; allowing {travel} travel ticks over seen or remembered ground"
         if observation.hunger < config.hungry_at and config.fishing_on and observation.source_id == FISH_SOURCE:
             reason += "; allowing one tick to cast"
         return Decision(actor, GO, reason, options,

@@ -141,6 +141,7 @@ class WorldConfig:
     fishing_on: bool = False      # one bank fishing spot with season-independent stock
     source_memory_on: bool = False  # remember empty natural food sources for later journeys
     provisioning_on: bool = False  # make food trips for a low shared home cache
+    knowledge_sharing_on: bool = False  # share firsthand empty-source sightings with adjacent housemates
     coordination_on: bool = False  # briefly trust a nearby housemate's announced food trip
 
     def __post_init__(self) -> None:
@@ -152,6 +153,7 @@ class WorldConfig:
             "coordination": type(self.coordination_on) is bool and (not self.coordination_on or self.provisioning_on),
             "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
             "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
+            "knowledge_sharing": type(self.knowledge_sharing_on) is bool and (not self.knowledge_sharing_on or self.source_memory_on),
             "source_memory": type(self.source_memory_on) is bool,
             "fishing": type(self.fishing_on) is bool,
             "wood": type(self.wood_on) is bool and (not self.wood_on or self.building_on),
@@ -297,6 +299,17 @@ class WorldConfig:
                                      "After that update, on the usual renewal tick, a patch below full_growth_at "
                                      "grows half renewal_amount rounded up; otherwise it grows renewal_amount. "
                                      "Stock remains capped, zero renewal stays zero, and water is unchanged.")
+        if self.knowledge_sharing_on:
+            out["knowledge_sharing"] = "on"
+            out["knowledge_sharing_rule"] = (
+                "Alongside their normal action, living people tell visible housemates within one "
+                "Chebyshev cell their most recent firsthand empty natural-food sighting, source id breaking ties. "
+                "Listeners use it next tick; reports retain source, speaker, sighting tick and heard tick. "
+                "Newest sightings win, then speaker id. Own equally recent or newer sight overrides reports. "
+                "Current sight always overrides reports, and reports expire empty_source_ticks after the "
+                "original sighting, never after retelling. Reports cannot be relayed. Food and optional "
+                "provisioning use the existing source ranking with these additional empty-source reports; "
+                "needs, gathering, movement, accounting and water rules stay unchanged.")
         if self.source_memory_on:
             out["source_memory"] = "on"
             out["empty_source_ticks"] = EMPTY_SOURCE_TICKS
@@ -428,6 +441,14 @@ class WorldConfig:
                     " With planned trips, an empty-handed person leaves one casting tick earlier and may cast "
                     "at stocked fish before hungry when hunger + hunger_rate reaches hungry_at. "
                     "For personal food trips, claiming and eating still require hunger.")
+        if self.plan_trips and self.terrain_on and self.route_around:
+            out["decision"] += (
+                "; personal food departure timing uses the selected route estimate over seen and "
+                "personally remembered rough ground, plus any current personal movement delay: "
+                "known rough costs two ticks, other ground one; "
+                "unseen ground stays open in the estimate. This changes departure timing only, "
+                "not source selection, water or shelter planning. Nominal hunger rate and any "
+                "fishing cast still apply; interruptions, contention and shelter relief are not predicted.")
         if self.water_on:
             # Written only when on, so every earlier header still round-trips.
             out["water"] = "on"
@@ -655,6 +676,9 @@ class WorldConfig:
             raise ValueError("provisioning must be on or off")
         homes = described.get("homes", "off")
         relocation = described.get("relocation", "off")
+        knowledge_sharing = described.get("knowledge_sharing", "off")
+        if not isinstance(knowledge_sharing, str) or knowledge_sharing not in switches:
+            raise ValueError("knowledge_sharing must be on or off")
         source_memory = described.get("source_memory", "off")
         if not isinstance(source_memory, str) or source_memory not in switches:
             raise ValueError("source_memory must be on or off")
@@ -719,6 +743,7 @@ class WorldConfig:
                      relocation_on=switches[relocation],
                      wood_on=switches[wood], fishing_on=switches[fishing],
                      source_memory_on=switches[source_memory],
+                     knowledge_sharing_on=switches[knowledge_sharing],
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",
                      childhood_on=switches[childhood], **need_values, **counts)

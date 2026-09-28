@@ -57,7 +57,7 @@ from kernel.state import actor_account, source_account
 
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, wood_sites, fishing_sites
 from world.storage import food_expectation
-from world.foraging import remember_empty
+from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
@@ -121,6 +121,7 @@ class Observation:
     waiting_on: str | None = None          # this person asked somebody and has had no answer yet
     rough_in_view: frozenset[Position] = frozenset()   # visible rough plus remembered rough, for choosing a way round
     rough_seen_now: frozenset[Position] = frozenset()  # just this tick's visible rough cells
+    held: int = 0                         # own remaining rough-ground movement delay
     age: int = 10 ** 6                     # ticks lived; the default is somebody long grown
     children: frozenset[str] = frozenset() # who this person is a parent to
     dependents: frozenset[str] = frozenset()   # those of them still too young to fend for themselves
@@ -138,6 +139,11 @@ class Observation:
     wood_source: Position | None = None
     wood_stock: int | None = None
     fishing_ready: bool = False
+    food_sightings: tuple[tuple[str, int, int], ...] = ()
+    source_reports: tuple[tuple[str, str, int, int], ...] = ()
+    report_listeners: tuple[str, ...] = ()
+    report_food_avoided: str | None = None
+    report_provision_avoided: str | None = None
     empty_sources: tuple[tuple[str, int], ...] = ()
     food_choice_changed: str | None = None  # target without empty-source memory
     food_target: str | None = None
@@ -186,6 +192,16 @@ class Observation:
             out["provision_source"] = {"id": sid, "position": list(pos), "stock": stock}
         if self.provision_avoided is not None:
             out["provision_avoided"] = self.provision_avoided
+        if self.report_food_avoided is not None:
+            out["report_food_avoided"] = self.report_food_avoided
+        if self.report_provision_avoided is not None:
+            out["report_provision_avoided"] = self.report_provision_avoided
+        if self.food_sightings:
+            out["food_sightings"] = [list(e) for e in self.food_sightings]
+        if self.source_reports:
+            out["source_reports"] = [list(e) for e in self.source_reports]
+        if self.report_listeners:
+            out["report_listeners"] = list(self.report_listeners)
         if self.empty_sources:
             out["empty_sources"] = dict(self.empty_sources)
         if self.food_choice_changed is not None:
@@ -239,12 +255,26 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     empty_sources = (remember_empty(overlay.empty_sources.get(actor, ()),
                      tuple((sid, available[source_account(sid)]) for sid,pos in food_known
                            if in_view(origin, pos, radius)), ledger.tick) if config.source_memory_on else ())
+    sightings = ()
+    reports = ()
+    if config.knowledge_sharing_on:
+        visible_food = tuple((sid, available[source_account(sid)]) for sid, pos in food_known
+                             if in_view(origin, pos, radius))
+        sightings = remember_sightings(overlay.food_sightings.get(actor, ()), visible_food, ledger.tick)
+        reports = usable_reports(overlay.source_reports.get(actor, ()), sightings, ledger.tick)
+    avoided_sources = frozenset(sid for sid, _ in empty_sources) | frozenset(e[0] for e in reports)
     provision_source = None
     provision_avoided = None
+    report_provision_avoided = None
     if config.provisioning_on:
         effort = {sid: 1 for sid, _ in fishing_sites(config)}
         provision_source = target_source(origin, food_known, radius, available, effort,
-                                        frozenset(sid for sid, _ in empty_sources))
+                                        avoided_sources)
+        if reports:
+            personal = target_source(origin, food_known, radius, available, effort,
+                                     frozenset(sid for sid, _ in empty_sources))
+            if personal[0] != provision_source[0]:
+                report_provision_avoided = personal[0]
         ordinary_natural = target_source(origin, food_known, radius, available, effort)
         if ordinary_natural[0] != provision_source[0]:
             provision_avoided = ordinary_natural[0]
@@ -271,7 +301,13 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     effort = {sid: 1 for sid,_ in fishing_sites(config)}
     ordinary = target_source(origin, food_known, radius, available, effort)
     source_id, source, source_food = target_source(origin, food_known, radius, available, effort,
-                                                  frozenset(sid for sid,_ in empty_sources))
+                                                  avoided_sources)
+    report_food_avoided = None
+    if reports:
+        personal = target_source(origin, food_known, radius, available, effort,
+                                 frozenset(sid for sid, _ in empty_sources))
+        if personal[0] != source_id:
+            report_food_avoided = personal[0]
     known = food_known + tuple(zip(config.water_source_ids(), config.water_positions()))
     several = len(food_known) > 1 or len(config.water_source_ids()) > 1
     seen_stock = tuple((sid, available[source_account(sid)]) for sid, position in known
@@ -279,6 +315,11 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     seen_stock = tuple(sorted(dict(seen_stock + tuple((sid, available[source_account(sid)])
                                                     for sid, _ in visible_caches)).items()))
     return Observation(
+        food_sightings=sightings, source_reports=reports,
+        report_food_avoided=report_food_avoided, report_provision_avoided=report_provision_avoided,
+        report_listeners=tuple(seen.actor for seen in others
+                               if overlay.homes[seen.actor] == overlay.homes[actor]
+                               and chebyshev(origin, seen.position) <= 1) if config.knowledge_sharing_on else (),
         housemates_in_view=tuple(seen.actor for seen in others if overlay.homes[seen.actor] == overlay.homes[actor])
             if config.coordination_on else (),
         food_expected=expected,
@@ -320,6 +361,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                        if asked == actor and any(seen.actor == who for seen in others)), None),
         owed_to=next((seen.actor for seen in others if seen.actor == overlay.promises.get(actor)), None),
         waiting_on=next((seen.actor for seen in others if seen.actor == overlay.requests.get(actor)), None),
+        held=overlay.held.get(actor, 0),
         rough_seen_now=frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         rough_in_view=frozenset(overlay.terrain_memory.get(actor, ()))
         | frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),

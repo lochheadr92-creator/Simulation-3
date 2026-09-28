@@ -12,6 +12,55 @@
 
 **STALE AS SOON AS RELEVANT WORK CHANGES. This is the source-revision snapshot, not a live status feed. Refresh after committed/accepted development work and recheck Git before acting.**
 
+## Current local sharing work — 2026-09-28
+
+Checked at `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus the uncommitted
+terrain-planning and knowledge-sharing changes. This section supersedes the
+active-work and failure-status statements below; older source metadata stays
+historical. Full suite: **729 passed**. The user chose to retain terrain-aware
+departure and replace the two exact-scene assumptions with causal social-memory
+coverage. Those original seeds still receive full-horizon replay checks.
+
+Optional `--knowledge-sharing on` requires `--source-memory on`. Firsthand
+empty-source reports pass only to adjacent visible housemates, affect later
+food/provisioning choices, retain provenance and expire from the sighting date.
+Reports cannot be relayed. Own newer/current sight wins. Two sparse overlay
+fields preserve firsthand sightings and reports through births and recovery.
+
+Six matched saved worlds verify/replay; seed 11's report-driven choice and
+inspector were watched in the browser. See [current slice](06_CURRENT_SLICE.md)
+and the newest [development account](../../WORLD_DIRECTIONS.md) for scope,
+counts, artifacts and compatibility limits. Changes remain uncommitted and
+unpushed. No independent review or user visual acceptance is claimed.
+
+## Current local travel-planning work — 2026-09-28
+
+Checked against `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus the current local
+travel-planning edits. This section supersedes the older active-work and
+departure-estimate statements below; their source metadata remains historical.
+
+Personal food departure timing now uses the existing route search over seen
+and personally remembered rough ground, including any current movement delay,
+when planned trips, terrain and routing are enabled. Unknown ground is still
+open in the estimate. No new persistent state or knowledge transfer was added.
+Nominal hunger rate, fishing casting cost, source selection and other needs'
+planning keep their existing rules. This is planning from remembered sightings,
+not learning elapsed journey durations.
+
+Fresh verification: **70 focused tests passed; full suite 713 passed, 2 failed**.
+The two unchanged fixed-scene social-memory tests pass at baseline HEAD but
+diverge after the intentionally earlier departures. They remain unresolved,
+not skipped or repinned. New tests establish the repeat-trip/control difference,
+personal observation boundary, delay/cast handling, replay, recovery and viewer
+text. Two saved worlds verify and replay, and the repeat-trip scene was inspected
+in the browser. See [current slice](06_CURRENT_SLICE.md) and the latest account
+in [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md) for precise scope and failures.
+
+All implementation, test and documentation changes are uncommitted and unpushed.
+No independent review was performed. Old headers combining planned trips,
+terrain and routing no longer reconstruct under the changed decision rule;
+readability is preserved, exact-rule/replay and code-identity checks are intact.
+
 ## Fishing timing update — 2026-09-28
 
 This focused update was checked against `12e34c98e794175b92640d48dc7f2caac578f828` plus the reviewed fishing-timing working-tree change. The source-snapshot metadata and repository/publication observations below describe the earlier pack baseline; they are not refreshed publication claims.
@@ -20,7 +69,7 @@ Personal food trips with fishing and planned trips enabled now include one casti
 
 The saved rule description changes for this switch combination. Old fishing-plus-planned-trips headers are therefore rejected by exact configuration reconstruction, replay and recovery; this follows the existing contract in [WorldConfig.from_describe](../../world/config.py), [replay tests](../../tests/test_replay.py) and [testing guidance](08_TESTING_AND_PROOFS.md). The other three fishing/planning switch combinations retain their descriptions. Recovery separately requires matching code identity. No validation check was relaxed, and old files remain historical records rather than runs to continue under changed rules.
 
-The implementation passed the full 691-test suite. Final compatibility checks passed 93 fishing/replay/recovery/damaged-suffix tests and verified all four switch combinations using valid sealed synthetic fixtures with the previous descriptions. These fixtures isolate rule compatibility from code identity; they are not historical run reproductions. The earlier seed-23 viewer check showed early casting followed by a separate catch and meal. Departure remains a Manhattan-distance and nominal-rate estimate, without predicting terrain delays, shelter effects, competition or interruptions.
+The implementation passed the full 691-test suite. Final compatibility checks passed 93 fishing/replay/recovery/damaged-suffix tests and verified all four switch combinations using valid sealed synthetic fixtures with the previous descriptions. These fixtures isolate rule compatibility from code identity; they are not historical run reproductions. The earlier seed-23 viewer check showed early casting followed by a separate catch and meal. At that revision, departure remained a Manhattan-distance and nominal-rate estimate, without predicting terrain delays, shelter effects, competition or interruptions.
 
 ## Repository and publication
 

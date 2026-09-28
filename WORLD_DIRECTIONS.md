@@ -1,4 +1,143 @@
 # Simulation 3 — Development Directions
+Viewer visual direction: [Field atlas](VIEWER_DIRECTION.md).
+
+## Sharing firsthand food sightings — 2026-09-28
+
+Local implementation on `codex/kernel-first-slice`, based on `22ffe27` plus
+the existing terrain-planning work. Uncommitted and unpushed.
+
+`--source-memory on --knowledge-sharing on` lets a person tell visible
+housemates on the same or an adjacent cell about their most recent firsthand
+empty berry-patch or fishing-spot sighting. Speech accompanies the ordinary
+action. Listeners can use the report from the following tick. Personal food
+trips and optional home-cache trips use it in the existing source ranking.
+The new sharing switch is off by default.
+
+Reports keep the source, original witness, sighting tick and hearing tick.
+They expire twenty ticks after the sighting; repeated speech does not extend
+that date. Recipients cannot relay reports. Current sight overrides them,
+as does an equally recent or newer personal sighting. Recent firsthand
+stocked sightings are retained too, preventing an older empty report from
+undoing what a listener already saw. No distant refill or death supplies
+new information. Existing need priorities, child limits, fallback when all
+sources are remembered empty, gathering and resource accounting remain.
+
+**Watch seed 11, p05, viewer ticks 133–150.** p09 saw `food` empty at
+simulation tick 128 and told p05 at completed tick 133. p05 feeds a child at
+134 and starts a household outing at 135. At 137, personally seen empty fish
+plus p09's report send p05 toward `food2`. Removing only reports from that
+same decision state sends p05 toward `food`. Thirst interrupts at 140;
+p05 later takes three food from `store-p04` at 147, eats at 148, returns
+home at 149 and deposits one at 150. The report changes a choice, not a
+guaranteed destination or successful rescue. The browser inspector shows
+the native reason and dated report; playback was inspected without browser
+warnings or errors.
+
+Three matched 360-tick runs use source memory, stores, adult homes,
+provisioning, coordination, fishing, regrowth and seasons, with birth
+spacing 30. The exact configuration is in each saved header.
+
+| Seed | Accepted report updates | Changed food decision ticks | Living off / on |
+| --- | --- | --- | --- |
+| 7 | 8 | 0 | 18 / 18 |
+| 11 | 43 | 26 | 12 / 13 |
+| 23 | 12 | 1 | 19 / 21 |
+
+Changed decisions compare the native on-run choice with the same state and
+personal memories but reports disabled. Counts include consecutive ticks
+and report-induced early departures, not unique journeys or meals.
+Population totals do not establish a general survival benefit.
+
+**Verification:** 729 tests passed in the full suite. The 13 sharing tests
+cover local hearing, next-tick effects, an actual sighting-to-meal chain,
+no relaying, original-date expiry, fresh/personal sight, unseen changes,
+deterministic competing reports, child limits, fallback, immutable validated
+state, birth preservation, death cleanup, configuration, saved replay,
+repeat runs, recovery with a report present, and viewer output. The affected
+subsystem run passed 96 tests before an additional attribution test was
+added; the final full suite includes that test. All six final comparison
+files verify and replay. The correction to report attribution changed no
+world states in these examples; disabled-mode tick content was unchanged
+(both seal chains verified independently; code-identity changes alter seals).
+
+The earlier travel-planning conflict was resolved with the user's explicit
+choice to retain terrain-aware departure. Both original failures were
+reproduced. Their fixed gift/choice dates were replaced with a controlled
+real-transfer -> memory -> changed recipient -> real return-transfer test,
+including viewer events, exact accounting and deterministic continuation.
+The two original seeds still run through their full original horizons and
+replay, but their old scenes are not claimed to recur. No substitute lucky
+seed, skipped test or relaxed replay check was used.
+
+The feature uses `world/foraging.py`, the existing observation/decision and
+processing paths, two sparse overlay fields (`food_sightings`,
+`source_reports`), config/CLI and the existing viewer. No kernel or stream
+code changed. With sharing off, no new header/state/observation fields are
+written. The older terrain-planning compatibility limit remains: headers
+from the previous departure rule cannot replay under the new rule when
+planned trips, terrain and routing were all enabled. Recovery still requires
+matching code identity. No independent reviewer was used.
+
+Local artifacts are in
+`C:/Users/RJLoc/OneDrive/Desktop/Documents/ChatGPT/Simulation 3 - Living World Engineer/work/knowledge-sharing/final/`.
+Open `seed11-on.html`; `summary.json` contains the bounded comparisons.
+These files are local and are not guaranteed in a clean clone.
+
+## Planning food trips from remembered ground — 2026-09-28
+
+Local implementation on top of `22ffe27`; not committed or pushed. With
+planned trips, terrain and routing enabled, a person now uses the existing
+route search's cost when deciding when to leave for their selected food source.
+Known rough ground costs two ticks, other ground one. Their current movement
+delay is included. Unseen ground still counts as open. This reuses personal
+terrain memory; it does not record elapsed journey durations or share knowledge.
+
+The selected source, route choices and tie-breaking, fishing cast, water and
+shelter planning, need priority, resource accounting and storage rules are
+unchanged. The nominal hunger rate still ignores shelter relief, interruptions
+and competition. Disabling terrain or routing retains Manhattan departure
+timing. No new switch or persistent state field was added.
+
+**Watch p01 in `runs/travel-planning/repeat-trip-seed1.html`.** On the first
+outing they depart at simulation tick 21 with hunger 21, learn rough ground,
+and claim food at tick 27 with hunger 27. On the repeat outing they depart at
+48 with hunger 19, allow six travel ticks instead of four, claim at 54 with
+hunger 25, and eat at 55. The viewer shows the result of a simulation tick one
+frame later: inspect frame 49 for the departure reason and frame 56 for the meal.
+The configuration is in `repeat_trip_config()` in `tests/test_travel_planning.py`.
+
+The matched test control starts at the second departure with identical needs,
+position and supplies but without the earlier terrain sightings. It still
+learns normally after that point. It waits two more ticks and claims at hunger
+27. This is a controlled comparison, not a claim of improved population survival.
+
+**Fresh checks:** 70 focused tests passed, including all 24 new travel checks.
+Recovery before the repeat departure and during a rough-ground delay matches
+the uninterrupted run; repeating the run gives the same trail digest. The
+80-tick example and an ordinary 180-tick seed-7 world verify and replay
+identically. The browser showed the departure reason, map and later meal.
+An additional comparison against HEAD found identical first steps in 800
+sampled routing cases and header differences only in `decision` for the
+planned-trips/terrain/routing combination, across 16 combinations including
+fishing on/off. These are bounded checks, not exhaustive equivalence claims.
+
+**Historical result before the sharing work: 713 passed, 2 failed.** The
+regression-contract conflict is resolved in the newer note above. Both failures were cases of
+`test_remembered_gift_changes_choice_and_is_visible` in `tests/test_social_memory.py`.
+Their fixed scenes are seed 14 (gift 534, choice 643) and seed 26 (gift 588,
+choice 774). Both pass on unchanged HEAD in an isolated checkout snapshot.
+The first actual action differences are the intended earlier departures:
+seed 14, tick 28, p06 rests before and goes now (hunger 22, cost 2 -> 3);
+seed 26, tick 334, p12 builds before and goes now (hunger 21, cost 3 -> 4).
+The expected social scenes do not recur in those horizons. These failures are
+preserved in this historical account. The newer note above records the explicit
+behaviour choice and revised causal coverage; no independent review is claimed.
+
+The saved decision rule now describes terrain-informed food planning. Old
+headers with all three switches enabled fail exact reconstruction/replay;
+recovery also retains its code-identity check. Old files remain readable.
+Other switch combinations keep their previous descriptions. No compatibility
+or replay check was relaxed. Saved example files are local ignored artifacts.
 
 ## Telling housemates about a food trip
 
@@ -1040,9 +1179,10 @@ tick rough ground costs, rather than stepping blindly along the longer axis.
 Later, exploring for a new source when the ones they know keep failing.
 
 **Primitives.** Route cost, a comparison between routes, and remembered
-terrain. These interact with the existing leave-in-time rules, which
-currently estimate arrival in straight-line steps and so under-count the
-cost of a rough crossing.
+terrain. Personal food departure timing now uses seen and remembered rough
+ground when terrain and routing are enabled; unknown ground remains open in
+that estimate. Water and shelter departure timing still use straight-line
+steps. See the current travel-planning note above for its limits and tests.
 
 **In the viewer.** Trails that bend around rough ground, two people taking
 different routes to the same place, worn familiar paths, and a journey into

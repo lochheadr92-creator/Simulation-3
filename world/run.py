@@ -51,6 +51,8 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-homes"
     if config.relocation_on:
         mode += "-relocation"
+    if config.knowledge_sharing_on:
+        mode += "-knowledge-sharing"
     if config.source_memory_on:
         mode += "-source-memory"
     if config.provisioning_on:
@@ -217,6 +219,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="grown children establish or join a nearby home (requires childhood; default off)")
     parser.add_argument("--relocation", choices=("on", "off"), default="off",
                         help="move after repeated costly supply outings (requires homes on; default off)")
+    parser.add_argument("--knowledge-sharing", choices=("on", "off"), default="off",
+                        help="share firsthand empty-food sightings with adjacent housemates; requires source memory")
     parser.add_argument("--source-memory", choices=("on", "off"), default="off",
                         help="remember empty food patches and fishing spots (default off)")
     parser.add_argument("--fishing", choices=("on", "off"), default="off",
@@ -293,6 +297,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["homes_on"] = args.homes == "on"
     levers["relocation_on"] = args.relocation == "on"
     levers["source_memory_on"] = args.source_memory == "on"
+    levers["knowledge_sharing_on"] = args.knowledge_sharing == "on"
     levers["fishing_on"] = args.fishing == "on"
     levers["wood_on"] = args.wood == "on"
     levers["births_on"] = args.births == "on"

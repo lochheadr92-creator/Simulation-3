@@ -192,8 +192,10 @@ def build_index(run: Any) -> dict[str, Any]:
 
     def add(k: int, cat: str, kind: str, text: str, who: str | None = None,
             other: str | None = None, src: str | None = None, amount: int | None = None,
-            helped_at: int | None = None) -> None:
+            helped_at: int | None = None, seen_at: int | None = None) -> None:
         event: dict[str, Any] = {"k": k, "cat": cat, "kind": kind, "text": text}
+        if seen_at is not None:
+            event["seen_at"] = seen_at
         if helped_at is not None:
             event["helped_at"] = helped_at
         if amount is not None:
@@ -318,12 +320,18 @@ def build_index(run: Any) -> dict[str, Any]:
                 add(k, "food", "food_expectation_end",
                     f"{actor} stopped expecting food from {speaker}: {memory_view['food_expectation_end']}",
                     who=actor, other=speaker)
+            for sid, speaker, seen, heard in tick["world"].get("source_reports", {}).get(actor, []):
+                if heard == k:
+                    add(k, "food", "source_report_heard",
+                        f"{actor} heard from {speaker}: {sid} was empty at tick {seen}",
+                        who=actor, other=speaker, src=sid, seen_at=seen)
             old_target = (memory_view.get("provision_avoided") if decision.get("provisioning") == "gather"
                           else memory_view.get("food_choice_changed"))
             if (old_target and kind in ("go", "wait", "claim", "fish", "yield")
                     and (k == 1 or (run.ticks[k-2].get("decisions", {}).get(actor, {}).get("target") != decision.get("target")))):
                 add(k, "food", "food_reroute",
-                    f"{actor} avoided {old_target}, remembered empty; trying {decision.get('target')}",
+                    (f"{actor}: {decision.get('reason')}" if memory_view.get("source_reports")
+                     else f"{actor} avoided {old_target}, remembered empty; trying {decision.get('target')}"),
                     who=actor, src=decision.get("target"))
             if kind == "gather_wood" and outcomes.get(actor) is not None:
                 outcome = outcomes[actor]

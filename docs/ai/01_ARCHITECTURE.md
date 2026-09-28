@@ -25,6 +25,18 @@ The current [world/viewer.py](../../world/viewer.py) depends on [stream.run_file
 
 The older [viewer/world_view.py](../../viewer/world_view.py) is separate and imports none of kernel, stream or world. Its compatibility is narrower; use the current world viewer for the current aquarium. [Dependency tests](../../tests/test_dependency_direction.py) check package direction and kernel layering.
 
+## Scoped update — firsthand reports, 2026-09-28
+
+Checked against `22ffe27` plus local sharing/travel changes. `world/foraging.py`
+owns retention and merging of firsthand food sightings and heard empty-source
+reports. `observe` filters reports against personal sight and derives source
+choices; `decide` records one firsthand report and adjacent housemate recipients.
+`process.advance` delivers after choices. Sparse immutable `food_sightings`
+and `source_reports` fields round-trip and survive births. Native observations
+and reasons distinguish a report's effect from personal empty-source memory;
+the viewer displays that record. See `tests/test_knowledge_sharing.py`.
+The original snapshot below otherwise retains its original revision metadata.
+
 ## State ownership
 
 `WorldConfig` defines seed, geometry, levers, feature switches and saved rule descriptions. `genesis` constructs a kernel ledger and world overlay. Seeded randomness is used to construct initial conditions; choices during ordinary ticks follow deterministic rules.

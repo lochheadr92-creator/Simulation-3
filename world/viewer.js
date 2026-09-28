@@ -1259,6 +1259,8 @@
       if (deadIn(w, p)) h += `<div class="outcome no">Died at the end of this tick — ${esc(DIED[p] ? DIED[p].cause : '')}</div>`;
     } else h += `<div class="why">${k === 0 ? 'The world has just begun; nobody has decided anything yet.' : 'No decision recorded this tick.'}</div>`;
     h += '</div></div>';
+    const sourceReports = (w.source_reports || {})[p] || [];
+    if (sourceReports.length) h += '<div class="sec"><h4>Food reports heard</h4>' + sourceReports.map(([sid, speaker, seen, heard]) => `<div>${personLink(speaker)} saw ${esc(sid)} empty at tick ${seen}; heard at tick ${heard}. Expires at tick ${seen + C.empty_source_ticks}.</div>`).join('') + '</div>';
     const emptyMemory = (w.empty_sources || {})[p] || [];
     const provisionTrip = (w.provision_trips || {})[p];
     const expectedFood = (w.food_expected || {})[p];

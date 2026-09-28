@@ -109,6 +109,8 @@ class Overlay:
     home_strain: Mapping[str, int] = field(default_factory=dict)
     shelter_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)
     fishing_cast: Mapping[str, Position] = field(default_factory=dict)
+    food_sightings: Mapping[str, tuple[tuple[str, int, int], ...]] = field(default_factory=dict)  # source, stocked, seen tick
+    source_reports: Mapping[str, tuple[tuple[str, str, int, int], ...]] = field(default_factory=dict)  # source, speaker, seen, heard
     empty_sources: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)
     provision_trips: Mapping[str, str] = field(default_factory=dict)  # gather once, then return home
     food_expected: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # listener -> speaker, heard tick
@@ -142,6 +144,34 @@ class Overlay:
                 raise ValueError(f"{name} needs known people and non-negative integer counts")
             object.__setattr__(self, name, MappingProxyType(dict(sorted(values.items()))))
         object.__setattr__(self, "shelter_memory", _terrain_memory(self.shelter_memory, roster=set(positions)))
+        for name, length in (("food_sightings", 3), ("source_reports", 4)):
+            raw = getattr(self, name)
+            if not isinstance(raw, Mapping):
+                raise ValueError(f"{name} must map people to observations")
+            memories = {}
+            for actor, entries in raw.items():
+                if actor not in positions or not isinstance(entries, (tuple, list)):
+                    raise ValueError(f"{name} needs known people and a list of entries")
+                recent = {}
+                for entry in entries:
+                    if not isinstance(entry, (tuple, list)) or len(entry) != length:
+                        raise ValueError(f"invalid {name} entry")
+                    sid = entry[0]
+                    if not isinstance(sid, str) or not sid or sid in recent:
+                        raise ValueError(f"{name} needs distinct source names")
+                    if length == 3:
+                        _, stocked, seen = entry
+                        valid = type(stocked) is int and stocked in (0, 1)
+                    else:
+                        _, speaker, seen, heard = entry
+                        valid = (isinstance(speaker, str) and speaker in positions and speaker != actor
+                                 and type(heard) is int and type(seen) is int and seen < heard <= self.tick)
+                    if not valid or type(seen) is not int or not 0 <= seen <= self.tick:
+                        raise ValueError(f"invalid {name} provenance or date")
+                    recent[sid] = tuple(entry)
+                if recent:
+                    memories[actor] = tuple(recent[sid] for sid in sorted(recent))
+            object.__setattr__(self, name, MappingProxyType(dict(sorted(memories.items()))))
         empty = {}
         if not isinstance(self.empty_sources, Mapping):
             raise ValueError("empty_sources must map people to remembered sightings")
@@ -265,6 +295,8 @@ class Overlay:
             "tick": self.tick,
             **({"provision_trips": dict(self.provision_trips)} if self.provision_trips else {}),
             **({"food_expected": {p: list(entry) for p, entry in self.food_expected.items()}} if self.food_expected else {}),
+            **({"food_sightings": {p: [list(e) for e in entries] for p, entries in self.food_sightings.items()}} if self.food_sightings else {}),
+            **({"source_reports": {p: [list(e) for e in entries] for p, entries in self.source_reports.items()}} if self.source_reports else {}),
             **({"empty_sources": {p: [list(e) for e in entries] for p,entries in self.empty_sources.items()}}
                if self.empty_sources else {}),
             **({"fishing_cast": {p: list(pos) for p,pos in self.fishing_cast.items()}} if self.fishing_cast else {}),
@@ -308,7 +340,7 @@ class Overlay:
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected"):
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -340,6 +372,8 @@ class Overlay:
                    patch_condition=dict(data.get("patch_condition", {})),
                    season=data.get("season"),
                    empty_sources=dict(data.get("empty_sources", {})),
+                   food_sightings=dict(data.get("food_sightings", {})),
+                   source_reports=dict(data.get("source_reports", {})),
                    provision_trips=dict(data.get("provision_trips", {})),
                    food_expected=dict(data.get("food_expected", {})),
                    fishing_cast=cells(data.get("fishing_cast", {})),

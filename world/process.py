@@ -49,7 +49,7 @@ from world.observe import in_view
 
 from world.config import WATER, WorldConfig, wood_sites, fishing_sites
 from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
-from world.foraging import remember_empty
+from world.foraging import remember_empty, update_reports
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, wood_cost
 from world.decide import AGREE, ASK, BUILD, Decision
 from world.overlay import Overlay
@@ -216,11 +216,13 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                        else remember_empty(overlay.empty_sources.get(actor, ()), (), overlay.tick))
             if entries and actor not in died_at:
                 empty_sources[actor] = entries
+    sightings, reports = update_reports(overlay, decisions, observations or {}, died_at, settled.tick) if config.knowledge_sharing_on else ({}, {})
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
                            fishing_cast={p: positions[p] for p,d in decisions.items()
                                          if config.fishing_on and d.kind == FISH and p not in died_at
                                          and (d.target, positions[p]) in fishing_sites(config)},
                            empty_sources=empty_sources,
+                           food_sightings=sightings, source_reports=reports,
                            patch_condition=condition,
                            season=season,
                            home_targets=overlay.home_targets, home_settled=overlay.home_settled,
@@ -337,6 +339,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
                     terrain_memory=dict(overlay.terrain_memory), food_memory=dict(overlay.food_memory),
                     patch_condition=dict(overlay.patch_condition),
                     empty_sources=overlay.empty_sources,
+                    food_sightings=overlay.food_sightings, source_reports=overlay.source_reports,
                     provision_trips=overlay.provision_trips,
                     food_expected=overlay.food_expected,
                     fishing_cast=overlay.fishing_cast,
