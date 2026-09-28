@@ -73,6 +73,97 @@ def test_cast_catch_and_eat_are_separate_conserved_ticks():
         first.processed.overlay.fishing_cast['p01'] = (0, 0)
 
 
+def fishing_trip(hunger_rate=1, scoring_on=False):
+    cfg = WorldConfig(seed=23, actors=1, fishing_on=True, terrain_on=False,
+                      water_on=False, warmth_on=False, offers_on=False, births_on=False,
+                      building_on=False, requests_on=False, renewal_amount=0,
+                      hunger_rate=hunger_rate, scoring_on=scoring_on)
+    ledger, world = genesis(cfg)
+    bank = fishing_sites(cfg)[0][1]
+    home = (bank[0], bank[1] - 2)
+    ledger = replace(ledger, balances={'p01': 0})
+    world = replace(world, positions={'p01': home}, homes={'p01': home},
+                    hunger={'p01': cfg.hungry_at - 3 * hunger_rate})
+    return cfg, ledger, world
+
+
+@pytest.mark.parametrize('hunger_rate', [1, 2])
+@pytest.mark.parametrize('scoring_on', [False, True])
+def test_planned_fishing_trip_casts_before_hungry_then_claims_and_eats(hunger_rate, scoring_on):
+    cfg, ledger, world = fishing_trip(hunger_rate, scoring_on)
+    engine = Engine(ledger)
+    for kind in ('go', 'go', 'fish', 'claim', 'eat'):
+        before = world
+        step = world_step(engine, world, cfg)
+        decision = step.decisions['p01']
+        assert decision.kind == kind
+        assert step.engine.state.totals() == ledger.totals()
+        if kind in ('go', 'fish'):
+            assert step.engine.state.balances['p01'] == 0
+        if kind == 'fish':
+            assert before.hunger['p01'] == cfg.hungry_at - hunger_rate
+            assert step.processed.overlay.hunger['p01'] == cfg.hungry_at
+            assert decision.candidates == ('fish',)
+            assert 'hungry' not in decision.reason
+            assert step.processed.overlay.fishing_cast['p01'] == before.positions['p01']
+        if kind == 'claim':
+            assert before.hunger['p01'] == cfg.hungry_at
+            assert step.engine.state.balances['p01'] == cfg.claim_amount
+            assert step.engine.state.sources[FISH_SOURCE].stock == FISH_STOCK - cfg.claim_amount
+        if kind == 'eat':
+            assert step.engine.state.balances['p01'] == cfg.claim_amount - 1
+            assert step.processed.overlay.hunger['p01'] < before.hunger['p01']
+        engine, world = step.engine, step.processed.overlay
+
+
+@pytest.mark.parametrize('source_id', ['fish', 'food', 'store-p01'])
+def test_only_fishing_departure_includes_casting_time(source_id):
+    cfg, ledger, world = fishing_trip()
+    view = replace(observe('p01', ledger, world, cfg), source_id=source_id)
+    assert decide(view, cfg).kind == ('go' if source_id == 'fish' else 'rest')
+    assert decide(replace(view, hunger=view.hunger - 1), cfg).kind == 'rest'
+    assert decide(replace(view, food=1), cfg).kind == 'rest'
+    assert decide(view, replace(cfg, plan_trips=False)).kind == 'rest'
+    assert decide(replace(view, hunger=view.hunger + 1), cfg).kind == 'go'
+
+
+@pytest.mark.parametrize('changes,config_changes', [
+    ({'hunger': 23}, {}),
+    ({'food': 1}, {}),
+    ({}, {'plan_trips': False}),
+    ({}, {'hunger_rate': 0}),
+    ({'source_food': 0}, {}),
+    ({'fishing_ready': True}, {}),
+])
+def test_early_cast_does_not_relax_other_gathering_conditions(changes, config_changes):
+    cfg, ledger, world = fishing_trip()
+    bank = fishing_sites(cfg)[0][1]
+    world = replace(world, positions={'p01': bank}, hunger={'p01': cfg.hungry_at - 1})
+    view = replace(observe('p01', ledger, world, cfg), **changes)
+    choice = decide(view, replace(cfg, **config_changes))
+    assert choice.kind == 'home'
+    assert not {'fish', 'claim', 'eat', 'wait'} & set(choice.candidates)
+
+
+def test_early_fishing_respects_local_stock_child_leash_and_urgent_water():
+    cfg, ledger, world = fishing_trip()
+    cfg = replace(cfg, perception_radius=0)
+    view = observe('p01', ledger, world, cfg)
+    empty = replace(ledger, sources={sid: replace(s, stock=0) if sid == FISH_SOURCE else s
+                                     for sid, s in ledger.sources.items()})
+    assert view.source_id == FISH_SOURCE and view.source_food is None
+    assert observe('p01', empty, world, cfg) == view
+    assert decide(view, cfg).kind == 'go'
+    child = replace(view, age=0, home=(11, 11), position=(11, 11))
+    assert decide(child, cfg).kind == 'rest'
+    bank = fishing_sites(cfg)[0][1]
+    view = replace(view, position=bank, source_food=FISH_STOCK, hunger=cfg.hungry_at - 1)
+    wet = replace(cfg, water_on=True)
+    choice = decide(replace(view, thirst=wet.thirst_emergency_at,
+                            water=1, water_source=wet.water_positions()[0]), wet)
+    assert 'fish' in choice.candidates and choice.kind == 'drink'
+
+
 def test_interrupted_cast_starts_again_and_last_fish_is_not_duplicated():
     cfg, ledger, world = at_bank(2)
     ledger = replace(ledger, sources={sid: replace(s, stock=1 if sid == FISH_SOURCE else 0)

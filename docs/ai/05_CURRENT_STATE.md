@@ -12,6 +12,16 @@
 
 **STALE AS SOON AS RELEVANT WORK CHANGES. This is the source-revision snapshot, not a live status feed. Refresh after committed/accepted development work and recheck Git before acting.**
 
+## Fishing timing update — 2026-09-28
+
+This focused update was checked against `12e34c98e794175b92640d48dc7f2caac578f828` plus the reviewed fishing-timing working-tree change. The source-snapshot metadata and repository/publication observations below describe the earlier pack baseline; they are not refreshed publication claims.
+
+Personal food trips with fishing and planned trips enabled now include one casting tick in departure timing. An empty-handed person at the selected, visibly stocked bank may cast before hungry when hunger plus one nominal hunger increment reaches the threshold. Personal claiming and later eating retain their hunger requirements. Source selection, provisioning rules, accounting and renewal are unchanged. See [decision code](../../world/decide.py) and [focused tests](../../tests/test_fishing.py).
+
+The saved rule description changes for this switch combination. Old fishing-plus-planned-trips headers are therefore rejected by exact configuration reconstruction, replay and recovery; this follows the existing contract in [WorldConfig.from_describe](../../world/config.py), [replay tests](../../tests/test_replay.py) and [testing guidance](08_TESTING_AND_PROOFS.md). The other three fishing/planning switch combinations retain their descriptions. Recovery separately requires matching code identity. No validation check was relaxed, and old files remain historical records rather than runs to continue under changed rules.
+
+The implementation passed the full 691-test suite. Final compatibility checks passed 93 fishing/replay/recovery/damaged-suffix tests and verified all four switch combinations using valid sealed synthetic fixtures with the previous descriptions. These fixtures isolate rule compatibility from code identity; they are not historical run reproductions. The earlier seed-23 viewer check showed early casting followed by a separate catch and meal. Departure remains a Manhattan-distance and nominal-rate estimate, without predicting terrain delays, shelter effects, competition or interruptions.
+
 ## Repository and publication
 
 Repository: `C:\dev\03-Living-World-V3`. Branch: `codex/kernel-first-slice`. HEAD is the source hash above, commit “feat: add fishing, source memory and coordinated home provisioning.”

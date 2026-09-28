@@ -421,6 +421,13 @@ class WorldConfig:
                 "walk to the source if hungry; else walk home",
                 "walk to the source if hungry, or when holding no food and hunger + hunger_rate * steps to the "
                 "source reaches hungry_at (leave in time); else walk home")
+            if self.fishing_on:
+                out["decision"] = out["decision"].replace(
+                    "steps to the source reaches", "(steps to the source + one casting tick for fishing) reaches")
+                out["fishing_rule"] += (
+                    " With planned trips, an empty-handed person leaves one casting tick earlier and may cast "
+                    "at stocked fish before hungry when hunger + hunger_rate reaches hungry_at. "
+                    "For personal food trips, claiming and eating still require hunger.")
         if self.water_on:
             # Written only when on, so every earlier header still round-trips.
             out["water"] = "on"

@@ -14,7 +14,9 @@ Priority, highest first:
   go     hungry, elsewhere: one step toward the source; or (trips on) holding
          no food, elsewhere, and hunger + hunger_rate * steps to the source
          >= hungry_at, so a person far from food leaves in time to arrive as
-         hunger reaches hungry_at (once due, it stays due on the way)
+         hunger reaches hungry_at (once due, it stays due on the way).
+          Fishing includes one casting tick: arrive and cast before hungry,
+          then use the ordinary hungry claim and later eating rules.
   home   not hungry, away from home: one step toward home
   A child - anybody who has lived fewer than adult_at ticks - will not go
   more than child_leash steps from home for anything, builds nothing, and is
@@ -218,11 +220,12 @@ def steps_to_source(observation: Observation) -> int:
 
 
 def trip_due(observation: Observation, config: WorldConfig) -> bool:
-    """Holding no food and far enough that leaving now arrives as hunger reaches
-    hungry_at. Each step adds hunger_rate and removes one step, so once due it
-    stays due until the person arrives."""
+    """Leave empty-handed in time to gather at hungry_at, including a fishing cast.
+    This retains the existing Manhattan travel estimate; it does not predict
+    terrain delays, contention or interruptions."""
+    casting = int(config.fishing_on and observation.source_id == FISH_SOURCE)
     return (config.plan_trips and observation.food == 0 and not observation.at_source
-            and observation.hunger + config.hunger_rate * steps_to_source(observation) >= config.hungry_at)
+            and observation.hunger + config.hunger_rate * (steps_to_source(observation) + casting) >= config.hungry_at)
 
 
 def crowd_on_source(observation: Observation) -> int:
@@ -347,6 +350,11 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if not hungry:
         if trip_due(observation, config) and not too_far_for_a_child(observation, config, observation.source):
             found.append(GO)
+        elif (config.plan_trips and config.fishing_on and observation.source_id == FISH_SOURCE
+              and observation.at_source and observation.food == 0 and not observation.fishing_ready
+              and observation.source_food is not None and observation.source_food > 0
+              and observation.hunger + config.hunger_rate >= config.hungry_at):
+            found.append(FISH)  # finish the planned cast as hunger reaches the gathering threshold
         elif (config.requests_on and not config.adjacent_requests and observation.asked_by is not None
                 and in_view(observation, observation.asked_by)
                 and observation.food >= 1 and observation.owed_to is None
@@ -663,7 +671,9 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     if selected == EAT:
         return Decision(actor, EAT, f"{urgency}, holding {observation.food}", options, amount=1, scores=scores)
     if selected == FISH:
-        return Decision(actor, FISH, f"{urgency}, casting from the bank", options, scores=scores, target=target)
+        reason = (f"{urgency}, casting from the bank" if observation.hunger >= config.hungry_at
+                  else "fed, casting from the bank before hunger reaches the food threshold")
+        return Decision(actor, FISH, reason, options, scores=scores, target=target)
     if selected == CLAIM:
         seen = observation.source_food
         if seen is None:
@@ -686,6 +696,8 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
         reason = (f"{urgency}, walking to source" if observation.hunger >= config.hungry_at
                   else f"fed, leaving in time: hunger {observation.hunger}, "
                        f"{steps_to_source(observation)} steps to source, no food held")
+        if observation.hunger < config.hungry_at and config.fishing_on and observation.source_id == FISH_SOURCE:
+            reason += "; allowing one tick to cast"
         return Decision(actor, GO, reason, options,
                         step=route_step(observation, observation.source, config), scores=scores, target=target)
     if selected == HOME:
