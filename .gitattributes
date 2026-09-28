@@ -12,3 +12,8 @@ evidence/stage-01/orchestrator-publication/publication-tests/** -text
 
 # Preserve the completed independent Slice 1c review package byte for byte.
 evidence/stage-01/review-2026-09-23-slice-1c/** -text
+
+# Preserve the supplied signed review and probe evidence byte for byte.
+docs/reviews/2026-09-28-whole-project/REVIEW.md -text
+docs/reviews/2026-09-28-whole-project/evidence/** -text
+docs/reviews/2026-09-29-repair/evidence/** -text

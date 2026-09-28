@@ -1,4 +1,26 @@
 # Simulation 3 — Development Directions
+
+## Review repair — 2026-09-29
+
+The independent whole-project review returned a bounded FAIL. The
+[repair response](docs/reviews/2026-09-29-repair/RESPONSE.md) preserves
+that signed report and records the fixes and remaining limits. The viewer
+now escapes actor names in death totals; malformed integer settings fail
+at configuration construction; world/decision tick labels are distinct.
+
+Social memory is rare in the measured default worlds, not absent. With
+routing unchanged, seeds 1-35 show zero activations under either departure
+estimate by 400 ticks. At 780, current timing produces 12 remembered-helper
+decision ticks in seeds 29/30/32; the old estimate produces 16 in
+14/26/28/29. These are decision ticks, not unique gifts or a general
+survival measure. Terrain-aware departure stays. Seed 29 supplies a real
+gift at world tick 560 and return gift at 714, both settled by the kernel.
+
+See [existing rules clarified](docs/reviews/2026-09-29-repair/MODELLING_NOTES.md)
+for shared-home listeners, capped waiting after death, retained holdings,
+valid edge settings and movement-delay terminology. No witnessed-death
+rule, inheritance or forced social encounter was added.
+
 Viewer visual direction: [Field atlas](VIEWER_DIRECTION.md).
 
 ## Sharing firsthand food sightings — 2026-09-28
@@ -64,8 +86,9 @@ files verify and replay. The correction to report attribution changed no
 world states in these examples; disabled-mode tick content was unchanged
 (both seal chains verified independently; code-identity changes alter seals).
 
-The earlier travel-planning conflict was resolved with the user's explicit
-choice to retain terrain-aware departure. Both original failures were
+The user explicitly chose to retain terrain-aware departure. The earlier
+fixed-scene test conflict was resolved at the rule-test level; that did not
+establish activation in ordinary worlds. Both original failures were
 reproduced. Their fixed gift/choice dates were replaced with a controlled
 real-transfer -> memory -> changed recipient -> real return-transfer test,
 including viewer events, exact accounting and deterministic continuation.

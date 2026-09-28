@@ -1,0 +1,132 @@
+usage: run.py [-h] [--seed SEED] [--ticks TICKS] [--width WIDTH]
+              [--height HEIGHT] [--actors ACTORS]
+              [--starting-food STARTING_FOOD] [--source-stock SOURCE_STOCK]
+              [--source-cap SOURCE_CAP] [--renewal-every RENEWAL_EVERY]
+              [--renewal-amount RENEWAL_AMOUNT] [--claim-amount CLAIM_AMOUNT]
+              [--hunger-rate HUNGER_RATE] [--satiation SATIATION]
+              [--hungry-at HUNGRY_AT] [--emergency-at EMERGENCY_AT]
+              [--death-at DEATH_AT] [--perception-radius PERCEPTION_RADIUS]
+              [--food-sources FOOD_SOURCES] [--water-sources WATER_SOURCES]
+              [--yield {on,off}] [--out OUT] [--scoring {on,off}]
+              [--water {on,off}] [--warmth {on,off}]
+              [--requests {on,off,adjacent}] [--childhood {on,off}]
+              [--births {on,off}] [--birth-spacing TICKS] [--offers {on,off}]
+              [--social-memory {on,off}] [--regrowth {on,off}]
+              [--seasons {on,off}] [--stores {on,off}]
+              [--provisioning {on,off}] [--coordination {on,off}]
+              [--homes {on,off}] [--relocation {on,off}]
+              [--knowledge-sharing {on,off}] [--source-memory {on,off}]
+              [--fishing {on,off}] [--wood {on,off}] [--building {on,off}]
+              [--routing {on,off}] [--terrain {on,off}] [--stagger {on,off}]
+              [--trips {on,off}] [--twice] [--html] [--replay FILE]
+              [--recover FILE]
+
+Run a seeded grid world and write its record stream.
+
+options:
+  -h, --help            show this help message and exit
+  --seed SEED           Required unless --replay is given.
+  --ticks TICKS
+  --width WIDTH         world lever (default from WorldConfig)
+  --height HEIGHT       world lever (default from WorldConfig)
+  --actors ACTORS       world lever (default from WorldConfig)
+  --starting-food STARTING_FOOD
+                        world lever (default from WorldConfig)
+  --source-stock SOURCE_STOCK
+                        world lever (default from WorldConfig)
+  --source-cap SOURCE_CAP
+                        world lever (default from WorldConfig)
+  --renewal-every RENEWAL_EVERY
+                        world lever (default from WorldConfig)
+  --renewal-amount RENEWAL_AMOUNT
+                        world lever (default from WorldConfig)
+  --claim-amount CLAIM_AMOUNT
+                        world lever (default from WorldConfig)
+  --hunger-rate HUNGER_RATE
+                        world lever (default from WorldConfig)
+  --satiation SATIATION
+                        world lever (default from WorldConfig)
+  --hungry-at HUNGRY_AT
+                        world lever (default from WorldConfig)
+  --emergency-at EMERGENCY_AT
+                        world lever (default from WorldConfig)
+  --death-at DEATH_AT   world lever (default from WorldConfig)
+  --perception-radius PERCEPTION_RADIUS
+                        world lever (default from WorldConfig)
+  --food-sources FOOD_SOURCES
+                        world lever (default from WorldConfig)
+  --water-sources WATER_SOURCES
+                        world lever (default from WorldConfig)
+  --yield {on,off}      crowd-yield trait on (default) or off (every yield_at
+                        = actors+1)
+  --out OUT             Run file path. Default: runs/<run_id>.jsonl
+  --scoring {on,off}    score eligible personal actions (opt in); food
+                        allocation is unchanged
+  --water {on,off}      water and thirst as a second need (default on; off
+                        with --scoring on, since scoring has no water actions
+                        yet)
+  --warmth {on,off}     cold as a third need, met by sheltering at home
+                        (default on; never with --scoring on, since scoring
+                        has no warmth actions yet)
+  --requests {on,off,adjacent}
+                        a hungry person can ask somebody nearby for food
+                        (default off: it works, but it suppresses births in a
+                        growing world; adjacent allows only nearby handoffs)
+  --childhood {on,off}  the newly born are children for a while: they stay
+                        near home, build nothing, have no children, and are
+                        fed by a parent (default on)
+  --births {on,off}     the roster grows when two settled neighbours spend
+                        time side by side (default on)
+  --birth-spacing TICKS
+                        recovery after a birth before either adult can count
+                        time together again (default 0)
+  --offers {on,off}     carry a spare unit of food to somebody visibly
+                        starving nearby (default on)
+  --social-memory {on,off}
+                        remember received food and favour former helpers in
+                        distress (default on)
+  --regrowth {on,off}   harvesting wears food patches; quiet ticks restore
+                        growth (default off)
+  --seasons {on,off}    alternate plentiful and lean food growth every 120
+                        ticks (default off)
+  --stores {on,off}     put spare food at founding homes for nearby people to
+                        collect (default off)
+  --provisioning {on,off}
+                        gather food for a low home cache (requires stores on;
+                        default off)
+  --coordination {on,off}
+                        announce food trips to nearby housemates (requires
+                        provisioning on; default off)
+  --homes {on,off}      grown children establish or join a nearby home
+                        (requires childhood; default off)
+  --relocation {on,off}
+                        move after repeated costly supply outings (requires
+                        homes on; default off)
+  --knowledge-sharing {on,off}
+                        share firsthand empty-food sightings with adjacent
+                        housemates; requires source memory
+  --source-memory {on,off}
+                        remember empty food patches and fishing spots (default
+                        off)
+  --fishing {on,off}    bank fishing with finite stocks and steady seasonal
+                        renewal (default off)
+  --wood {on,off}       gather and spend wood to build shelters (requires
+                        building; default off)
+  --building {on,off}   people build a permanent shelter on their home cell
+                        when nothing else is calling (default on)
+  --routing {on,off}    walk round rough ground you can see, instead of
+                        straight through it (default on)
+  --terrain {on,off}    rough ground and shelter spots over the grid (default
+                        on)
+  --stagger {on,off}    spread starting hunger and thirst across the roster
+                        (default on) so people do not all reach a need on the
+                        same tick
+  --trips {on,off}      leave for the source in time when holding no food
+                        (default on)
+  --twice               Run again to a second file and compare trail digests.
+  --html                Render the map viewer next to the run file.
+  --replay FILE         Replay a sealed world run from its header, recomputing
+                        every decision, checked against the file (slice 1c).
+  --recover FILE        Recover a cut or broken sealed world run through its
+                        last sealed tick into the new file given by --out
+                        (slice 1c).

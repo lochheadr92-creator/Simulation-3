@@ -220,7 +220,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--relocation", choices=("on", "off"), default="off",
                         help="move after repeated costly supply outings (requires homes on; default off)")
     parser.add_argument("--knowledge-sharing", choices=("on", "off"), default="off",
-                        help="share firsthand empty-food sightings with adjacent housemates; requires source memory")
+                        help="share firsthand empty-food sightings with adjacent people sharing a home; requires source memory; use homes on for shared homes in generated worlds")
     parser.add_argument("--source-memory", choices=("on", "off"), default="off",
                         help="remember empty food patches and fishing spots (default off)")
     parser.add_argument("--fishing", choices=("on", "off"), default="off",

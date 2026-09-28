@@ -1,0 +1,188 @@
+{
+  "received": "User supplied report and evidence in the repository; preserved without editing",
+  "reviewer": "Claude",
+  "reviewed_source": "81c10b7d25cc2e0f1b8de33bf547083eb0972c64",
+  "original_verdict": "FAIL",
+  "files": [
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/REVIEW.md",
+      "bytes": 31770,
+      "sha256": "845bf4cebe14bb198a4bbad1651282768feb95be46311aea5034aba8664a687c"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/full_suite.log",
+      "bytes": 2530,
+      "sha256": "3494342f07af50f1c215b0c69b1143caeac397a5e0fe40a045aea76f8ad290a4"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/kernel/attack.py",
+      "bytes": 5711,
+      "sha256": "47e556b006975c49ea75ba439f8270974ec25bd0e4003ca367b73f9d90b7ad0b"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/README.md",
+      "bytes": 1293,
+      "sha256": "9b977132919c464988ee8d206d1db49f6c8c10ee569cedf7527fa762248abcda"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/coord.py",
+      "bytes": 4902,
+      "sha256": "9c06cde8f196975d92ee5a137334a3a35afbb4e9998313d643353ed49fded1c1"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/noop.py",
+      "bytes": 729,
+      "sha256": "fe8842ffcf4bfcd6521b0340d5535b39dfd3a0e7bf14549f65ce93c616e29f4a"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed2_11.out",
+      "bytes": 146,
+      "sha256": "e8b5040f3b3046785f2d273e668e054adfb040c93e37cfdd6a227292219c357e"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed2_14.out",
+      "bytes": 145,
+      "sha256": "a25b8dffd34346a79b4c614a9ae07e9db66ce06f72c8d0896d417f7afabbed2e"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed2_23.out",
+      "bytes": 146,
+      "sha256": "8d34793aa1993025d12f815814ab753cf7ae93989d31b65e57688eb15186a831"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed2_26.out",
+      "bytes": 147,
+      "sha256": "c28a64785fcc293ae4ea3912da953b68591ba0a07d901e4fe6755b465bf315e8"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed2_7.out",
+      "bytes": 140,
+      "sha256": "58f0296b83dddabfbc3f1e3656bb89910da04c18f9099ad99b7cb84dda92ce3b"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed_11.out",
+      "bytes": 220,
+      "sha256": "826fe1c5d86f2b11eb628a41209da089d769eee5c444de0d0a8e06f566cf546c"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed_14.out",
+      "bytes": 212,
+      "sha256": "b442e43c84085c61cf6fc8e670e68c9ded0708a1e8306350b60f86d306cbd88c"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed_23.out",
+      "bytes": 215,
+      "sha256": "a7e85d23176080dfab097e76c064bbc7697aff71fcccec7cfc8078da1a8f69ca"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed_26.out",
+      "bytes": 277,
+      "sha256": "23794af7ff287807743b9250d1fcb08fe1c9acc2d1413594c930c1cc7aba224b"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seed_7.out",
+      "bytes": 176,
+      "sha256": "16be270a5edc6c5144b10e96e6c3bb315de6caaa85ef2852842d85557a0337ee"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seeds.py",
+      "bytes": 1404,
+      "sha256": "c1bebcb8602c58801b4dfb60f26fd29345298e2ae0ec1cbd3689ac5a386b539c"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/seeds2.py",
+      "bytes": 1321,
+      "sha256": "1f286a382b2bfac0ad35b4791de2b2c4169a0098090b2407a462cd32ded98005"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sharing.py",
+      "bytes": 8582,
+      "sha256": "2fda5776c02fa8d04c59269eef38a76fe1a647adb84bb4a8546e42a3ac4c01ed"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep.py",
+      "bytes": 591,
+      "sha256": "417b0e3cb64f2737ea4a032a48ec8bb8e4549b7d1b9c449ac49dc941979d38b6"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep_13_15_16_17_18.out",
+      "bytes": 195,
+      "sha256": "7c2e331753caafc40a27db00a2007cb9e01abebfda0e99d21a34c76735077fa8"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep_19_20_21_22_24.out",
+      "bytes": 195,
+      "sha256": "fe0137541494c4bc04bc087ec92712e0fc020a9c8a56f5876065a3c66c94c299"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep_1_2_3_4_5.out",
+      "bytes": 190,
+      "sha256": "d8898ab216f8c2d7a1e76e3a792d25dd796eed50bd57b24f73c5f34c2f006a59"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep_25_27_28_29_30.out",
+      "bytes": 195,
+      "sha256": "3199d68dfbb0f4512858f366c20a18b3f60814fa4533084463f91a4da8c48333"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep_31_32_33_34_35.out",
+      "bytes": 195,
+      "sha256": "2f237b54422c837c3974fef457469508690e9e0cc2977fde5285c63b1e882439"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/sweep_6_8_9_10_12.out",
+      "bytes": 192,
+      "sha256": "2e64e3027b244fb77ef81df629c107748f81ecdfb7c70d09998253ea23f22124"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/social/terrain.py",
+      "bytes": 4813,
+      "sha256": "ba66410fa891fc5cdcc1a7eb2a40062a3513599d735fe7d2e52624e22c42b43e"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/stream_attack.py",
+      "bytes": 3247,
+      "sha256": "3182712e90774bf47a493e4fdb295c0350b0e52d81b68c2be77ca271cf167547"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/stream_attack2.py",
+      "bytes": 3453,
+      "sha256": "1afae45b9e1386de115c731d9967c051d2bbc05cd24eaa1c25487e9c74b089ca"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/viewer/browse.py",
+      "bytes": 2778,
+      "sha256": "90854092ce24a1eddae730c9c96b3e9af412109e8e5dba97cf8d572e724850e2"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/viewer/config_probe.py",
+      "bytes": 6115,
+      "sha256": "317e792c979262bef5789ae9e8aa5685f3594c5bbcf9caab2aa771758f9eaabc"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/viewer/forge.py",
+      "bytes": 2682,
+      "sha256": "91612d3cd1d7b55ea7a8ed453b6626a518d91f693d8fbf21046f995e8ce9229d"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/viewer/forged.jsonl",
+      "bytes": 172173,
+      "sha256": "e1bd5731f462a9c66162b3c7793bf54c2e75073b8b4aca66bf8847eb51fba835"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/viewer/help.txt",
+      "bytes": 7462,
+      "sha256": "0142513c4e9ab6c9d0d67877c2c879df8dbd642ca88a600b8997abdc3459eb66"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/viewer/inject.py",
+      "bytes": 2364,
+      "sha256": "f4d18df2e25ed396e4258ea65ed3ffc903129ab47ab5adb59ee9f5678a331e30"
+    },
+    {
+      "path": "docs/reviews/2026-09-28-whole-project/evidence/probes/world/accounting.py",
+      "bytes": 4358,
+      "sha256": "98a98efed7bd956f0a727cdf043e415c1c67e85ca528e398d41d2675dc6485a2"
+    }
+  ]
+}

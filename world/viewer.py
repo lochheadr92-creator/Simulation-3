@@ -90,7 +90,7 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
     prior = run.header["world"] if view == 1 else run.ticks[view - 2]["world"]
     cfg = run.header["scenario"]
     source_at = {entry["id"]: entry["position"] for entry in food_sources(cfg, prior) + _water_sources(cfg) + cfg.get("wood_sources", [])}
-    selection = [f"Tick {tick['tick']} — personal selection from tick-start inputs"]
+    selection = [f"Decision tick {tick['tick']} — personal selection from tick-start inputs"]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         ob = tick.get("observations", {}).get(actor, {})
         water_action = d.get("kind") in ("drink", "draw", "wait_water", "go_water")
@@ -112,7 +112,7 @@ def _tick_details(run: Run, view: int) -> dict[str, str]:
             + f"; eligible: {pairs}; selected {d['kind']}"
             + (f" -> {d['target']}" if "target" in d else "")
         )
-    settlement = [f"Tick {tick['tick']} — kernel settlement (personal scores confer no priority)",
+    settlement = [f"Decision tick {tick['tick']} — kernel settlement (personal scores confer no priority)",
                   "Recorded rotation: " + " -> ".join(tick["record"]["rotated_roster"])]
     for actor, d in sorted(tick.get("decisions", {}).items()):
         if d["kind"] == "claim":
@@ -285,7 +285,7 @@ def render_html(run: Run) -> str:
     <span class="chip"><b>{html.escape(str(scenario.get('width', '')))} × {html.escape(str(scenario.get('height', '')))}</b> grid</span>
     <span class="chip"><b>{len(run.ticks)}</b> ticks</span>
     {''.join(f'<span class="chip switch">{html.escape(s)}</span>' for s in switches)}
-    <span class="chip{'' if run.complete else ' bad'}" title="{html.escape(str(run.header.get('format', '')))} · engine {html.escape(str(run.header.get('engine_version', '')))}">file {status}</span>
+    <span class="chip{'' if run.complete else ' bad'}" title="{html.escape(str(run.header.get('format', '')))} · engine {html.escape(str(run.header.get('engine_version', '')))}">file {status} (consistency only)</span>
   </div>
   {f'<div class="problem" role="alert" style="flex-basis:100%">{prefix_notice}</div>' if prefix_notice else ''}
 </header>
@@ -360,7 +360,8 @@ def render_html(run: Run) -> str:
 <details class="deep" id="deep">
   <summary>Under the hood — the saved record for this tick, and whole-run counts</summary>
   <div class="deep-body">
-    <div class="meta">{html.escape(scenario.get('name', ''))} · seed {html.escape(str(scenario.get('seed', '')))} · {len(run.ticks)} ticks · engine {html.escape(str(run.header.get('engine_version', '')))} · {html.escape(str(run.header.get('format', '')))} · file {status} · <span id="timing"></span></div>
+    <div class="meta">{html.escape(scenario.get('name', ''))} · seed {html.escape(str(scenario.get('seed', '')))} · {len(run.ticks)} ticks · engine {html.escape(str(run.header.get('engine_version', '')))} · {html.escape(str(run.header.get('format', '')))} · file {status} (consistency only) · <span id="timing"></span></div>
+    <p class="meta">File checks detect accidental corruption; they do not authenticate the author. World tick k shows the completed result of decision tick k−1; world tick 0 is genesis.</p>
     <div class="meta">{html.escape(levers)}</div>
     {f'<ul>{problems}</ul>' if problems else ''}
     <div class="checks">

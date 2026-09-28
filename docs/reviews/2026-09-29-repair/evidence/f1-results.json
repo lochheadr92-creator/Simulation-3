@@ -1,0 +1,5235 @@
+{
+  "diagnostic": "old nominal steps_to_source departure estimate only; routing and every other rule stay current",
+  "baseline_formula_source": "22ffe2748dc4c5ee14c71295ff33810c7f456a7c:world/decide.py:trip_due",
+  "source_code_identity": {
+    "files": {
+      "kernel/__init__.py": "c764131ecbe298603391ab1c149858491b01bd837382d0c9cf10602589f1d0da",
+      "kernel/canonical.py": "20fa4781f240854b3eb04bdabd0b750c6e60be12d59798a2179b41b4893a8de0",
+      "kernel/diagnostics.py": "d2c657bb82882f34ca93ab922bcbe0b178e030c64bff1473b938e6f9b45b9640",
+      "kernel/engine.py": "e5a3bedbf7ec6662ad7a1c39875759e560d0e0c19e2296fbaa62f3338863eaac",
+      "kernel/ordering.py": "bf3a6d0220334ccdaf7d10daf048bca7fd0d1874171aa2f9421ceaa93af88487",
+      "kernel/outcomes.py": "ff17c25a360b393a7c4ff1052ce12f66634b0acbea94a60f876a73a12126fc32",
+      "kernel/proposals.py": "075bf984f1e875d1dd64a3ccf711890866470268670d56df96830166112ed60a",
+      "kernel/reasons.py": "2fa0a36239759dcdb2c24a589fb58d3e302da4ed5e1e42ce7230fd142fd26f39",
+      "kernel/settlement.py": "852beddcf474ad5ace995b1d839e33921bcaa1222a34b204a55d47610669a7ff",
+      "kernel/state.py": "f2988ac58aa7cdb73956eccf5010629f14dfef30688c175095af7b7ebd567081",
+      "kernel/units.py": "aa8b04387d1c4f3662e4a412ccf46699c0c8976602b68093d821a7ec1e89580a",
+      "kernel/version.py": "967d874c73455648ee91b902aef0e8c4dcf134644de7b8d659ec7d7f683e71a9",
+      "stream/__init__.py": "00c117d26e980ca44a3e59ff09e920617d537489f3c7c7606b56be91762fbca5",
+      "stream/bench.py": "67b11ce7e0a0c76ca2aa4d20fcdcd2b591fc84a6c24de7d4c36ea39e6d7e3af9",
+      "stream/recover.py": "3cc83c83b3a66a0860fc1717f7e58206928b1de813d909f5ba1a469e8b82f0e3",
+      "stream/replay.py": "5b54b816866c70233aee67287133fa5043bfaf8aa0a2a182ec0a0784c19d7098",
+      "stream/run.py": "06299307e56d655c16a5dfcfac9919ba8c762ba015b5ff37afa21a9dfd2fa6ae",
+      "stream/run_file.py": "4f6cd7763c35bbb3dbbf6943bf0af0028c5ae0a3512d015580042c30af3daa56",
+      "stream/scenario.py": "8a94078081d5995fc5f5e7b3c981f2d06d1c227776c3cd7f91a3235e132eac84",
+      "stream/viewer.py": "f49744d2a94c5ab83de13953508dfdaa91376566864c07dfe2dbd48e582e3faf",
+      "world/__init__.py": "4ac75ab3379fa684845afaf66e9b747359f3bf0e0537cdee866d6ff16b19eca5",
+      "world/bench.py": "1584f35ab6e28c485ddb34ec5f0e7e12fd0a41dd181607f626987625c6aadc1d",
+      "world/config.py": "d8ad417137cb4ce26a79ea64588ee20906a3f29ac55e620c9a56c93edf13d336",
+      "world/decide.py": "10c2a22fd26a679145580c76f31a3d18a58af923f4c83652ca84be96407163d6",
+      "world/ecology.py": "cfba88221c4e0e51d32f378221a1c40921ce15f1cab316183b426eb32d51deed",
+      "world/fishing.py": "8795daf3c1a38caeedaeb2e2dea3f606df77a4d81eb76d98b8936348a1dcdb8c",
+      "world/foraging.py": "36f079eb4d9ab823145587ac6a9fd1a252ed56d5b6481d75edc1c10a92600a4f",
+      "world/housing.py": "1077780700c96466eddb24c7cf5d2e9029298753aeb6b10dcd5bffa443919c2e",
+      "world/materials.py": "d4499da7ac14ea10ffc7c6011d26564f54e1b99eed9f842e2ec69cd293a9a81d",
+      "world/observe.py": "6e961d22d2b9c335962f6420948940835e4f7c0d6eb5e4f0305d8b1d6d5ec44f",
+      "world/overlay.py": "a661a1fd0b9bc4668145c598ffef9a5d4b07e22aa49ef78ef86bd361f74a5ac3",
+      "world/process.py": "d11374ee5b9a0d8ea7b042ea7c429374ac7e58ae875531ebe2d4e19d780f5efd",
+      "world/recover.py": "e34e5edefed04f29694d3c340cbe2991db6ca36c70ae903462baa7f4304f4d39",
+      "world/replay.py": "b2b6b129d3a20609cc635ac894d4f9174e0b4d93257291e5f674f0bc76d06369",
+      "world/run.py": "9ce69c7f4b8f34a6007abcfafc3084a145aefdf04e4caf975fda07ac15f3491a",
+      "world/social.py": "32f5548975c141bd5bc1ba59d11eb1695c7fbec219d5e2185ad613913b62d140",
+      "world/storage.py": "810dd8c4c1b73aed86fcc2a555158af009b04ff388a52860e33d5260ac18c9fd",
+      "world/viewer.py": "7affd69ee6f5798f46b16d6375250c58fe52a647728117f10aedb875921f343a",
+      "world/viewer_index.py": "2e7823401904d5c648f17091403b7c1d3bfca9f89b89c9805b8f0700e02f7765"
+    },
+    "digest": "4af0706044bc7d61bc796c0462b3cd05cbecffa5829c9ecfc75ce701d7b1c386"
+  },
+  "seconds": 79.38,
+  "summary": {
+    "400": {
+      "current": {
+        "seeds": 35,
+        "ticks_per_seed": 400,
+        "activated_seeds": 0,
+        "helped_decisions": 0,
+        "gifts": 190,
+        "memory_person_ticks": 14840,
+        "potential_target_changes": 124,
+        "choices_when_memory_could_change_target": {
+          "go_water": 38,
+          "drink": 11,
+          "go_shelter": 50,
+          "eat": 13,
+          "wait_water": 3,
+          "draw": 1,
+          "warm": 8
+        }
+      },
+      "old_departure_only": {
+        "seeds": 35,
+        "ticks_per_seed": 400,
+        "activated_seeds": 0,
+        "helped_decisions": 0,
+        "gifts": 184,
+        "memory_person_ticks": 14895,
+        "potential_target_changes": 143,
+        "choices_when_memory_could_change_target": {
+          "go_water": 42,
+          "drink": 10,
+          "go_shelter": 55,
+          "eat": 15,
+          "wait_water": 3,
+          "warm": 16,
+          "draw": 2
+        }
+      }
+    },
+    "780": {
+      "current": {
+        "seeds": 35,
+        "ticks_per_seed": 780,
+        "activated_seeds": 3,
+        "helped_decisions": 12,
+        "gifts": 404,
+        "memory_person_ticks": 49324,
+        "potential_target_changes": 344,
+        "choices_when_memory_could_change_target": {
+          "eat": 43,
+          "go_shelter": 137,
+          "go_water": 72,
+          "drink": 24,
+          "wait_water": 4,
+          "warm": 43,
+          "draw": 9,
+          "go_offer": 11,
+          "offer": 1
+        }
+      },
+      "old_departure_only": {
+        "seeds": 35,
+        "ticks_per_seed": 780,
+        "activated_seeds": 4,
+        "helped_decisions": 16,
+        "gifts": 445,
+        "memory_person_ticks": 50771,
+        "potential_target_changes": 368,
+        "choices_when_memory_could_change_target": {
+          "eat": 49,
+          "go_shelter": 155,
+          "draw": 6,
+          "drink": 22,
+          "go_water": 70,
+          "wait_water": 3,
+          "warm": 47,
+          "go_offer": 15,
+          "offer": 1
+        }
+      }
+    }
+  },
+  "results": [
+    {
+      "seed": 1,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 34,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              6,
+              2
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                7,
+                2
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "06259acb84b757c05eade40bf1e09a8f4a3aa63e25afdb274b9f1817556112ce",
+          "final_ledger_digest": "3959bcc0f16c83b0cefad04fcb7684b4dad8dab0be9a8cdd305037346e5d90c3"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "4573ada7c8b84150b5979ec45338751306e36407659d46ff72c5899be34129c2",
+          "final_ledger_digest": "3959bcc0f16c83b0cefad04fcb7684b4dad8dab0be9a8cdd305037346e5d90c3"
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 44,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              9,
+              1
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                2
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 4,
+          "memory_person_ticks": 59,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "8ddda8cccdb535539f820de4fd61ed8bc4a2866955f5bd4fb000bad0f1c10abe",
+          "final_ledger_digest": "0ccf4bc8a15811093c4f3ec636c106a9b757d2ee9672e3bfff5250cd95c5d4c6"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 30,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "0b327cde0f3a74a60aca09d4fa237ff6aaa4bcb745d466e1786d4cbdbb9b8b75",
+          "final_ledger_digest": "e9e446f07f434f6e01250c675acaf6a94f314aa0638a7a650075834031b058c1"
+        }
+      }
+    },
+    {
+      "seed": 3,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 218,
+        "changes": [
+          {
+            "actor": "p02",
+            "same_observation": true,
+            "hunger": 14,
+            "food": 0,
+            "position": [
+              11,
+              11
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 11,
+            "old_travel": 10,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 14, 10 steps to source, no food held; allowing 11 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                10,
+                11
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "77ca6fce6cefbdbe8f6c16bd63f2517e00b8ebfdbb2b91aad2e42f8b23058d22",
+          "final_ledger_digest": "118697918631182151dec505f721acb2e65f24c52be6686d64f106da7e428ece"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "c75ea30c28a1b21cc9ec9ceb67e90389ea28fd327f052840eec8e3da3e8e8e3e",
+          "final_ledger_digest": "118697918631182151dec505f721acb2e65f24c52be6686d64f106da7e428ece"
+        }
+      }
+    },
+    {
+      "seed": 4,
+      "horizon": 400,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 228,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 2,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "e46d2202c111bb8c0e15e51b4c3c109bf4ef92ab1ae45fe6a569d0cef01dda6f",
+          "final_ledger_digest": "d8193dcd246e176c4e34247cf357aa6c2d89f95419bfeef5c492f4be1d5e0693"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 228,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 2,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "e46d2202c111bb8c0e15e51b4c3c109bf4ef92ab1ae45fe6a569d0cef01dda6f",
+          "final_ledger_digest": "d8193dcd246e176c4e34247cf357aa6c2d89f95419bfeef5c492f4be1d5e0693"
+        }
+      }
+    },
+    {
+      "seed": 5,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 27,
+        "changes": [
+          {
+            "actor": "p05",
+            "same_observation": true,
+            "hunger": 17,
+            "food": 0,
+            "position": [
+              3,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 8,
+            "old_travel": 7,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 17, 7 steps to source, no food held; allowing 8 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "823386e0ed6fcfd55398b3b459abaf0b67acf8a6c14de82a775775bb24220e85",
+          "final_ledger_digest": "6f57ce5b80e1791cfb1c82a7203df73a03dbee223f1002d8796c09c1857be200"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "d05dedc8bdb161ab8a02bd8712be4172c23cc1df5993f961621b084a6e9c6325",
+          "final_ledger_digest": "d567155db0ed457965149618f841f307a403b6f8ba6a67575849ef6428d27aa5"
+        }
+      }
+    },
+    {
+      "seed": 6,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 39,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              9,
+              0
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                1
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 18,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 7,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "0e9ff4bdb6e3be84a77a8f66fbb3a517a54ee2ab7404177c3d16ae7ec7c7f440",
+          "final_ledger_digest": "a9e970cdb0f9148904a870810a0632b977be40a910b6888fb2296071a3abb7eb"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 95,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 3,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "6ea9d95fd33ae7ae0a8788ecbcf0413ef7cc382f701ac4e2a73b06b6db520d13",
+          "final_ledger_digest": "1696299a48099c3a02f14b2991db77392647ba061a9f8616585663d04e8b238d"
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 92,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              5,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                8
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                6,
+                9
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 345,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 9,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "a87531f2461c011221cc708c01dbbcf6c1d8a5111747d69ea52c61e9c6b20971",
+          "final_ledger_digest": "16786ea939f6251a934336243e23e564667ceea4fbb9f30f5e311102652bdead"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 345,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 9,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "9517e495982e3a2cc108d244851a8562baf582048e60020204dc3860838a81f2",
+          "final_ledger_digest": "f22f5eb48f6fee5124dd8c3728798ec98d2562c1a762e1c2496e9b4c00a7bcd5"
+        }
+      }
+    },
+    {
+      "seed": 8,
+      "horizon": 400,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "518db7519ae921b283c5c0ccd1a979495e56492931facf89ad9649b0077ea240",
+          "final_ledger_digest": "c345d7973650ebc1345459d70e25452927ae2529cc00d7e2b64093fc3a91bbda"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "518db7519ae921b283c5c0ccd1a979495e56492931facf89ad9649b0077ea240",
+          "final_ledger_digest": "c345d7973650ebc1345459d70e25452927ae2529cc00d7e2b64093fc3a91bbda"
+        }
+      }
+    },
+    {
+      "seed": 9,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 70,
+        "changes": [
+          {
+            "actor": "p01",
+            "same_observation": true,
+            "hunger": 16,
+            "food": 0,
+            "position": [
+              2,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 9,
+            "old_travel": 8,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 16, 8 steps to source, no food held; allowing 9 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                10
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 34,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 3,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "cf94606f39e5b9a093d7f443ed3ec4a09500e436eca603bd7aa5c912a381ff29",
+          "final_ledger_digest": "43f4f705d5664e45b220b56082a520120d333e1e4bb670a5a681ecc264d6d974"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 34,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "f5128a3b58a709d4964015396a6659264fca123cb139d0f2e1b6d1c63e01887b",
+          "final_ledger_digest": "af3346a2e5b5de18d74d952de4fe0575797c328f513f0fd720491ab89daddb26"
+        }
+      }
+    },
+    {
+      "seed": 10,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 46,
+        "changes": [
+          {
+            "actor": "p01",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              8,
+              0
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                1
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "49257c25c6ef260e7a576a2ab2497e8be6299984ef55e2371b730e5af1762ebb",
+          "final_ledger_digest": "c0767b47105d17f4ce09d38071d4a62c217691c4a3c242d641ca6f284d212a2b"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "16e8a568edf1f5eb06195138b7bb80b8ff7695b0d107228a423aec7eeac82333",
+          "final_ledger_digest": "c0767b47105d17f4ce09d38071d4a62c217691c4a3c242d641ca6f284d212a2b"
+        }
+      }
+    },
+    {
+      "seed": 11,
+      "horizon": 400,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 15,
+          "memory_person_ticks": 1374,
+          "memory_changes_help_target_before_need_priority": 21,
+          "starving_person_ticks": 996,
+          "choices_when_memory_could_change_target": {
+            "go_water": 3,
+            "drink": 1,
+            "go_shelter": 13,
+            "eat": 1,
+            "wait_water": 3
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "1df5f1733bbc77b43181a1f8dce6423509e6dc8f834c3969974bd9c63dcd4237",
+          "final_ledger_digest": "de1b04d729aece55c79de72403d897b797671f3c363063b9db35d5b2fbaf5a81"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 15,
+          "memory_person_ticks": 1374,
+          "memory_changes_help_target_before_need_priority": 21,
+          "starving_person_ticks": 996,
+          "choices_when_memory_could_change_target": {
+            "go_water": 3,
+            "drink": 1,
+            "go_shelter": 13,
+            "eat": 1,
+            "wait_water": 3
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "1df5f1733bbc77b43181a1f8dce6423509e6dc8f834c3969974bd9c63dcd4237",
+          "final_ledger_digest": "de1b04d729aece55c79de72403d897b797671f3c363063b9db35d5b2fbaf5a81"
+        }
+      }
+    },
+    {
+      "seed": 12,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 131,
+        "changes": [
+          {
+            "actor": "p02",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              10,
+              5
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                10,
+                4
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 4,
+          "memory_person_ticks": 287,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "b8db7c472a86eeccf606a7db22fa9dc348c7c1a6fcbc8eb9d26a3c66887d1f1a",
+          "final_ledger_digest": "1b52a56a897f993ad0f58828ce2ed8a74a67e9870752b72b6dc90b9a841a85ea"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 612,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 12,
+          "final_world_digest": "cde3c1bd1056f857cbd3758e31aaf8e381be9a8b6dbb08ce823f13e231e9ccb1",
+          "final_ledger_digest": "1dc40e66f2c0a6dbbac426b18b3b5c2883754fa984dcf882147411f91a4591c7"
+        }
+      }
+    },
+    {
+      "seed": 13,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 123,
+        "changes": [
+          {
+            "actor": "p08",
+            "same_observation": true,
+            "hunger": 17,
+            "food": 0,
+            "position": [
+              2,
+              3
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 8,
+            "old_travel": 7,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 17, 7 steps to source, no food held; allowing 8 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                3
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                1,
+                3
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 730,
+          "memory_changes_help_target_before_need_priority": 13,
+          "starving_person_ticks": 654,
+          "choices_when_memory_could_change_target": {
+            "go_water": 11,
+            "eat": 1,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "340f5158111c17af18d8ce85bb41fc0ca6a36d46b81250b446c0af242a634544",
+          "final_ledger_digest": "0b538f9bd0b7254a90ac0c2874ac1548d472a1321a0e31f9762c229db8e114cb"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 831,
+          "memory_changes_help_target_before_need_priority": 13,
+          "starving_person_ticks": 745,
+          "choices_when_memory_could_change_target": {
+            "go_water": 11,
+            "eat": 1,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "d132fd46218a720255af7db04b4f51897ed63ffbb4705ec0986b267a642a7e77",
+          "final_ledger_digest": "20521505a87b75eff3e3052f1c76c0351a181a6757d798cb662733b1de9fa39b"
+        }
+      }
+    },
+    {
+      "seed": 14,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 28,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 901,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 301,
+          "choices_when_memory_could_change_target": {
+            "go_water": 1
+          },
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "216a50768c7b8a78289223b16bbcd6086c8da93cd80ad114e8afdd5f0de4e82a",
+          "final_ledger_digest": "e15138afc794ea417e57745fec55e6f517e72fa0f000f771e482ac1b8759b57a"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 17,
+          "memory_person_ticks": 1432,
+          "memory_changes_help_target_before_need_priority": 25,
+          "starving_person_ticks": 318,
+          "choices_when_memory_could_change_target": {
+            "eat": 3,
+            "go_shelter": 8,
+            "go_water": 3,
+            "drink": 2,
+            "warm": 9
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "fc89ca73f20fac5012321f0798ffb432645f591b893ae400718b18b905815796",
+          "final_ledger_digest": "6ce1665ae1f8caace5b16af8cec6de63dfcad1cee7be9f7c7fbcb986688363a1"
+        }
+      }
+    },
+    {
+      "seed": 15,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 26,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              3,
+              5
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                4,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 1220,
+          "memory_changes_help_target_before_need_priority": 5,
+          "starving_person_ticks": 379,
+          "choices_when_memory_could_change_target": {
+            "eat": 2,
+            "go_shelter": 2,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "22f1012987ef9386893868c205e9bdd609cc88f136498f9c7935e486b7c431e2",
+          "final_ledger_digest": "cf92279515969afd60c751aafca3b8890f7c9fad56d1a6104ffed969d6de3c64"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 1,
+          "memory_person_ticks": 191,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 2,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "f2c0088519281a9675dae35b65efcf82835e1dd362a598856d7b8d825307d660",
+          "final_ledger_digest": "86d978621373db44f4a7796b138e139ed39fe8cf4eed475fef04819bc2e39dca"
+        }
+      }
+    },
+    {
+      "seed": 16,
+      "horizon": 400,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "5c8696b79249e508f39452622920643acbc3a94865d21b5ce479b46538a1befc",
+          "final_ledger_digest": "120c03a9dc54b718a2dbb011473cf85a90ffc149b09a34fd917643626f5189a4"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "5c8696b79249e508f39452622920643acbc3a94865d21b5ce479b46538a1befc",
+          "final_ledger_digest": "120c03a9dc54b718a2dbb011473cf85a90ffc149b09a34fd917643626f5189a4"
+        }
+      }
+    },
+    {
+      "seed": 17,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 32,
+        "changes": [
+          {
+            "actor": "p05",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "f0bf19c290db9310487feecc6b39e3b9193c4cb0ea35ae404b88ca49cc5c255c",
+          "final_ledger_digest": "52b25a73cf10506659e5e3e5e8c52b2d27a8b2296d49fd9d7f9285eb1b01fb63"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 312,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "bdfe7afec9a25d19c2f38b794e945a03d507c8ff32a7cbaab2043bdde496c49f",
+          "final_ledger_digest": "2ba5d9f1f2a626d8864ef3e5397a52b5a1d24a873f189c74d8822871293839e3"
+        }
+      }
+    },
+    {
+      "seed": 18,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 37,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              8,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                8
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                9,
+                9
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "511d3a598185360961dcc4673f66b7e63e51deb9094f56c437b09d2b93ed0af4",
+          "final_ledger_digest": "70028e7cd2efb4ad4b10b2d547e5f9ad0b1fe092164ad88f4df52c6e5984fc48"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 190,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 2,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "b72b63bbeb7d193a1548bda360f3dd13f074b5ce07b19e42b6e98230995247b7",
+          "final_ledger_digest": "80d7e3229f75195797d4a43604d0b0053a84de4b442fef93fa4e43c3b470ac20"
+        }
+      }
+    },
+    {
+      "seed": 19,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 30,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 16,
+            "food": 0,
+            "position": [
+              2,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 9,
+            "old_travel": 8,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 16, 8 steps to source, no food held; allowing 9 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                10
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                2,
+                11
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "c2da85bdee6e2f4111dacb7910d6b7e52a1cc46a6433780f6b5d2e236b882fba",
+          "final_ledger_digest": "d71a5d6088102031ebdc9df515d524a6f84449ecc936552aed03a9061626ffc3"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "dae9069f286965893418db1545d7c56dd4eab773aaf838dd76589d74316bfee4",
+          "final_ledger_digest": "19eaf4c7ea809cfd2457125928584785c0d5fe356ba4724e50ff3fec6e00200d"
+        }
+      }
+    },
+    {
+      "seed": 20,
+      "horizon": 400,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "02e9f74bd10e095357a54660c50edfc0f8433245118b252f79fe31faa6656e44",
+          "final_ledger_digest": "0cd12466b883c425995451ccf41a6f96fc559a5bcb97a401a8e89c14839b48ce"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "02e9f74bd10e095357a54660c50edfc0f8433245118b252f79fe31faa6656e44",
+          "final_ledger_digest": "0cd12466b883c425995451ccf41a6f96fc559a5bcb97a401a8e89c14839b48ce"
+        }
+      }
+    },
+    {
+      "seed": 21,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 25,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              5,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 1560,
+          "memory_changes_help_target_before_need_priority": 14,
+          "starving_person_ticks": 558,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 9,
+            "drink": 2,
+            "eat": 1,
+            "go_water": 2
+          },
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "a406e796a85c0444cbe4859ccefb6b8d65ec24339dd7fc29c458bfd64ddc9ba0",
+          "final_ledger_digest": "13888f54a5143a60e99e38401f5a5b263ea636121b1778e23067ed54818e0e66"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 14,
+          "memory_person_ticks": 1080,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 663,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 12,
+          "final_world_digest": "80e7c3359bdc9f9734583be1b58878abd24a1a42812c0eb25afa8146ac86c54b",
+          "final_ledger_digest": "2452e32962bdf392b3d2e689ee01ad48426dc34aa76baa7cfb57d6688c0343fd"
+        }
+      }
+    },
+    {
+      "seed": 22,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 31,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 17,
+            "food": 0,
+            "position": [
+              10,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 8,
+            "old_travel": 7,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 17, 7 steps to source, no food held; allowing 8 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "2977df8819bfa28258b440792804c28da67040f531bceef7664f4fc6db0f1d86",
+          "final_ledger_digest": "07651878403f131ef417afc17f33649157b19dbf326e54ba3e2111055506d795"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "e27aea2f632ba620e33ea58bb986f2437f374c07d3b0a2a7428c3deeeebf0080",
+          "final_ledger_digest": "07651878403f131ef417afc17f33649157b19dbf326e54ba3e2111055506d795"
+        }
+      }
+    },
+    {
+      "seed": 23,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 48,
+        "changes": [
+          {
+            "actor": "p01",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 14,
+          "memory_person_ticks": 1050,
+          "memory_changes_help_target_before_need_priority": 17,
+          "starving_person_ticks": 717,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 6,
+            "eat": 2,
+            "drink": 2,
+            "go_water": 6,
+            "draw": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "5ecbb308d4f9b4ed520a3d65bbce9585673356f72df34346ed2d58adb6d2b144",
+          "final_ledger_digest": "f4d6c1e9c92cfbf4c02021f891c1d12007d7e0840d0ffb30f539bf4c738a7e77"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 1341,
+          "memory_changes_help_target_before_need_priority": 31,
+          "starving_person_ticks": 781,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 12,
+            "eat": 2,
+            "drink": 3,
+            "go_water": 10,
+            "draw": 2,
+            "warm": 2
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "7158c754b6d0a2b45cbf0c4a924c4a436bd1cbbea1d3893544e4be8f13b08996",
+          "final_ledger_digest": "e6613a4ddfe3c0951bc8796d72fdde139a8994d65a7d2e38457e41d186a4f1ff"
+        }
+      }
+    },
+    {
+      "seed": 24,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 61,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              7,
+              3
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                7,
+                4
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 19,
+          "memory_person_ticks": 1490,
+          "memory_changes_help_target_before_need_priority": 5,
+          "starving_person_ticks": 473,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 1,
+            "warm": 3,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "55c46c7c73ec49b689a001a6f66a9536e8737cbd2090b83e05ef1eedce4745d7",
+          "final_ledger_digest": "ffb7d1dacc5e0fe5681447ef4c11c63d6d84234f9f69446f9c6ea4fab9d52f88"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 17,
+          "memory_person_ticks": 1524,
+          "memory_changes_help_target_before_need_priority": 5,
+          "starving_person_ticks": 494,
+          "choices_when_memory_could_change_target": {
+            "eat": 2,
+            "go_shelter": 3
+          },
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "416930575d2557791e844e4be6a0a342889d5ada6cde05965776918eda49a169",
+          "final_ledger_digest": "d4954640ad00f43c1eda32f79e40912571819ddf2190dde4b1c206376f84a7dd"
+        }
+      }
+    },
+    {
+      "seed": 25,
+      "horizon": 400,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "cfe71468827ab0f0deb9287cfc4d7f5d9a6c5642bf71eec60e890f52e17e8edc",
+          "final_ledger_digest": "e9831bc3a12569b6bf514e23b4e185938422afacf0edec8ea7a5bf12c19dd602"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "cfe71468827ab0f0deb9287cfc4d7f5d9a6c5642bf71eec60e890f52e17e8edc",
+          "final_ledger_digest": "e9831bc3a12569b6bf514e23b4e185938422afacf0edec8ea7a5bf12c19dd602"
+        }
+      }
+    },
+    {
+      "seed": 26,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 334,
+        "changes": [
+          {
+            "actor": "p12",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              6,
+              3
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                7,
+                3
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "build",
+              "reason": "nothing wanting, building a shelter at home",
+              "candidates": [
+                "build"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 18,
+          "memory_person_ticks": 1907,
+          "memory_changes_help_target_before_need_priority": 16,
+          "starving_person_ticks": 863,
+          "choices_when_memory_could_change_target": {
+            "go_water": 2,
+            "go_shelter": 6,
+            "drink": 2,
+            "eat": 2,
+            "warm": 4
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "56b45062a260859b70c3debdf9cb176d55c91cbddc81d7e50256933cebd837d1",
+          "final_ledger_digest": "86812cb6f8ac001e1039d97f5161890ffa4849d7058f36f77565c57f994fe94d"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 18,
+          "memory_person_ticks": 1907,
+          "memory_changes_help_target_before_need_priority": 16,
+          "starving_person_ticks": 863,
+          "choices_when_memory_could_change_target": {
+            "go_water": 2,
+            "go_shelter": 6,
+            "drink": 2,
+            "eat": 2,
+            "warm": 4
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "68d497e1788e22fbf29b3b1e8b04ad21f33ffaa468f2dd819d365cf66fb6788f",
+          "final_ledger_digest": "86812cb6f8ac001e1039d97f5161890ffa4849d7058f36f77565c57f994fe94d"
+        }
+      }
+    },
+    {
+      "seed": 27,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 34,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              4,
+              4
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                4,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 1,
+          "memory_person_ticks": 33,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 11,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "150149f1a4c95eed03fa1a20b41d86ad6882ca5fceb1680ff9240d77eafad5e3",
+          "final_ledger_digest": "9d3156f7de76a0fef71cb20ba9826d3629ed74b8988a3dcff0602865bdb70007"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 1,
+          "memory_person_ticks": 191,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 2,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "7f20bf65d3c2cafbbd3f84c14c374e5bad7d8e63969f6ad134a77a32731dbecc",
+          "final_ledger_digest": "76196cfcf8a52875ced9c4215aee9e25a4d337c2d308ad500a3c81c45f13cb43"
+        }
+      }
+    },
+    {
+      "seed": 28,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 366,
+        "changes": [
+          {
+            "actor": "p22",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              7,
+              4
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                4
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 8,
+          "memory_person_ticks": 379,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 64,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "0274447a287ef497826f37bd605b8531a6d97eaffa888eb72a85f335bacbcc08",
+          "final_ledger_digest": "aac50f54930eab189c3f780e8dac77fd2faaddd02520fd9868ce36633222562f"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 8,
+          "memory_person_ticks": 379,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 64,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "2ec69c2c22573ed8231910f4ddd53ae68859d99214988d670b0765831c98b255",
+          "final_ledger_digest": "ca140695d6c56bbe047b8af45eea163e510bf50d31ba9b56aaa14b69bd935555"
+        }
+      }
+    },
+    {
+      "seed": 29,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 86,
+        "changes": [
+          {
+            "actor": "p11",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              9,
+              7
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                7
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 14,
+          "memory_person_ticks": 1265,
+          "memory_changes_help_target_before_need_priority": 30,
+          "starving_person_ticks": 621,
+          "choices_when_memory_could_change_target": {
+            "eat": 4,
+            "go_shelter": 12,
+            "warm": 1,
+            "go_water": 12,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "7bdafaadd45e0945ee8116de3bf37ae482653f5938c7aa0e7940154e1f157623",
+          "final_ledger_digest": "9194c2d3407b8526798c144686ec76c57d5cf59c9346020f58e772577fd3141c"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 14,
+          "memory_person_ticks": 1265,
+          "memory_changes_help_target_before_need_priority": 30,
+          "starving_person_ticks": 621,
+          "choices_when_memory_could_change_target": {
+            "eat": 4,
+            "go_shelter": 12,
+            "warm": 1,
+            "go_water": 12,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "284dcabb081740f95126944eb70e8340c2317c327f07950de639cbf988300345",
+          "final_ledger_digest": "9194c2d3407b8526798c144686ec76c57d5cf59c9346020f58e772577fd3141c"
+        }
+      }
+    },
+    {
+      "seed": 30,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 78,
+        "changes": [
+          {
+            "actor": "p08",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              6,
+              4
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                6,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 15,
+          "memory_person_ticks": 1180,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 427,
+          "choices_when_memory_could_change_target": {
+            "go_water": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "86b653b164e3cfd167e5444c95ca9728460f989098d4db7f5eadfe7f14bf0352",
+          "final_ledger_digest": "83d60b96f092b95434de9925b7242298d85fac0b441b37ca6fa4b2b0057fc03e"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 1042,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 439,
+          "choices_when_memory_could_change_target": {
+            "go_water": 1
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "95cd76354f06885175d1746ac7fcce9423b426569566d8f00f8915fd81611c36",
+          "final_ledger_digest": "a85af362d6a563e7ca2a7596e408eb786f8e456b241b4da14f799ba3ce3f963c"
+        }
+      }
+    },
+    {
+      "seed": 31,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 36,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 18,
+            "food": 0,
+            "position": [
+              4,
+              2
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 7,
+            "old_travel": 6,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 18, 6 steps to source, no food held; allowing 7 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                4,
+                3
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "681ca8341f3c147a8c7fb00d82b641e5680a68344e1bd5c3808228d3b958fb91",
+          "final_ledger_digest": "ee1d86137bb36277395f5d8e263d92f80765d7ce8a997c330dbe6a80b844f194"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "fb2ae1009a4a51fe3f598fbfaa1857241778dcad0ba176a661a5efd4c3740fea",
+          "final_ledger_digest": "8c364c60effd296f0a7fe3ae54cd89e9d737b7c36048a4198b7a97dfd36a6667"
+        }
+      }
+    },
+    {
+      "seed": 32,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 29,
+        "changes": [
+          {
+            "actor": "p05",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              2,
+              5
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 77,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "f15dd92960c94b112483d32bfefe485e42f7c4c656b55566bb3d5a16edb915c6",
+          "final_ledger_digest": "3a4bedf6486475740afee4a68f61288f7f99af4b5cc077859c899a60b4a43da3"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 77,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "4718e3498bff03957568aa8f2b5506bb5a037f2e17acf5eae59579371768ecc4",
+          "final_ledger_digest": "1c96c7bc5de2ab32638224097210114cf4fcae8ce1b681b4d4c642026c108367"
+        }
+      }
+    },
+    {
+      "seed": 33,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 34,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              6,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                6,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 444,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 32,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 15,
+          "final_world_digest": "0a0e90aed51a8e2f82309d86904403c973fb1986acb26ee2df6ca9a2d39d391e",
+          "final_ledger_digest": "b1412338e6e4cd3e4e70a6ba9cf83b01ee1bd1a7f6bdb7a891c704d7cd17d353"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 156,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 4,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 14,
+          "final_world_digest": "dd9ef7a656231fb6d89e2e0de0e82e1e3dc4173f5ca1c198d92cb8226de3f295",
+          "final_ledger_digest": "b3e2267c6bba21e2eb8b6b37c6bc8b1617b1981a6e6f3d8b3831dbe581cf2ca2"
+        }
+      }
+    },
+    {
+      "seed": 34,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 45,
+        "changes": [
+          {
+            "actor": "p02",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              10,
+              7
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                7
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 4,
+          "memory_person_ticks": 234,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 103,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 1
+          },
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "687e46590a1ca685a21ff890dec70ae68ef6e76e87087e10a0f95e4b5a097d9a",
+          "final_ledger_digest": "f16ef23b8e1c5eac624fabb02dd352bf95af7a2a6c9504118baf6ceeff3f21c9"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 4,
+          "memory_person_ticks": 234,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 127,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 1
+          },
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "8ef3635c226a948b0929f2c7fecc91fd98ed6ce805c039ab45c6567f8f3f4d6f",
+          "final_ledger_digest": "9e2677c35a03ea82f7b98bfad6c7086e793dd62cc6a7ce939baf05f69fabd058"
+        }
+      }
+    },
+    {
+      "seed": 35,
+      "horizon": 400,
+      "first_divergence": {
+        "decision_tick": 27,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              6,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                6,
+                8
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 25,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "4c2b235958509291c909a41402bc24ccb8ebc01699ec09c9212afcc71be84c1d",
+          "final_ledger_digest": "bc6753de0bb5664851ad84d8bd1b9119242166eb240a70e5e705191347d49312"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 25,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "3e3065ca2727f55143e9af0f7653212cf7c78f07e3d95fd018e26ec8a9dfbb5a",
+          "final_ledger_digest": "c160a4583814717a1ad863758a34e1f80e8c732518a170300d050d08068ee0b8"
+        }
+      }
+    },
+    {
+      "seed": 14,
+      "horizon": 650,
+      "first_divergence": {
+        "decision_tick": 28,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 12,
+          "memory_person_ticks": 1989,
+          "memory_changes_help_target_before_need_priority": 14,
+          "starving_person_ticks": 665,
+          "choices_when_memory_could_change_target": {
+            "go_water": 7,
+            "go_shelter": 2,
+            "eat": 2,
+            "draw": 1,
+            "drink": 2
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "e67f2c1c3978ab55dd73a617c0a71142af0eaceb6cc6d39e92049295f1c27e9a",
+          "final_ledger_digest": "ac397b3fdb0ee7120df785ae9e6918f28268764185a849a8f610d48095731b40"
+        },
+        "old_departure_only": {
+          "helped_decisions": 5,
+          "gifts": 26,
+          "memory_person_ticks": 2790,
+          "memory_changes_help_target_before_need_priority": 37,
+          "starving_person_ticks": 637,
+          "choices_when_memory_could_change_target": {
+            "eat": 4,
+            "go_shelter": 8,
+            "go_water": 5,
+            "drink": 3,
+            "warm": 11,
+            "draw": 1,
+            "go_offer": 5
+          },
+          "samples": [
+            {
+              "decision_tick": 642,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 643,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 644,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 645,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 646,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            }
+          ],
+          "living_final": 8,
+          "final_world_digest": "6e0b74aecd1e8a72ed70f70f736a0d42ef7ce65380ddf1f04c3ba58c181ec56d",
+          "final_ledger_digest": "c4bf61e0e2bd41b95d3fce0de9725f3fbf216c7a9369a94954afbbf043265217"
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 34,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              6,
+              2
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                7,
+                2
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "8d8c64dd13317d7e00fcc26209ce6de9b8fc1b144d929af881527f983fd0a62e",
+          "final_ledger_digest": "0805cad16ce258f62829004644db83a5fc0616c7b587dd4f5ba0018b6e2aaa85"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "409f53942b972305d6fd50caddb48144d7c1682501ebfdb5606e0a42350b6eaa",
+          "final_ledger_digest": "6e1ce17823e099737ef5c79037acf60b371060aee6a2970b780f6d6a9f1051cd"
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 44,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              9,
+              1
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                2
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 6,
+          "memory_person_ticks": 85,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "accdf1e1ea789344e0ab8df620cf707685d2194fb83afebcfaa7e0e02fda1aff",
+          "final_ledger_digest": "10373760916f6a642ca37cac64f33bbd3056c923eafd0a2699331e0cea1f0f11"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 8,
+          "memory_person_ticks": 579,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 178,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 12,
+          "final_world_digest": "a96cfc2b996aaa161423fc7f9587bf7720cc2593453c1a9c712fbb54bbec16b0",
+          "final_ledger_digest": "6eeb94151ad04cd7e462f1625c5cd6c999e30cd20f44eeaac0b94d3546c6ce5f"
+        }
+      }
+    },
+    {
+      "seed": 3,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 218,
+        "changes": [
+          {
+            "actor": "p02",
+            "same_observation": true,
+            "hunger": 14,
+            "food": 0,
+            "position": [
+              11,
+              11
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 11,
+            "old_travel": 10,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 14, 10 steps to source, no food held; allowing 11 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                10,
+                11
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 34,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 48,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "7e633ad5bad9f0f1d11f86742409b0b19d7bdca9e90ef3fe0c4c02af52257d21",
+          "final_ledger_digest": "a814a4644a8ff764cefda4e4dfb84d477fde08ee1ffedf31789b68246c52c321"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 17,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "e53c68e4672e4447e7ce4880d58cd79a65ecaad9c1f042e3de2d95ec4cf6eb62",
+          "final_ledger_digest": "475cb29a4724067774442426dbe998d4f291dc62fdda9d7844d615301d972159"
+        }
+      }
+    },
+    {
+      "seed": 4,
+      "horizon": 780,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 1185,
+          "memory_changes_help_target_before_need_priority": 7,
+          "starving_person_ticks": 420,
+          "choices_when_memory_could_change_target": {
+            "eat": 1,
+            "go_shelter": 6
+          },
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "ea94c0d474c433619771429e2b9ac08b1436bb1e99dde34edd6cfc43dcbc7999",
+          "final_ledger_digest": "8526f5f6f172626cc1874e870cb004c78b9ea1b7279fda9fa201fe09d48a5d2f"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 1185,
+          "memory_changes_help_target_before_need_priority": 7,
+          "starving_person_ticks": 420,
+          "choices_when_memory_could_change_target": {
+            "eat": 1,
+            "go_shelter": 6
+          },
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "ea94c0d474c433619771429e2b9ac08b1436bb1e99dde34edd6cfc43dcbc7999",
+          "final_ledger_digest": "8526f5f6f172626cc1874e870cb004c78b9ea1b7279fda9fa201fe09d48a5d2f"
+        }
+      }
+    },
+    {
+      "seed": 5,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 27,
+        "changes": [
+          {
+            "actor": "p05",
+            "same_observation": true,
+            "hunger": 17,
+            "food": 0,
+            "position": [
+              3,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 8,
+            "old_travel": 7,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 17, 7 steps to source, no food held; allowing 8 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "865a24346a84b695a564e5e427c57f635c1769f0808924ed2e9b30d0ef604877",
+          "final_ledger_digest": "2297bf8d30c6bae9537ab758b6ae1293f2c67f2ec35ffca049df31072b7f3ebc"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 706,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 154,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "a52bc0339c4ebe9b324b8715d5d814dfd9c9a21377726e7f996e173e633bced7",
+          "final_ledger_digest": "ba92088b07e761aa0befa413ef06d8993955abd4edadac8ea5ad98bc6e0016dc"
+        }
+      }
+    },
+    {
+      "seed": 6,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 39,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              9,
+              0
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                1
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 12,
+          "memory_person_ticks": 949,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 458,
+          "choices_when_memory_could_change_target": {
+            "eat": 1
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "40c9ce7b71096b260cfcdc2c645ad5300f4927e5ffd5df6514a54d8583d32094",
+          "final_ledger_digest": "875e7fafb2dfa61507e52a856688b65a58e4720206c7867690bb83e2c8aa8684"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 7,
+          "memory_person_ticks": 491,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 17,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "fd0f02f1b6b63f817a3b8e4a0d9094faebf07db933403a06589c9380eec5c6be",
+          "final_ledger_digest": "70f7f93016de4d97eef66912e42c45a9295abe1d5a1bad01cdfb50f08626544b"
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 92,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              5,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                8
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                6,
+                9
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 12,
+          "memory_person_ticks": 1430,
+          "memory_changes_help_target_before_need_priority": 5,
+          "starving_person_ticks": 557,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 5
+          },
+          "samples": [],
+          "living_final": 9,
+          "final_world_digest": "cb2c7daeb96e1ee257c5ef2e84df20017731f80de827b9aa3d97b776f6fcdc2f",
+          "final_ledger_digest": "956f0930d0b114331b99ddf081e42e9713865edf0582f9da564f6e841bbee05d"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 7,
+          "memory_person_ticks": 1791,
+          "memory_changes_help_target_before_need_priority": 9,
+          "starving_person_ticks": 963,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 7,
+            "draw": 1,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "7efc1d067d4a494c1d8f69dca924db56eedee54ea7c6a58b39c84edb030b7c9a",
+          "final_ledger_digest": "ba4e129004dedb63a0235bd4d65beef650977baa4818c5fcca61842e0f4b95b8"
+        }
+      }
+    },
+    {
+      "seed": 8,
+      "horizon": 780,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 254,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 6,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "2e774409620cab839061c028216ed45812b446de37afa9bca22b4110e88dd0f4",
+          "final_ledger_digest": "1a50298501dd1fd360854383603e823999de4c724cd441f18a8c3f047fca15fa"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 5,
+          "memory_person_ticks": 254,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 6,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "2e774409620cab839061c028216ed45812b446de37afa9bca22b4110e88dd0f4",
+          "final_ledger_digest": "1a50298501dd1fd360854383603e823999de4c724cd441f18a8c3f047fca15fa"
+        }
+      }
+    },
+    {
+      "seed": 9,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 70,
+        "changes": [
+          {
+            "actor": "p01",
+            "same_observation": true,
+            "hunger": 16,
+            "food": 0,
+            "position": [
+              2,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 9,
+            "old_travel": 8,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 16, 8 steps to source, no food held; allowing 9 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                10
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 48,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 3,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "fe78b54731483deabce4d4d807c47ed58749f24debed28522180d440bdc496f9",
+          "final_ledger_digest": "4beedd885a7d98bbeecec2ff295fcbca403a978c5e24526df51b195e41ac8d5f"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 14,
+          "memory_person_ticks": 1067,
+          "memory_changes_help_target_before_need_priority": 14,
+          "starving_person_ticks": 333,
+          "choices_when_memory_could_change_target": {
+            "eat": 3,
+            "drink": 2,
+            "go_water": 7,
+            "go_shelter": 2
+          },
+          "samples": [],
+          "living_final": 11,
+          "final_world_digest": "03810f3f4a1c3ebc746a5e0d12490ae7232513a564d1f277655964965af53cf4",
+          "final_ledger_digest": "8ac1a28ef9333c7445ac2131f9146a5cc0d7c619732fd84e6f4386263aa080d6"
+        }
+      }
+    },
+    {
+      "seed": 10,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 46,
+        "changes": [
+          {
+            "actor": "p01",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              8,
+              0
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                1
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "3be1ac24cecc1196326d9a2174148efe363049bac48d5814e358aa6e57e6480d",
+          "final_ledger_digest": "9d35c0e2d3d08fca374f393741105bbb2507950fd1d01af24eaa939f6d594b0a"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 9,
+          "memory_person_ticks": 416,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 179,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 17,
+          "final_world_digest": "d9fb23f0cb9414b9d18b1b0fc7efbe986a124de08655538ff80050ad449077d8",
+          "final_ledger_digest": "c7d013dfaff20065c549a32fe864004d8975b2c107564585ccce708ea5e457f9"
+        }
+      }
+    },
+    {
+      "seed": 11,
+      "horizon": 780,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 31,
+          "memory_person_ticks": 3679,
+          "memory_changes_help_target_before_need_priority": 51,
+          "starving_person_ticks": 1920,
+          "choices_when_memory_could_change_target": {
+            "go_water": 7,
+            "drink": 1,
+            "go_shelter": 30,
+            "eat": 7,
+            "wait_water": 3,
+            "warm": 3
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "3e1caf27ee4de726ccda80dd719e927969626335279548925079f01241bee52b",
+          "final_ledger_digest": "92e3b90e73a7dd27d7c7195f72f69530ec9a79d79e59abca300e71290e68576a"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 31,
+          "memory_person_ticks": 3679,
+          "memory_changes_help_target_before_need_priority": 51,
+          "starving_person_ticks": 1920,
+          "choices_when_memory_could_change_target": {
+            "go_water": 7,
+            "drink": 1,
+            "go_shelter": 30,
+            "eat": 7,
+            "wait_water": 3,
+            "warm": 3
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "3e1caf27ee4de726ccda80dd719e927969626335279548925079f01241bee52b",
+          "final_ledger_digest": "92e3b90e73a7dd27d7c7195f72f69530ec9a79d79e59abca300e71290e68576a"
+        }
+      }
+    },
+    {
+      "seed": 12,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 131,
+        "changes": [
+          {
+            "actor": "p02",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              10,
+              5
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                10,
+                4
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 1391,
+          "memory_changes_help_target_before_need_priority": 8,
+          "starving_person_ticks": 865,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 4,
+            "warm": 3,
+            "eat": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "65a62a5130520b761a113230d284c46a3e8fdb782aa130a4742dbca207d8c584",
+          "final_ledger_digest": "1308483db8d4646ba16af82746148499b4e3bfdd7beb8c952188b9ba8d8ae577"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 17,
+          "memory_person_ticks": 1788,
+          "memory_changes_help_target_before_need_priority": 6,
+          "starving_person_ticks": 663,
+          "choices_when_memory_could_change_target": {
+            "eat": 1,
+            "go_shelter": 5
+          },
+          "samples": [],
+          "living_final": 9,
+          "final_world_digest": "0dd1666d345ee6bcad7d7db80d8026dde89ddc479688dcdc4edd275c21be0b21",
+          "final_ledger_digest": "91893de88fac5c4e8d2b6975eb9843c7a1be51a5626b0b03a1516eaa94a9db56"
+        }
+      }
+    },
+    {
+      "seed": 13,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 123,
+        "changes": [
+          {
+            "actor": "p08",
+            "same_observation": true,
+            "hunger": 17,
+            "food": 0,
+            "position": [
+              2,
+              3
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 8,
+            "old_travel": 7,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 17, 7 steps to source, no food held; allowing 8 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                3
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                1,
+                3
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 1110,
+          "memory_changes_help_target_before_need_priority": 13,
+          "starving_person_ticks": 654,
+          "choices_when_memory_could_change_target": {
+            "go_water": 11,
+            "eat": 1,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "859ca77b55d19dd41c3f6a8d12639518e7f385f81d60ee05cba46c459aad40e5",
+          "final_ledger_digest": "9e177b0b7dc69cf23ef88e89082e12194e3619064a61881e4923ba250951b8b4"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 1591,
+          "memory_changes_help_target_before_need_priority": 13,
+          "starving_person_ticks": 752,
+          "choices_when_memory_could_change_target": {
+            "go_water": 11,
+            "eat": 1,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "839b69a2e0e791c84d3f64a12b6fa5760e6cbf8cf1216d473b2771df499fe26b",
+          "final_ledger_digest": "a823b291ba4ffb5f7e8684c2dee629ff8c25b96e72d47d9ca08c447b5a4829e7"
+        }
+      }
+    },
+    {
+      "seed": 14,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 28,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 2639,
+          "memory_changes_help_target_before_need_priority": 14,
+          "starving_person_ticks": 673,
+          "choices_when_memory_could_change_target": {
+            "go_water": 7,
+            "go_shelter": 2,
+            "eat": 2,
+            "draw": 1,
+            "drink": 2
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "7a46c49cee17440902d7fc339efb4ca889e205329231333f76404009a7ce4202",
+          "final_ledger_digest": "85df70681c5368d7a06d315211ed98848790cadcd19647d18f859fb60befae87"
+        },
+        "old_departure_only": {
+          "helped_decisions": 5,
+          "gifts": 33,
+          "memory_person_ticks": 3659,
+          "memory_changes_help_target_before_need_priority": 37,
+          "starving_person_ticks": 780,
+          "choices_when_memory_could_change_target": {
+            "eat": 4,
+            "go_shelter": 8,
+            "go_water": 5,
+            "drink": 3,
+            "warm": 11,
+            "draw": 1,
+            "go_offer": 5
+          },
+          "samples": [
+            {
+              "decision_tick": 642,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 643,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 644,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 645,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 646,
+              "actor": "p10",
+              "target": "p03",
+              "helped_at": 534,
+              "kind": "go_offer",
+              "native_reason": "p03 gave me food at tick 534 and now looks starving; taking food to them"
+            }
+          ],
+          "living_final": 8,
+          "final_world_digest": "d71b8e48d62d0bc4d1a941c878ba21d38d64594faa4bc4cf2eeefccc32feb80b",
+          "final_ledger_digest": "49e09b43aa7f1dfc9c57aab7ab7ee5cbba1632d5610e8df210ba700cb0bf82ee"
+        }
+      }
+    },
+    {
+      "seed": 15,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 26,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              3,
+              5
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                4,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 23,
+          "memory_person_ticks": 3915,
+          "memory_changes_help_target_before_need_priority": 26,
+          "starving_person_ticks": 652,
+          "choices_when_memory_could_change_target": {
+            "eat": 5,
+            "go_shelter": 10,
+            "drink": 3,
+            "draw": 2,
+            "go_water": 4,
+            "warm": 2
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "6ab67ed5a9dfe8757fafbb351206e251025ad873ae512f1a7b9e0f09ad6b102e",
+          "final_ledger_digest": "695106962aca0baf1ace0d2d8121257246feb39f68bf831e125feb037dbe691b"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 1476,
+          "memory_changes_help_target_before_need_priority": 4,
+          "starving_person_ticks": 161,
+          "choices_when_memory_could_change_target": {
+            "eat": 2,
+            "go_shelter": 2
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "95f665326b312ae91cd40f4885dfa1c90f7a3b96fdd07e287e7fa57bdad75ce5",
+          "final_ledger_digest": "f6b6701a563fda70e6136ea4b23296cfd22feca0564f5f1bc9029607120e3d6c"
+        }
+      }
+    },
+    {
+      "seed": 16,
+      "horizon": 780,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 9,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "56dbd54e21715bc57b40641a9b738baa72806f16d70b8644961a46e4b33566c4",
+          "final_ledger_digest": "89b072ab8fc1877560e581a3afaa67ed86b790df88aff6ed644ce4c5786d060d"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 9,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "56dbd54e21715bc57b40641a9b738baa72806f16d70b8644961a46e4b33566c4",
+          "final_ledger_digest": "89b072ab8fc1877560e581a3afaa67ed86b790df88aff6ed644ce4c5786d060d"
+        }
+      }
+    },
+    {
+      "seed": 17,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 32,
+        "changes": [
+          {
+            "actor": "p05",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 70,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 1,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "e9f7ee14c119fa84296020bcf95c900fa66b704f7ee5796579586e52b391fa32",
+          "final_ledger_digest": "d49ce72a1a16f1bb588d96c8d4f0a58b53da9c4b9529b61d65089f2f664b3e1d"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 12,
+          "memory_person_ticks": 1337,
+          "memory_changes_help_target_before_need_priority": 2,
+          "starving_person_ticks": 342,
+          "choices_when_memory_could_change_target": {
+            "eat": 1,
+            "go_shelter": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "2e664f3749d467fcbc72dd1cc85df287900ac9e8109673953515412395cc74d8",
+          "final_ledger_digest": "e51a8ae265466d3542dc1fc080213755733789cc74db9b71bdff4b289a71a267"
+        }
+      }
+    },
+    {
+      "seed": 18,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 37,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              8,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                8
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                9,
+                9
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 447,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 49,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 16,
+          "final_world_digest": "4ffee0122768773dea766c685d6ef00ecbba28e2ff7d6ae10dc081b0df9eb978",
+          "final_ledger_digest": "c31f67040e5861d6d2631137e7fa4bd899155659cebea036a7965d332ad48722"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 570,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 2,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "f311aca5a56fe32859ac61ad0d3b5c4f3551b70947e767013cdc654e245efead",
+          "final_ledger_digest": "89c32484bdbb915872ca03249c37692cdc54f7dcd2ca4351269421bc5652ff13"
+        }
+      }
+    },
+    {
+      "seed": 19,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 30,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 16,
+            "food": 0,
+            "position": [
+              2,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 9,
+            "old_travel": 8,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 16, 8 steps to source, no food held; allowing 9 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                10
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "home",
+              "reason": "fed, walking home",
+              "candidates": [
+                "home"
+              ],
+              "step": [
+                2,
+                11
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "a2c89f0d37a87b813b815fd8e44cb96b338aa93f24ea3fa115c7783012165eb4",
+          "final_ledger_digest": "f87d989ba1183387aef82d9f1d708e4baed91ca0d5d7ffb4db4d311d41e22bfa"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 1204,
+          "memory_changes_help_target_before_need_priority": 8,
+          "starving_person_ticks": 429,
+          "choices_when_memory_could_change_target": {
+            "go_water": 1,
+            "go_shelter": 3,
+            "warm": 3,
+            "eat": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "5d1306b95ced08cb5c5053da738cbf95d248e46cc5ce37fd784d861a149baff4",
+          "final_ledger_digest": "bed137127db5f96000f13989780511843fbd125c7c4fff2ce8a1605b5178f4cc"
+        }
+      }
+    },
+    {
+      "seed": 20,
+      "horizon": 780,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 9,
+          "memory_person_ticks": 514,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 19,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 18,
+          "final_world_digest": "406fe99f0a4ab7d4e207b391f19913d36b75374e01e5a4f488deace901cd645c",
+          "final_ledger_digest": "ae1d0ed874f63ad5f60a978a492a3ce682dd5dc5671bc10a2c7552b7c917bf05"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 9,
+          "memory_person_ticks": 514,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 19,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 18,
+          "final_world_digest": "406fe99f0a4ab7d4e207b391f19913d36b75374e01e5a4f488deace901cd645c",
+          "final_ledger_digest": "ae1d0ed874f63ad5f60a978a492a3ce682dd5dc5671bc10a2c7552b7c917bf05"
+        }
+      }
+    },
+    {
+      "seed": 21,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 25,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              5,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 18,
+          "memory_person_ticks": 3863,
+          "memory_changes_help_target_before_need_priority": 47,
+          "starving_person_ticks": 1080,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 21,
+            "drink": 4,
+            "eat": 3,
+            "go_water": 5,
+            "warm": 13,
+            "draw": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "dab997bf8981f36fbefb81beb9a9adb557c7f5d74502d430d327ad311e30e87d",
+          "final_ledger_digest": "97d473b4a011eeddcdcb79b4df9762a56f0fc10e405ae019f8af94fb57479afc"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 29,
+          "memory_person_ticks": 2915,
+          "memory_changes_help_target_before_need_priority": 30,
+          "starving_person_ticks": 1390,
+          "choices_when_memory_could_change_target": {
+            "warm": 8,
+            "eat": 2,
+            "go_shelter": 7,
+            "go_water": 10,
+            "draw": 1,
+            "drink": 2
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "e118f05eb0b603ec72d7bafabcd5fd8a3fb0790675493aca32686af6f240e1bc",
+          "final_ledger_digest": "ab5f7fd9deaf5c45b51b56c909b9ce01839ce9f701ec3018f453c87fa174fdff"
+        }
+      }
+    },
+    {
+      "seed": 22,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 31,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 17,
+            "food": 0,
+            "position": [
+              10,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 8,
+            "old_travel": 7,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 17, 7 steps to source, no food held; allowing 8 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 7,
+          "memory_person_ticks": 568,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 82,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 14,
+          "final_world_digest": "5aaf48f65546964002498862f9a408d0a9b1fc4fa3333bf61e0ce4db320fc5fb",
+          "final_ledger_digest": "0943a3313d211f9b9034c70d7aabf35b539c0f921c3ebb18c2ccd55d0ff0cf80"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "36daa00f57830bf25e9968079c18117182dbe2796d005fca4c697caf395c1315",
+          "final_ledger_digest": "f1faa3a80dc0480aa51289f40d487e125b6e1d91be5d2e2d03548b1dc74e5610"
+        }
+      }
+    },
+    {
+      "seed": 23,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 48,
+        "changes": [
+          {
+            "actor": "p01",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              4,
+              6
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                5,
+                6
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 22,
+          "memory_person_ticks": 2651,
+          "memory_changes_help_target_before_need_priority": 23,
+          "starving_person_ticks": 1171,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 7,
+            "eat": 3,
+            "drink": 2,
+            "go_water": 10,
+            "draw": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "6862609815ed80dcf5f52ed2b5dbc32cbf30b2bb97852f660542bb137e9698cb",
+          "final_ledger_digest": "b1246680d9b0d06bbdc9d28ec9baa9ae4519001a7d066c42aec84aa95a47e3a8"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 2101,
+          "memory_changes_help_target_before_need_priority": 31,
+          "starving_person_ticks": 781,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 12,
+            "eat": 2,
+            "drink": 3,
+            "go_water": 10,
+            "draw": 2,
+            "warm": 2
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "a2af05574d9be1f488fc7265470693ad11e9f95e1d5659ce021dc1c52ab8a7e5",
+          "final_ledger_digest": "914cd2f19fba6aa02d1ee3666c4405956d2828e2c9a1f9dcf1872ea2e74b67c2"
+        }
+      }
+    },
+    {
+      "seed": 24,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 61,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              7,
+              3
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                7,
+                4
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 37,
+          "memory_person_ticks": 4123,
+          "memory_changes_help_target_before_need_priority": 5,
+          "starving_person_ticks": 578,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 1,
+            "warm": 3,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 12,
+          "final_world_digest": "5bbeda3879c4710107162e86876044a7eef2e89893afe84fe4d0d0ea8af04e64",
+          "final_ledger_digest": "3cc36d0e6382ce8d906b54a41e466f404fa959babeecb6e3c041cc4f061e520b"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 31,
+          "memory_person_ticks": 4019,
+          "memory_changes_help_target_before_need_priority": 18,
+          "starving_person_ticks": 1113,
+          "choices_when_memory_could_change_target": {
+            "eat": 6,
+            "go_shelter": 7,
+            "warm": 5
+          },
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "e211dcd3523bf238444d94449810fd410052371dcb77137c6e88777374ca9df2",
+          "final_ledger_digest": "f9d121530e0999c5f920d7879bf734f87c684cbb542cdbd3f16e90e6b36ea154"
+        }
+      }
+    },
+    {
+      "seed": 25,
+      "horizon": 780,
+      "first_divergence": null,
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 1,
+          "memory_person_ticks": 107,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 4,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "f57d2aebe58f5761688d1e91280571e63e4dcacfedf22a69d32854a7326cc521",
+          "final_ledger_digest": "7a2deea2984b227f49dbb63879535e6996bef02951b0cc87a3e83122eaae0b64"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 1,
+          "memory_person_ticks": 107,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 4,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "f57d2aebe58f5761688d1e91280571e63e4dcacfedf22a69d32854a7326cc521",
+          "final_ledger_digest": "7a2deea2984b227f49dbb63879535e6996bef02951b0cc87a3e83122eaae0b64"
+        }
+      }
+    },
+    {
+      "seed": 26,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 334,
+        "changes": [
+          {
+            "actor": "p12",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              6,
+              3
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                7,
+                3
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "build",
+              "reason": "nothing wanting, building a shelter at home",
+              "candidates": [
+                "build"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 27,
+          "memory_person_ticks": 4413,
+          "memory_changes_help_target_before_need_priority": 29,
+          "starving_person_ticks": 1482,
+          "choices_when_memory_could_change_target": {
+            "go_water": 4,
+            "go_shelter": 11,
+            "drink": 4,
+            "eat": 3,
+            "warm": 6,
+            "draw": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "6dbb12b3b31fee146a0f7a36c7297952bab967a4f84a196a53c67b1516460b69",
+          "final_ledger_digest": "1c350cef616e30e0c4985a9d20359583b7e18c8114d03a45c1644294abe456f5"
+        },
+        "old_departure_only": {
+          "helped_decisions": 3,
+          "gifts": 29,
+          "memory_person_ticks": 4665,
+          "memory_changes_help_target_before_need_priority": 31,
+          "starving_person_ticks": 1326,
+          "choices_when_memory_could_change_target": {
+            "go_water": 6,
+            "go_shelter": 11,
+            "drink": 3,
+            "eat": 3,
+            "warm": 4,
+            "draw": 1,
+            "go_offer": 3
+          },
+          "samples": [
+            {
+              "decision_tick": 773,
+              "actor": "p22",
+              "target": "p02",
+              "helped_at": 588,
+              "kind": "go_offer",
+              "native_reason": "p02 gave me food at tick 588 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 775,
+              "actor": "p22",
+              "target": "p02",
+              "helped_at": 588,
+              "kind": "go_offer",
+              "native_reason": "p02 gave me food at tick 588 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 779,
+              "actor": "p22",
+              "target": "p02",
+              "helped_at": 588,
+              "kind": "go_offer",
+              "native_reason": "p02 gave me food at tick 588 and now looks starving; taking food to them"
+            }
+          ],
+          "living_final": 11,
+          "final_world_digest": "27f71522d2e633896b68a01fc6485e0138d94cce40a4975b2f8b0b030b2375d3",
+          "final_ledger_digest": "6013d8c60cefe5b40e454f6c986d19b5256955a53cbe10187dd796d53c56b605"
+        }
+      }
+    },
+    {
+      "seed": 27,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 34,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              4,
+              4
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                4,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 11,
+          "memory_person_ticks": 1422,
+          "memory_changes_help_target_before_need_priority": 18,
+          "starving_person_ticks": 584,
+          "choices_when_memory_could_change_target": {
+            "go_water": 2,
+            "warm": 7,
+            "eat": 2,
+            "draw": 1,
+            "go_shelter": 6
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "64bce97194cb943bd3be3eebd2f57edddcd3ef484c4b19b917f34ac1d2019063",
+          "final_ledger_digest": "d2d92bdee6b36f1a3aeffad75cf827afa5b51bcaaf00b0a5685df9f9a849ee17"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 575,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 7,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "3be0ec41c7e5811cf52a02302fc3861a4d013448116ec9808f58ec0f1d6bcb68",
+          "final_ledger_digest": "513e1bc99b980925871b4a2a8df9c2d122239691ec56576d6c87f82aa268a820"
+        }
+      }
+    },
+    {
+      "seed": 28,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 366,
+        "changes": [
+          {
+            "actor": "p22",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              7,
+              4
+            ],
+            "source": [
+              9,
+              3
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                4
+              ],
+              "target": "food2"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 17,
+          "memory_person_ticks": 2215,
+          "memory_changes_help_target_before_need_priority": 2,
+          "starving_person_ticks": 253,
+          "choices_when_memory_could_change_target": {
+            "eat": 1,
+            "go_shelter": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "8fcbb0260f16c93b595306d5df505fff48ea0b657f7649e1407eb11062c95e84",
+          "final_ledger_digest": "09da29ec34b31ef4a67bffd7d559243a9eaeee2c0a322f371f14a9caddbb3622"
+        },
+        "old_departure_only": {
+          "helped_decisions": 3,
+          "gifts": 23,
+          "memory_person_ticks": 2622,
+          "memory_changes_help_target_before_need_priority": 15,
+          "starving_person_ticks": 405,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 7,
+            "warm": 4,
+            "go_offer": 3,
+            "eat": 1
+          },
+          "samples": [
+            {
+              "decision_tick": 474,
+              "actor": "p13",
+              "target": "p01",
+              "helped_at": 309,
+              "kind": "go_offer",
+              "native_reason": "p01 gave me food at tick 309 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 477,
+              "actor": "p13",
+              "target": "p01",
+              "helped_at": 309,
+              "kind": "go_offer",
+              "native_reason": "p01 gave me food at tick 309 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 478,
+              "actor": "p13",
+              "target": "p01",
+              "helped_at": 309,
+              "kind": "go_offer",
+              "native_reason": "p01 gave me food at tick 309 and now looks starving; taking food to them"
+            }
+          ],
+          "living_final": 9,
+          "final_world_digest": "ca0dba69f81920c54b8145f8d03172ebc4395a79508e2a8dc505d7ff84edfe3e",
+          "final_ledger_digest": "5cad3fe49faddae26c08701f9d3158d534241611c54be811deba976be8f9db5b"
+        }
+      }
+    },
+    {
+      "seed": 29,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 86,
+        "changes": [
+          {
+            "actor": "p11",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              9,
+              7
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                8,
+                7
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 5,
+          "gifts": 29,
+          "memory_person_ticks": 3655,
+          "memory_changes_help_target_before_need_priority": 54,
+          "starving_person_ticks": 1422,
+          "choices_when_memory_could_change_target": {
+            "eat": 8,
+            "go_shelter": 20,
+            "warm": 5,
+            "go_water": 12,
+            "drink": 4,
+            "go_offer": 4,
+            "offer": 1
+          },
+          "samples": [
+            {
+              "decision_tick": 588,
+              "actor": "p23",
+              "target": "p10",
+              "helped_at": 428,
+              "kind": "go_offer",
+              "native_reason": "p10 gave me food at tick 428 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 708,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "go_offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 709,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "go_offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 710,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "go_offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 713,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; handing over one"
+            }
+          ],
+          "living_final": 11,
+          "final_world_digest": "70e6c869bce4d3405d80b63fe6c201203b7ea85819bf69e1cf937bdc62e6f97c",
+          "final_ledger_digest": "966f9c30f9f9134f0d83355db14cb0b0d86af45930c5adf3eaa165233de60455"
+        },
+        "old_departure_only": {
+          "helped_decisions": 5,
+          "gifts": 29,
+          "memory_person_ticks": 3655,
+          "memory_changes_help_target_before_need_priority": 54,
+          "starving_person_ticks": 1422,
+          "choices_when_memory_could_change_target": {
+            "eat": 8,
+            "go_shelter": 20,
+            "warm": 5,
+            "go_water": 12,
+            "drink": 4,
+            "go_offer": 4,
+            "offer": 1
+          },
+          "samples": [
+            {
+              "decision_tick": 588,
+              "actor": "p23",
+              "target": "p10",
+              "helped_at": 428,
+              "kind": "go_offer",
+              "native_reason": "p10 gave me food at tick 428 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 708,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "go_offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 709,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "go_offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 710,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "go_offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 713,
+              "actor": "p27",
+              "target": "p19",
+              "helped_at": 560,
+              "kind": "offer",
+              "native_reason": "p19 gave me food at tick 560 and now looks starving; handing over one"
+            }
+          ],
+          "living_final": 11,
+          "final_world_digest": "3b7ee9c4daf97861f2cba49f42c73f0f70ab93cb969cd788e8a4827129339373",
+          "final_ledger_digest": "966f9c30f9f9134f0d83355db14cb0b0d86af45930c5adf3eaa165233de60455"
+        }
+      }
+    },
+    {
+      "seed": 30,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 78,
+        "changes": [
+          {
+            "actor": "p08",
+            "same_observation": true,
+            "hunger": 22,
+            "food": 0,
+            "position": [
+              6,
+              4
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 3,
+            "old_travel": 2,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 22, 2 steps to source, no food held; allowing 3 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                6,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 4,
+          "gifts": 26,
+          "memory_person_ticks": 3923,
+          "memory_changes_help_target_before_need_priority": 14,
+          "starving_person_ticks": 821,
+          "choices_when_memory_could_change_target": {
+            "go_water": 2,
+            "go_offer": 4,
+            "go_shelter": 5,
+            "warm": 1,
+            "eat": 2
+          },
+          "samples": [
+            {
+              "decision_tick": 463,
+              "actor": "p10",
+              "target": "p04",
+              "helped_at": 152,
+              "kind": "go_offer",
+              "native_reason": "p04 gave me food at tick 152 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 464,
+              "actor": "p10",
+              "target": "p04",
+              "helped_at": 152,
+              "kind": "go_offer",
+              "native_reason": "p04 gave me food at tick 152 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 465,
+              "actor": "p10",
+              "target": "p04",
+              "helped_at": 152,
+              "kind": "go_offer",
+              "native_reason": "p04 gave me food at tick 152 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 466,
+              "actor": "p10",
+              "target": "p04",
+              "helped_at": 152,
+              "kind": "go_offer",
+              "native_reason": "p04 gave me food at tick 152 and now looks starving; taking food to them"
+            }
+          ],
+          "living_final": 8,
+          "final_world_digest": "098a1be5d4ffb86f7836783f6b393200947a63c8c72eee71982a678745f87f9e",
+          "final_ledger_digest": "a62bb2660200dae33fbfde319d7e61223667a3ed176da532c26bfe91a1e93fe0"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 15,
+          "memory_person_ticks": 2562,
+          "memory_changes_help_target_before_need_priority": 1,
+          "starving_person_ticks": 498,
+          "choices_when_memory_could_change_target": {
+            "go_water": 1
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "60a725b6e205d7da7658c9874485fb94f727f5a36809021e1a593ec3641e4838",
+          "final_ledger_digest": "4d37de542e8732a1d04f8d056ccbaa2e710edfbbcbfa7df3a05c7a149556cc15"
+        }
+      }
+    },
+    {
+      "seed": 31,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 36,
+        "changes": [
+          {
+            "actor": "p03",
+            "same_observation": true,
+            "hunger": 18,
+            "food": 0,
+            "position": [
+              4,
+              2
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 7,
+            "old_travel": 6,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 18, 6 steps to source, no food held; allowing 7 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                4,
+                3
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 0,
+          "memory_person_ticks": 0,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "f88077a3886523ed321fab61398c50994f29eb473279534a9aa7b308032bfc64",
+          "final_ledger_digest": "8878fd0417d9964ba9978262a5eb0a753ca083ab6c92457309730917bd0b69e7"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 3,
+          "memory_person_ticks": 204,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 41,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 10,
+          "final_world_digest": "1c2d73f0a29699023a997008df23ccd68e0d4f9da2ec218e749eb12ed4a92c9f",
+          "final_ledger_digest": "65276461b697f36a34b235e046b4769381cd65abfdbfa097054b057c746037ee"
+        }
+      }
+    },
+    {
+      "seed": 32,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 29,
+        "changes": [
+          {
+            "actor": "p05",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              2,
+              5
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                3,
+                5
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 3,
+          "gifts": 16,
+          "memory_person_ticks": 1538,
+          "memory_changes_help_target_before_need_priority": 13,
+          "starving_person_ticks": 426,
+          "choices_when_memory_could_change_target": {
+            "draw": 2,
+            "drink": 2,
+            "wait_water": 1,
+            "go_offer": 3,
+            "go_shelter": 5
+          },
+          "samples": [
+            {
+              "decision_tick": 657,
+              "actor": "p09",
+              "target": "p01",
+              "helped_at": 463,
+              "kind": "go_offer",
+              "native_reason": "p01 gave me food at tick 463 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 658,
+              "actor": "p09",
+              "target": "p01",
+              "helped_at": 463,
+              "kind": "go_offer",
+              "native_reason": "p01 gave me food at tick 463 and now looks starving; taking food to them"
+            },
+            {
+              "decision_tick": 659,
+              "actor": "p09",
+              "target": "p01",
+              "helped_at": 463,
+              "kind": "go_offer",
+              "native_reason": "p01 gave me food at tick 463 and now looks starving; taking food to them"
+            }
+          ],
+          "living_final": 8,
+          "final_world_digest": "db9cdfa485af88e8ff5e43ddf7623852652056455eecb6cc0ac428e75e1ae697",
+          "final_ledger_digest": "025963d59d3380daf3561aa4efdebce111734230770882558462f12ca3e9d3cb"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 14,
+          "memory_person_ticks": 1346,
+          "memory_changes_help_target_before_need_priority": 17,
+          "starving_person_ticks": 691,
+          "choices_when_memory_could_change_target": {
+            "eat": 3,
+            "drink": 1,
+            "go_shelter": 13
+          },
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "b7f4ce48d2605e0a4c606d9f85e9fcb671a1b21f111f86e2d105308b4be8bfe9",
+          "final_ledger_digest": "2b73bfdaa4f2029bb9ffd3842861e4955f0b7fea056330e457d460637b7916cf"
+        }
+      }
+    },
+    {
+      "seed": 33,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 34,
+        "changes": [
+          {
+            "actor": "p04",
+            "same_observation": true,
+            "hunger": 20,
+            "food": 0,
+            "position": [
+              6,
+              10
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 5,
+            "old_travel": 4,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 20, 4 steps to source, no food held; allowing 5 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                6,
+                9
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 17,
+          "memory_person_ticks": 1747,
+          "memory_changes_help_target_before_need_priority": 2,
+          "starving_person_ticks": 729,
+          "choices_when_memory_could_change_target": {
+            "eat": 1,
+            "go_shelter": 1
+          },
+          "samples": [],
+          "living_final": 5,
+          "final_world_digest": "76e3098df55cf08eceb2d89ed7d889549d28d7b546ec925955bf4a3aa5ba03d5",
+          "final_ledger_digest": "91788a07ebbf1acba4c873b62ba7e1cc813f94fd84ab0facf942520ee94de952"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 12,
+          "memory_person_ticks": 856,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 673,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 4,
+          "final_world_digest": "0c431d114734d604a1f72c35df914eb8d855ceb77ae7756a3b83016392c9f12d",
+          "final_ledger_digest": "e8976c90bf0102e3f7d52f2dde23be93b0b42926e6f98a9bdc61d3c80e2973d0"
+        }
+      }
+    },
+    {
+      "seed": 34,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 45,
+        "changes": [
+          {
+            "actor": "p02",
+            "same_observation": true,
+            "hunger": 19,
+            "food": 0,
+            "position": [
+              10,
+              7
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 6,
+            "old_travel": 5,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 19, 5 steps to source, no food held; allowing 6 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                9,
+                7
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 10,
+          "memory_person_ticks": 1324,
+          "memory_changes_help_target_before_need_priority": 12,
+          "starving_person_ticks": 949,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 2,
+            "eat": 2,
+            "go_water": 8
+          },
+          "samples": [],
+          "living_final": 7,
+          "final_world_digest": "0f993f7c4eeb6d5c1b3a2e7133cf702be461a4046252a79570eed46ceed1c945",
+          "final_ledger_digest": "eb5a3b9eb835f8a7b818f1b11e9060ab0afbd2522d14213e53d0146c5d201c8b"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 13,
+          "memory_person_ticks": 1517,
+          "memory_changes_help_target_before_need_priority": 8,
+          "starving_person_ticks": 885,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 5,
+            "warm": 2,
+            "eat": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "f96495936978e7dc3bbff0551a86fb57818192a62479797d377eaf214ea4cc94",
+          "final_ledger_digest": "34f90ce071511189058d52facb733ea20f1f54c2c06ec44b970d5c939dfef6b6"
+        }
+      }
+    },
+    {
+      "seed": 35,
+      "horizon": 780,
+      "first_divergence": {
+        "decision_tick": 27,
+        "changes": [
+          {
+            "actor": "p06",
+            "same_observation": true,
+            "hunger": 21,
+            "food": 0,
+            "position": [
+              6,
+              9
+            ],
+            "source": [
+              6,
+              6
+            ],
+            "current_travel": 4,
+            "old_travel": 3,
+            "current": {
+              "kind": "go",
+              "reason": "fed, leaving in time: hunger 21, 3 steps to source, no food held; allowing 4 travel ticks over seen or remembered ground",
+              "candidates": [
+                "go"
+              ],
+              "step": [
+                6,
+                8
+              ],
+              "target": "food"
+            },
+            "old": {
+              "kind": "rest",
+              "reason": "fed, at home",
+              "candidates": [
+                "rest"
+              ]
+            }
+          }
+        ]
+      },
+      "cases": {
+        "current": {
+          "helped_decisions": 0,
+          "gifts": 2,
+          "memory_person_ticks": 25,
+          "memory_changes_help_target_before_need_priority": 0,
+          "starving_person_ticks": 0,
+          "choices_when_memory_could_change_target": {},
+          "samples": [],
+          "living_final": 6,
+          "final_world_digest": "83ac61a8969f2130c94da3132304a8614b17824a4a78b7c232a3f360926941d3",
+          "final_ledger_digest": "5d13ed37f472c43403b88d0fb682b299ff876bde340a08e9174f6153499f4e3f"
+        },
+        "old_departure_only": {
+          "helped_decisions": 0,
+          "gifts": 16,
+          "memory_person_ticks": 1303,
+          "memory_changes_help_target_before_need_priority": 12,
+          "starving_person_ticks": 656,
+          "choices_when_memory_could_change_target": {
+            "go_shelter": 9,
+            "eat": 2,
+            "drink": 1
+          },
+          "samples": [],
+          "living_final": 8,
+          "final_world_digest": "99bf40ab93075e9045d3de4a17c3de43c7e7e25d4efc86be15f4517725e01ff5",
+          "final_ledger_digest": "e74b317ed3ab6943e3b32a769f982dc9c4ea693df2f6c78c0ddcd7c1f78affa8"
+        }
+      }
+    }
+  ]
+}

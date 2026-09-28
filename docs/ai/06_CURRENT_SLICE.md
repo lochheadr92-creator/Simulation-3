@@ -1,5 +1,14 @@
 # Current slice — sharing firsthand food sightings
 
+## Review repair — 2026-09-29
+
+The current work is the [bounded repair response](../reviews/2026-09-29-repair/RESPONSE.md)
+to Claude's supplied signed FAIL. F2 viewer escaping and F4 configuration
+types are repaired; the birth-text assertion and presentation labels are
+strengthened. F1 is investigated across matched seeds without reverting
+terrain-aware departure or forcing a social event. The original report
+is preserved for independent reassessment of the new commit.
+
 - Checked: 2026-09-28 against `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus local changes.
 - Authorized: user said "proceed" to bounded sharing and chose to keep terrain-aware departures with causal social-memory tests.
 - State: implemented, tested and watched locally; committed and pushed as `81c10b7d25cc2e0f1b8de33bf547083eb0972c64` on 2026-09-28. Remote SHA checked. The test result below is recorded implementation evidence, not a rerun for publication.
@@ -19,10 +28,13 @@ a meal and a later home deposit. The browser inspector and playback were
 checked; six final comparison runs verify and replay. Recovery with a report
 present and deterministic repeat runs pass in the suite.
 
-The earlier two fixed-scene failures were reproduced and resolved by the
-explicitly selected test-contract change. A controlled actual gift and return
-gift establish causation; seeds 14 and 26 retain full-horizon replay checks.
-Their former scenes are no longer expected under changed departure timing.
+The earlier two fixed-scene failures were reproduced. The selected contract
+change retained replay of seeds 14/26 and a controlled causal rule test, but
+did not establish ordinary-world frequency. The controlled test uses an
+artificial movement delay. The later matched 1-35 sweep found no activation
+by tick 400 under either departure estimate; by 780 it found three current
+worlds and four old-estimate worlds. Their particular former scenes are not
+required under changed timing. See the repair response linked above.
 
 See the latest [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md) account for exact
 scope, results and local artifact paths. Older terrain-rule replay compatibility

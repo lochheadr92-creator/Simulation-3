@@ -1,0 +1,67 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_verified_run_actor_id_is_text_in_rendered_dom ______________
+
+tmp_path = WindowsPath('C:/Users/RJLoc/OneDrive/Desktop/Documents/ChatGPT/Simulation 3 - Living World Engineer/work/review-repair/xss-before/test_verified_run_actor_id_is_0')
+
+    def test_verified_run_actor_id_is_text_in_rendered_dom(tmp_path):
+        node = shutil.which('node')
+        if node is None:
+            pytest.fail('Viewer security test requires Node on PATH; see docs/ai/08_TESTING_AND_PROOFS.md')
+    
+        def rename(value):
+            if isinstance(value, dict):
+                return {rename(k): rename(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [rename(v) for v in value]
+            return ATTACK_ID if value == 'p01' else value
+    
+        cfg = WorldConfig(seed=1, actors=2, starting_food=0, source_stock=0,
+                          source_cap=0, renewal_amount=0, hungry_at=0,
+                          emergency_at=1, death_at=2, stagger_start=False,
+                          water_on=False, warmth_on=False, terrain_on=False,
+                          building_on=False, births_on=False)
+        ledger, world = genesis(cfg)
+        ledger = WorldState.from_canonical(rename(ledger.canonical()))
+        world = Overlay.from_canonical(rename(world.canonical()))
+        path = tmp_path / 'untrusted.jsonl'
+        engine = Engine(ledger)
+        with RunWriter(path, run_id='untrusted-actor', genesis=ledger,
+                       scenario=cfg.describe(), world=world.canonical(), horizon=3) as writer:
+            for _ in range(3):
+                step = world_step(engine, world, cfg)
+                writer.record(step.record, step.committed, inputs=step.proposals, **step.line_fields())
+                engine, world = step.engine, step.processed.overlay
+        run = read_run(path)
+        assert run.complete and not run.problems  # hashes are not sender authentication
+        assert ATTACK_ID in run.ticks[-1]['world']['died_at']
+        page = render_html(run)
+        # Always check the Python embedding boundary as well as the dynamic DOM.
+        assert ATTACK_ID not in page
+        html = tmp_path / 'untrusted.html'
+        html.write_text(page, encoding='utf-8')
+        result = subprocess.run([node, str(ROOT / 'tests/fixtures/viewer_security.cjs'),
+                                 html.as_uri(), ATTACK_ID], cwd=ROOT,
+                                capture_output=True, text=True, timeout=60)
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: {"literal_id_visible":false,"injected_elements":1,"executed":7,"page_errors":[]}
+E         AssertionError [ERR_ASSERTION]: actor id became an HTML element
+E         
+E         1 !== 0
+E         
+E             at C:\dev\03-Living-World-V3\tests\fixtures\viewer_security.cjs:27:12 {
+E           generatedMessage: false,
+E           code: 'ERR_ASSERTION',
+E           actual: 1,
+E           expected: 0,
+E           operator: 'strictEqual',
+E           diff: 'simple'
+E         }
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:/Users/RJLoc/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin\\node.EXE', '...ge: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n").returncode
+
+tests\test_viewer_security.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_viewer_security.py::test_verified_run_actor_id_is_text_in_rendered_dom
+1 failed in 2.21s

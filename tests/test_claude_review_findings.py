@@ -144,7 +144,17 @@ def born_run(tmp_path_factory):
 # F9 - the text view must work on any view of a verified run.
 def test_text_view_after_a_birth(born_run):
     run = read_run(born_run)
-    render_text(run, len(run.ticks))
+    view = len(run.ticks)
+    text = render_text(run, view)
+    initial = set(run.header["world"]["positions"])
+    born = set(run.ticks[-1]["world"]["positions"]) - initial
+    assert born  # the assertion below must exercise people absent at genesis
+    for actor in born:
+        position = tuple(run.ticks[-1]["world"]["positions"][actor])
+        hunger = run.ticks[-1]["world"]["hunger"][actor]
+        row = next(line for line in text.splitlines() if line.startswith(f"{actor} yield_at "))
+        assert f"at {position} hunger {hunger}" in row
+    assert f"view {view}/{view}" in text
 
 
 # F10 - read_run: "a run with problems is still returned so a viewer can show what exists".

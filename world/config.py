@@ -26,7 +26,7 @@ from __future__ import annotations
 import random
 from collections.abc import Mapping
 from functools import lru_cache
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import Any
 
 from kernel import Source, WorldState
@@ -145,6 +145,13 @@ class WorldConfig:
     coordination_on: bool = False  # briefly trust a nearby housemate's announced food trip
 
     def __post_init__(self) -> None:
+        # Check every scalar integer, including inactive feature settings, before
+        # comparisons, geometry, random seeds or canonical identities use it.
+        # Annotations are strings under postponed evaluation; bool is not int.
+        bad_types = [field.name for field in fields(self)
+                     if field.type in (int, "int") and type(getattr(self, field.name)) is not int]
+        if bad_types:
+            raise ValueError(f"world configuration requires integer values: {', '.join(bad_types)}")
         checks = {
             "regrowth": type(self.regrowth_on) is bool,
             "seasons": type(self.seasons_on) is bool,

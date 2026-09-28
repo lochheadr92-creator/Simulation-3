@@ -242,6 +242,7 @@ def food_travel_ticks(observation: Observation, config: WorldConfig) -> int:
         return steps_to_source(observation)
     if observation.at_source:
         return 0
+    # held is the remaining movement delay, not carried food.
     return observation.held + _route_plan(observation, observation.source, config)[1]
 
 

@@ -1,0 +1,65 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+____ test_integer_settings_reject_non_integers_at_construction[True-seed] _____
+
+name = 'seed', value = True
+
+    @pytest.mark.parametrize('name', INTEGER_FIELDS)
+    @pytest.mark.parametrize('value', [True, '7', 1.5, None])
+    def test_integer_settings_reject_non_integers_at_construction(name, value):
+>       with pytest.raises(ValueError, match=rf'integer.*\b{name}\b'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_config_types.py:18: Failed
+______ test_integer_settings_reject_non_integers_at_construction[7-seed] ______
+
+name = 'seed', value = '7'
+
+    @pytest.mark.parametrize('name', INTEGER_FIELDS)
+    @pytest.mark.parametrize('value', [True, '7', 1.5, None])
+    def test_integer_settings_reject_non_integers_at_construction(name, value):
+>       with pytest.raises(ValueError, match=rf'integer.*\b{name}\b'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_config_types.py:18: Failed
+_____ test_integer_settings_reject_non_integers_at_construction[1.5-seed] _____
+
+name = 'seed', value = 1.5
+
+    @pytest.mark.parametrize('name', INTEGER_FIELDS)
+    @pytest.mark.parametrize('value', [True, '7', 1.5, None])
+    def test_integer_settings_reject_non_integers_at_construction(name, value):
+>       with pytest.raises(ValueError, match=rf'integer.*\b{name}\b'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_config_types.py:18: Failed
+____ test_integer_settings_reject_non_integers_at_construction[None-seed] _____
+
+name = 'seed', value = None
+
+    @pytest.mark.parametrize('name', INTEGER_FIELDS)
+    @pytest.mark.parametrize('value', [True, '7', 1.5, None])
+    def test_integer_settings_reject_non_integers_at_construction(name, value):
+>       with pytest.raises(ValueError, match=rf'integer.*\b{name}\b'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_config_types.py:18: Failed
+____________ test_disabled_integer_settings_still_require_integers ____________
+
+    def test_disabled_integer_settings_still_require_integers():
+>       with pytest.raises(ValueError, match='integer.*thirst_rate'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_config_types.py:32: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_config_types.py::test_integer_settings_reject_non_integers_at_construction[True-seed]
+FAILED tests/test_config_types.py::test_integer_settings_reject_non_integers_at_construction[7-seed]
+FAILED tests/test_config_types.py::test_integer_settings_reject_non_integers_at_construction[1.5-seed]
+FAILED tests/test_config_types.py::test_integer_settings_reject_non_integers_at_construction[None-seed]
+FAILED tests/test_config_types.py::test_disabled_integer_settings_still_require_integers
+5 failed, 166 deselected in 0.10s

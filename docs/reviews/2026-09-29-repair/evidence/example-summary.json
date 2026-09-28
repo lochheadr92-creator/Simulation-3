@@ -1,0 +1,97 @@
+{
+  "seed": 29,
+  "horizon": 780,
+  "selection": "First current-mode seed with an OFFER carrying helped_at in the fixed 1-35, 780-tick sweep",
+  "code_identity": {
+    "digest": "4af0706044bc7d61bc796c0462b3cd05cbecffa5829c9ecfc75ce701d7b1c386",
+    "files": {
+      "kernel/__init__.py": "c764131ecbe298603391ab1c149858491b01bd837382d0c9cf10602589f1d0da",
+      "kernel/canonical.py": "20fa4781f240854b3eb04bdabd0b750c6e60be12d59798a2179b41b4893a8de0",
+      "kernel/diagnostics.py": "d2c657bb82882f34ca93ab922bcbe0b178e030c64bff1473b938e6f9b45b9640",
+      "kernel/engine.py": "e5a3bedbf7ec6662ad7a1c39875759e560d0e0c19e2296fbaa62f3338863eaac",
+      "kernel/ordering.py": "bf3a6d0220334ccdaf7d10daf048bca7fd0d1874171aa2f9421ceaa93af88487",
+      "kernel/outcomes.py": "ff17c25a360b393a7c4ff1052ce12f66634b0acbea94a60f876a73a12126fc32",
+      "kernel/proposals.py": "075bf984f1e875d1dd64a3ccf711890866470268670d56df96830166112ed60a",
+      "kernel/reasons.py": "2fa0a36239759dcdb2c24a589fb58d3e302da4ed5e1e42ce7230fd142fd26f39",
+      "kernel/settlement.py": "852beddcf474ad5ace995b1d839e33921bcaa1222a34b204a55d47610669a7ff",
+      "kernel/state.py": "f2988ac58aa7cdb73956eccf5010629f14dfef30688c175095af7b7ebd567081",
+      "kernel/units.py": "aa8b04387d1c4f3662e4a412ccf46699c0c8976602b68093d821a7ec1e89580a",
+      "kernel/version.py": "967d874c73455648ee91b902aef0e8c4dcf134644de7b8d659ec7d7f683e71a9",
+      "stream/__init__.py": "00c117d26e980ca44a3e59ff09e920617d537489f3c7c7606b56be91762fbca5",
+      "stream/bench.py": "67b11ce7e0a0c76ca2aa4d20fcdcd2b591fc84a6c24de7d4c36ea39e6d7e3af9",
+      "stream/recover.py": "3cc83c83b3a66a0860fc1717f7e58206928b1de813d909f5ba1a469e8b82f0e3",
+      "stream/replay.py": "5b54b816866c70233aee67287133fa5043bfaf8aa0a2a182ec0a0784c19d7098",
+      "stream/run.py": "06299307e56d655c16a5dfcfac9919ba8c762ba015b5ff37afa21a9dfd2fa6ae",
+      "stream/run_file.py": "4f6cd7763c35bbb3dbbf6943bf0af0028c5ae0a3512d015580042c30af3daa56",
+      "stream/scenario.py": "8a94078081d5995fc5f5e7b3c981f2d06d1c227776c3cd7f91a3235e132eac84",
+      "stream/viewer.py": "f49744d2a94c5ab83de13953508dfdaa91376566864c07dfe2dbd48e582e3faf",
+      "world/__init__.py": "4ac75ab3379fa684845afaf66e9b747359f3bf0e0537cdee866d6ff16b19eca5",
+      "world/bench.py": "1584f35ab6e28c485ddb34ec5f0e7e12fd0a41dd181607f626987625c6aadc1d",
+      "world/config.py": "d8ad417137cb4ce26a79ea64588ee20906a3f29ac55e620c9a56c93edf13d336",
+      "world/decide.py": "10c2a22fd26a679145580c76f31a3d18a58af923f4c83652ca84be96407163d6",
+      "world/ecology.py": "cfba88221c4e0e51d32f378221a1c40921ce15f1cab316183b426eb32d51deed",
+      "world/fishing.py": "8795daf3c1a38caeedaeb2e2dea3f606df77a4d81eb76d98b8936348a1dcdb8c",
+      "world/foraging.py": "36f079eb4d9ab823145587ac6a9fd1a252ed56d5b6481d75edc1c10a92600a4f",
+      "world/housing.py": "1077780700c96466eddb24c7cf5d2e9029298753aeb6b10dcd5bffa443919c2e",
+      "world/materials.py": "d4499da7ac14ea10ffc7c6011d26564f54e1b99eed9f842e2ec69cd293a9a81d",
+      "world/observe.py": "6e961d22d2b9c335962f6420948940835e4f7c0d6eb5e4f0305d8b1d6d5ec44f",
+      "world/overlay.py": "a661a1fd0b9bc4668145c598ffef9a5d4b07e22aa49ef78ef86bd361f74a5ac3",
+      "world/process.py": "d11374ee5b9a0d8ea7b042ea7c429374ac7e58ae875531ebe2d4e19d780f5efd",
+      "world/recover.py": "e34e5edefed04f29694d3c340cbe2991db6ca36c70ae903462baa7f4304f4d39",
+      "world/replay.py": "b2b6b129d3a20609cc635ac894d4f9174e0b4d93257291e5f674f0bc76d06369",
+      "world/run.py": "9ce69c7f4b8f34a6007abcfafc3084a145aefdf04e4caf975fda07ac15f3491a",
+      "world/social.py": "32f5548975c141bd5bc1ba59d11eb1695c7fbec219d5e2185ad613913b62d140",
+      "world/storage.py": "810dd8c4c1b73aed86fcc2a555158af009b04ff388a52860e33d5260ac18c9fd",
+      "world/viewer.py": "7affd69ee6f5798f46b16d6375250c58fe52a647728117f10aedb875921f343a",
+      "world/viewer_index.py": "2e7823401904d5c648f17091403b7c1d3bfca9f89b89c9805b8f0700e02f7765"
+    }
+  },
+  "complete": true,
+  "replay_identical": true,
+  "recovery_cut_after_decision_tick": 708,
+  "recovery_identical": true,
+  "recovered_replay_identical": true,
+  "original_gift": {
+    "decision_tick": 559,
+    "world_tick": 560,
+    "donor": "p19",
+    "recipient": "p27",
+    "accepted": true
+  },
+  "return_gift": {
+    "decision_tick": 713,
+    "world_tick": 714,
+    "donor": "p27",
+    "recipient": "p19",
+    "accepted": true
+  },
+  "remembered_helper_events": [
+    {
+      "k": 589,
+      "cat": "help",
+      "kind": "remembered_helper",
+      "text": "p23 chose to help p10, remembering food received at tick 428",
+      "helped_at": 428,
+      "who": "p23",
+      "other": "p10"
+    },
+    {
+      "k": 709,
+      "cat": "help",
+      "kind": "remembered_helper",
+      "text": "p27 chose to help p19, remembering food received at tick 560",
+      "helped_at": 560,
+      "who": "p27",
+      "other": "p19"
+    },
+    {
+      "k": 714,
+      "cat": "help",
+      "kind": "remembered_helper",
+      "text": "p27 chose to help p19, remembering food received at tick 560",
+      "helped_at": 560,
+      "who": "p27",
+      "other": "p19"
+    }
+  ]
+}

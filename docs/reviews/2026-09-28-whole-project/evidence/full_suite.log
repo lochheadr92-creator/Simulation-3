@@ -1,0 +1,28 @@
+........................................................................ [  9%]
+........................................................................ [ 19%]
+........................................................................ [ 29%]
+........................................................................ [ 39%]
+........................................................................ [ 49%]
+........................................................................ [ 59%]
+........................................................................ [ 69%]
+........................................................................ [ 79%]
+........................................................................ [ 88%]
+........................................................................ [ 98%]
+.........                                                                [100%]
+============================= slowest 15 durations =============================
+42.48s call     tests/test_housing.py::test_saved_housing_replays_recovers_and_viewer_follows_new_homes
+40.94s call     tests/test_knowledge_sharing.py::test_saved_reports_replay_recovery_and_viewer
+35.16s call     tests/test_source_memory.py::test_saved_run_replays_and_recovers_with_memories_and_visible_reroutes
+31.91s call     tests/test_social_memory.py::test_social_world_replays_with_terrain_aware_departures[26-780]
+31.62s call     tests/test_provisioning.py::test_saved_outing_replays_recovers_and_is_visible
+28.03s call     tests/test_coordination.py::test_saved_announcement_replay_recovery_repeat_and_viewer
+26.90s call     tests/test_wood.py::test_saved_wood_world_replays_recovers_and_shows_the_material_chain
+22.80s call     tests/test_social_memory.py::test_social_world_replays_with_terrain_aware_departures[14-650]
+22.23s call     tests/test_fishing.py::test_saved_run_replays_recovers_mid_cast_and_viewer_shows_fishing
+20.10s call     tests/test_regrowth.py::test_saved_run_replays_recovers_and_viewer_uses_recorded_condition
+18.77s call     tests/test_social_memory.py::test_saved_memory_survives_births_replay_and_recovery
+15.33s call     tests/test_relocation.py::test_recorded_move_repeats_and_recovers_mid_journey
+14.62s call     tests/test_stores.py::test_run_replays_recovers_and_viewer_records_real_deposits
+11.43s call     tests/test_seasons.py::test_saved_seasons_replay_recover_and_supply_viewer_events
+8.62s call     tests/test_water.py::test_a_water_world_is_sealed_replays_and_keeps_food_and_water_apart
+729 passed in 470.41s (0:07:50)

@@ -1,5 +1,17 @@
 # Current state — volatile snapshot
 
+## Review repair — 2026-09-29
+
+The independent report on `81c10b7` is now supplied and signed FAIL,
+with F1/F2 blocking acceptance as presented. The subsequent
+[builder response](../reviews/2026-09-29-repair/RESPONSE.md) records the
+viewer escaping repair, strict integer validation and wider timing-only
+social-memory comparison. At 780 ticks the fixed 35-seed sample activates
+memory in three current worlds and four old-estimate worlds; neither
+activates by 400. The original FAIL remains pending reassessment.
+See the response for fresh validation; historical counts below are
+attributed to their original runs and are not current certification.
+
 ## Source snapshot
 
 - Source branch: `codex/kernel-first-slice`

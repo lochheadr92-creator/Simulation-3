@@ -1035,7 +1035,7 @@
     else anim = { from: k, to: k, start: 0, dur: 0 };
     slider.value = v;
     slider.setAttribute('aria-valuetext', `tick ${v} of ${n}`);
-    tickEl.innerHTML = `Tick ${v} <small>/ ${n}</small>`;
+    tickEl.innerHTML = `World tick ${v} <small>/ ${n}</small>`;
     updateHud(); updateSummary(); markEvents(); updateFocusCard();
     if (tabNow === 'inspector') renderInspector();
     if ($('deep').open) updateDeep();
@@ -1052,7 +1052,7 @@
   function aliveAt(k) { return (COUNTS.alive || [])[k] ?? 0; }
   function updateHud() {
     const w = world(v);
-    $('hud-tick').innerHTML = `Tick ${v}<small>of ${n}</small>`;
+    $('hud-tick').innerHTML = `World tick ${v}<small>of ${n}</small>`;
     const bits = [`<span>alive <b>${aliveAt(v)}</b></span>`];
     if (w.season) bits.push(`<span>season <b>${esc(w.season)}</b></span>`);
     if ((COUNTS.born || [])[n]) bits.push(`<span>born <b>${COUNTS.born[v]}</b></span>`);
@@ -1061,7 +1061,7 @@
     if (ADULT_AT !== null) bits.push(`<span>children <b>${(COUNTS.children || [])[v] ?? 0}</b></span>`);
     $('hud-line').innerHTML = bits.join('');
     canvas.setAttribute('aria-label', `Isometric map of the world at tick ${v} of ${n}: ${aliveAt(v)} alive.`);
-    if (!playing) $('live').textContent = `Tick ${v}. ${aliveAt(v)} alive.`;
+    if (!playing) $('live').textContent = `World tick ${v}. ${aliveAt(v)} alive.`;
   }
   function updateSummary() {
     const w = world(v), c = COUNTS;
@@ -1595,7 +1595,7 @@
     traitKeys = [...new Set(people.map(traitOf).filter(x => x !== null))].sort((a, b) => a - b);
     const fmtBy = map => traitKeys.map(x => x + ':' + (map[x] || 0)).join(', ') || 'none';
     $('chart').innerHTML = drawChart();
-    $('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten or drunk <b>${totals.eats}</b></span><span>yield events <b>${totals.yields}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b>${traitKeys.length ? ' (by yield_at ' + fmtBy(totals.emergencyBy) + ')' : ''}</span><span>person-ticks with another in view <b>${totals.sawOther}</b></span><span>person-ticks with source in view <b>${totals.sawSource}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.slice(0, 40).map(x => x[0] + ' t' + x[1]).join(', ') + (totals.deaths.length > 40 ? ', …' : '') + ')' : ''}${traitKeys.length ? '; by yield_at ' + fmtBy(totals.deathsBy) : ''}</span>`;
+    $('totals').innerHTML = `<span>whole run:</span><span>claims accepted <b>${totals.claimsOk}</b></span><span>claims denied <b>${totals.claimsNo}</b></span><span>units eaten or drunk <b>${totals.eats}</b></span><span>yield events <b>${totals.yields}</b></span><span>emergency person-ticks <b>${totals.emergencyTicks}</b>${traitKeys.length ? ' (by yield_at ' + fmtBy(totals.emergencyBy) + ')' : ''}</span><span>person-ticks with another in view <b>${totals.sawOther}</b></span><span>person-ticks with source in view <b>${totals.sawSource}</b></span><span>deaths <b>${totals.deaths.length}</b>${totals.deaths.length ? ' (' + totals.deaths.slice(0, 40).map(x => esc(x[0]) + ' t' + x[1]).join(', ') + (totals.deaths.length > 40 ? ', …' : '') + ')' : ''}${traitKeys.length ? '; by yield_at ' + fmtBy(totals.deathsBy) : ''}</span>`;
     deepReady = true;
   }
   function drawChart() {

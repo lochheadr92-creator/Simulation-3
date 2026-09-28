@@ -1,5 +1,11 @@
 # Simulation 3: whole-project adversarial review
 
+Update 2026-09-29: the [signed REVIEW.md](REVIEW.md) and
+[reviewer evidence](evidence/probes/README.md) have been supplied. The
+verdict is FAIL. The [separate repair response](../2026-09-29-repair/RESPONSE.md)
+does not replace that verdict. Instructions below describe the original
+packet preparation; its unsigned-template statements are historical.
+
 Review the whole project, not just the last change. Try to disprove its important claims with concrete counterexamples, and report what survives those checks. The intended product is a watchable, deterministic civilisation aquarium whose people make rule-based decisions from local observations and retained knowledge.
 
 ## Exact subject

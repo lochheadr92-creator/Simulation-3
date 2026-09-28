@@ -139,11 +139,16 @@ def test_saved_memory_survives_births_replay_and_recovery(tmp_path):
 # Keep both ordinary replay checks, and establish the social contract in a
 # controlled encounter below, without pinning a replacement lucky seed.
 @pytest.mark.parametrize("seed,horizon", [(14, 650), (26, 780)])
-def test_social_world_replays_with_terrain_aware_departures(tmp_path, seed, horizon):
+def test_default_world_replay_without_social_activation_requirement(tmp_path, seed, horizon):
+    """Replay plus conditional provenance checks, not evidence of activation."""
     path = tmp_path / "social.jsonl"
     run_world(WorldConfig(seed=seed), horizon, path)
     run = read_run(path)
+    assert run.complete and len(run.ticks) == horizon
     assert replay_world(path).identical
+    # This loop can see no remembered-helper events. Only the controlled rule
+    # test below requires an actual memory-driven choice; frequency is measured
+    # separately in the F1 diagnostic, never inferred from this replay check.
     for event in build_index(run)["events"]:
         if event["kind"] != "remembered_helper":
             continue
@@ -153,12 +158,15 @@ def test_social_world_replays_with_terrain_aware_departures(tmp_path, seed, hori
                    for o in gift["record"]["outcomes"])
 
 
-def test_received_gift_changes_later_choice_and_saved_event(tmp_path):
+def test_controlled_rule_received_gift_changes_choice_and_saved_event(tmp_path):
     """Real settlement -> retained memory -> changed recipient -> real return gift.
 
     Three people begin in a controlled encounter. The two empty-handed
-    neighbours have a movement delay, keeping both available when they later
-    need help. All subsequent needs, gifts, meals and memories run normally.
+    neighbours have an artificial 100-tick movement delay, keeping both
+    available when they later need help. This overlay is legal but ordinary
+    movement only creates a one-tick delay. The test proves the rule chain,
+    not a reachable ordinary encounter or its frequency. All subsequent needs,
+    gifts, meals and memories run normally.
     """
     from kernel import Engine
     from world.config import genesis

@@ -1,5 +1,21 @@
 # Testing and proof limits
 
+## Current browser security prerequisite — 2026-09-29
+
+`tests/test_viewer_security.py` requires Node, the locked Playwright
+development dependency and an available browser. Missing prerequisites
+fail this security test explicitly; it never silently skips. Install
+pytest in an isolated Python environment, run `npm ci` in the source
+checkout, and on Linux/macOS run `npx playwright install chromium`.
+Windows uses installed Edge by default. `V3_BROWSER_CHANNEL` can select
+another installed Playwright channel. The test opens the generated page,
+expands the deep section and checks the actual DOM and script marker.
+The existing older Node syntax tests may still skip without Node; the
+new mandatory test prevents a full-suite pass in that environment.
+
+Fresh repair checks and their exact scope are recorded in
+[repair validation](../reviews/2026-09-29-repair/VALIDATION.md).
+
 ## Source snapshot
 
 - Source branch: `codex/kernel-first-slice`
