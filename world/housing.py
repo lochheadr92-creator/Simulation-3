@@ -79,7 +79,7 @@ def update_experience(previous, current, decisions, observations, config):
         away_before = previous.positions[actor] != previous.homes[actor]
         away_after = current.positions[actor] != current.homes[actor]
         if decision is not None and decision.kind in (
-                "go", "go_water", "wait", "wait_water", "yield", "ask", "claim", "draw") and (away_before or away_after):
+                "go", "go_water", "wait", "wait_water", "yield", "ask", "claim", "draw", "fish") and (away_before or away_after):
             effort += 1
         if not away_after and effort:
             difficulty = min(DIFFICULT_OUTINGS, difficulty+1) if effort >= LONG_OUTING else max(0, difficulty-1)

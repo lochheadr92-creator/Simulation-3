@@ -1,5 +1,233 @@
 # Simulation 3 — Development Directions
 
+## Telling housemates about a food trip
+
+`--stores on --provisioning on --coordination on` lets someone starting a
+home-cache outing tell the housemates they can currently see: "I'm getting
+food for us." Use `--homes on` to let grown children join shared homes.
+The announcement accompanies their normal action. Housemates hear it after
+making that tick's choices, so two people can still set out together.
+Coordination is off by default.
+
+A listener remembers one speaker for twelve ticks and postpones a new
+optional cache trip. Eating, drinking, warming, helping and outings already
+underway keep their priorities. Seeing at least two meals in the home cache,
+or seeing the speaker back at home without spare food, ends the expectation
+early. A returning person carrying spare food gets time to deposit it.
+Unseen refills, deaths and changes of plan supply no information. The timer
+still runs; moving home or dying clears the listener's expectation, and
+births preserve everyone else's memories.
+
+**Watch seed 23, ticks 92–108.** p05 announces an outing at 92. p07 stays
+home at 94 instead of following. p05 collects three food at 97, returns at
+102 and deposits two at 103. At 104 p07 sees the stocked cache and feeds
+their own new child. They take food from that cache at 107 and eat at 108.
+An early version let p07 leave on the deposit tick; waiting for the actual
+deposit when a returning housemate has spare food removes that wasted trip.
+
+**Keep watching through 121.** p05 announces another outing at 108. p07
+postpones their trip, but still drinks and feeds a child. p05 collects food
+at 114 and is diverted by childcare. At 121 the expectation expires before
+another deposit, so p07 sets out and announces their own trip. A spoken
+intention can help a household without guaranteeing a delivery.
+
+Three 480-tick runs add only coordination to the provisioning worlds:
+
+| Seed | Announcements | Waiting events | Deposits, off / on | Living, off / on | Deaths, off / on |
+| --- | --- | --- | --- | --- | --- |
+| 7 | 41 | 19 | 49 / 52 | 9 / 13 | 28 / 24 |
+| 11 | 24 | 8 | 23 / 25 | 14 / 10 | 22 / 27 |
+| 23 | 33 | 8 | 30 / 28 | 19 / 6 | 17 / 27 |
+
+Announcements are counted per listener. Waiting events include resuming
+after another need interrupts the wait. Neither counts successful deliveries.
+The population results are mixed: this changes household routines and later
+meetings, births and resource pressure, without showing a general survival
+improvement. Twelve ticks is a first waiting rule to watch, not a tuned value.
+
+Saved runs and viewers are in `runs/coordination/final/`, with fresh `-off`
+baselines beside them. The seed-23 viewer was played in a browser, including
+the stocked-cache and expiry scenes. The inspector shows the speaker and
+remaining expectation time; the history records announcements, postponed
+trips and the observed reason for ending a wait.
+
+The full suite passed 677 tests. Coordination checks cover the delivery-to-meal
+chain, local hearing, simultaneous departures, needs and helping, expiry,
+unseen events, return with and without spare food, births, moves, deaths,
+immutable memories, old headers, saved events, repeat runs and recovery while
+an expectation is active. All six 480-tick files verify and replay identically.
+Repeating seed 23 gives identical tick records and seals. With coordination
+off, all three worlds retain the preceding provisioning runs' simulation
+records. JavaScript syntax and diff checks pass.
+
+## Gathering food for home
+
+`--stores on --provisioning on` lets a low shared cache prompt a food trip.
+An adult at a finished home who would otherwise rest, carries at most one
+meal and sees fewer than two meals stored can set out. With warmth on they
+warm fully first. The first runs exposed people leaving while still cold
+and turning back almost immediately; finishing their warming removes that
+repeated start. The switch is off by default.
+
+These outings use berry patches and the fishing spot, following the existing
+local stock observations and empty-source memories. They do not fetch from
+other home caches. One successful collection starts the return home, even
+if the catch is small. A refused claim leaves the person still gathering.
+Fishing still needs a cast and a later catch, and gathering does not eat.
+
+Own needs, helping, construction and choosing a home keep their priorities.
+A food outing survives interruptions, including eating or giving away the
+catch. Reaching home ends it; the existing deposit rule then puts away any
+spare food while keeping one carried meal. Arriving empty-handed is possible.
+Moving home or dying ends an outing too. Births keep other people's outings,
+and newborns start without one. People cannot remotely see a cache refill.
+With coordination off, two adults sharing a home can both respond to its
+shortage independently.
+
+**Watch seed 7, ticks 21–45.** p01 sees an empty cache and heads for fish at
+21. Water interrupts the journey at 23. After drinking, p01 returns to the
+bank, catches three food at 37, arrives home at 38 and stores two at 39.
+p04 takes those two meals at 44 and eats at 45. p01 notices the emptied
+cache and sets out again at 45, this time avoiding the remembered empty
+fishing spot and heading towards berries. A neighbour's meal has become
+another person's work trip.
+
+Three 480-tick runs add only provisioning to the source-memory worlds:
+
+| Seed | Food outings started | Deposits, off / on | Living, off / on | Births, off / on | Deaths, off / on |
+| --- | --- | --- | --- | --- | --- |
+| 7 | 60 | 31 / 49 | 8 / 9 | 2 / 31 | 0 / 28 |
+| 11 | 54 | 4 / 23 | 11 / 14 | 25 / 30 | 20 / 22 |
+| 23 | 73 | 13 / 30 | 9 / 19 | 46 / 30 | 43 / 17 |
+
+Deposits include ordinary leftovers as well as food from the new outings;
+starting an outing does not mean it returns with a surplus. The changed
+journeys also change meetings, births and pressure on supplies. Seed 7 has
+many more births and deaths, so its extra living person at the end says
+little about how comfortable life became. These are new routines with real
+costs, and the two-meal trigger is a first rule to watch.
+
+Saved runs and HTML viewers are in `runs/provisioning/checked/`, with fresh
+`-off` baselines beside them. The viewer records departures, interruptions
+and returns, and the inspector shows whether someone is gathering for home
+or returning. The seed-7 HTML viewer was opened through a local HTTP server;
+playback, the catch, the deposit and the saved reasons were inspected.
+
+The final full test suite passed 668 tests. Provisioning checks cover the
+complete collection/deposit/meal chain, need and helping priorities, warming
+before departure, local knowledge, source memory, fishing contention, shared
+homes, births, deaths, moves and immutable saved outings. Recovery works
+during both gathering and return journeys. All six 480-tick files verify and
+replay identically; repeating seed 7 gives the same trail digest. With
+provisioning off, all three runs retain the preceding source-memory worlds'
+simulation records. JavaScript syntax and diff checks pass.
+
+## Remembering empty food sources
+
+`--source-memory on` lets each person remember when they saw a berry patch
+or fishing spot with no available food. The memory lasts twenty ticks after
+the latest empty sighting. Seeing stock there again clears it immediately.
+Only local sight supplies those facts; an unseen refill cannot change a
+person's memory.
+
+Food choices first favour visible stocked sources, then sources not remembered
+empty. Within a group, the existing distance and fishing-effort ranking applies.
+If every source is remembered empty, people still use the nearest fallback.
+Old memories expire, so an exhausted patch is not avoided forever. Home caches
+still attract people only while visibly stocked; water choices are unchanged.
+
+In the corrected seed 11 run, p01 sees the first berry patch empty at decision
+tick 191. At viewer tick 196 they are outside its sight and choose the other
+patch instead. At 198 that patch is also observed empty, so p01 heads toward
+the fishing spot. They cast at 210, catch two food at 211 and eat at 212.
+The source choices and reasons are recorded, and the viewer shows dated empty
+memories and events when memory changes a food destination.
+
+Tracing this exposed a birth-state omission: births were clearing the new
+memories, and the earlier fishing work also lost casts through that path.
+Both now survive other people's births; newborns start with neither. This can
+change older fishing runs when replayed, so the comparisons below use fresh
+memory-off baselines with the birth fix too. Earlier fishing examples remain
+historical examples of the preceding code.
+
+Three matched 480-tick runs:
+
+| Seed | Viewer reroute events | Living, memory off / on | Births, on | Deaths, on |
+| --- | --- | --- | --- | --- |
+| 7 | 2 | 9 / 8 | 2 | 0 |
+| 11 | 167 | 11 / 11 | 25 | 20 |
+| 23 | 215 | 17 / 9 | 46 | 43 |
+
+These are changed journeys, not a general survival improvement. Remembered
+shortages can send people on longer searches, and every known source can be
+empty. Twenty ticks is a first memory duration, not a tuned optimum. A viewer
+reroute event can also mark resuming a food journey after another need; it is
+not a count of unique trips or successful meals.
+
+Runs and viewers are in `runs/source-memory/final/`, alongside fresh `-off`
+baselines. The `seed11-memory-story.png` picture shows actual saved observations
+and positions. Live HTML playback remains unverified here because the local-file
+browser restriction is still in place.
+
+The final full suite passed 657 tests. Focused cases cover local observations,
+unseen refills, fresh-stock overrides, expiry, all-empty fallback, fishing,
+child travel limits, immutable memory, births, old headers, deterministic
+repeat runs and recovery with memories present. All six fresh on/off runs
+verify and replay identically. JavaScript syntax and diff checks pass, and
+the static saved-run picture has been visually checked.
+
+## Fishing through the lean season
+
+`--fishing on` adds one bank fishing spot on clear ground near the west edge.
+It leaves the existing homes, berry patches, wells, groves and terrain in place.
+The spot starts with six food and gains two every twelve ticks, up to six,
+in both plentiful and lean seasons. Berry wear does not reduce fish renewal.
+This is a small seasonal alternative, not a full river or fish ecology model.
+
+People know where the spot is, but only see its stock within sight. Their
+existing food-source choice includes it, with one extra tick of gathering
+effort. A hungry person casts from the bank for one tick, then can catch on
+the next consecutive tick. Another action interrupts the cast. Catches use
+the normal claim size and settlement rules: two people cannot take the same
+last fish. Catching does not also eat. Fish become ordinary carried food and
+can be eaten, stored or given away through the existing rules.
+
+The viewer draws a blue fishing spot with visible stock, a rod while casting,
+and catch events. Its inspector explains the steady replenishment. A depleted
+spot can leave people waiting or choosing another source. Optional empty-source
+memory now guides those choices, as described above. Home-location
+ranking still uses the existing berry and water landmarks.
+
+In seed 23, p06 casts at tick 89 and catches three food at 90. One is eaten
+at 91, one deposited in the home cache at 98, and the remaining unit given to
+their child p18 at 112. No other food reaches p06 between that catch and gift.
+
+Three 480-tick runs add only fishing to the preceding wood worlds:
+
+| Seed | Catches | Food caught | Catches in lean seasons | Living, fishing off / on |
+| --- | --- | --- | --- | --- |
+| 7 | 25 | 68 | 14 | 7 / 9 |
+| 11 | 37 | 78 | 20 | 2 / 13 |
+| 23 | 33 | 70 | 21 | 4 / 22 |
+
+These runs show fishing being used in both seasons and a substantial change
+in population. They do not establish a balanced food supply: fishing adds
+food to the map, and births also change. This first version has no boats,
+equipment requirements, skills, freezing water or separate fish inventory.
+
+Final saved runs and HTML viewers are in `runs/fishing/final/`. Focused checks
+cover cast/catch/eat timing, interrupted casts, contention for the last fish,
+local stock visibility, the child leash, seasonal renewal and stock caps,
+scored choices, immutable saved state, deterministic repeat runs, replay and
+recovery from the middle of a cast.
+
+The full regression run passed 647 tests. After making casting an explicit
+candidate action in the saved decisions, all 26 focused fishing and scoring
+tests passed. The three final runs replay identically. JavaScript syntax and
+diff checks pass. The static saved-run picture `seed23-fishing-story.png`
+has been visually checked; live HTML playback remains unverified here because
+the browser's local-file restriction is still in place.
+
 ## Review repairs
 
 Claude's independent review of `c1d13cb` found that early food departures and
@@ -289,8 +517,9 @@ plan for the next season.
 `--stores on` gives each founding home an initially empty food cache. After
 building the shelter, its adult resident can put spare carried food there
 instead of resting. They keep one meal and fill towards six food. Their
-own needs and existing helping choices come first. No extra gathering trip
-is introduced: this first rule stores leftovers from ordinary food trips.
+own needs and existing helping choices come first. With provisioning off,
+this rule stores leftovers from ordinary food trips. Optional provisioning
+adds trips prompted by a low cache, as described above.
 
 Anyone who sees a stocked cache at a completed shelter can choose it alongside
 the food patches, by distance then source ID. They must walk to it and spend
@@ -299,7 +528,7 @@ leash. Empty and unseen caches never attract a trip. These are shared caches,
 not private family property. With adult homes off, only the founding resident
 deposits; with adult homes on, anyone living there can deposit. Neighbours and
 children can collect. Caches persist after the resident dies. Newborns do
-not create caches until they choose an adult home. Water storage, dedicated hauling, spoilage and carrying
+not create caches until they choose an adult home. Water storage, spoilage and carrying
 limits are not added.
 
 Food remains in the kernel ledger. A new immediate `deposit` proposal debits
@@ -351,9 +580,9 @@ playback remains blocked by the browser's local-file restriction.
 
 **Next: watch seed 11 through ticks 44–52, following p08 and store-p06.**
 Then follow the two-way use of neighbours' caches in seed 7 at ticks 89 and
-109. Purposeful supply trips are a possible next addition if these small
-reserves prove useful to watch; residents do not yet gather on behalf of a
-cache or prepare it for a lean season.
+109. Purposeful supply trips are now available with provisioning on, as
+described above. Residents respond to a low cache; they do not forecast the
+next lean season or stock up to a seasonal plan.
 
 ## Grown children choose an adult home
 
@@ -683,10 +912,11 @@ survival overall; it does not say individual outcomes are unchanged. A unit
 carried to a neighbour plainly helps whoever receives it and costs whoever
 gave it.
 
-**Memory covers terrain and received food.** A person remembers rough cells
+**Memory covers terrain, received food and optional empty-source sightings.** A person remembers rough cells
 for later routes and up to four people who gave them food. Former helpers
-can take priority over other visibly starving neighbours. People do not yet
-remember empty sources, refusals or unsuccessful attempts to help, and they
+can take priority over other visibly starving neighbours. Optional source memory
+retains dated empty-patch and fishing-spot sightings. People do not yet
+remember refusals or unsuccessful attempts to help, and they
 do not seek out a remembered person who is outside sight.
 
 **Childhood exists, but family life is still thin.** Newborns have a parent,

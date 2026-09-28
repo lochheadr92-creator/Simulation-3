@@ -68,8 +68,9 @@ from typing import Any
 from world.config import WorldConfig
 from world.observe import Observation
 from world.overlay import Position
-from world.storage import spare_for_store, store_id
+from world.storage import spare_for_store, store_id, start_provisioning
 from world.housing import GO_SETTLE, SETTLE, GO_RELOCATE, RELOCATE, choose_site, choose_relocation
+from world.fishing import FISH_SOURCE, FISH
 from world.materials import GATHER_WOOD, GO_WOOD, WAIT_WOOD, WOOD_PACK, wood_cost, remaining_wood
 
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
@@ -79,7 +80,7 @@ BUILD = "build"
 DEPOSIT = "deposit"
 OFFER, GO_OFFER = "offer", "go_offer"
 ASK, AGREE = "ask", "agree"
-LEG5_PRIORITY = (EAT, CLAIM, WAIT, YIELD, ASK, GO, AGREE, OFFER, GO_OFFER, HOME, BUILD, REST)
+LEG5_PRIORITY = (EAT, CLAIM, FISH, WAIT, YIELD, ASK, GO, AGREE, OFFER, GO_OFFER, HOME, BUILD, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
 WATER_PRIORITY = (DRINK, DRAW, WAIT_WATER, GO_WATER)
 WARM, GO_SHELTER = "warm", "go_shelter"
@@ -99,6 +100,9 @@ class Decision:
     target: str | None = None            # the source aimed at, when its kind has several
     helped_at: int | None = None         # remembered gift that changed this recipient choice
     home_site: Position | None = None
+    provisioning: str | None = None
+    announced_to: tuple[str, ...] = ()
+    waiting_for_food: str | None = None
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -114,6 +118,12 @@ class Decision:
             out["helped_at"] = self.helped_at
         if self.home_site is not None:
             out["home_site"] = list(self.home_site)
+        if self.provisioning is not None:
+            out["provisioning"] = self.provisioning
+        if self.announced_to:
+            out["announced_to"] = list(self.announced_to)
+        if self.waiting_for_food is not None:
+            out["waiting_for_food"] = self.waiting_for_food
         return out
 
 
@@ -322,7 +332,9 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
     if hungry and observation.at_source:
         if observation.source_food is None:
             raise AssertionError(f"{observation.actor} is at the source but did not observe its stock")
-        found.append(CLAIM if observation.source_food >= 1 else WAIT)
+        gather = (FISH if config.fishing_on and observation.source_id == FISH_SOURCE
+                  and not observation.fishing_ready else CLAIM)
+        found.append(gather if observation.source_food >= 1 else WAIT)
     if hungry and not observation.at_source:
         if yield_eligible(observation, config):
             found.append(YIELD)
@@ -365,7 +377,7 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
     """
     if action == EAT:
         return (2, 0)
-    if action in (CLAIM, WAIT):
+    if action in (CLAIM, FISH, WAIT):
         return (1, 0)
     if action == GO:
         return (0, 2 * (observation.hunger - config.hungry_at) + 1)
@@ -383,6 +395,9 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
         choice = _decide_needs(observation, config)
     else:
         choice = _decide_food(observation, config)
+    if observation.food_choice_changed and choice.kind in (GO, WAIT, CLAIM, FISH, YIELD):
+        choice = replace(choice, reason=choice.reason +
+                         f"; avoiding {observation.food_choice_changed}, remembered empty; trying {observation.source_id}")
     if config.homes_on and observation.choosing_home and choice.kind in (HOME, BUILD, REST):
         site = choose_site(observation, config)
         if site is not None:
@@ -433,7 +448,55 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    if config.provisioning_on and choice.kind in (REST, HOME):
+        return _provision_decision(observation, config, choice)
     return choice
+
+
+def _provision_decision(observation: Observation, config: WorldConfig, choice: Decision) -> Decision:
+    """Use spare time for one natural-source collection, then carry it home."""
+    phase = observation.provision_phase
+    if phase is None and not start_provisioning(observation, config):
+        return choice
+    if is_child(observation, config) or observation.provision_source is None:
+        return choice
+    if phase is None and config.warmth_on and observation.cold > 0:
+        return Decision(observation.actor, WARM, "warming up before gathering food for home",
+                        choice.candidates + (WARM,),
+                        scores=choice.scores + ((WARM, (0, 1)),) if choice.scores is not None else None)
+    if phase is None and config.coordination_on and observation.food_expected is not None:
+        speaker, heard = observation.food_expected
+        return replace(choice, waiting_for_food=speaker,
+                       reason=f"{speaker} said they were getting food at tick {heard}; postponing my cache trip")
+    phase = phase or "gather"
+    sid, site, stock = observation.provision_source
+    if phase == "return":
+        if observation.at_home:
+            return choice
+        kind, target, amount = HOME, None, 0
+        step = route_step(observation, observation.home, config)
+        reason = "returning from a food trip for the shared home cache"
+    else:
+        if observation.position == site and stock is None:
+            raise AssertionError("provisioning at a source requires observed stock")
+        kind = (GO if observation.position != site else WAIT if not stock else
+                FISH if sid == FISH_SOURCE and not observation.fishing_ready else CLAIM)
+        target, amount = sid, min(config.claim_amount, stock) if kind == CLAIM else 0
+        step = route_step(observation, site, config) if kind == GO else None
+        reason = "food trip for the low shared home cache; " + {
+            GO: f"walking to {sid}", WAIT: f"waiting at empty {sid}",
+            FISH: "casting from the bank", CLAIM: f"collecting at {sid} to carry home"}[kind]
+        if observation.provision_avoided:
+            reason += f"; avoiding {observation.provision_avoided}, remembered empty"
+    options = choice.candidates + ((kind,) if kind not in choice.candidates else ())
+    scores = None if choice.scores is None else tuple(
+        (action, (0, 1) if action == kind else score) for action, score in choice.scores)
+    if scores is not None and kind not in dict(scores):
+        scores += ((kind, (0, 1)),)
+    return Decision(observation.actor, kind, reason, options, target=target,
+                    amount=amount, step=step, scores=scores, provisioning=phase,
+                    announced_to=observation.housemates_in_view if config.coordination_on
+                    and observation.provision_phase is None else ())
 
 
 def steps_to(origin: Position, target: Position) -> int:
@@ -584,7 +647,7 @@ def _water_decision(observation: Observation, config: WorldConfig, selected: str
 def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     options = candidates(observation, config)
     actor = observation.actor
-    target = observation.source_id if config.food_sources > 1 or config.stores_on else None
+    target = observation.source_id if config.food_sources > 1 or config.stores_on or config.fishing_on else None
     if not options:
         return Decision(actor, DEAD, "dead", ())
     scores = None
@@ -599,12 +662,16 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
     urgency = "emergency" if observation.hunger >= config.emergency_at else "hungry"
     if selected == EAT:
         return Decision(actor, EAT, f"{urgency}, holding {observation.food}", options, amount=1, scores=scores)
+    if selected == FISH:
+        return Decision(actor, FISH, f"{urgency}, casting from the bank", options, scores=scores, target=target)
     if selected == CLAIM:
         seen = observation.source_food
         if seen is None:
             raise AssertionError("claim selected without observed source stock")
         amount = min(config.claim_amount, seen)
-        return Decision(actor, CLAIM, f"{urgency}, at source with {seen} free", options, amount=amount, scores=scores,
+        reason = (f"{urgency}, catching fish with {seen} available" if observation.source_id == FISH_SOURCE
+                  else f"{urgency}, at source with {seen} free")
+        return Decision(actor, CLAIM, reason, options, amount=amount, scores=scores,
                         target=target)
     if selected == WAIT:
         return Decision(actor, WAIT, f"{urgency}, source empty", options, scores=scores, target=target)

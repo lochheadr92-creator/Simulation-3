@@ -25,6 +25,7 @@ from typing import Any, Iterable, Mapping
 # same table, so a new kind the world grows shows up as its own name until a
 # phrase is added here.
 ACTION_PHRASES: dict[str, str] = {
+    "fish": "casting from the bank",
     "go_wood": "walking to gather wood", "gather_wood": "gathering wood", "wait_wood": "waiting for wood to regrow",
     "go_relocate": "walking to a nearer home", "relocate": "moving into a nearer home",
     "go_settle": "walking to an adult home", "settle_home": "settling into an adult home",
@@ -52,6 +53,7 @@ ACTION_PHRASES: dict[str, str] = {
 
 # Short labels for the alternatives a person had, as chips in the inspector.
 ACTION_LABELS: dict[str, str] = {
+    "fish": "cast for fish",
     "go_wood": "go to wood", "gather_wood": "gather wood", "wait_wood": "wait for wood",
     "go_relocate": "walk to nearer home", "relocate": "move home",
     "go_settle": "go to new home", "settle_home": "settle home",
@@ -87,7 +89,7 @@ def food_sources(cfg: Mapping[str, Any], world: Mapping[str, Any] | None = None)
     patches = [dict(entry) for entry in listed] if listed else (
         [{"id": cfg["source"], "position": cfg["source_position"]}]
         if "source" in cfg and "source_position" in cfg else [])
-    sources = patches + [dict(entry, store=True) for entry in cfg.get("food_stores", [])]
+    sources = patches + [dict(entry, fishing=True) for entry in cfg.get("fishing_sources", [])] + [dict(entry, store=True) for entry in cfg.get("food_stores", [])]
     declared = {entry["id"] for entry in sources}
     return sources + [{"id": sid, "position": pos, "store": True}
                       for sid, pos in (world or {}).get("home_caches", {}).items() if sid not in declared]
@@ -290,6 +292,39 @@ def build_index(run: Any) -> dict[str, Any]:
                 continue
             decision = decisions.get(actor) or {}
             kind = decision.get("kind")
+            old_trip = before.get("provision_trips", {}).get(actor)
+            new_trip = world.get("provision_trips", {}).get(actor)
+            if decision.get("provisioning") and not old_trip:
+                add(k, "food", "provision_start", f"{actor} set out to gather food for the low home cache",
+                    who=actor, src=decision.get("target"))
+            if old_trip and not new_trip and actor not in world.get("died_at", {}):
+                if positions[actor] == world["homes"][actor]:
+                    add(k, "food", "provision_home", f"{actor} returned from a home-cache food trip",
+                        who=actor)
+            if old_trip and not decision.get("provisioning") and new_trip:
+                if (earlier.get(actor) or {}).get("provisioning"):
+                    add(k, "food", "provision_interrupted",
+                        f"{actor} interrupted the home-cache trip: {decision.get('reason', kind)}", who=actor)
+            memory_view = (tick.get("observations") or {}).get(actor, {})
+            for listener in decision.get("announced_to", []):
+                add(k, "food", "food_announcement", f"{actor} told housemate {listener}: I'm getting food for us",
+                    who=actor, other=listener)
+            waiting_for = decision.get("waiting_for_food")
+            if waiting_for and (earlier.get(actor) or {}).get("waiting_for_food") != waiting_for:
+                add(k, "food", "food_expected_wait", f"{actor} postponed a cache trip, expecting food from {waiting_for}",
+                    who=actor, other=waiting_for)
+            if memory_view.get("food_expectation_end"):
+                speaker = before.get("food_expected", {}).get(actor, [None])[0]
+                add(k, "food", "food_expectation_end",
+                    f"{actor} stopped expecting food from {speaker}: {memory_view['food_expectation_end']}",
+                    who=actor, other=speaker)
+            old_target = (memory_view.get("provision_avoided") if decision.get("provisioning") == "gather"
+                          else memory_view.get("food_choice_changed"))
+            if (old_target and kind in ("go", "wait", "claim", "fish", "yield")
+                    and (k == 1 or (run.ticks[k-2].get("decisions", {}).get(actor, {}).get("target") != decision.get("target")))):
+                add(k, "food", "food_reroute",
+                    f"{actor} avoided {old_target}, remembered empty; trying {decision.get('target')}",
+                    who=actor, src=decision.get("target"))
             if kind == "gather_wood" and outcomes.get(actor) is not None:
                 outcome = outcomes[actor]
                 amount = _gained(outcome, f"actor@wood:{actor}") if outcome.get("accepted") else 0
@@ -340,7 +375,7 @@ def build_index(run: Any) -> dict[str, Any]:
                 where = target or (cfg.get("source") if kind == "claim" else cfg.get("water_source"))
                 if outcome.get("accepted"):
                     got = _gained(outcome, account)
-                    verb = "took" if kind == "claim" else "drew"
+                    verb = "caught" if where in {s["id"] for s in cfg.get("fishing_sources", [])} else "took" if kind == "claim" else "drew"
                     add(k, resource, kind, f"{actor} {verb} {got} {resource} at {where}", who=actor, src=where, amount=got)
                     tally["claims" if kind == "claim" else "draws"] += 1
                 else:
@@ -472,6 +507,8 @@ def build_index(run: Any) -> dict[str, Any]:
                                                  [(s, "ran dry", "is filling again", "water") for s in water] + \
                                                  [(s, "has no wood left", "has grown more wood", "wood") for s in wood]:
             sid = source["id"]
+            if source.get("fishing"):
+                word_out, word_back = "has no fish left", "has replenished fish stock"
             condition = world.get("patch_condition", {}).get(sid)
             was_condition = before.get("patch_condition", {}).get(sid)
             threshold = cfg.get("patch_rules", {}).get("full_growth_at")

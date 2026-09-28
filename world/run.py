@@ -51,6 +51,14 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-homes"
     if config.relocation_on:
         mode += "-relocation"
+    if config.source_memory_on:
+        mode += "-source-memory"
+    if config.provisioning_on:
+        mode += "-provisioning"
+    if config.coordination_on:
+        mode += "-coordination"
+    if config.fishing_on:
+        mode += "-fishing"
     if config.wood_on:
         mode += "-wood"
     return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
@@ -201,10 +209,18 @@ def build_parser() -> argparse.ArgumentParser:
                         help="alternate plentiful and lean food growth every 120 ticks (default off)")
     parser.add_argument("--stores", choices=("on", "off"), default="off",
                         help="put spare food at founding homes for nearby people to collect (default off)")
+    parser.add_argument("--provisioning", choices=("on", "off"), default="off",
+                        help="gather food for a low home cache (requires stores on; default off)")
+    parser.add_argument("--coordination", choices=("on", "off"), default="off",
+                        help="announce food trips to nearby housemates (requires provisioning on; default off)")
     parser.add_argument("--homes", choices=("on", "off"), default="off",
                         help="grown children establish or join a nearby home (requires childhood; default off)")
     parser.add_argument("--relocation", choices=("on", "off"), default="off",
                         help="move after repeated costly supply outings (requires homes on; default off)")
+    parser.add_argument("--source-memory", choices=("on", "off"), default="off",
+                        help="remember empty food patches and fishing spots (default off)")
+    parser.add_argument("--fishing", choices=("on", "off"), default="off",
+                        help="bank fishing with finite stocks and steady seasonal renewal (default off)")
     parser.add_argument("--wood", choices=("on", "off"), default="off",
                         help="gather and spend wood to build shelters (requires building; default off)")
     parser.add_argument("--building", choices=("on", "off"), default="on",
@@ -272,8 +288,12 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["regrowth_on"] = args.regrowth == "on"
     levers["seasons_on"] = args.seasons == "on"
     levers["stores_on"] = args.stores == "on"
+    levers["provisioning_on"] = args.provisioning == "on"
+    levers["coordination_on"] = args.coordination == "on"
     levers["homes_on"] = args.homes == "on"
     levers["relocation_on"] = args.relocation == "on"
+    levers["source_memory_on"] = args.source_memory == "on"
+    levers["fishing_on"] = args.fishing == "on"
     levers["wood_on"] = args.wood == "on"
     levers["births_on"] = args.births == "on"
     levers["birth_spacing"] = args.birth_spacing

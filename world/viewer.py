@@ -240,7 +240,7 @@ def render_html(run: Run) -> str:
     childhood = scenario.get("childhood") == "on"
     levers = ", ".join(f"{k} {v}" for k, v in scenario.items() if isinstance(v, int) and k != "seed")
     switches = [key for key in ("water", "warmth", "terrain", "building", "offers", "requests", "births",
-                                "childhood", "trips", "regrowth", "seasons", "stores", "homes", "relocation", "wood")
+                                "childhood", "trips", "regrowth", "seasons", "stores", "homes", "relocation", "wood", "fishing", "source_memory", "provisioning", "coordination")
                 if scenario.get(key) == "on"]
     rules = "".join(f"<dt>{html.escape(k)}</dt><dd>{html.escape(v)}</dd>" for k, v in scenario.items()
                     if isinstance(v, str) and len(v) > 24)

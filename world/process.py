@@ -47,11 +47,14 @@ from kernel.proposals import OP_CONSUME, OP_TRANSFER
 from kernel.state import SINK_ACCOUNT, actor_account, sink_account
 from world.observe import in_view
 
-from world.config import WATER, WorldConfig, wood_sites
+from world.config import WATER, WorldConfig, wood_sites, fishing_sites
+from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
+from world.foraging import remember_empty
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, wood_cost
 from world.decide import AGREE, ASK, BUILD, Decision
 from world.overlay import Overlay
 from world.social import remember_food
+from world.storage import update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
 
@@ -205,7 +208,19 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     condition = (recover_patches(overlay.patch_condition, config.food_source_ids(), record)
                  if config.regrowth_on else dict(overlay.patch_condition))
     season = season_at(settled.tick) if config.seasons_on else None
+    empty_sources = {}
+    if config.source_memory_on:
+        for actor in overlay.living:
+            view = (observations or {}).get(actor)
+            entries = (view.empty_sources if view is not None
+                       else remember_empty(overlay.empty_sources.get(actor, ()), (), overlay.tick))
+            if entries and actor not in died_at:
+                empty_sources[actor] = entries
     next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
+                           fishing_cast={p: positions[p] for p,d in decisions.items()
+                                         if config.fishing_on and d.kind == FISH and p not in died_at
+                                         and (d.target, positions[p]) in fishing_sites(config)},
+                           empty_sources=empty_sources,
                            patch_condition=condition,
                            season=season,
                            home_targets=overlay.home_targets, home_settled=overlay.home_settled,
@@ -232,6 +247,11 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.homes_on:
         next_overlay, ledger, created = apply_housing(next_overlay, ledger, decisions, config, record.rotated_roster, overlay)
         production.extend(created)
+    if config.provisioning_on:
+        next_overlay = replace(next_overlay, provision_trips=update_provisioning(overlay, next_overlay, decisions, record))
+    if config.coordination_on:
+        next_overlay = replace(next_overlay, food_expected=update_food_expectations(
+            overlay, next_overlay, decisions, observations or {}))
     growth = seasonal_growth(config.renewal_amount, season) if season is not None else config.renewal_amount
     renewals = [(source_id, config.renewal_every,
                  food_growth(growth, condition[source_id]) if config.regrowth_on else growth,
@@ -239,6 +259,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 for source_id in config.food_source_ids()]
     renewals += [(source_id, config.water_renewal_every, config.water_renewal_amount, config.water_cap)
                   for source_id in config.water_source_ids()]
+    renewals += [(sid, FISH_RENEWAL_EVERY, FISH_RENEWAL, FISH_STOCK) for sid,_ in fishing_sites(config)]
     renewals += [(sid, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_STOCK) for sid,_ in wood_sites(config)]
     for source_id, every, per_renewal, cap in renewals:
         if per_renewal > 0 and settled.tick % every == 0:
@@ -315,6 +336,10 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
                     birth_ready=ready if config.birth_spacing or overlay.birth_ready else {},
                     terrain_memory=dict(overlay.terrain_memory), food_memory=dict(overlay.food_memory),
                     patch_condition=dict(overlay.patch_condition),
+                    empty_sources=overlay.empty_sources,
+                    provision_trips=overlay.provision_trips,
+                    food_expected=overlay.food_expected,
+                    fishing_cast=overlay.fishing_cast,
                     season=overlay.season,
                     home_targets=overlay.home_targets, home_settled=overlay.home_settled,
                     home_caches=overlay.home_caches,

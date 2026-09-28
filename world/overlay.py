@@ -108,6 +108,10 @@ class Overlay:
     home_trip_ticks: Mapping[str, int] = field(default_factory=dict)
     home_strain: Mapping[str, int] = field(default_factory=dict)
     shelter_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)
+    fishing_cast: Mapping[str, Position] = field(default_factory=dict)
+    empty_sources: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)
+    provision_trips: Mapping[str, str] = field(default_factory=dict)  # gather once, then return home
+    food_expected: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # listener -> speaker, heard tick
 
     def __post_init__(self) -> None:
         if self.season is not None and self.season not in SEASONS:
@@ -116,12 +120,50 @@ class Overlay:
             raise ValueError("a tick must be an integer of zero or more")
         homes = _positions(self.homes)
         positions = _positions(self.positions)
+        expectations = {}
+        if not isinstance(self.food_expected, Mapping):
+            raise ValueError("food expectations must map listeners to announcements")
+        for listener, entry in self.food_expected.items():
+            if not isinstance(entry, (tuple, list)) or len(entry) != 2:
+                raise ValueError("a food expectation needs a speaker and heard tick")
+            speaker, heard = entry
+            if (listener not in positions or not isinstance(speaker, str) or speaker not in positions
+                    or speaker == listener or type(heard) is not int or not 0 <= heard <= self.tick):
+                raise ValueError("food expectations need distinct known people and a past heard tick")
+            expectations[listener] = (speaker, heard)
+        object.__setattr__(self, "food_expected", MappingProxyType(dict(sorted(expectations.items()))))
+        trips = dict(self.provision_trips)
+        if any(p not in positions or phase not in ("gather", "return") for p, phase in trips.items()):
+            raise ValueError("provision trips need known people and gather or return phases")
+        object.__setattr__(self, "provision_trips", MappingProxyType(dict(sorted(trips.items()))))
         for name in ("home_trip_ticks", "home_strain"):
             values = dict(getattr(self, name))
             if any(p not in positions or type(n) is not int or n < 0 for p,n in values.items()):
                 raise ValueError(f"{name} needs known people and non-negative integer counts")
             object.__setattr__(self, name, MappingProxyType(dict(sorted(values.items()))))
         object.__setattr__(self, "shelter_memory", _terrain_memory(self.shelter_memory, roster=set(positions)))
+        empty = {}
+        if not isinstance(self.empty_sources, Mapping):
+            raise ValueError("empty_sources must map people to remembered sightings")
+        for actor, entries in self.empty_sources.items():
+            if actor not in positions or not isinstance(entries, (tuple, list)):
+                raise ValueError("empty source memories need a known person and a list of sightings")
+            recent = {}
+            for entry in entries:
+                if not isinstance(entry, (tuple, list)) or len(entry) != 2:
+                    raise ValueError("an empty source memory needs a source and tick")
+                sid, when = entry
+                if (not isinstance(sid, str) or not sid or sid in recent
+                        or type(when) is not int or not 0 <= when <= self.tick):
+                    raise ValueError("empty source memories need distinct source names and observed ticks")
+                recent[sid] = when
+            if recent:
+                empty[actor] = tuple(sorted(recent.items()))
+        object.__setattr__(self, "empty_sources", MappingProxyType(dict(sorted(empty.items()))))
+        casts = _positions(self.fishing_cast)
+        if set(casts) - set(positions):
+            raise ValueError("fishing casts must name known people")
+        object.__setattr__(self, "fishing_cast", casts)
         targets = _positions(self.home_targets)
         if set(targets) - set(positions):
             raise ValueError("home targets must name known people")
@@ -221,6 +263,11 @@ class Overlay:
     def canonical(self) -> dict[str, Any]:
         return {
             "tick": self.tick,
+            **({"provision_trips": dict(self.provision_trips)} if self.provision_trips else {}),
+            **({"food_expected": {p: list(entry) for p, entry in self.food_expected.items()}} if self.food_expected else {}),
+            **({"empty_sources": {p: [list(e) for e in entries] for p,entries in self.empty_sources.items()}}
+               if self.empty_sources else {}),
+            **({"fishing_cast": {p: list(pos) for p,pos in self.fishing_cast.items()}} if self.fishing_cast else {}),
             "homes": {actor: list(pos) for actor, pos in self.homes.items()},
             "positions": {actor: list(pos) for actor, pos in self.positions.items()},
             "hunger": dict(self.hunger),
@@ -261,7 +308,7 @@ class Overlay:
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory"):
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -292,6 +339,10 @@ class Overlay:
                    food_memory=dict(data.get("food_memory", {})),
                    patch_condition=dict(data.get("patch_condition", {})),
                    season=data.get("season"),
+                   empty_sources=dict(data.get("empty_sources", {})),
+                   provision_trips=dict(data.get("provision_trips", {})),
+                   food_expected=dict(data.get("food_expected", {})),
+                   fishing_cast=cells(data.get("fishing_cast", {})),
                    home_targets=cells(data.get("home_targets", {})),
                    home_settled=dict(data.get("home_settled", {})),
                    home_caches=cells(data.get("home_caches", {})),

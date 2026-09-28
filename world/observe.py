@@ -38,6 +38,7 @@ which the observation already carries, so `cold` is the only field it adds.
 Several sources of a kind (2026-09-26): every source position is a known
 landmark. The one a person heads for (`target_source`) is the nearest (steps,
 then id) seen with free stock; when none in view has stock, it is the nearest.
+Optional fishing adds one tick of casting effort to that distance ranking.
 A source out of view never attracts anyone, so without memory nobody walks
 back and forth at the edge of their sight. `source` / `source_food` (and
 `water_source` / `water_stock`) then describe that target, and the record adds
@@ -54,7 +55,9 @@ from typing import Any
 from kernel import WorldState
 from kernel.state import actor_account, source_account
 
-from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, wood_sites
+from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, wood_sites, fishing_sites
+from world.storage import food_expectation
+from world.foraging import remember_empty
 from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
@@ -134,6 +137,16 @@ class Observation:
     wood_source_id: str | None = None
     wood_source: Position | None = None
     wood_stock: int | None = None
+    fishing_ready: bool = False
+    empty_sources: tuple[tuple[str, int], ...] = ()
+    food_choice_changed: str | None = None  # target without empty-source memory
+    food_target: str | None = None
+    provision_phase: str | None = None
+    provision_source: tuple[str, Position, int | None] | None = None
+    provision_avoided: str | None = None
+    housemates_in_view: tuple[str, ...] = ()
+    food_expected: tuple[str, int] | None = None
+    food_expectation_end: str | None = None
 
     @property
     def at_source(self) -> bool:
@@ -160,6 +173,26 @@ class Observation:
     def compact(self) -> dict[str, Any]:
         """Run-file form: seen identities, and source stock if seen."""
         out: dict[str, Any] = {"sees": [seen.actor for seen in self.others]}
+        if self.food_expected is not None:
+            out["food_expected"] = list(self.food_expected)
+        if self.food_expectation_end is not None:
+            out["food_expectation_end"] = self.food_expectation_end
+        if self.housemates_in_view:
+            out["housemates_in_view"] = list(self.housemates_in_view)
+        if self.provision_phase is not None:
+            out["provision_phase"] = self.provision_phase
+        if self.provision_source is not None:
+            sid, pos, stock = self.provision_source
+            out["provision_source"] = {"id": sid, "position": list(pos), "stock": stock}
+        if self.provision_avoided is not None:
+            out["provision_avoided"] = self.provision_avoided
+        if self.empty_sources:
+            out["empty_sources"] = dict(self.empty_sources)
+        if self.food_choice_changed is not None:
+            out["food_choice_changed"] = self.food_choice_changed
+            out["food_target"] = self.food_target
+        if self.fishing_ready:
+            out["fishing_ready"] = 1
         if self.source_food is not None:
             out["source_food"] = self.source_food
         if self.water_stock is not None:
@@ -202,11 +235,27 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
-    food_known = tuple(zip(config.food_source_ids(), config.food_positions()))
+    food_known = tuple(zip(config.food_source_ids(), config.food_positions())) + fishing_sites(config)
+    empty_sources = (remember_empty(overlay.empty_sources.get(actor, ()),
+                     tuple((sid, available[source_account(sid)]) for sid,pos in food_known
+                           if in_view(origin, pos, radius)), ledger.tick) if config.source_memory_on else ())
+    provision_source = None
+    provision_avoided = None
+    if config.provisioning_on:
+        effort = {sid: 1 for sid, _ in fishing_sites(config)}
+        provision_source = target_source(origin, food_known, radius, available, effort,
+                                        frozenset(sid for sid, _ in empty_sources))
+        ordinary_natural = target_source(origin, food_known, radius, available, effort)
+        if ordinary_natural[0] != provision_source[0]:
+            provision_avoided = ordinary_natural[0]
     caches = (tuple((sid, pos, None) for sid, pos in overlay.home_caches.items())
               if config.homes_on else store_sites(config))
     own_cache = next((sid for sid, pos, resident in caches
                       if origin == pos and (overlay.homes[actor] == pos if config.homes_on else resident == actor)), None)
+    expected, expectation_end = (food_expectation(
+        overlay.food_expected.get(actor), ledger.tick, overlay.homes[actor], others,
+        ledger.sources[own_cache].stock if own_cache is not None else None)
+        if config.coordination_on else (None, None))
     choosing_home = (config.homes_on and overlay.alive(actor) and actor in overlay.parent
                      and overlay.age.get(actor, 0) >= config.adult_at and actor not in overlay.home_settled)
     relocating = can_relocate(actor, overlay, config)
@@ -219,7 +268,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                            if pos in overlay.shelters and in_view(origin, pos, radius))
     # An empty or unseen cache must never replace the ordinary patch fallback.
     food_known += tuple((sid, pos) for sid, pos in visible_caches if available[source_account(sid)] > 0)
-    source_id, source, source_food = target_source(origin, food_known, radius, available)
+    effort = {sid: 1 for sid,_ in fishing_sites(config)}
+    ordinary = target_source(origin, food_known, radius, available, effort)
+    source_id, source, source_food = target_source(origin, food_known, radius, available, effort,
+                                                  frozenset(sid for sid,_ in empty_sources))
     known = food_known + tuple(zip(config.water_source_ids(), config.water_positions()))
     several = len(food_known) > 1 or len(config.water_source_ids()) > 1
     seen_stock = tuple((sid, available[source_account(sid)]) for sid, position in known
@@ -227,6 +279,17 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     seen_stock = tuple(sorted(dict(seen_stock + tuple((sid, available[source_account(sid)])
                                                     for sid, _ in visible_caches)).items()))
     return Observation(
+        housemates_in_view=tuple(seen.actor for seen in others if overlay.homes[seen.actor] == overlay.homes[actor])
+            if config.coordination_on else (),
+        food_expected=expected,
+        food_expectation_end=expectation_end,
+        provision_phase=overlay.provision_trips.get(actor) if config.provisioning_on else None,
+        provision_source=provision_source,
+        provision_avoided=provision_avoided,
+        empty_sources=empty_sources,
+        food_choice_changed=ordinary[0] if ordinary[0] != source_id else None,
+        food_target=source_id if config.source_memory_on else None,
+        fishing_ready=overlay.fishing_cast.get(actor) == origin,
         actor=actor,
         tick=ledger.tick,
         alive=overlay.alive(actor),
@@ -276,16 +339,19 @@ def steps_between(a: Position, b: Position) -> int:
 
 
 def target_source(origin: Position, known: tuple[tuple[str, Position], ...], radius: int,
-                  available: Mapping[str, int]) -> tuple[str, Position, int | None]:
+                  available: Mapping[str, int], effort: Mapping[str, int] | None = None,
+                  avoid: frozenset[str] = frozenset()) -> tuple[str, Position, int | None]:
     """The source of one kind a person heads for, from what they can see now:
-    the nearest (steps, then id) seen with free stock; if none in view has
-    stock, the nearest. Returns its id, position, and free stock when in view
-    (None when out of view). With one source it is always that source."""
-    ranked = sorted(known, key=lambda item: (steps_between(origin, item[1]), item[0]))
+    visible stocked sources come first, then sources not remembered empty,
+    then all sources as a fallback. Each group is ranked by steps plus any
+    gathering effort, then id. Stock is None outside sight. Without memory
+    or gathering effort this is the original nearest-source rule."""
+    ranked = sorted(known, key=lambda item: (steps_between(origin, item[1]) + (effort or {}).get(item[0], 0), item[0]))
     options = [(sid, position, available[source_account(sid)] if in_view(origin, position, radius) else None)
                for sid, position in ranked]
     stocked = [option for option in options if option[2] is not None and option[2] > 0]
-    return (stocked or options)[0]
+    untried = [option for option in options if option[0] not in avoid]
+    return (stocked or untried or options)[0]
 
 
 def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldConfig,

@@ -32,8 +32,10 @@ from typing import Any
 from kernel import Source, WorldState
 
 from world.overlay import Overlay
-from world.storage import STORE_TARGET, store_id
+from world.storage import STORE_TARGET, STORE_LOW, FOOD_EXPECT_TICKS, store_id
 from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
+from world.foraging import EMPTY_SOURCE_TICKS
+from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
                            SEASON_TICKS, SEASONS, season_at, seasonal_growth)
@@ -136,14 +138,22 @@ class WorldConfig:
     cold_emergency_at: int = 50
     cold_death_at: int = 80
     wood_on: bool = False         # gather and spend wood to build shelters
+    fishing_on: bool = False      # one bank fishing spot with season-independent stock
+    source_memory_on: bool = False  # remember empty natural food sources for later journeys
+    provisioning_on: bool = False  # make food trips for a low shared home cache
+    coordination_on: bool = False  # briefly trust a nearby housemate's announced food trip
 
     def __post_init__(self) -> None:
         checks = {
             "regrowth": type(self.regrowth_on) is bool,
             "seasons": type(self.seasons_on) is bool,
             "stores": type(self.stores_on) is bool,
+            "provisioning": type(self.provisioning_on) is bool and (not self.provisioning_on or self.stores_on),
+            "coordination": type(self.coordination_on) is bool and (not self.coordination_on or self.provisioning_on),
             "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
             "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
+            "source_memory": type(self.source_memory_on) is bool,
+            "fishing": type(self.fishing_on) is bool,
             "wood": type(self.wood_on) is bool and (not self.wood_on or self.building_on),
             "social_memory": type(self.social_memory_on) is bool,
             "width": self.width >= 3, "height": self.height >= 3, "actors": self.actors >= 1,
@@ -184,6 +194,8 @@ class WorldConfig:
         if bad:
             raise ValueError(f"invalid world configuration: {', '.join(bad)}")
         object.__setattr__(self, "yield_set", tuple(self.yield_set))
+        if self.fishing_on and not fishing_sites(self):
+            raise ValueError("fishing needs a clear bank cell outside homes and sources")
         if self.wood_on and not wood_sites(self):
             raise ValueError("wood needs at least one clear cell outside homes and existing sources")
 
@@ -214,7 +226,7 @@ class WorldConfig:
         return ((self.width // 4, self.height // 4), (self.width // 4, 3 * self.height // 4))[: self.water_sources]
 
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
-        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self))
+        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -285,6 +297,26 @@ class WorldConfig:
                                      "After that update, on the usual renewal tick, a patch below full_growth_at "
                                      "grows half renewal_amount rounded up; otherwise it grows renewal_amount. "
                                      "Stock remains capped, zero renewal stays zero, and water is unchanged.")
+        if self.source_memory_on:
+            out["source_memory"] = "on"
+            out["empty_source_ticks"] = EMPTY_SOURCE_TICKS
+            out["source_memory_rule"] = (
+                "Remember empty berry patches and fishing spots observed at tick start. "
+                "Current visible stock clears an empty memory; visible emptiness refreshes its date. "
+                "Forget after empty_source_ticks without seeing it empty. Prefer visible stocked food, "
+                "then sources not remembered empty, then the nearest fallback when all are remembered empty. "
+                "Rank within each group by travel plus gathering effort, then source id. "
+                "Caches still attract only while visibly stocked. Memory never reveals distant stock.")
+        if self.fishing_on:
+            out["fishing"] = "on"
+            out["fishing_sources"] = [{"id": sid, "position": list(pos)} for sid,pos in fishing_sites(self)]
+            out["fishing_rules"] = {"stock": FISH_STOCK, "cap": FISH_STOCK,
+                                    "renewal_every": FISH_RENEWAL_EVERY, "renewal": FISH_RENEWAL}
+            out["fishing_rule"] = (
+                "One tick casts from the bank, the next consecutive food claim catches up to claim_amount. "
+                "Other actions interrupt the cast. Catches are ordinary food, settled against finite stock. "
+                "Fish renew independently of berry wear and seasons. Positions are known landmarks; "
+                "stock is visible only in sight. Travel choice includes one extra step of fishing effort.")
         if self.wood_on:
             out["wood"] = "on"
             out["wood_sources"] = [{"id": sid, "position": list(pos)} for sid,pos in wood_sites(self)]
@@ -332,6 +364,31 @@ class WorldConfig:
                 "record an empty cache at a new site; anyone living there can deposit. Six food is a "
                 "refill target, not a hard cap: simultaneous residents can overshoot it. Newborns retain "
                 "their own nearby childhood home until making this choice. No later relocation rule.")
+        if self.coordination_on:
+            out["coordination"] = "on"
+            out["food_expect_ticks"] = FOOD_EXPECT_TICKS
+            out["coordination_rule"] = (
+                "Starting a provisioning outing announces it to living housemates in sight at tick start. "
+                "Speech costs no extra action; listeners hear after making this tick's choices. "
+                "Remember one speaker and the completed heard tick; simultaneous speakers use ID order. "
+                "For food_expect_ticks, postpone only a new optional cache trip. Needs, helping, "
+                "warming and existing outings keep priority. Seeing that speaker back at home with "
+                "at most one carried meal or "
+                "seeing at least provision_low meals in one's home cache ends the expectation early. "
+                "Unseen events do not update it. Moving home or dying clears one's expectation; "
+                "births preserve existing listeners. There is no same-tick worker allocation.")
+        if self.provisioning_on:
+            out["provisioning"] = "on"
+            out["provision_low"] = STORE_LOW
+            out["provision_rule"] = (
+                "An adult at their finished home who would rest, holds at most one meal, "
+                "and sees fewer than provision_low meals in the shared cache starts a food outing "
+                "after warming fully at home. "
+                "Use natural food sources with normal local stock and empty-source memory ranking; "
+                "never haul from another cache. Collect once through normal settlement, then return. "
+                "Needs, helping, building and home changes keep priority. Interruptions retain the "
+                "outing until home arrival, a move or death; births preserve other people's outings. "
+                "At home the existing deposit rule keeps one meal and stores any spare food.")
         if self.stores_on:
             out["stores"] = "on"
             out["food_stores"] = [{"id": sid, "position": list(pos), "resident": resident}
@@ -583,8 +640,20 @@ class WorldConfig:
         regrowth = described.get("regrowth", "off")
         seasons = described.get("seasons", "off")
         stores = described.get("stores", "off")
+        provisioning = described.get("provisioning", "off")
+        coordination = described.get("coordination", "off")
+        if not isinstance(coordination, str) or coordination not in switches:
+            raise ValueError("coordination must be on or off")
+        if not isinstance(provisioning, str) or provisioning not in switches:
+            raise ValueError("provisioning must be on or off")
         homes = described.get("homes", "off")
         relocation = described.get("relocation", "off")
+        source_memory = described.get("source_memory", "off")
+        if not isinstance(source_memory, str) or source_memory not in switches:
+            raise ValueError("source_memory must be on or off")
+        fishing = described.get("fishing", "off")
+        if not isinstance(fishing, str) or fishing not in switches:
+            raise ValueError("fishing must be on or off")
         wood = described.get("wood", "off")
         if not isinstance(wood, str) or wood not in switches:
             raise ValueError("wood must be 'on' or 'off'")
@@ -637,9 +706,12 @@ class WorldConfig:
                      regrowth_on=switches[regrowth],
                      seasons_on=switches[seasons],
                      stores_on=switches[stores],
+                     provisioning_on=switches[provisioning],
+                     coordination_on=switches[coordination],
                      homes_on=switches[homes],
                      relocation_on=switches[relocation],
-                     wood_on=switches[wood],
+                     wood_on=switches[wood], fishing_on=switches[fishing],
+                     source_memory_on=switches[source_memory],
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",
                      childhood_on=switches[childhood], **need_values, **counts)
@@ -728,11 +800,28 @@ def wood_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
     return tuple(sites)
 
 
+@lru_cache(maxsize=None)
+def fishing_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """Use a clear bank cell near the west edge without moving existing landmarks."""
+    if not config.fishing_on:
+        return ()
+    rough, spots = config.terrain()
+    taken = (set(homes_for(config).values()) | set(config.food_positions() + config.water_positions())
+             | set(rough) | set(spots) | {pos for _,pos in wood_sites(config)})
+    free = [(x,y) for y in range(config.height) for x in range(config.width) if (x,y) not in taken]
+    if not free:
+        return ()
+    anchor = (1, config.height // 2)
+    site = min(free, key=lambda p: (abs(p[0]-anchor[0])+abs(p[1]-anchor[1]), p[1], p[0]))
+    return ((FISH_SOURCE, site),)
+
+
 def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
     """The saved initial state: a kernel ledger and the overlay beside it."""
     actors = config.actor_ids()
     sources = {source_id: Source(stock=config.source_stock, authorised=frozenset(actors))
                for source_id in config.food_source_ids()}
+    sources.update({sid: Source(stock=FISH_STOCK, authorised=frozenset(actors)) for sid,_ in fishing_sites(config)})
     water: dict[str, Any] = {}
     sources.update({sid: Source(stock=0, authorised=frozenset(actors))
                     for sid, _, _ in store_sites(config)})
