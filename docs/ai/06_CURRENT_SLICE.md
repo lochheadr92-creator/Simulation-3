@@ -2,7 +2,7 @@
 
 - Checked: 2026-09-28 against `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus local changes.
 - Authorized: user said "proceed" to bounded sharing and chose to keep terrain-aware departures with causal social-memory tests.
-- State: implemented, tested and watched locally; uncommitted and unpushed.
+- State: implemented, tested and watched locally; committed and pushed as `81c10b7d25cc2e0f1b8de33bf547083eb0972c64` on 2026-09-28. Remote SHA checked. The test result below is recorded implementation evidence, not a rerun for publication.
 - Full suite: **729 passed**. No independent reviewer was used.
 
 Share one recent firsthand empty natural-food sighting with adjacent visible

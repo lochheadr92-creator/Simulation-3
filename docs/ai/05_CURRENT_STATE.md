@@ -12,6 +12,12 @@
 
 **STALE AS SOON AS RELEVANT WORK CHANGES. This is the source-revision snapshot, not a live status feed. Refresh after committed/accepted development work and recheck Git before acting.**
 
+## Publication update — 2026-09-28
+
+The implementation described below was committed as `81c10b7d25cc2e0f1b8de33bf547083eb0972c64` and pushed to `origin/codex/kernel-first-slice`; the remote branch was checked against that exact SHA. This supersedes the uncommitted/unpushed statements in the preserved implementation snapshots below. The recorded 729-test result was not rerun for this documentation update.
+
+A [whole-project adversarial review packet](../reviews/2026-09-28-whole-project/README.md) pins that source and supplies an unsigned report. Preparing the packet is not independent review or user acceptance.
+
 ## Current local sharing work — 2026-09-28
 
 Checked at `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus the uncommitted

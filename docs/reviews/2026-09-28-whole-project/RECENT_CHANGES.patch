@@ -1,0 +1,1395 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index e2ee692c1d28bc8e00d8f582a8e92dddcdfd128e..2c312a1e23bba5e53c499dd6c3f75db2f1c387a3 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -35,0 +36,29 @@ These make the simulation trustworthy to watch. If accounting is broken you cann
++Living World Engineer process
++
++Use this process for engineering work in this repository. The canonical knowledge pack lives in docs/ai/. It is a selective retrieval aid: do not preload all eleven documents or repeat reads of information that is still current.
++
++Follow current explicit user instructions, then this AGENTS.md. Current source and tests establish what exists; WORLD_DIRECTIONS.md supplies development direction; docs/ai/ supplies source-pinned summaries. Historical records and conversation memory are background and navigation aids. Surface conflicts instead of silently choosing a convenient account. This process does not reactivate archived governance.
++
++For substantial independent engineering work, read [docs/ai/00_AGENT_CONSTITUTION.md](docs/ai/00_AGENT_CONSTITUTION.md), then retrieve only what the task needs:
++
++- [05_CURRENT_STATE.md](docs/ai/05_CURRENT_STATE.md): project-state snapshot; verify live Git state when currency matters.
++- [03_SYSTEM_MAP.md](docs/ai/03_SYSTEM_MAP.md): relevant implementation entry points and tests.
++- [01_ARCHITECTURE.md](docs/ai/01_ARCHITECTURE.md): ownership, tick lifecycle, perception, state and persistence.
++- [02_INVARIANTS.md](docs/ai/02_INVARIANTS.md): accounting, determinism, knowledge boundaries and replay/recovery contracts.
++- [04_DECISIONS.md](docs/ai/04_DECISIONS.md): historical rationale, only when needed.
++- [06_CURRENT_SLICE.md](docs/ai/06_CURRENT_SLICE.md): established work boundaries; check against the current request and repository evidence.
++- [07_ROADMAP.md](docs/ai/07_ROADMAP.md): development possibilities; consult WORLD_DIRECTIONS.md for current direction.
++- [08_TESTING_AND_PROOFS.md](docs/ai/08_TESTING_AND_PROOFS.md): verification methods and what their results establish.
++- [09_REPO_MAP.md](docs/ai/09_REPO_MAP.md): locations not already identified through the system map.
++- [10_GLOSSARY.md](docs/ai/10_GLOSSARY.md): ambiguous project terminology only.
++
++Infer the task from the request: explanation, architecture, implementation, debugging, review, verification, direction or history. Reuse sufficiently current evidence, retrieve the smallest relevant summary, then inspect necessary source and tests. The pack does not replace live inspection for exact behaviour, debugging, review or changes. Check source revisions and refresh triggers; when relevant code has changed, verify it and identify stale summaries. Do not invent missing paths, capabilities, decisions or results.
++
++Before changing code, inspect branch, HEAD, staged and unstaged changes, and untracked files. Preserve existing work. Identify the owning subsystem, inspect relevant source, invariants and tests, choose the smallest coherent change, and define how to verify it. Keep routine improvements within the requested scope. Do not infer an active assignment from a recent feature report or roadmap suggestion. Do not commit or push unless authorized by the task.
++
++Trace cause -> state transition -> local observation -> decision or refusal -> action -> world consequence -> later observable consequence. Distinguish choosing an action from successfully executing it. Protect deterministic accounting, state ownership, local knowledge, causal provenance and replay/recovery. Keep simulation truth separate from presentation. Use the architecture's precise distinction between kernel transactional settlement and recorded world production or structural changes.
++
++For debugging, locate the earliest causal divergence. For review, inspect the change independently of its author's claims. Run checks appropriate to the change; preserve unexpected failures and never weaken valid tests just to obtain a pass. For behaviour changes, inspect a saved run in the viewer as well as checking the affected contracts. Read-only and documentation-only tasks stay within their requested scope.
++
++Report what changed, why, checks actually performed, results, limitations and Git state. Distinguish current observations, inferences, hypotheses and recommendations when it matters. Separate recorded test results from fresh executions, and implementation from independent review or user acceptance. Refresh affected summaries when needed without relabelling untouched snapshots as newly verified.
++
+@@ -38 +67 @@ How to work
+-Watch before you prove. After any meaningful change, run the world and look at the viewer. If nothing new is visible, keep going. If something interesting is visible, that is the completion signal for that piece of work — not a passing test, not a comparison, not a documented result.
++Watch the world as part of developing behaviour. After a meaningful behaviour change, run the world and look at the viewer. Something interesting and understandable should be visible; passing tests alone do not establish that. Also check the affected engineering contracts: an interesting scene does not resolve a failing test. For fixes that preserve behaviour, verify the intended correction and preserved behaviour. Documentation-only and read-only tasks do not require new simulation runs or visible features.
+diff --git a/VIEWER_DIRECTION.md b/VIEWER_DIRECTION.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d60f9418bb209ff0ec56039c5491936ffc6e7a34
+--- /dev/null
++++ b/VIEWER_DIRECTION.md
+@@ -0,0 +1,148 @@
++# Viewer direction: Field atlas
++
++## 1. The direction
++
++The world is a floating piece of terrain, cut away at the edges, shown in 3D
++in golden-hour light. Visible side faces give the slab weight. Vertex-coloured
++ground makes rough cells and shelter spots readable as different ground types.
++It should feel like a small place worth watching, with enough detail to follow
++someone's journey without losing sight of the whole world.
++
++People, food sources, wells, homes and shelters are 3D objects. Berries show
++food stock; the water level in a well shows its stock. Keep fishing spots,
++home caches and wood groves distinct when the run contains them. Each person
++keeps their own colour from `COLOR` in `world/viewer.js`.
++
++A full inspector sits on the right. Selecting a person shows:
++
++- **Needs:** hunger, thirst and cold histories as sparklines, with the run's
++  hungry/thirsty/cold, emergency and death thresholds marked for each need.
++  Show only needs and thresholds the run records.
++- **Current decision:** recorded eligible candidates and scores, the chosen
++  action, its target and reason, and the observations behind that choice.
++  Missing scores stay missing; the viewer does not work them out.
++- **Settlement:** the kernel outcome and its recorded reason, including
++  accepted outcomes. Say when no kernel transaction was recorded.
++- **Recent events:** what happened to this person, with jumps to those views.
++
++Click a person in the scene to select them. A small chip names the selected
++person. Keep hover and follow useful while the world plays.
++
++The time-of-day control switches between two lighting presets: golden hour
++and dusk. Occupied homes show chimney smoke using the existing lit-window
++condition described below. Light and smoke make the place feel inhabited.
++
++Chrome, type and colour follow the Nocturne look: a dark blue-grey background,
++the single `#9184d9` interface accent used for lines and glow, compact spacing,
++8px radii, and outlined rather than filled primary buttons. People's colours
++and meaningful scene colours remain distinct. Copy only tokens and component
++styles into `world/viewer.css`; do not bring in the Nocturne React bundle.
++Use the existing system font stack, with no web fonts or external assets.
++
++## 2. Rules the direction must respect
++
++The page stays self-contained. `test_the_page_is_self_contained` rejects
++`<link`, `<script src`, `@import`, `url(`, `fetch(`, `XMLHttpRequest`,
++`WebSocket`, `import(`, `localStorage` and `sessionStorage`. It also rejects
++`src` or `href` values starting with `//`, `http://` or `https://`.
++These are checks on the generated page's text, including inlined library code.
++
++Keep exactly one executable inline `<script>`, which must pass Node's syntax
++check in `test_the_page_script_parses_under_node`. The two JSON data blocks
++remain separate. Do not load three.js as an ES module in the page. Either
++inline a suitable classic build into the executable script or write a small
++WebGL renderer. A classic build still has to satisfy the literal bans above;
++inlining alone does not establish that it fits.
++
++No new exporter or schema is needed. Keep reading `run-data` (header, ticks
++and the existing presentation metadata) and `view-index`, built by
++`world/viewer_index.py`. View 0 is genesis; view k shows the world after tick
++k-1 with that tick's decisions and outcomes.
++
++Every world number shown is recorded or counted from recorded values.
++Movement animation eases the picture between recorded views; it never chooses
++an action or changes the world. `test_the_page_runs_no_world_rules` stays intact.
++Keep each meaningful visual tied to what the file records:
++
++- Needs history reads `hunger`, `thirst` and `cold` from the saved worlds;
++  thresholds come from the saved scenario.
++- Decision rationale reads `decisions` (`candidates`, `scores`, `kind`,
++  `target`, `reason`) and `observations` (people seen and observed stocks).
++- Settlement reads `record.outcomes`, including its reasons.
++- Recent events read `view-index` events through `EV_OF`.
++- Positions, homes and shelters come from recorded world state; rough cells
++  and shelter spots come from the scenario. Stock uses the existing readers
++  for saved stock plus recorded production, including newly created caches.
++- Smoke uses the current lit-window rule: a living person occupies the shelter
++  cell and its identified owner is not dead. Smoke motion is decoration only.
++- Golden hour and dusk are display presets. Where `world.season` is recorded,
++  use it to choose the default preset and show the actual season separately.
++  Otherwise label the control **Display only**. A manual choice is also display
++  only; neither preset claims that the run records a day/night cycle.
++
++Reuse `ELEV` for the terrain's shape. It is deterministic display relief,
++computed from the seed, cell types and layer settings, not recorded altitude.
++It must not imply new travel costs or feed back into the world.
++
++Selection, hover and follow keep using `selected`, `hovered` and `follow`.
++Layers keep using `LAYERS`. Honour `REDUCED` for movement, camera motion and
++ambient effects. Preserve the `--text` view, old-run fallbacks and
++`test_older_world_shapes_still_open`. All of `tests/test_map_viewer.py` must
++keep passing. Keep existing recorded information available in the new layout.
++
++## 3. How to get there, in order
++
++Each step is one pull request.
++
++1. **Rendering spike.** Inline the renderer and build the terrain from `ELEV`,
++   with pan, zoom and fit. Confirm the self-contained and Node-parse tests pass.
++2. **Entities from the run.** Show sources with stock, homes, shelters and
++   people, easing positions between views k and k+1. Add the existing layers.
++3. **Picking.** Raycast against people meshes, write the result into the
++   existing selection state, and add the selection chip.
++4. **Inspector.** Restyle the right panel with Nocturne tokens: need
++   sparklines and thresholds, decisions and scores, settlement, recent events.
++5. **Polish.** Add the lighting presets, carry occupied-home smoke into 3D,
++   and refine materials so the world remains easy to read.
++
++## 4. How to check it
++
++Follow `AGENTS.md`: watch it, don't just prove it. After each step, render
++`runs/aquarium.jsonl`, `runs/asking.jsonl` and a seasonal run such as
++`runs/seasons/seed11-seasons1.jsonl` with
++`py -3 -B -m world.viewer <run>.jsonl`.
++
++Screenshot each generated page with
++`node tools/shoot.js <page.html> <out-dir> [view ...]` and open the images.
++The tool calls `show(k)` and captures `#map`, then the whole viewport; keep
++those entry points working. Also open the pages and watch playback, selection,
++follow and the inspector. Screenshots alone cannot show how motion reads.
++
++A step is done when the world visibly reads better than before and the
++existing tests pass. Don't build new verification infrastructure.
++
++## 5. Open decision
++
++This direction assumes a small hand-written WebGL renderer. It keeps each
++saved page smaller and can avoid unused loading code caught by the existing
++self-contained checks, but geometry, lighting and picking take more work.
++Inlining three.js would add roughly 600 KB per saved page, depending on the
++build. Ryan still needs to confirm which trade-off he wants.
++
++**Differences found while reading:**
++
++- Today's scene is Canvas 2D with isometric drawing, not a 3D renderer.
++  Smoke and selection labels already exist; `ELEV` is generated display relief.
++- The current needs chart combines the recorded needs and marks only the first
++  available emergency threshold. Separate sparklines with all thresholds are new.
++- Smoke already uses `occupied && !ownerDead`, not occupancy alone.
++- There are three script elements: two JSON blocks and one executable script.
++  The test bans external `src`/`href` links, not every occurrence of `//`.
++  Its additional literal bans are listed above. `run-data` also includes
++  timings, end data, problems, checkpoints and prepared details.
++- r149 was not the last classic three.js build. The builds remained through
++  r160 and were removed in r161; see the
++  [three.js migration guide](https://github.com/mrdoob/three.js/wiki/Migration-Guide#r160--r161).
++- Recorded seasons are plentiful/lean food seasons. There is no recorded
++  time of day or existing golden-hour/dusk control. Nocturne styling is new:
++  the current CSS uses teal backgrounds, several accents and 12px base radii.
+diff --git a/WORLD_DIRECTIONS.md b/WORLD_DIRECTIONS.md
+index 789dcbff3117c68913156b34e0ffe79594b851e5..1d48f5b7dadf414524edd4dcd125eafda263bc5f 100644
+--- a/WORLD_DIRECTIONS.md
++++ b/WORLD_DIRECTIONS.md
+@@ -1,0 +2,139 @@
++Viewer visual direction: [Field atlas](VIEWER_DIRECTION.md).
++
++## Sharing firsthand food sightings — 2026-09-28
++
++Local implementation on `codex/kernel-first-slice`, based on `22ffe27` plus
++the existing terrain-planning work. Uncommitted and unpushed.
++
++`--source-memory on --knowledge-sharing on` lets a person tell visible
++housemates on the same or an adjacent cell about their most recent firsthand
++empty berry-patch or fishing-spot sighting. Speech accompanies the ordinary
++action. Listeners can use the report from the following tick. Personal food
++trips and optional home-cache trips use it in the existing source ranking.
++The new sharing switch is off by default.
++
++Reports keep the source, original witness, sighting tick and hearing tick.
++They expire twenty ticks after the sighting; repeated speech does not extend
++that date. Recipients cannot relay reports. Current sight overrides them,
++as does an equally recent or newer personal sighting. Recent firsthand
++stocked sightings are retained too, preventing an older empty report from
++undoing what a listener already saw. No distant refill or death supplies
++new information. Existing need priorities, child limits, fallback when all
++sources are remembered empty, gathering and resource accounting remain.
++
++**Watch seed 11, p05, viewer ticks 133–150.** p09 saw `food` empty at
++simulation tick 128 and told p05 at completed tick 133. p05 feeds a child at
++134 and starts a household outing at 135. At 137, personally seen empty fish
++plus p09's report send p05 toward `food2`. Removing only reports from that
++same decision state sends p05 toward `food`. Thirst interrupts at 140;
++p05 later takes three food from `store-p04` at 147, eats at 148, returns
++home at 149 and deposits one at 150. The report changes a choice, not a
++guaranteed destination or successful rescue. The browser inspector shows
++the native reason and dated report; playback was inspected without browser
++warnings or errors.
++
++Three matched 360-tick runs use source memory, stores, adult homes,
++provisioning, coordination, fishing, regrowth and seasons, with birth
++spacing 30. The exact configuration is in each saved header.
++
++| Seed | Accepted report updates | Changed food decision ticks | Living off / on |
++| --- | --- | --- | --- |
++| 7 | 8 | 0 | 18 / 18 |
++| 11 | 43 | 26 | 12 / 13 |
++| 23 | 12 | 1 | 19 / 21 |
++
++Changed decisions compare the native on-run choice with the same state and
++personal memories but reports disabled. Counts include consecutive ticks
++and report-induced early departures, not unique journeys or meals.
++Population totals do not establish a general survival benefit.
++
++**Verification:** 729 tests passed in the full suite. The 13 sharing tests
++cover local hearing, next-tick effects, an actual sighting-to-meal chain,
++no relaying, original-date expiry, fresh/personal sight, unseen changes,
++deterministic competing reports, child limits, fallback, immutable validated
++state, birth preservation, death cleanup, configuration, saved replay,
++repeat runs, recovery with a report present, and viewer output. The affected
++subsystem run passed 96 tests before an additional attribution test was
++added; the final full suite includes that test. All six final comparison
++files verify and replay. The correction to report attribution changed no
++world states in these examples; disabled-mode tick content was unchanged
++(both seal chains verified independently; code-identity changes alter seals).
++
++The earlier travel-planning conflict was resolved with the user's explicit
++choice to retain terrain-aware departure. Both original failures were
++reproduced. Their fixed gift/choice dates were replaced with a controlled
++real-transfer -> memory -> changed recipient -> real return-transfer test,
++including viewer events, exact accounting and deterministic continuation.
++The two original seeds still run through their full original horizons and
++replay, but their old scenes are not claimed to recur. No substitute lucky
++seed, skipped test or relaxed replay check was used.
++
++The feature uses `world/foraging.py`, the existing observation/decision and
++processing paths, two sparse overlay fields (`food_sightings`,
++`source_reports`), config/CLI and the existing viewer. No kernel or stream
++code changed. With sharing off, no new header/state/observation fields are
++written. The older terrain-planning compatibility limit remains: headers
++from the previous departure rule cannot replay under the new rule when
++planned trips, terrain and routing were all enabled. Recovery still requires
++matching code identity. No independent reviewer was used.
++
++Local artifacts are in
++`C:/Users/RJLoc/OneDrive/Desktop/Documents/ChatGPT/Simulation 3 - Living World Engineer/work/knowledge-sharing/final/`.
++Open `seed11-on.html`; `summary.json` contains the bounded comparisons.
++These files are local and are not guaranteed in a clean clone.
++
++## Planning food trips from remembered ground — 2026-09-28
++
++Local implementation on top of `22ffe27`; not committed or pushed. With
++planned trips, terrain and routing enabled, a person now uses the existing
++route search's cost when deciding when to leave for their selected food source.
++Known rough ground costs two ticks, other ground one. Their current movement
++delay is included. Unseen ground still counts as open. This reuses personal
++terrain memory; it does not record elapsed journey durations or share knowledge.
++
++The selected source, route choices and tie-breaking, fishing cast, water and
++shelter planning, need priority, resource accounting and storage rules are
++unchanged. The nominal hunger rate still ignores shelter relief, interruptions
++and competition. Disabling terrain or routing retains Manhattan departure
++timing. No new switch or persistent state field was added.
++
++**Watch p01 in `runs/travel-planning/repeat-trip-seed1.html`.** On the first
++outing they depart at simulation tick 21 with hunger 21, learn rough ground,
++and claim food at tick 27 with hunger 27. On the repeat outing they depart at
++48 with hunger 19, allow six travel ticks instead of four, claim at 54 with
++hunger 25, and eat at 55. The viewer shows the result of a simulation tick one
++frame later: inspect frame 49 for the departure reason and frame 56 for the meal.
++The configuration is in `repeat_trip_config()` in `tests/test_travel_planning.py`.
++
++The matched test control starts at the second departure with identical needs,
++position and supplies but without the earlier terrain sightings. It still
++learns normally after that point. It waits two more ticks and claims at hunger
++27. This is a controlled comparison, not a claim of improved population survival.
++
++**Fresh checks:** 70 focused tests passed, including all 24 new travel checks.
++Recovery before the repeat departure and during a rough-ground delay matches
++the uninterrupted run; repeating the run gives the same trail digest. The
++80-tick example and an ordinary 180-tick seed-7 world verify and replay
++identically. The browser showed the departure reason, map and later meal.
++An additional comparison against HEAD found identical first steps in 800
++sampled routing cases and header differences only in `decision` for the
++planned-trips/terrain/routing combination, across 16 combinations including
++fishing on/off. These are bounded checks, not exhaustive equivalence claims.
++
++**Historical result before the sharing work: 713 passed, 2 failed.** The
++regression-contract conflict is resolved in the newer note above. Both failures were cases of
++`test_remembered_gift_changes_choice_and_is_visible` in `tests/test_social_memory.py`.
++Their fixed scenes are seed 14 (gift 534, choice 643) and seed 26 (gift 588,
++choice 774). Both pass on unchanged HEAD in an isolated checkout snapshot.
++The first actual action differences are the intended earlier departures:
++seed 14, tick 28, p06 rests before and goes now (hunger 22, cost 2 -> 3);
++seed 26, tick 334, p12 builds before and goes now (hunger 21, cost 3 -> 4).
++The expected social scenes do not recur in those horizons. These failures are
++preserved in this historical account. The newer note above records the explicit
++behaviour choice and revised causal coverage; no independent review is claimed.
++
++The saved decision rule now describes terrain-informed food planning. Old
++headers with all three switches enabled fail exact reconstruction/replay;
++recovery also retains its code-identity check. Old files remain readable.
++Other switch combinations keep their previous descriptions. No compatibility
++or replay check was relaxed. Saved example files are local ignored artifacts.
+@@ -1043,3 +1182,4 @@ Later, exploring for a new source when the ones they know keep failing.
+-terrain. These interact with the existing leave-in-time rules, which
+-currently estimate arrival in straight-line steps and so under-count the
+-cost of a rough crossing.
++terrain. Personal food departure timing now uses seen and remembered rough
++ground when terrain and routing are enabled; unknown ground remains open in
++that estimate. Water and shelter departure timing still use straight-line
++steps. See the current travel-planning note above for its limits and tests.
+diff --git a/docs/ai/01_ARCHITECTURE.md b/docs/ai/01_ARCHITECTURE.md
+index 0a50faeb428245b39ccc3c2f38e13cd46f9d9b35..5d02d3bbecea165361aa61c80d6bf59a1fac77f4 100644
+--- a/docs/ai/01_ARCHITECTURE.md
++++ b/docs/ai/01_ARCHITECTURE.md
+@@ -27,0 +28,12 @@ The older [viewer/world_view.py](../../viewer/world_view.py) is separate and imp
++## Scoped update — firsthand reports, 2026-09-28
++
++Checked against `22ffe27` plus local sharing/travel changes. `world/foraging.py`
++owns retention and merging of firsthand food sightings and heard empty-source
++reports. `observe` filters reports against personal sight and derives source
++choices; `decide` records one firsthand report and adjacent housemate recipients.
++`process.advance` delivers after choices. Sparse immutable `food_sightings`
++and `source_reports` fields round-trip and survive births. Native observations
++and reasons distinguish a report's effect from personal empty-source memory;
++the viewer displays that record. See `tests/test_knowledge_sharing.py`.
++The original snapshot below otherwise retains its original revision metadata.
++
+diff --git a/docs/ai/03_SYSTEM_MAP.md b/docs/ai/03_SYSTEM_MAP.md
+index db44aeced20389c9ab339a3ceb4962b188998db8..fbf1b0958dcbb299f8a06ab648d4dab0914ff021 100644
+--- a/docs/ai/03_SYSTEM_MAP.md
++++ b/docs/ai/03_SYSTEM_MAP.md
+@@ -29,0 +30 @@ Use this after [current state](05_CURRENT_STATE.md). Paths are relative links to
++| Firsthand source reports (local update 2026-09-28) | [foraging](../../world/foraging.py): remember_sightings, usable_reports, update_reports; observe/decide/process/overlay | Adjacent housemates, provenance, expiry, personal/provisioning destinations, saved viewer reasons | [knowledge sharing](../../tests/test_knowledge_sharing.py) |
+diff --git a/docs/ai/05_CURRENT_STATE.md b/docs/ai/05_CURRENT_STATE.md
+index d08c90e746033c74c141fbb00cc89d042a277d07..e906470747feec94d213c26c2155752fa8bbffb7 100644
+--- a/docs/ai/05_CURRENT_STATE.md
++++ b/docs/ai/05_CURRENT_STATE.md
+@@ -14,0 +15,49 @@
++## Current local sharing work — 2026-09-28
++
++Checked at `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus the uncommitted
++terrain-planning and knowledge-sharing changes. This section supersedes the
++active-work and failure-status statements below; older source metadata stays
++historical. Full suite: **729 passed**. The user chose to retain terrain-aware
++departure and replace the two exact-scene assumptions with causal social-memory
++coverage. Those original seeds still receive full-horizon replay checks.
++
++Optional `--knowledge-sharing on` requires `--source-memory on`. Firsthand
++empty-source reports pass only to adjacent visible housemates, affect later
++food/provisioning choices, retain provenance and expire from the sighting date.
++Reports cannot be relayed. Own newer/current sight wins. Two sparse overlay
++fields preserve firsthand sightings and reports through births and recovery.
++
++Six matched saved worlds verify/replay; seed 11's report-driven choice and
++inspector were watched in the browser. See [current slice](06_CURRENT_SLICE.md)
++and the newest [development account](../../WORLD_DIRECTIONS.md) for scope,
++counts, artifacts and compatibility limits. Changes remain uncommitted and
++unpushed. No independent review or user visual acceptance is claimed.
++
++## Current local travel-planning work — 2026-09-28
++
++Checked against `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus the current local
++travel-planning edits. This section supersedes the older active-work and
++departure-estimate statements below; their source metadata remains historical.
++
++Personal food departure timing now uses the existing route search over seen
++and personally remembered rough ground, including any current movement delay,
++when planned trips, terrain and routing are enabled. Unknown ground is still
++open in the estimate. No new persistent state or knowledge transfer was added.
++Nominal hunger rate, fishing casting cost, source selection and other needs'
++planning keep their existing rules. This is planning from remembered sightings,
++not learning elapsed journey durations.
++
++Fresh verification: **70 focused tests passed; full suite 713 passed, 2 failed**.
++The two unchanged fixed-scene social-memory tests pass at baseline HEAD but
++diverge after the intentionally earlier departures. They remain unresolved,
++not skipped or repinned. New tests establish the repeat-trip/control difference,
++personal observation boundary, delay/cast handling, replay, recovery and viewer
++text. Two saved worlds verify and replay, and the repeat-trip scene was inspected
++in the browser. See [current slice](06_CURRENT_SLICE.md) and the latest account
++in [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md) for precise scope and failures.
++
++All implementation, test and documentation changes are uncommitted and unpushed.
++No independent review was performed. Old headers combining planned trips,
++terrain and routing no longer reconstruct under the changed decision rule;
++readability is preserved, exact-rule/replay and code-identity checks are intact.
++
+@@ -23 +72 @@ The saved rule description changes for this switch combination. Old fishing-plus
+-The implementation passed the full 691-test suite. Final compatibility checks passed 93 fishing/replay/recovery/damaged-suffix tests and verified all four switch combinations using valid sealed synthetic fixtures with the previous descriptions. These fixtures isolate rule compatibility from code identity; they are not historical run reproductions. The earlier seed-23 viewer check showed early casting followed by a separate catch and meal. Departure remains a Manhattan-distance and nominal-rate estimate, without predicting terrain delays, shelter effects, competition or interruptions.
++The implementation passed the full 691-test suite. Final compatibility checks passed 93 fishing/replay/recovery/damaged-suffix tests and verified all four switch combinations using valid sealed synthetic fixtures with the previous descriptions. These fixtures isolate rule compatibility from code identity; they are not historical run reproductions. The earlier seed-23 viewer check showed early casting followed by a separate catch and meal. At that revision, departure remained a Manhattan-distance and nominal-rate estimate, without predicting terrain delays, shelter effects, competition or interruptions.
+diff --git a/docs/ai/06_CURRENT_SLICE.md b/docs/ai/06_CURRENT_SLICE.md
+index d6bb290816112e5dad04d3d4a63d0b02543cc0dc..b13d9dd31bd4c5a52d9fdde0c91532a8fbfdd876 100644
+--- a/docs/ai/06_CURRENT_SLICE.md
++++ b/docs/ai/06_CURRENT_SLICE.md
+@@ -1 +1 @@
+-# Current slice — volatile snapshot
++# Current slice — sharing firsthand food sightings
+@@ -3 +3,4 @@
+-## Source snapshot
++- Checked: 2026-09-28 against `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus local changes.
++- Authorized: user said "proceed" to bounded sharing and chose to keep terrain-aware departures with causal social-memory tests.
++- State: implemented, tested and watched locally; uncommitted and unpushed.
++- Full suite: **729 passed**. No independent reviewer was used.
+@@ -5,7 +8,6 @@
+-- Source branch: `codex/kernel-first-slice`
+-- Source HEAD: `eda72d290bdb33aaaf620ad136149c6ef04e0a96`
+-- Constructed: 2026-09-28 from local source inspection and recorded documentation.
+-- Currency: snapshot only; not automatically current after this revision. Recheck relevant source and Git state before acting.
+-- Authority: [AGENTS.md](../../AGENTS.md) wins over this pack; [WORLD_DIRECTIONS.md](../../WORLD_DIRECTIONS.md) supplies current development direction.
+-- Evidence source: current AGENTS.md and WORLD_DIRECTIONS.md; inspected local state.
+-- Refresh trigger: whenever active work changes or an explicit slice is established.
++Share one recent firsthand empty natural-food sighting with adjacent visible
++housemates alongside the ordinary action. Use it only from the following tick.
++Keep original dates and witness; no relaying, no hidden refill knowledge, and
++no extension through repeated speech. Current/newer firsthand evidence wins.
++Reuse food-source ranking for personal and household trips. The new switch
++is optional and requires source memory. No kernel or stream changes.
+@@ -13 +15,6 @@
+-**RECHECK WHENEVER ACTIVE WORK CHANGES. This file does not assign work or remain current automatically.**
++The actual sighting -> hearing -> changed destination -> collection -> meal
++chain has focused coverage. Seed 11's ordinary saved world shows a report
++changing p05's choice at frame 137, followed by thirst, collection from a cache,
++a meal and a later home deposit. The browser inspector and playback were
++checked; six final comparison runs verify and replay. Recovery with a report
++present and deterministic repeat runs pass in the suite.
+@@ -15 +22,4 @@
+-## Declared status
++The earlier two fixed-scene failures were reproduced and resolved by the
++explicitly selected test-contract change. A controlled actual gift and return
++gift establish causation; seeds 14 and 26 retain full-horizon replay checks.
++Their former scenes are no longer expected under changed departure timing.
+@@ -17 +27,3 @@
+-**NO ACTIVE SLICE ESTABLISHED FROM REPOSITORY EVIDENCE**
++See the latest [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md) account for exact
++scope, results and local artifact paths. Older terrain-rule replay compatibility
++limits still apply; checks were not relaxed. No next feature is assigned here.
+@@ -19 +31 @@
+-No active implementation slice ID/name, objective, allowed boundary, excluded scope, acceptance criteria or intended proof object was established at the source revision.
++---
+@@ -21,8 +33 @@ No active implementation slice ID/name, objective, allowed boundary, excluded sc
+-| Field | Snapshot |
+-| --- | --- |
+-| Slice ID/name and objective | UNKNOWN — no current declaration established |
+-| Allowed scope / exclusions | UNKNOWN — do not derive these from the latest commit |
+-| Affected systems / relevant invariants | UNKNOWN for an active slice; use [system map](03_SYSTEM_MAP.md) and [invariants](02_INVARIANTS.md) after scope is established |
+-| Intended proof object / acceptance criteria | UNKNOWN — no active-slice contract established |
+-| Implementation authorization | Not established by this pack |
+-| Status | No active slice established |
++## Historical travel-planning record
+@@ -30 +35,2 @@ No active implementation slice ID/name, objective, allowed boundary, excluded sc
+-## Why this is explicit
++The following is the preserved pre-sharing record. Its remaining-conflict and
++test-count statements are superseded by the current account above.
+@@ -32 +38 @@ No active implementation slice ID/name, objective, allowed boundary, excluded sc
+-WORLD_DIRECTIONS contains recent completed feature reports, including coordination, and several accumulated suggestions for what to watch next. Its lower “What to try next” material overlaps later implemented work. Neither a suggestion nor the most recent completed feature constitutes a current slice declaration.
++# Current slice — personal terrain knowledge in food planning
+@@ -34 +40 @@ WORLD_DIRECTIONS contains recent completed feature reports, including coordinati
+-Root ROADMAP describes historical stages. Current AGENTS.md expressly retires their authority. Archived slice cards and owner-direction records cannot silently open current work.
++## Source and scope
+@@ -36 +42,48 @@ Root ROADMAP describes historical stages. Current AGENTS.md expressly retires th
+-The authorized knowledge-pack creation is a documentation task; it does not establish a new simulation engineering slice. When a task explicitly establishes a slice, update this file with its actual source and boundary. Do not fill missing acceptance criteria or authorization from inference. Use [current state](05_CURRENT_STATE.md) for the implementation snapshot and [roadmap](07_ROADMAP.md) for unresolved directions.
++- Checked: 2026-09-28.
++- Baseline branch: `codex/kernel-first-slice`.
++- Baseline HEAD: `22ffe2748dc4c5ee14c71295ff33810c7f456a7c`.
++- State: local implementation and tests, uncommitted and unpushed.
++- Task: the user authorized the proposed bounded slice with “proceed”.
++- Authority: [AGENTS.md](../../AGENTS.md); live source outranks this snapshot.
++
++Use a person's existing seen/remembered terrain to estimate their selected food
++trip and leave earlier when needed. Unknown ground stays unknown. Reuse route
++search, tie-breaking and memory; include the current personal movement delay.
++Do not change food-source ranking, water/shelter planning, household rules,
++resource accounting or unrelated behaviour to make the example work. This
++slice does not learn elapsed journey durations or add a knowledge-sharing rule.
++
++## Implemented and checked
++
++`world/decide.py` shares next-step and route-cost calculation and uses the cost
++for personal food departures. `world/observe.py` supplies the person's existing
++movement delay. `world/config.py` describes the changed deterministic rule.
++`tests/test_travel_planning.py` covers the contract and saved-run continuation.
++The viewer displays the native decision reason without a presentation change.
++
++The seed-1 repeat-trip test demonstrates personally acquired terrain memory,
++six estimated travel ticks instead of four, departure at hunger 19 instead of
++21, and collection at hunger 25 instead of 27. Its matched control has identical
++starting needs/location/supplies without earlier sightings; it learns normally
++afterwards. The repeat run, recovery before departure and during a terrain
++delay, and replay checks pass. The saved viewer shows the chain. An ordinary
++180-tick seed-7 run also verifies and replays.
++
++## Remaining conflict
++
++**70 focused tests passed. Full suite: 713 passed, 2 failed.** Both unchanged
++failures are `tests/test_social_memory.py::test_remembered_gift_changes_choice_and_is_visible`:
++seed 14's gift/choice at 534/643 and seed 26's at 588/774 no longer occur in the
++changed worlds. The same two tests pass on isolated, unchanged baseline HEAD.
++The first actual divergences are earlier food departures at ticks 28 and 334,
++respectively. No test was skipped, weakened or repinned, and there has been no
++independent review. Resolve the conflict between intentional trajectory change
++and the fixed-scene regression contract before calling this a clean handoff.
++
++Old saved headers with planned trips, terrain and routing enabled fail exact
++rule reconstruction under the changed code. Other combinations retain their
++descriptions. Replay/recovery validation was not weakened.
++
++See [the latest development note](../../WORLD_DIRECTIONS.md) for exact evidence,
++local saved examples, viewer frame numbering and limitations. Historical stages
++and this document do not automatically assign another feature.
+diff --git a/tests/test_knowledge_sharing.py b/tests/test_knowledge_sharing.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e1b09c8efe0336d9870c4e0871cb0e0652a04408
+--- /dev/null
++++ b/tests/test_knowledge_sharing.py
+@@ -0,0 +1,234 @@
++"""Firsthand sightings cross one local encounter and change later foraging."""
++import json
++from dataclasses import replace
++
++import pytest
++
++from kernel import Engine
++from stream.run_file import read_run
++from world.config import WorldConfig, genesis
++from world.decide import decide
++from world.foraging import remember_sightings, usable_reports, update_reports
++from world.observe import observe
++from world.overlay import Overlay
++from world.process import _births
++from world.run import world_step, run_world, build_parser, config_from, run_id_for
++from world.replay import replay_world
++from world.recover import recover_world
++from world.viewer import render_html
++from world.viewer_index import build_index
++
++
++def house():
++    cfg = WorldConfig(seed=7, actors=3, source_memory_on=True, knowledge_sharing_on=True,
++                      terrain_on=False, water_on=False, warmth_on=False, births_on=False,
++                      offers_on=False, building_on=False, perception_radius=1,
++                      renewal_every=1000, stagger_start=False)
++    ledger, world = genesis(cfg)
++    source = cfg.source_position
++    home = (source[0]-2, source[1])
++    homes = {p: home for p in world.roster}
++    ledger = replace(ledger, balances={p: 0 for p in world.roster},
++                     sources={s: replace(v, stock=0) if s=='food' else v for s,v in ledger.sources.items()})
++    world = replace(world, homes=homes, positions=dict(homes, p01=(source[0]-1, source[1]), p03=(0,0)),
++                    hunger={p: 0 for p in world.roster}, held={p: 0 for p in world.roster})
++    return cfg, ledger, world
++
++
++def test_actual_sighting_speech_later_choice_and_meal():
++    cfg, ledger, world = house()
++    first = world_step(Engine(ledger), world, cfg)
++    silent = world_step(Engine(ledger), world, replace(cfg, knowledge_sharing_on=False))
++    assert first.decisions['p01'].source_report == ('food', 0)
++    assert first.decisions['p01'].report_to == ('p02',)
++    assert first.decisions['p02'].target == silent.decisions['p02'].target
++    assert first.record.canonical() == silent.record.canonical()
++    assert first.processed.overlay.source_reports == {'p02': (('food','p01',0,1),)}
++    assert 'p03' not in first.processed.overlay.source_reports
++    later = replace(first.processed.overlay, hunger=dict(first.processed.overlay.hunger,p02=cfg.hungry_at))
++    view = observe('p02', first.engine.state, later, cfg)
++    actual = decide(view,cfg)
++    counterfactual = decide(observe('p02', first.engine.state, later, replace(cfg,knowledge_sharing_on=False)),
++                            replace(cfg,knowledge_sharing_on=False))
++    assert actual.kind == counterfactual.kind == 'go'
++    assert actual.target == 'food2' and counterfactual.target == 'food'
++    assert 'p01 reported food empty at tick 0' in actual.reason
++    assert not view.empty_sources  # hearing does not become a firsthand sighting
++    step = world_step(first.engine, later, cfg)
++    collected = ate = False
++    for _ in range(25):
++        collected |= step.decisions['p02'].kind == 'claim' and any(o.actor=='p02' and o.accepted for o in step.record.outcomes)
++        ate |= collected and step.decisions['p02'].kind == 'eat'
++        assert step.engine.state.totals() == ledger.totals()
++        if ate: break
++        step = world_step(step.engine,step.processed.overlay,cfg)
++    assert collected and ate
++    assert not world.source_reports and not world.food_sightings
++
++
++@pytest.mark.parametrize('changes', [
++    {'positions': {'p01':(5,6),'p02':(3,6),'p03':(0,0)}},
++    {'homes': {'p01':(4,6),'p02':(0,0),'p03':(4,6)}},
++    {'died_at': {'p01':0}},
++])
++def test_nonadjacent_nonhousemate_or_dead_speaker_cannot_tell(changes):
++    cfg, ledger, world = house()
++    step = world_step(Engine(ledger),replace(world,**changes),cfg)
++    assert not step.processed.overlay.source_reports
++
++
++def test_reports_cannot_be_relayed_and_repetition_does_not_refresh_age():
++    cfg,ledger,world=house()
++    first=world_step(Engine(ledger),world,cfg)
++    ov=replace(first.processed.overlay,positions=world.homes)
++    second=world_step(first.engine,ov,cfg)
++    assert second.decisions['p02'].source_report is None
++    assert second.processed.overlay.source_reports['p02']==(('food','p01',0,1),)
++    assert not second.processed.overlay.empty_sources.get('p02')
++    expired=observe('p02',replace(second.engine.state,tick=20),replace(ov,tick=20),cfg)
++    assert not expired.source_reports and expired.source_id=='food'
++
++
++def test_current_sight_and_newer_personal_sight_override_stale_report():
++    cfg,ledger,world=house()
++    report=(('food','p01',0,1),)
++    world=replace(world,tick=2,source_reports={'p02':report},positions=dict(world.positions,p02=cfg.source_position))
++    ledger=replace(ledger,tick=2,sources={s:replace(v,stock=2) for s,v in ledger.sources.items()})
++    seen=observe('p02',ledger,world,cfg)
++    assert seen.source_id=='food' and not seen.source_reports
++    # Its own newer stocked sighting remains decisive after moving out of sight.
++    assert not usable_reports(report,seen.food_sightings,3)
++    assert not usable_reports(report,(('food',0,2),),3)
++    assert usable_reports(report,(),3)==report
++    assert remember_sightings((('food',1,2),),(),22)==()
++
++
++def test_unseen_refill_or_speaker_death_supplies_no_remote_update():
++    cfg,ledger,world=house()
++    step=world_step(Engine(ledger),world,cfg)
++    world=replace(step.processed.overlay,positions=dict(world.homes,p01=(0,0)))
++    before=observe('p02',step.engine.state,world,cfg)
++    hidden=replace(step.engine.state,sources={s:replace(v,stock=8) for s,v in step.engine.state.sources.items()})
++    assert observe('p02',hidden,replace(world,died_at={'p01':1}),cfg)==before
++
++
++def test_newer_reports_win_deterministically_without_rejuvenation():
++    cfg,ledger,world=house()
++    world=replace(world,tick=5,positions=world.homes,
++                  food_sightings={'p01':(('food',0,2),),'p03':(('food',0,3),)})
++    views={p:observe(p,replace(ledger,tick=5),world,cfg) for p in world.living}
++    choices={p:decide(v,cfg) for p,v in views.items()}
++    a=update_reports(world,choices,views,{},6)
++    b=update_reports(world,dict(reversed(list(choices.items()))),views,{},6)
++    assert a==b and a[1]['p02']==(('food','p03',3,6),)
++    tied=replace(world,food_sightings={'p01':(('food',0,3),),'p03':(('food',0,3),)})
++    views={p:observe(p,replace(ledger,tick=5),tied,cfg) for p in tied.living}
++    assert update_reports(tied,{p:decide(v,cfg) for p,v in views.items()},views,{},6)[1]['p02']==(('food','p01',3,6),)
++
++
++def test_child_limits_needs_and_all_empty_fallback_remain():
++    cfg,ledger,world=house()
++    step=world_step(Engine(ledger),world,cfg)
++    view=observe('p02',step.engine.state,step.processed.overlay,cfg)
++    assert decide(replace(view,food=1,hunger=cfg.hungry_at),cfg).kind=='eat'
++    child=replace(view,age=0,hunger=cfg.hungry_at)
++    assert decide(child,replace(cfg,child_leash=1)).kind=='rest'
++    assert decide(replace(view,food=0,hunger=cfg.hungry_at,alive=False),cfg).source_report is None
++    all_empty=replace(step.processed.overlay,source_reports={'p02':(('food','p01',0,1),('food2','p01',0,1))})
++    assert observe('p02',step.engine.state,all_empty,cfg).source_id=='food'
++
++
++def test_serialization_validation_births_and_deaths():
++    cfg,ledger,world=house()
++    step=world_step(Engine(ledger),world,cfg)
++    ov=step.processed.overlay
++    assert Overlay.from_canonical(ov.canonical()).canonical()==ov.canonical()
++    with pytest.raises(TypeError): ov.source_reports['p02']=()
++    for entry in [('food','p02',0,1),('food','ghost',0,1),('food','p01',1,1),('food','p01',0,2),('food','p01',True,1)]:
++        with pytest.raises(ValueError): replace(ov,source_reports={'p02':(entry,)})
++    for entry in [('food',True,0),('food',2,0),('food',0,2)]:
++        with pytest.raises(ValueError): replace(ov,food_sightings={'p01':(entry,)})
++    assert not Overlay.from_canonical(world.canonical()).source_reports
++    home=world.homes['p01']
++    parents=replace(ov,positions=dict(world.homes,p01=(home[0]+1,home[1])),
++                    built={p:cfg.build_ticks for p in world.roster},shelters=(home,),
++                    hunger={p:0 for p in world.roster},held={p:0 for p in world.roster})
++    grown=replace(cfg,births_on=True,together_ticks=1)
++    born,_,production=_births(parents,step.engine.state,grown)
++    assert production and set(production) == set(born.roster) - set(parents.roster)
++    assert born.source_reports==parents.source_reports and born.food_sightings==parents.food_sightings
++    sightings,reports=update_reports(ov,{}, {}, {'p02':2},2)
++    assert 'p02' not in reports
++
++
++def test_cli_header_and_disabled_compatibility():
++    cfg,_,_=house()
++    assert WorldConfig.from_describe(cfg.describe())==cfg
++    off=replace(cfg,knowledge_sharing_on=False)
++    assert 'knowledge_sharing' not in off.describe()
++    assert WorldConfig.from_describe(off.describe())==off
++    assert genesis(cfg)==genesis(off) and run_id_for(cfg,10)!=run_id_for(off,10)
++    parsed=config_from(build_parser().parse_args(['--seed','7','--source-memory','on','--knowledge-sharing','on']))
++    assert parsed.knowledge_sharing_on
++    with pytest.raises(ValueError): replace(cfg,source_memory_on=False)
++
++
++def test_saved_reports_replay_recovery_and_viewer(tmp_path):
++    cfg=WorldConfig(seed=23, source_memory_on=True,knowledge_sharing_on=True,
++                    stores_on=True,homes_on=True,provisioning_on=True,coordination_on=True,
++                    fishing_on=True,regrowth_on=True,seasons_on=True,birth_spacing=30)
++    path=tmp_path/'knowledge.jsonl'
++    run_world(cfg,360,path)
++    run=read_run(path)
++    active=next(t for t in run.ticks if t['world'].get('source_reports'))
++    assert replay_world(path).identical
++    again=tmp_path/'again.jsonl'; run_world(cfg,360,again)
++    assert read_run(again).ticks==run.ticks
++    lines=path.read_bytes().splitlines(keepends=True)
++    cut_at=next(i for i,line in enumerate(lines) if json.loads(line).get('kind')=='tick'
++                and json.loads(line).get('tick')==active['tick'])
++    cut=tmp_path/'cut.jsonl'; recovered=tmp_path/'recovered.jsonl'
++    cut.write_bytes(b''.join(lines[:cut_at+1]))
++    recover_world(cut,recovered)
++    assert read_run(recovered).ticks==run.ticks
++    assert replay_world(recovered).identical
++    assert any(e['kind']=='source_report_heard' for e in build_index(run)['events'])
++    assert 'Food reports heard' in render_html(run)
++
++
++def test_report_attribution_after_personal_memory_already_ruled_out_another_source():
++    cfg,ledger,world=house()
++    cfg=replace(cfg,fishing_on=True,perception_radius=0)
++    ledger,_=genesis(cfg)
++    world=replace(world,tick=2,positions=world.homes,hunger={p:cfg.hungry_at for p in world.roster})
++    ledger=replace(ledger,tick=2,balances={p:0 for p in world.roster})
++    first=observe('p02',ledger,world,cfg).source_id
++    own=replace(world,empty_sources={'p02':((first,0),)})
++    second=observe('p02',ledger,own,cfg).source_id
++    assert first!=second
++    reported=replace(own,source_reports={'p02':((second,'p01',1,2),)})
++    view=observe('p02',ledger,reported,cfg)
++    assert view.source_id not in (first,second)
++    assert view.food_choice_changed==first and view.report_food_avoided==second
++    assert f'p01 reported {second} empty at tick 1' in decide(view,cfg).reason
++    # Provisioning uses the same information and attributes its own source change.
++    provision_cfg=replace(cfg,stores_on=True,provisioning_on=True)
++    ledger,_=genesis(provision_cfg)
++    ledger=replace(ledger,tick=2,balances={p:0 for p in world.roster})
++    reported=replace(reported,shelters=(world.homes['p02'],),positions=world.homes,
++                     hunger={p:0 for p in world.roster})
++    # Use a real founding home cache for the controlled resident.
++    from world.config import store_sites
++    home=next(pos for sid,pos,resident in store_sites(provision_cfg) if resident=='p02')
++    reported=replace(reported,homes=dict(reported.homes,p02=home),
++                     positions=dict(reported.positions,p02=home),shelters=(home,))
++    blank=replace(reported,empty_sources={},source_reports={})
++    first=observe('p02',ledger,blank,provision_cfg).provision_source[0]
++    own=replace(blank,empty_sources={'p02':((first,0),)})
++    second=observe('p02',ledger,own,provision_cfg).provision_source[0]
++    reported=replace(own,source_reports={'p02':((second,'p01',1,2),)})
++    view=observe('p02',ledger,reported,provision_cfg)
++    assert view.report_provision_avoided==second
++    decision=decide(view,provision_cfg)
++    assert decision.provisioning=='gather'
++    assert f'p01 reported {second} empty at tick 1' in decision.reason
+diff --git a/tests/test_social_memory.py b/tests/test_social_memory.py
+index 27799dd45f7c5604b5b5383ffbf6e764ab571f29..6ea10477f03fc4dd64c97a35a4ec1631a2053579 100644
+--- a/tests/test_social_memory.py
++++ b/tests/test_social_memory.py
+@@ -137,6 +137,6 @@ def test_saved_memory_survives_births_replay_and_recovery(tmp_path):
+-@pytest.mark.parametrize("seed,horizon,gift_tick,choice_tick,helper,recipient", [
+-    (14, 650, 534, 643, "p10", "p03"),
+-    (26, 780, 588, 774, "p22", "p02"),
+-])
+-def test_remembered_gift_changes_choice_and_is_visible(tmp_path, seed, horizon, gift_tick,
+-                                                     choice_tick, helper, recipient):
++# Earlier tests pinned gifts at 534/588 and choices at 643/774 in seeds
++# 14/26. Terrain-aware departures intentionally change those trajectories.
++# Keep both ordinary replay checks, and establish the social contract in a
++# controlled encounter below, without pinning a replacement lucky seed.
++@pytest.mark.parametrize("seed,horizon", [(14, 650), (26, 780)])
++def test_social_world_replays_with_terrain_aware_departures(tmp_path, seed, horizon):
+@@ -146,18 +145,0 @@ def test_remembered_gift_changes_choice_and_is_visible(tmp_path, seed, horizon,
+-    gift = run.ticks[gift_tick - 1]
+-    assert any(o["actor"] == recipient and o["operation"] == "transfer" and o["accepted"]
+-               and {"account": f"actor:{helper}", "delta": 1} in o["effects"]
+-               for o in gift["record"]["outcomes"])
+-    decision = run.ticks[choice_tick - 1]["decisions"][helper]
+-    assert decision["target"] == recipient and decision["helped_at"] == gift_tick
+-    if seed == 26:
+-        before = run.ticks[choice_tick - 2]
+-        state = WorldState.from_canonical(before.get("produced_state") or before["state"])
+-        ov = Overlay.from_canonical(before["world"])
+-        cfg = WorldConfig(seed=seed)
+-        view = observe(helper, state, ov, cfg)
+-        alternative = decide(replace(view, food_memory=()), cfg)
+-        assert alternative.target == "p06" and alternative.step == (8, 3)
+-        assert decision["step"] == [6, 3]
+-    index = build_index(run)
+-    event = next(e for e in index["events"] if e["kind"] == "remembered_helper" and e["k"] == choice_tick)
+-    assert (event["who"], event["other"], event["helped_at"]) == (helper, recipient, gift_tick)
+@@ -164,0 +147,74 @@ def test_remembered_gift_changes_choice_and_is_visible(tmp_path, seed, horizon,
++    for event in build_index(run)["events"]:
++        if event["kind"] != "remembered_helper":
++            continue
++        gift = run.ticks[event["helped_at"] - 1]
++        assert any(o["actor"] == event["other"] and o["operation"] == "transfer" and o["accepted"]
++                   and {"account": f"actor:{event['who']}", "delta": 1} in o["effects"]
++                   for o in gift["record"]["outcomes"])
++
++
++def test_received_gift_changes_later_choice_and_saved_event(tmp_path):
++    """Real settlement -> retained memory -> changed recipient -> real return gift.
++
++    Three people begin in a controlled encounter. The two empty-handed
++    neighbours have a movement delay, keeping both available when they later
++    need help. All subsequent needs, gifts, meals and memories run normally.
++    """
++    from kernel import Engine
++    from world.config import genesis
++    from world.run import world_step
++    from stream.run_file import RunWriter, tick_payload
++
++    cfg = WorldConfig(seed=1, actors=3, water_on=False, warmth_on=False,
++                      terrain_on=False, building_on=False, births_on=False,
++                      stagger_start=False, source_stock=8, source_cap=8,
++                      renewal_every=5, perception_radius=3)
++    ledger, world = genesis(cfg)
++    x, y = cfg.source_position
++    positions = {"p01": (x-1,y), "p02": (x+1,y), "p03": (x,y)}
++    ledger = replace(ledger, balances={"p01":0,"p02":1,"p03":0})
++    world = replace(world, homes=positions, positions=positions,
++                    hunger={"p01":24,"p02":24,"p03":50},
++                    held={"p01":100,"p02":100,"p03":0})
++    initial_ledger, initial_world = ledger, world
++    path = tmp_path / "encounter.jsonl"
++    history = []
++    changed = None
++    with RunWriter(path, run_id="social-encounter", genesis=ledger,
++                   scenario=cfg.describe(), world=world.canonical(), horizon=40) as writer:
++        engine = Engine(ledger)
++        for _ in range(40):
++            previous_totals = engine.state.totals()
++            step = world_step(engine, world, cfg)
++            history.append(tick_payload(step.record, step.committed, inputs=step.proposals, **step.line_fields()))
++            writer.record(step.record, step.committed, inputs=step.proposals, **step.line_fields())
++            if len(history) == 1:
++                assert step.decisions["p02"].target == "p03"
++                assert step.processed.overlay.food_memory["p03"] == (("p02",1),)
++                assert any(o.actor=="p02" and o.accepted and o.operation=="transfer" for o in step.record.outcomes)
++            decision = step.decisions["p03"]
++            if decision.helped_at == 1:
++                view = step.views["p03"]
++                alternative = decide(replace(view, food_memory=()), cfg)
++                assert alternative.target == "p01" and decision.target == "p02"
++                assert decision.kind == "offer" and alternative.kind == "offer"
++                assert "gave me food at tick 1" in decision.reason
++                assert any(o.actor=="p03" and o.accepted and o.operation=="transfer"
++                           for o in step.record.outcomes)
++                assert step.processed.overlay.food_memory["p02"][0] == ("p03",step.processed.overlay.tick)
++                changed = step.processed.overlay.tick
++            assert step.committed.totals() == previous_totals
++            assert step.engine.state.totals()[None] == previous_totals[None] + sum(e.get("amount", 0) for e in step.processed.production)
++            world, engine = step.processed.overlay, step.engine
++    assert changed is not None  # cannot pass on an empty list of social events
++    run = read_run(path)
++    events = [e for e in build_index(run)["events"] if e["kind"]=="remembered_helper"]
++    assert any((e["who"],e["other"],e["helped_at"])==("p03","p02",1) for e in events)
++    assert "People who fed me" in render_html(run)
++    # This is an explicit encounter fixture, not the seeded genesis. Replay
++    # from that exact initial state through the production world-step path.
++    engine, world = Engine(initial_ledger), initial_world
++    for expected in history:
++        step = world_step(engine, world, cfg)
++        assert tick_payload(step.record, step.committed, inputs=step.proposals, **step.line_fields()) == expected
++        world, engine = step.processed.overlay, step.engine
+diff --git a/tests/test_travel_planning.py b/tests/test_travel_planning.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..b09923f6a1174f10e9b71546aa63c43dc2a5a905
+--- /dev/null
++++ b/tests/test_travel_planning.py
+@@ -0,0 +1,160 @@
++"""Personal terrain knowledge changes food departure timing, not destinations."""
++
++import json
++from dataclasses import replace
++
++import pytest
++
++from kernel import Engine
++from stream.run_file import read_run
++from world.config import WorldConfig, genesis
++from world.decide import decide, food_travel_ticks, route_step, water_trip_due
++from world.observe import Observation, observe
++from world.overlay import Overlay
++from world.recover import recover_world
++from world.replay import replay_world
++from world.run import run_world, world_step
++from world.viewer import render_html
++
++
++def repeat_trip_config():
++    return WorldConfig(seed=1, actors=1, width=7, height=7, food_sources=1,
++        water_on=False, warmth_on=False, offers_on=False, births_on=False,
++        childhood_on=False, building_on=False, stagger_start=False,
++        perception_radius=1, shelter_pct=0, rough_pct=40, starting_food=0,
++        claim_amount=1, source_stock=8, source_cap=8, renewal_every=5)
++
++
++def view(**changes):
++    fields = dict(actor='p01', tick=0, alive=True, position=(0, 0), home=(0, 0),
++                  hunger=19, food=0, source=(4, 0), source_food=None,
++                  rough_in_view=frozenset({(1, 0), (2, 0), (3, 0)}))
++    return Observation(**(fields | changes))
++
++
++@pytest.mark.parametrize('rough,expected,step', [
++    (frozenset(), 4, (1, 0)),
++    (frozenset({(1, 0)}), 5, (1, 0)),
++    (frozenset({(1, 0), (2, 0), (3, 0)}), 6, (0, 1)),
++    (frozenset({(6, 6)}), 4, (1, 0)),
++])
++def test_cost_matches_route_crossing_or_detour(rough, expected, step):
++    cfg, seen = repeat_trip_config(), view(rough_in_view=rough)
++    assert food_travel_ticks(seen, cfg) == expected
++    assert route_step(seen, seen.source, cfg) == step
++
++
++@pytest.mark.parametrize('changes', [{'terrain_on': False}, {'route_around': False}])
++def test_disabled_routing_or_terrain_retains_nominal_timing(changes):
++    cfg = replace(repeat_trip_config(), **changes)
++    assert food_travel_ticks(view(held=1), cfg) == 4
++    assert decide(view(), cfg).kind == 'rest'
++
++
++@pytest.mark.parametrize('changes,config_changes', [
++    ({'food': 1}, {}), ({'hunger': 18}, {}), ({}, {'plan_trips': False}),
++    ({}, {'hunger_rate': 0}), ({'age': 0}, {'childhood_on': True, 'child_leash': 3}),
++])
++def test_knowledge_does_not_relax_food_trip_conditions(changes, config_changes):
++    assert decide(view(**changes), replace(repeat_trip_config(), **config_changes)).kind == 'rest'
++
++
++def test_current_movement_delay_and_fishing_cast_are_counted_once():
++    cfg = repeat_trip_config()
++    assert food_travel_ticks(view(held=1), cfg) == 7
++    assert food_travel_ticks(view(position=(4, 0), held=1), cfg) == 0
++    fishing = replace(cfg, fishing_on=True)
++    assert decide(view(hunger=18, source_id='fish'), fishing).kind == 'go'
++    assert decide(view(hunger=18, source_id='food'), fishing).kind == 'rest'
++    assert decide(view(hunger=17, source_id='fish'), fishing).kind == 'rest'
++
++
++def test_water_timing_and_need_priority_are_unchanged():
++    cfg = replace(repeat_trip_config(), water_on=True)
++    seen = view(water=0, water_source=(4, 0), thirst=16)
++    assert not water_trip_due(seen, cfg)  # 16 + 2 * 4 < 25, despite known rough
++    assert decide(seen, cfg).kind == 'go'
++    assert decide(replace(seen, thirst=50), cfg).kind == 'go_water'
++
++
++def test_repeat_trip_uses_acquired_memory_and_control_does_not_receive_it():
++    cfg = repeat_trip_config()
++    ledger, world = genesis(cfg)
++    engine, observations, decisions = Engine(ledger), [], []
++    for tick in range(56):
++        if tick == 48:
++            # Matched control: same needs/location/ledger, without the earlier
++            # sightings. It still learns normally from this point onwards.
++            restored = Overlay.from_canonical(world.canonical())
++            assert restored.digest() == world.digest()
++            control = replace(restored, terrain_memory={})
++            control_engine = Engine(engine.state)
++            control_before = control.canonical()
++            before = world.canonical()
++            treatment_view = observe('p01', engine.state, restored, cfg)
++            control_view = observe('p01', control_engine.state, control, cfg)
++            assert treatment_view.source == control_view.source
++            assert treatment_view.rough_seen_now == control_view.rough_seen_now
++            assert food_travel_ticks(treatment_view, cfg) == 6
++            assert food_travel_ticks(control_view, cfg) == 4
++            assert decide(treatment_view, cfg).kind == 'go'
++            assert decide(control_view, cfg).kind == 'rest'
++            assert world.canonical() == before and control.canonical() == control_before
++            control_history = []
++            for _ in range(10):
++                step = world_step(control_engine, control, cfg)
++                control_history.append((step.views['p01'].hunger, step.decisions['p01'].kind))
++                control, control_engine = step.processed.overlay, step.engine
++            assert control_history[:2] == [(19, 'rest'), (20, 'rest')]
++            assert next(h for h, kind in control_history if kind == 'claim') == 27
++        step = world_step(engine, world, cfg)
++        observations.append(step.views['p01'])
++        decisions.append(step.decisions['p01'])
++        world, engine = step.processed.overlay, step.engine
++    assert decisions[21].kind == 'go' and observations[21].hunger == 21
++    assert decisions[27].kind == 'claim' and observations[27].hunger == 27
++    assert observations[48].rough_in_view > observations[21].rough_in_view
++    assert all(decisions[t].kind == 'go' for t in range(48, 54))
++    assert decisions[54].kind == 'claim' and observations[54].hunger == 25
++    assert decisions[55].kind == 'eat'
++
++
++@pytest.mark.parametrize('trips', [False, True])
++@pytest.mark.parametrize('terrain', [False, True])
++@pytest.mark.parametrize('routing', [False, True])
++def test_saved_rule_only_changes_for_enabled_terrain_planning(trips, terrain, routing):
++    cfg = replace(repeat_trip_config(), plan_trips=trips, terrain_on=terrain, route_around=routing)
++    description = cfg.describe()
++    assert ('personal food departure timing' in description['decision']) == (trips and terrain and routing)
++    restored = WorldConfig.from_describe(description)
++    assert restored.describe() == description
++    assert (restored.plan_trips, restored.terrain_on, restored.route_around) == (trips, terrain, routing)
++
++
++def test_old_rule_description_is_not_silently_reinterpreted():
++    description = repeat_trip_config().describe()
++    # In this food-only configuration the new clause is the last decision rule.
++    description['decision'] = description['decision'].split('; personal food departure timing')[0]
++    with pytest.raises(ValueError):
++        WorldConfig.from_describe(description)
++
++
++def test_saved_experience_replays_recovers_and_reaches_the_viewer(tmp_path):
++    cfg = repeat_trip_config()
++    path = tmp_path / 'travel.jsonl'
++    result = run_world(cfg, 80, path)
++    run = read_run(path)
++    assert run.complete and replay_world(path).identical
++    assert 'allowing 6 travel ticks' in run.ticks[48]['decisions']['p01']['reason']
++    assert 'allowing 6 travel ticks' in render_html(run)
++    # Recover once with acquired memory at home, once while held on rough ground.
++    lines = path.read_bytes().splitlines(keepends=True)
++    for tick in (47, 49):
++        end = next(i for i, line in enumerate(lines)
++                   if json.loads(line).get('kind') == 'tick' and json.loads(line).get('tick') == tick)
++        cut, recovered = tmp_path / f'cut{tick}.jsonl', tmp_path / f'recovered{tick}.jsonl'
++        cut.write_bytes(b''.join(lines[:end + 1]))
++        recover_world(cut, recovered)
++        assert read_run(recovered).ticks == run.ticks
++        assert replay_world(recovered).identical
++    assert run_world(cfg, 80, tmp_path / 'repeat.jsonl').trail_digest == result.trail_digest
+diff --git a/world/config.py b/world/config.py
+index 2357abb1648e1725006e9a3df837c06447e0616b..a18341ab676ce57cb3503f0750d17e1cb83d8eee 100644
+--- a/world/config.py
++++ b/world/config.py
+@@ -143,0 +144 @@ class WorldConfig:
++    knowledge_sharing_on: bool = False  # share firsthand empty-source sightings with adjacent housemates
+@@ -154,0 +156 @@ class WorldConfig:
++            "knowledge_sharing": type(self.knowledge_sharing_on) is bool and (not self.knowledge_sharing_on or self.source_memory_on),
+@@ -299,0 +302,11 @@ class WorldConfig:
++        if self.knowledge_sharing_on:
++            out["knowledge_sharing"] = "on"
++            out["knowledge_sharing_rule"] = (
++                "Alongside their normal action, living people tell visible housemates within one "
++                "Chebyshev cell their most recent firsthand empty natural-food sighting, source id breaking ties. "
++                "Listeners use it next tick; reports retain source, speaker, sighting tick and heard tick. "
++                "Newest sightings win, then speaker id. Own equally recent or newer sight overrides reports. "
++                "Current sight always overrides reports, and reports expire empty_source_ticks after the "
++                "original sighting, never after retelling. Reports cannot be relayed. Food and optional "
++                "provisioning use the existing source ranking with these additional empty-source reports; "
++                "needs, gathering, movement, accounting and water rules stay unchanged.")
+@@ -430,0 +444,8 @@ class WorldConfig:
++        if self.plan_trips and self.terrain_on and self.route_around:
++            out["decision"] += (
++                "; personal food departure timing uses the selected route estimate over seen and "
++                "personally remembered rough ground, plus any current personal movement delay: "
++                "known rough costs two ticks, other ground one; "
++                "unseen ground stays open in the estimate. This changes departure timing only, "
++                "not source selection, water or shelter planning. Nominal hunger rate and any "
++                "fishing cast still apply; interruptions, contention and shelter relief are not predicted.")
+@@ -657,0 +679,3 @@ class WorldConfig:
++        knowledge_sharing = described.get("knowledge_sharing", "off")
++        if not isinstance(knowledge_sharing, str) or knowledge_sharing not in switches:
++            raise ValueError("knowledge_sharing must be on or off")
+@@ -721,0 +746 @@ class WorldConfig:
++                     knowledge_sharing_on=switches[knowledge_sharing],
+diff --git a/world/decide.py b/world/decide.py
+index 0237d6a96acb8ab3b3f8162ede627efa391b928d..a5f003b21db6e3863c38281c78bf5574f0da537a 100644
+--- a/world/decide.py
++++ b/world/decide.py
+@@ -15 +15 @@ Priority, highest first:
+-         no food, elsewhere, and hunger + hunger_rate * steps to the source
++         no food, elsewhere, and hunger + hunger_rate * estimated travel ticks
+@@ -17 +17,2 @@ Priority, highest first:
+-         hunger reaches hungry_at (once due, it stays due on the way).
++         hunger reaches hungry_at. With terrain and routing on, the estimate
++         uses seen and remembered rough ground; unseen ground counts as open.
+@@ -107,0 +109,2 @@ class Decision:
++    source_report: tuple[str, int] | None = None
++    report_to: tuple[str, ...] = ()
+@@ -126,0 +130,3 @@ class Decision:
++        if self.source_report is not None:
++            out["source_report"] = list(self.source_report)
++            out["report_to"] = list(self.report_to)
+@@ -143 +149,6 @@ def route_step(observation: Observation, target: Position, config: WorldConfig)
+-    """One step towards target, picking a way round known rough ground.
++    """The next step selected by the existing personal route search."""
++    return _route_plan(observation, target, config)[0]
++
++
++def _route_plan(observation: Observation, target: Position, config: WorldConfig) -> tuple[Position, int]:
++    """Next step and estimated cost, picking a way round known rough ground.
+@@ -166 +177 @@ def route_step(observation: Observation, target: Position, config: WorldConfig)
+-        return straight
++        return straight, steps_to(origin, target)
+@@ -207 +218 @@ def route_step(observation: Observation, target: Position, config: WorldConfig)
+-        return straight
++        return straight, steps_to(origin, target)
+@@ -210 +221 @@ def route_step(observation: Observation, target: Position, config: WorldConfig)
+-    return best_first[choice]
++    return best_first[choice], seen[choice][0] + steps_to(choice, target)
+@@ -221,0 +233,15 @@ def steps_to_source(observation: Observation) -> int:
++def food_travel_ticks(observation: Observation, config: WorldConfig) -> int:
++    """Estimate the selected food trip using only personally known ground.
++
++    Share the route search and its costs, including our current movement
++    delay; unseen ground still counts as open.
++    With terrain or routing off, retain the nominal Manhattan estimate.
++    This is not a prediction of interruptions, competition or shelter relief.
++    """
++    if not config.terrain_on or not config.route_around:
++        return steps_to_source(observation)
++    if observation.at_source:
++        return 0
++    return observation.held + _route_plan(observation, observation.source, config)[1]
++
++
+@@ -223,3 +249 @@ def trip_due(observation: Observation, config: WorldConfig) -> bool:
+-    """Leave empty-handed in time to gather at hungry_at, including a fishing cast.
+-    This retains the existing Manhattan travel estimate; it does not predict
+-    terrain delays, contention or interruptions."""
++    """Leave using known route cost and nominal hunger rate, plus a fishing cast."""
+@@ -228 +252 @@ def trip_due(observation: Observation, config: WorldConfig) -> bool:
+-            and observation.hunger + config.hunger_rate * (steps_to_source(observation) + casting) >= config.hungry_at)
++            and observation.hunger + config.hunger_rate * (food_travel_ticks(observation, config) + casting) >= config.hungry_at)
+@@ -399,0 +424,16 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
++    choice = _decide(observation, config)
++    if not config.knowledge_sharing_on or not observation.alive:
++        return choice
++    avoided = observation.report_provision_avoided if choice.provisioning == "gather" else observation.report_food_avoided
++    report = next((e for e in observation.source_reports if e[0] == avoided), None)
++    if report is not None and choice.kind in (GO, WAIT, CLAIM, FISH, YIELD):
++        sid, speaker, seen, heard = report
++        choice = replace(choice, reason=choice.reason + f"; {speaker} reported {sid} empty at tick {seen} (heard at {heard})")
++    empty = [e for e in observation.food_sightings if e[1] == 0]
++    if empty and observation.report_listeners:
++        sid, _, seen = min(empty, key=lambda e: (-e[2], e[0]))
++        choice = replace(choice, source_report=(sid, seen), report_to=observation.report_listeners)
++    return choice
++
++
++def _decide(observation: Observation, config: WorldConfig) -> Decision:
+@@ -698,0 +739,4 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
++        if observation.hunger < config.hungry_at:
++            travel = food_travel_ticks(observation, config)
++            if travel != steps_to_source(observation):
++                reason += f"; allowing {travel} travel ticks over seen or remembered ground"
+diff --git a/world/foraging.py b/world/foraging.py
+index 7901745fa322b537f6d8e52dc9891e70b167376f..3366df42ed5ad2e0cbd4ac6d30de8435774d4112 100644
+--- a/world/foraging.py
++++ b/world/foraging.py
+@@ -14,0 +15,49 @@ def remember_empty(previous, visible, tick):
++
++
++def remember_sightings(previous, visible, tick):
++    """Retain firsthand empty/stocked sightings; fresh sight defeats older reports."""
++    recent = {sid: (sid, stocked, when) for sid, stocked, when in previous
++              if tick - when < EMPTY_SOURCE_TICKS}
++    for sid, stock in visible:
++        recent[sid] = (sid, int(stock > 0), tick)
++    return tuple(recent[sid] for sid in sorted(recent))
++
++
++def usable_reports(previous, sightings, tick):
++    own = {sid: when for sid, _, when in sightings}
++    return tuple(e for e in previous
++                 if tick - e[2] < EMPTY_SOURCE_TICKS and own.get(e[0], -1) < e[2])
++
++
++def update_reports(previous, decisions, observations, died_at, tick):
++    """Hear recorded firsthand reports after choices; retelling cannot refresh age."""
++    sightings, reports = {}, {}
++    for actor in previous.living:
++        if actor in died_at:
++            continue
++        view = observations.get(actor)
++        own = (view.food_sightings if view is not None else
++               remember_sightings(previous.food_sightings.get(actor, ()), (), previous.tick))
++        heard = (view.source_reports if view is not None else
++                 usable_reports(previous.source_reports.get(actor, ()), own, previous.tick))
++        if own:
++            sightings[actor] = own
++        reports[actor] = {e[0]: e for e in heard}
++    for speaker, choice in sorted(decisions.items()):
++        if choice.source_report is None:
++            continue
++        sid, when = choice.source_report
++        view = observations.get(speaker)
++        if view is None or (sid, 0, when) not in view.food_sightings:
++            continue
++        for listener in choice.report_to:
++            if listener not in reports or listener not in view.report_listeners:
++                continue
++            entry = (sid, speaker, when, tick)
++            if not usable_reports((entry,), sightings.get(listener, ()), previous.tick):
++                continue
++            old = reports[listener].get(sid)
++            if old is None or (-when, speaker) < (-old[2], old[1]):
++                reports[listener][sid] = entry
++    return sightings, {p: tuple(entries[sid] for sid in sorted(entries))
++                       for p, entries in reports.items() if entries}
+diff --git a/world/observe.py b/world/observe.py
+index 25889b77f91919d6c3a22c9bb2d750ecbc351dd4..6397bed72014fec0c2ecac4a33d53bd3621d8a0d 100644
+--- a/world/observe.py
++++ b/world/observe.py
+@@ -60 +60 @@ from world.storage import food_expectation
+-from world.foraging import remember_empty
++from world.foraging import remember_empty, remember_sightings, usable_reports
+@@ -123,0 +124 @@ class Observation:
++    held: int = 0                         # own remaining rough-ground movement delay
+@@ -140,0 +142,5 @@ class Observation:
++    food_sightings: tuple[tuple[str, int, int], ...] = ()
++    source_reports: tuple[tuple[str, str, int, int], ...] = ()
++    report_listeners: tuple[str, ...] = ()
++    report_food_avoided: str | None = None
++    report_provision_avoided: str | None = None
+@@ -188,0 +195,10 @@ class Observation:
++        if self.report_food_avoided is not None:
++            out["report_food_avoided"] = self.report_food_avoided
++        if self.report_provision_avoided is not None:
++            out["report_provision_avoided"] = self.report_provision_avoided
++        if self.food_sightings:
++            out["food_sightings"] = [list(e) for e in self.food_sightings]
++        if self.source_reports:
++            out["source_reports"] = [list(e) for e in self.source_reports]
++        if self.report_listeners:
++            out["report_listeners"] = list(self.report_listeners)
+@@ -241,0 +258,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
++    sightings = ()
++    reports = ()
++    if config.knowledge_sharing_on:
++        visible_food = tuple((sid, available[source_account(sid)]) for sid, pos in food_known
++                             if in_view(origin, pos, radius))
++        sightings = remember_sightings(overlay.food_sightings.get(actor, ()), visible_food, ledger.tick)
++        reports = usable_reports(overlay.source_reports.get(actor, ()), sightings, ledger.tick)
++    avoided_sources = frozenset(sid for sid, _ in empty_sources) | frozenset(e[0] for e in reports)
+@@ -243,0 +268 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
++    report_provision_avoided = None
+@@ -247 +272,6 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
+-                                        frozenset(sid for sid, _ in empty_sources))
++                                        avoided_sources)
++        if reports:
++            personal = target_source(origin, food_known, radius, available, effort,
++                                     frozenset(sid for sid, _ in empty_sources))
++            if personal[0] != provision_source[0]:
++                report_provision_avoided = personal[0]
+@@ -274 +304,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
+-                                                  frozenset(sid for sid,_ in empty_sources))
++                                                  avoided_sources)
++    report_food_avoided = None
++    if reports:
++        personal = target_source(origin, food_known, radius, available, effort,
++                                 frozenset(sid for sid, _ in empty_sources))
++        if personal[0] != source_id:
++            report_food_avoided = personal[0]
+@@ -281,0 +318,5 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
++        food_sightings=sightings, source_reports=reports,
++        report_food_avoided=report_food_avoided, report_provision_avoided=report_provision_avoided,
++        report_listeners=tuple(seen.actor for seen in others
++                               if overlay.homes[seen.actor] == overlay.homes[actor]
++                               and chebyshev(origin, seen.position) <= 1) if config.knowledge_sharing_on else (),
+@@ -322,0 +364 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
++        held=overlay.held.get(actor, 0),
+diff --git a/world/overlay.py b/world/overlay.py
+index b990b9c09d17961f2c0ef50a93ef8ea30888a2a4..ac8973b01f9c4f4c082278c57e20993674a6037b 100644
+--- a/world/overlay.py
++++ b/world/overlay.py
+@@ -111,0 +112,2 @@ class Overlay:
++    food_sightings: Mapping[str, tuple[tuple[str, int, int], ...]] = field(default_factory=dict)  # source, stocked, seen tick
++    source_reports: Mapping[str, tuple[tuple[str, str, int, int], ...]] = field(default_factory=dict)  # source, speaker, seen, heard
+@@ -144,0 +147,28 @@ class Overlay:
++        for name, length in (("food_sightings", 3), ("source_reports", 4)):
++            raw = getattr(self, name)
++            if not isinstance(raw, Mapping):
++                raise ValueError(f"{name} must map people to observations")
++            memories = {}
++            for actor, entries in raw.items():
++                if actor not in positions or not isinstance(entries, (tuple, list)):
++                    raise ValueError(f"{name} needs known people and a list of entries")
++                recent = {}
++                for entry in entries:
++                    if not isinstance(entry, (tuple, list)) or len(entry) != length:
++                        raise ValueError(f"invalid {name} entry")
++                    sid = entry[0]
++                    if not isinstance(sid, str) or not sid or sid in recent:
++                        raise ValueError(f"{name} needs distinct source names")
++                    if length == 3:
++                        _, stocked, seen = entry
++                        valid = type(stocked) is int and stocked in (0, 1)
++                    else:
++                        _, speaker, seen, heard = entry
++                        valid = (isinstance(speaker, str) and speaker in positions and speaker != actor
++                                 and type(heard) is int and type(seen) is int and seen < heard <= self.tick)
++                    if not valid or type(seen) is not int or not 0 <= seen <= self.tick:
++                        raise ValueError(f"invalid {name} provenance or date")
++                    recent[sid] = tuple(entry)
++                if recent:
++                    memories[actor] = tuple(recent[sid] for sid in sorted(recent))
++            object.__setattr__(self, name, MappingProxyType(dict(sorted(memories.items()))))
+@@ -267,0 +298,2 @@ class Overlay:
++            **({"food_sightings": {p: [list(e) for e in entries] for p, entries in self.food_sightings.items()}} if self.food_sightings else {}),
++            **({"source_reports": {p: [list(e) for e in entries] for p, entries in self.source_reports.items()}} if self.source_reports else {}),
+@@ -311 +343 @@ class Overlay:
+-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected"):
++                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports"):
+@@ -342,0 +375,2 @@ class Overlay:
++                   food_sightings=dict(data.get("food_sightings", {})),
++                   source_reports=dict(data.get("source_reports", {})),
+diff --git a/world/process.py b/world/process.py
+index 7bde6561e37043fda5f176965dcf23983047e56c..37c9f5e5ede27aa16dd7be0490dbee43f105d0d3 100644
+--- a/world/process.py
++++ b/world/process.py
+@@ -52 +52 @@ from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
+-from world.foraging import remember_empty
++from world.foraging import remember_empty, update_reports
+@@ -218,0 +219 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
++    sightings, reports = update_reports(overlay, decisions, observations or {}, died_at, settled.tick) if config.knowledge_sharing_on else ({}, {})
+@@ -223,0 +225 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
++                           food_sightings=sightings, source_reports=reports,
+@@ -339,0 +342 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
++                    food_sightings=overlay.food_sightings, source_reports=overlay.source_reports,
+diff --git a/world/run.py b/world/run.py
+index 015e71d5c9f1fc0dcf846220ae9c527e9d998e24..e446a8dc7216f6403efc9285697abf1fcc5af26d 100644
+--- a/world/run.py
++++ b/world/run.py
+@@ -53,0 +54,2 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
++    if config.knowledge_sharing_on:
++        mode += "-knowledge-sharing"
+@@ -219,0 +222,2 @@ def build_parser() -> argparse.ArgumentParser:
++    parser.add_argument("--knowledge-sharing", choices=("on", "off"), default="off",
++                        help="share firsthand empty-food sightings with adjacent housemates; requires source memory")
+@@ -295,0 +300 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
++    levers["knowledge_sharing_on"] = args.knowledge_sharing == "on"
+diff --git a/world/viewer.js b/world/viewer.js
+index 9efb3747d38007ca2e166ab32322fdd0109edfea..57ce43cd68fd0e7d9119c3658a47236334e65463 100644
+--- a/world/viewer.js
++++ b/world/viewer.js
+@@ -1261,0 +1262,2 @@
++    const sourceReports = (w.source_reports || {})[p] || [];
++    if (sourceReports.length) h += '<div class="sec"><h4>Food reports heard</h4>' + sourceReports.map(([sid, speaker, seen, heard]) => `<div>${personLink(speaker)} saw ${esc(sid)} empty at tick ${seen}; heard at tick ${heard}. Expires at tick ${seen + C.empty_source_ticks}.</div>`).join('') + '</div>';
+diff --git a/world/viewer.py b/world/viewer.py
+index 470c14751031ac6579eefde25e7d45e8507782b6..a09531c4bc990a1d1f5036d45e0f4ec287822c9a 100644
+--- a/world/viewer.py
++++ b/world/viewer.py
+@@ -243 +243 @@ def render_html(run: Run) -> str:
+-                                "childhood", "trips", "regrowth", "seasons", "stores", "homes", "relocation", "wood", "fishing", "source_memory", "provisioning", "coordination")
++                                "childhood", "trips", "regrowth", "seasons", "stores", "homes", "relocation", "wood", "fishing", "source_memory", "provisioning", "coordination", "knowledge_sharing")
+diff --git a/world/viewer_index.py b/world/viewer_index.py
+index 78300f0e34d58b4cfe93fb115817ff65189652a6..00747b893a2a10ba5c6ec40bee917dcd7181c61f 100644
+--- a/world/viewer_index.py
++++ b/world/viewer_index.py
+@@ -195 +195 @@ def build_index(run: Any) -> dict[str, Any]:
+-            helped_at: int | None = None) -> None:
++            helped_at: int | None = None, seen_at: int | None = None) -> None:
+@@ -196,0 +197,2 @@ def build_index(run: Any) -> dict[str, Any]:
++        if seen_at is not None:
++            event["seen_at"] = seen_at
+@@ -320,0 +323,5 @@ def build_index(run: Any) -> dict[str, Any]:
++            for sid, speaker, seen, heard in tick["world"].get("source_reports", {}).get(actor, []):
++                if heard == k:
++                    add(k, "food", "source_report_heard",
++                        f"{actor} heard from {speaker}: {sid} was empty at tick {seen}",
++                        who=actor, other=speaker, src=sid, seen_at=seen)
+@@ -326 +333,2 @@ def build_index(run: Any) -> dict[str, Any]:
+-                    f"{actor} avoided {old_target}, remembered empty; trying {decision.get('target')}",
++                    (f"{actor}: {decision.get('reason')}" if memory_view.get("source_reports")
++                     else f"{actor} avoided {old_target}, remembered empty; trying {decision.get('target')}"),

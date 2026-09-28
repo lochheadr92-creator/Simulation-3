@@ -3,8 +3,12 @@ Viewer visual direction: [Field atlas](VIEWER_DIRECTION.md).
 
 ## Sharing firsthand food sightings — 2026-09-28
 
-Local implementation on `codex/kernel-first-slice`, based on `22ffe27` plus
-the existing terrain-planning work. Uncommitted and unpushed.
+Implemented on `codex/kernel-first-slice`, based on `22ffe27` plus
+the existing terrain-planning work. Committed and pushed as `81c10b7` on
+2026-09-28; the remote SHA was checked. The verification below records the
+implementation run, not a new test execution for publication. A
+[whole-project review packet](docs/reviews/2026-09-28-whole-project/README.md)
+is prepared; its reviewer report is unsigned.
 
 `--source-memory on --knowledge-sharing on` lets a person tell visible
 housemates on the same or an adjacent cell about their most recent firsthand

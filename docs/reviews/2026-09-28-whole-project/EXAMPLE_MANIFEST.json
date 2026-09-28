@@ -1,0 +1,108 @@
+{
+  "source_commit": "81c10b7d25cc2e0f1b8de33bf547083eb0972c64",
+  "location_in_portable_zip": "builder-examples/",
+  "files": [
+    {
+      "path": "README.md",
+      "size": 719,
+      "sha256": "1e750d153a02790e4257db48214b23a7a48b64cfa88c23a7fca5832678f3ab77",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed11-off.html",
+      "size": 7225691,
+      "sha256": "6acbe6d39d38ea18c9c4d8a8599da7836fa89a35db3551fada12610f91a30b70",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed11-off.jsonl",
+      "size": 5302414,
+      "sha256": "ab349efa5a88903bc930e27b6355d955b5a1cdaa74c77c09cadeac6f71f43a31",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging",
+      "saved_code_digest": "15b6858f2db5126bb2c711d05ac8d7b951ed80a4897e2dbd3e65e6671434077b",
+      "python_source_file_hashes_match_target": true,
+      "header_kind": "header"
+    },
+    {
+      "path": "seed11-on.html",
+      "size": 8252151,
+      "sha256": "ed7fc502996915c2edc0417f3bb718534ddf9fba0e9e2a51ebe9466029637e2c",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed11-on.jsonl",
+      "size": 6188170,
+      "sha256": "2147765094f27b96f861bcbdef9c43383de7c84c027dc9e6e2a27aedbf29835b",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging",
+      "saved_code_digest": "15b6858f2db5126bb2c711d05ac8d7b951ed80a4897e2dbd3e65e6671434077b",
+      "python_source_file_hashes_match_target": true,
+      "header_kind": "header"
+    },
+    {
+      "path": "seed23-off.html",
+      "size": 5818782,
+      "sha256": "6b08a8b58d21f441a075fdc8a6d145f4d5beb5a9f2480297e01f019bb1a59f53",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed23-off.jsonl",
+      "size": 4126584,
+      "sha256": "67164109ee1b383716f0aca175619bf715a8ecaa3d809a8cc96b5aa710602149",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging",
+      "saved_code_digest": "15b6858f2db5126bb2c711d05ac8d7b951ed80a4897e2dbd3e65e6671434077b",
+      "python_source_file_hashes_match_target": true,
+      "header_kind": "header"
+    },
+    {
+      "path": "seed23-on.html",
+      "size": 6340268,
+      "sha256": "563ddf7c4ef962c6a064c3a640fea19a8f79a5ea2cbb7be6821b8940085d675d",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed23-on.jsonl",
+      "size": 4631685,
+      "sha256": "39121aed7c2d225e09b6a031f311a9ecbbfd965274086ad5bc779eb00f1faf1e",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging",
+      "saved_code_digest": "15b6858f2db5126bb2c711d05ac8d7b951ed80a4897e2dbd3e65e6671434077b",
+      "python_source_file_hashes_match_target": true,
+      "header_kind": "header"
+    },
+    {
+      "path": "seed7-off.html",
+      "size": 5289822,
+      "sha256": "692dbf9fa1d3ea0b638baf3e8ecdf7d0f9dc525581435978570d607419dcb55b",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed7-off.jsonl",
+      "size": 3771361,
+      "sha256": "328fb2b50759424b8ff53a2e0f734e305f4bffeacc892f727f6ecfd9dc369fdc",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging",
+      "saved_code_digest": "15b6858f2db5126bb2c711d05ac8d7b951ed80a4897e2dbd3e65e6671434077b",
+      "python_source_file_hashes_match_target": true,
+      "header_kind": "header"
+    },
+    {
+      "path": "seed7-on.html",
+      "size": 5643350,
+      "sha256": "4a64701eae0ffc6fcf346c955ab79dfb5e197370132567740ea79f5b841c48f9",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    },
+    {
+      "path": "seed7-on.jsonl",
+      "size": 4122626,
+      "sha256": "1a2df79da788689069d2fede9d83b08d12416af49b602fc8c4ab6682eb13dda2",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging",
+      "saved_code_digest": "15b6858f2db5126bb2c711d05ac8d7b951ed80a4897e2dbd3e65e6671434077b",
+      "python_source_file_hashes_match_target": true,
+      "header_kind": "header"
+    },
+    {
+      "path": "summary.json",
+      "size": 4939,
+      "sha256": "422cef09e4e8f1ae2ad9bca28bca71a829d154c761ef6484f22322eced386cf5",
+      "provenance": "builder artifact, generated before source commit; no new replay during packaging"
+    }
+  ]
+}
