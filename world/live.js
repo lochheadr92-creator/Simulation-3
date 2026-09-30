@@ -88,7 +88,7 @@
     const sel = $('live-saved'); sel.innerHTML = '';
     for (const x of w.worlds) {
       const o = document.createElement('option'); o.value = x.file; o.disabled = x.current;
-      o.textContent = `${x.file} — seed ${x.seed}, ${x.ticks} ticks${x.current ? ' (running now)' : ''}`; sel.append(o);
+      o.textContent = `${x.file} — seed ${x.seed}, ${x.ticks} ticks done (last tick ${x.last_tick}${x.bookmark_last_tick !== null ? `, bookmark at tick ${x.bookmark_last_tick}` : ''})${x.current ? ' (running now)' : ''}`; sel.append(o);
     }
     $('live-do-resume').disabled = ![...sel.options].some(o => !o.disabled);
   }

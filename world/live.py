@@ -51,6 +51,9 @@ from world.viewer_index import build_index
 LIVE_HORIZON = 1_000_000
 RING = 600            # ticks kept in memory for new tabs: enough for 10 minutes at 1 tick/s, ~2 MB of JSON
 FSYNC_SECONDS = 5.0
+STATIC_TYPES = {".html": "text/html; charset=utf-8", ".jsonl": "application/x-ndjson", ".json": "application/json",
+                ".jpg": "image/jpeg", ".png": "image/png", ".webm": "video/webm"}
+PAGE_TICKS = 40          # ticks embedded in the page itself (~90 KB each in a mature world)
 CHECKPOINT_EVERY = 500  # ticks between bookmarks (also on pause and on stop)
 SPEEDS = (0.1, 0.25, 0.5, 1, 2, 5, 10, 0)   # 0 = unthrottled
 QUEUE = 64            # per-subscriber queue; a slow client is skipped, never waited for
@@ -70,9 +73,14 @@ class LiveWorld:
         self.lock = threading.Lock()
         self.wake = threading.Condition(self.lock)
         self.subscribers: list[queue.Queue] = []
-        self.ring: deque[dict[str, Any]] = deque(prior[-RING:], maxlen=RING)
-        self.base_before = prior[-RING - 1] if len(prior) > RING else None
         self.tick_count = len(prior) if tick_count is None else tick_count   # `prior` may be only the tail of a long run
+        if len(prior) > RING:
+            self.base_before, ring = prior[-RING - 1], prior[-RING:]
+        elif prior and self.tick_count > len(prior):
+            self.base_before, ring = prior[0], prior[1:]     # a tail read at resume: its first tick is the "before" of the ring
+        else:
+            self.base_before, ring = None, prior
+        self.ring: deque[dict[str, Any]] = deque(ring, maxlen=RING)
         self.last_tick = 0.0          # monotonic time of the last tick; only schedules the next one, never enters the tick
         self.last_fsync = time.monotonic()
         self.stopped = threading.Event()
@@ -111,7 +119,9 @@ class LiveWorld:
             self.wake.notify_all()
 
     def status(self) -> dict[str, Any]:
-        return {"tick": self.tick_count, "paused": self.paused, "speed": self.speed, "path": str(self.writer.path),
+        # `tick`: ticks completed so far (= the viewer's "world tick", = the next tick number to run);
+        # `last_tick`: the tick number on the last written line (= what a bookmark points at)
+        return {"tick": self.tick_count, "last_tick": self.tick_count - 1, "paused": self.paused, "speed": self.speed, "path": str(self.writer.path),
                 "run_id": self.header["run_id"], "seed": self.header["scenario"]["seed"], "ring": RING, "stopping": self.stopping}
 
     def fsync(self) -> None:
@@ -177,10 +187,12 @@ class LiveWorld:
                    last_sealed_tick=ticks[-1]["tick"] if ticks else None)
 
     def page_run(self) -> tuple[Run, int]:
-        """A Run for the viewer covering the in-memory ring, and the tick its view 0 shows."""
+        """A Run for the viewer: the latest PAGE_TICKS ticks of the ring (the page must
+        stay small; older ticks come over /ticks on demand), and the tick its view 0 shows."""
         with self.lock:
-            ticks = tuple(self.ring)
-            before = self.base_before
+            ring = list(self.ring)
+        ticks = tuple(ring[-PAGE_TICKS:])
+        before = ring[-PAGE_TICKS - 1] if len(ring) > PAGE_TICKS else self.base_before
         base = self.tick_count - len(ticks)
         return self._run(ticks, before), base
 
@@ -446,7 +458,7 @@ def list_worlds(outdir: Path, current: Path | None, stopped: bool = False) -> li
         side = read_sidecar(path)
         out.append({"file": path.name, "run_id": header["run_id"], "seed": header["scenario"]["seed"],
                     "last_tick": last, "ticks": (last + 1) if last is not None else 0,
-                    "bookmark": side["bookmarks"][0]["tick"] if side and side.get("bookmarks") else None,
+                    "bookmark_last_tick": side["bookmarks"][0]["tick"] if side and side.get("bookmarks") else None,
                     "size_mb": round(path.stat().st_size / 1e6, 1), "current": path == current and not stopped})
     return out
 
@@ -550,6 +562,8 @@ def make_handler(session):
                 self.wfile.write(raw)
             elif path == "/status":
                 self._json(200, {**session.status(), "scenario": live.header["scenario"]})
+            elif path.startswith("/runs/"):
+                self._static(path[len("/runs/"):])
             elif path == "/worlds":
                 self._json(200, {"outdir": str(session.outdir), "worlds": list_worlds(session.outdir, Path(live.writer.path), live.stopping)})
             elif path == "/ticks":
@@ -600,6 +614,20 @@ def make_handler(session):
                     live.unsubscribe(q)
             else:
                 self._json(404, {"error": "not found"})
+
+        def _static(self, rel: str) -> None:
+            """Read-only files under the runs directory (playback examples next to the live world)."""
+            root = DEFAULT_RUNS_DIR.resolve()
+            target = (root / rel).resolve()
+            if not str(target).startswith(str(root) + os.sep) or target.suffix not in STATIC_TYPES or not target.is_file():
+                return self._json(404, {"error": "not found"})
+            raw = target.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", STATIC_TYPES[target.suffix])
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(raw)
 
         def _send(self, msg: dict[str, Any]) -> None:
             self.wfile.write(b"data: " + json.dumps(msg).encode() + b"\n\n")
