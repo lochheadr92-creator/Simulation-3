@@ -41,6 +41,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -361,6 +362,54 @@ class RunWriter:
         writer._handle.flush()
         return writer
 
+    @classmethod
+    def append_to(cls, path: Path, *, header: dict[str, Any], seal: str, next_tick: int, ticks: int,
+                  truncate_at: int | None = None) -> "RunWriter":
+        """Continue a sealed run **in its own file** (Phase 6 bookmarks). The caller
+        has verified the tail: `truncate_at`, when given, removes exactly an `end`
+        line or torn trailing bytes — never a sealed tick line. The trail digest
+        is not known yet; `adopt_trail()` supplies it (built in the background from
+        the file's own tick lines) and `close()` waits for it."""
+        if header.get("format") not in SEALED_FORMATS:
+            raise RunFileError("only a sealed run can be continued")
+        writer = cls.__new__(cls)
+        writer.header = header
+        writer._trail = None
+        writer._pending = []
+        writer._trail_ready = threading.Event()
+        writer._ticks = ticks
+        writer._seal = seal
+        writer._next_tick = next_tick
+        writer.path = Path(path)
+        writer._handle = writer.path.open("r+b")
+        if truncate_at is not None:
+            writer._handle.truncate(truncate_at)
+        writer._handle.seek(0, os.SEEK_END)
+        writer._closed = False
+        return writer
+
+    def adopt_trail(self, trail: "hashlib._Hash") -> None:
+        """The trail digest of every tick line before this continuation, computed
+        elsewhere; the lines written meanwhile are folded in, in order."""
+        for raw in self._pending:
+            trail.update(raw)
+        self._pending = []
+        self._trail = trail
+        self._trail_ready.set()
+
+    def _trail_update(self, raw: bytes) -> None:
+        if self._trail is None:
+            self._pending.append(raw)
+        else:
+            self._trail.update(raw)
+
+    def _trail_hex(self) -> str:
+        if self._trail is None:
+            ready = getattr(self, "_trail_ready", None)
+            if ready is None or not ready.wait(600):
+                raise RunFileError("the trail digest of the continued run is not available")
+        return self._trail.hexdigest()
+
     def _write(self, payload: dict[str, Any]) -> bytes:
         raw = _line(payload)
         self._handle.write(raw)
@@ -388,7 +437,7 @@ class RunWriter:
         payload["seal"] = tick_seal(self._seal, payload)
         raw = self._write(payload)
         self._seal = payload["seal"]
-        self._trail.update(raw)
+        self._trail_update(raw)
         self._ticks += 1
         self._next_tick += 1
         if elapsed_ns is not None:
@@ -398,12 +447,12 @@ class RunWriter:
         """Write the end line and return the trail digest. Refuses, leaving the
         file cut, when fewer than `horizon` ticks were recorded."""
         if self._closed:
-            return self._trail.hexdigest()
+            return self._trail_hex()
         if self._ticks != self.header["horizon"] and not self.header.get("open_ended"):
             self.abort()
             raise RunFileError(f"closed after {self._ticks} of {self.header['horizon']} ticks; "
                                "the file is left without an end line")
-        trail = self._trail.hexdigest()
+        trail = self._trail_hex()
         self._write({"kind": "end", "ticks": self._ticks, "trail_digest": trail, "final_seal": self._seal})
         self._handle.flush()
         os.fsync(self._handle.fileno())

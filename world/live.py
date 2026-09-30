@@ -43,12 +43,15 @@ from stream.run_file import Run, RunWriter
 from world.config import WorldConfig, genesis
 from world.overlay import Overlay
 from world.run import DEFAULT_RUNS_DIR, build_parser as run_parser, config_from, random_seed, run_id_for, world_step
+from world.checkpoints import (SPARSE_EVERY, RecoveryError, bookmark_of, read_sidecar, restore, resume_from_bookmark,
+                               stream_check, write_sidecar)
 from world.viewer import render_html
 from world.viewer_index import build_index
 
 LIVE_HORIZON = 1_000_000
 RING = 600            # ticks kept in memory for new tabs: enough for 10 minutes at 1 tick/s, ~2 MB of JSON
 FSYNC_SECONDS = 5.0
+CHECKPOINT_EVERY = 500  # ticks between bookmarks (also on pause and on stop)
 SPEEDS = (0.1, 0.25, 0.5, 1, 2, 5, 10, 0)   # 0 = unthrottled
 QUEUE = 64            # per-subscriber queue; a slow client is skipped, never waited for
 
@@ -58,7 +61,7 @@ class LiveWorld:
     thread, or with `advance()` in tests."""
 
     def __init__(self, config: WorldConfig, engine: Engine, overlay: Overlay, writer: RunWriter,
-                 header: dict[str, Any], prior: list[dict[str, Any]]):
+                 header: dict[str, Any], prior: list[dict[str, Any]], tick_count: int | None = None):
         self.config, self.engine, self.overlay, self.writer, self.header = config, engine, overlay, writer, header
         self.paused = True
         self.speed = 1.0
@@ -69,7 +72,7 @@ class LiveWorld:
         self.subscribers: list[queue.Queue] = []
         self.ring: deque[dict[str, Any]] = deque(prior[-RING:], maxlen=RING)
         self.base_before = prior[-RING - 1] if len(prior) > RING else None
-        self.tick_count = len(prior)
+        self.tick_count = len(prior) if tick_count is None else tick_count   # `prior` may be only the tail of a long run
         self.last_tick = 0.0          # monotonic time of the last tick; only schedules the next one, never enters the tick
         self.last_fsync = time.monotonic()
         self.stopped = threading.Event()
@@ -80,7 +83,7 @@ class LiveWorld:
             self.paused = paused
             self.wake.notify_all()
         if paused:
-            self.fsync()
+            self.checkpoint()
         self.broadcast({"kind": "control", **self.status()})
 
     def step(self) -> None:
@@ -137,8 +140,19 @@ class LiveWorld:
             self.ring.append(payload)
         if time.monotonic() - self.last_fsync >= FSYNC_SECONDS:
             self.fsync()
+        if self.tick_count % CHECKPOINT_EVERY == 0:
+            self.checkpoint()
         self.broadcast(message)
         return payload
+
+    def checkpoint(self) -> None:
+        """A bookmark to the last tick line, after it is on disk."""
+        w = self.writer
+        if getattr(w, "last_offset", None) is None or getattr(w, "_closed", False):
+            return
+        self.fsync()
+        payload = json.loads(w.last_line)
+        write_sidecar(Path(w.path), self.header, bookmark_of(payload, w.last_offset, w.last_next, self.header), w.index.sparse_list())
 
     def index_delta(self, payload: dict[str, Any]) -> dict[str, Any]:
         """The view index for the new tick alone, computed like build_index over
@@ -202,7 +216,7 @@ class LiveWorld:
                         self.wake.wait(timeout=wait)
                 self.advance()
         finally:
-            self.fsync()
+            self.checkpoint()
             try:
                 self.writer.close()      # the end line: an open-ended run may close at any tick
             except Exception:
@@ -232,43 +246,95 @@ class LiveWorld:
                 self.unsubscribe(q)   # a slow tab is dropped; it reconnects and catches up from /ticks
 
 
-def _patched_writer(writer: RunWriter) -> RunWriter:
-    """Remember the last tick line written, so the payload is published byte-for-byte,
-    and the byte offset of every tick line, so `/ticks` seeks instead of scanning."""
+class TickIndex:
+    """Byte offsets of tick lines: exact for every tick seen (written or read at
+    resume), sparse (every SPARSE_EVERY ticks, from the sidecar) for the rest.
+    A tick between sparse entries is found by a short linear scan from the
+    nearest entry below it: no full-file scan on any request path."""
+
+    def __init__(self, exact: dict[int, int] | None = None, sparse: list[list[int]] | None = None):
+        self.exact = dict(exact or {})
+        self.sparse = sorted((int(t), int(o)) for t, o in (sparse or []))
+
+    def add(self, tick: int, offset: int) -> None:
+        self.exact[tick] = offset
+        if tick % SPARSE_EVERY == 0 and (not self.sparse or self.sparse[-1][0] < tick):
+            self.sparse.append((tick, offset))
+
+    def sparse_list(self) -> list[list[int]]:
+        return [[t, o] for t, o in self.sparse]
+
+    def locate(self, fh, k: int) -> int | None:
+        """Offset of tick line k, scanning forward from the nearest known offset below it."""
+        if k in self.exact:
+            return self.exact[k]
+        below = [(t, o) for t, o in self.sparse if t <= k] + [(t, o) for t, o in self.exact.items() if t <= k]
+        if not below:
+            return None
+        pos = max(below)[1]
+        fh.seek(pos)
+        while True:
+            line = fh.readline()
+            if not line:
+                return None
+            if b'"kind":"tick"' in line:
+                t = json.loads(line)
+                if t.get("kind") == "tick":
+                    self.exact[t["tick"]] = pos
+                    if t["tick"] == k:
+                        return pos
+            pos += len(line)
+
+    def read(self, path: Path, start: int, end: int) -> list[dict[str, Any]]:
+        out = []
+        with path.open("rb") as fh:
+            for k in range(max(start, 0), end):
+                pos = self.locate(fh, k)
+                if pos is None:
+                    break
+                fh.seek(pos)
+                t = json.loads(fh.readline())
+                if t.get("tick") != k:
+                    break
+                out.append(t)
+        return out
+
+
+def _patched_writer(writer: RunWriter, index: TickIndex | None = None) -> RunWriter:
+    """Remember the last tick line written (payload published byte-for-byte) and the
+    byte offsets of tick lines for `/ticks` and for bookmarks."""
     original = writer._write
-    writer.offsets = _tick_offsets(Path(writer.path))
+    writer.index = index if index is not None else TickIndex(_tick_offsets(Path(writer.path)))
+    writer.last_offset = writer.last_next = None
 
     def _write(payload):
         if payload.get("kind") == "tick":
-            writer.offsets.append(writer._handle.tell())
+            start = writer._handle.tell()
         raw = original(payload)
         if payload.get("kind") == "tick":
-            writer.last_line = raw
+            writer.last_line, writer.last_offset, writer.last_next = raw, start, start + len(raw)
+            writer.index.add(payload["tick"], start)
         return raw
     writer._write = _write
     return writer
 
 
-def _tick_offsets(path: Path) -> list[int]:
-    """Byte offsets of the tick lines already in a file (the copied prefix of a resumed run)."""
-    offsets, pos = [], 0
+def _tick_offsets(path: Path) -> dict[int, int]:
+    """Exact offsets of the tick lines already in a fresh or copied file (small files only)."""
+    offsets, pos = {}, 0
     if path.exists():
         with path.open("rb") as fh:
             for line in fh:
                 if b'"kind":"tick"' in line:
-                    offsets.append(pos)
+                    t = json.loads(line)
+                    if t.get("kind") == "tick":
+                        offsets[t["tick"]] = pos
                 pos += len(line)
     return offsets
 
 
-def read_ticks(path: Path, offsets: list[int], start: int, end: int) -> list[dict[str, Any]]:
-    """Tick lines `start <= tick < end` from disk, by seeking to their recorded offsets."""
-    out = []
-    with path.open("rb") as fh:
-        for k in range(max(start, 0), min(end, len(offsets))):
-            fh.seek(offsets[k])
-            out.append(json.loads(fh.readline()))
-    return out
+def read_ticks(path: Path, index: TickIndex, start: int, end: int) -> list[dict[str, Any]]:
+    return index.read(path, start, end)
 
 
 def run_identity(config: WorldConfig) -> tuple[str, str]:
@@ -305,16 +371,48 @@ def _prefix(source: Path) -> SealedPrefix:
 
 
 
-def resume_live(source: Path, out: Path | None = None) -> LiveWorld:
+def resume_live(source: Path, out: Path | None = None, log=print) -> LiveWorld:
+    """Continue a saved live world in its own file. Fast path: the checkpoint
+    bookmark. Fallback: the full sealed-prefix recovery (reads the whole file)
+    when there is no usable bookmark; `out` (a new file) is honoured only there."""
+    try:
+        r = resume_from_bookmark(source)
+    except RecoveryError as exc:
+        log(f"slow resume of {source}: {exc}; reading and verifying the whole file")
+        return _resume_full(source, out)
+    log(r.reason)
+    engine, overlay = restore(r)
+    config = WorldConfig.from_describe(r.header["scenario"])
+    writer = _patched_writer(r.writer, TickIndex(r.offsets, r.sparse))
+    return LiveWorld(config, engine, overlay, writer, r.header, r.prior, tick_count=r.last["tick"] + 1 - r.header["genesis"]["tick"])
+
+
+def _resume_full(source: Path, out: Path | None) -> LiveWorld:
+    """The slow path: read and verify the whole file. Continues in the same file
+    (the sealed prefix is kept byte for byte; an end line or torn tail after it is
+    dropped) unless `out` names a new file."""
     prefix = _prefix(source)
     config = WorldConfig.from_describe(prefix.header["scenario"])
     last = prefix.ticks[-1] if prefix.ticks else None
     engine = Engine(restored_state(prefix.header, last))
     overlay = Overlay.from_canonical(last["world"] if last else prefix.header["world"])
     if out is None:
-        _, name = run_identity(config)
-        out = source.with_name(name)          # the continued run keeps its run id; its file is new and its own
-    writer = _patched_writer(resume_writer(out, prefix))
+        writer = RunWriter.append_to(source, header=prefix.header, seal=prefix.seal, next_tick=prefix.next_tick,
+                                     ticks=len(prefix.ticks), truncate_at=len(prefix.prefix))
+        trail = hashlib.sha256()
+        for line in prefix.tick_lines:
+            trail.update(line)
+        writer.adopt_trail(trail)
+        offsets, pos = {}, 0
+        for line in prefix.prefix.splitlines(keepends=True):
+            if b'"kind":"tick"' in line:
+                t = json.loads(line)
+                if t.get("kind") == "tick":
+                    offsets[t["tick"]] = pos
+            pos += len(line)
+        writer = _patched_writer(writer, TickIndex(offsets))
+    else:
+        writer = _patched_writer(resume_writer(out, prefix))
     return LiveWorld(config, engine, overlay, writer, prefix.header, list(prefix.ticks))
 
 
@@ -345,8 +443,10 @@ def list_worlds(outdir: Path, current: Path | None, stopped: bool = False) -> li
         if header.get("kind") != "header" or not header.get("open_ended"):
             continue
         last = _tail_tick(path)
+        side = read_sidecar(path)
         out.append({"file": path.name, "run_id": header["run_id"], "seed": header["scenario"]["seed"],
                     "last_tick": last, "ticks": (last + 1) if last is not None else 0,
+                    "bookmark": side["bookmarks"][0]["tick"] if side and side.get("bookmarks") else None,
                     "size_mb": round(path.stat().st_size / 1e6, 1), "current": path == current and not stopped})
     return out
 
@@ -384,7 +484,7 @@ class Session:
             assert not self.thread.is_alive(), "the old world did not stop"
             self.live.stopped.wait(5)
         else:                       # never started: close the file through the same end-line path
-            self.live.fsync()
+            self.live.checkpoint()
             self.live.writer.close()
         self.note("stop")
 
@@ -459,7 +559,7 @@ def make_handler(session):
                 first = live.tick_count - len(ring)
                 out = [t for t in ring if start <= t["tick"] < end]
                 if start < first:      # older ticks come from the run file on disk, by offset
-                    out = read_ticks(Path(live.writer.path), live.writer.offsets, start, min(end, first)) + out
+                    out = read_ticks(Path(live.writer.path), live.writer.index, start, min(end, first)) + out
                 self._json(200, {"run_id": live.header["run_id"], "ticks": out})
             elif path == "/events":
                 since = int(params.get("since", live.tick_count))
@@ -547,6 +647,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="continue a live world from its saved run (a new file is written next to it)")
     parser.add_argument("--out-dir", default=None, metavar="DIR",
                         help="directory for live run files (default runs/live); ignored when --out FILE is given")
+    parser.add_argument("--check", default=None, metavar="FILE",
+                        help="verify a whole run file line by line (bounded memory) and exit; resume trusts bookmarks, this is the full check")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--no-open", action="store_true", help="do not open the browser")
     parser.add_argument("--host", default="127.0.0.1")
@@ -555,6 +657,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.check:
+        problems = stream_check(Path(args.check))
+        for problem in problems:
+            print(f"problem: {problem}")
+        print(f"file_verifies: {'yes' if not problems else 'no'}")
+        return 0 if not problems else 1
     if args.resume_live:
         live = resume_live(Path(args.resume_live))
     else:

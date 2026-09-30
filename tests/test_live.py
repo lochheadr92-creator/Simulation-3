@@ -64,16 +64,16 @@ def test_equal_state_at_tick_300_however_driven(tmp_path):
     for _ in range(150):
         d.advance()
     d.stop(); d.fsync(); d.writer.close()
-    d2 = resume_live(tmp_path / "d.jsonl", tmp_path / "d2.jsonl")
+    d2 = resume_live(tmp_path / "d.jsonl")
     while d2.tick_count < 300:
         d2.advance()
     d2.writer.close()
     ref = digests(tmp_path / "a.jsonl")
-    for name, path in (("speed changes", tmp_path / "b.jsonl"), ("pause/step", tmp_path / "c.jsonl"), ("stop/resume", tmp_path / "d2.jsonl")):
+    for name, path in (("speed changes", tmp_path / "b.jsonl"), ("pause/step", tmp_path / "c.jsonl"), ("stop/resume", tmp_path / "d.jsonl")):
         run = read_run(path)
         tick = next(t for t in run.ticks if t["tick"] == 299)
         assert (tick["state_digest"], tick["world_digest"]) == ref[1:], name
-    assert replay_world(tmp_path / "a.jsonl").identical and replay_world(tmp_path / "d2.jsonl").identical
+    assert replay_world(tmp_path / "a.jsonl").identical and replay_world(tmp_path / "d.jsonl").identical
     assert read_run(tmp_path / "a.jsonl").complete and read_run(tmp_path / "d.jsonl").complete
 
 
@@ -117,13 +117,13 @@ def test_kill_dash_nine_then_resume_matches_the_uninterrupted_world(tmp_path):
     proc.wait()
     with out.open("ab") as fh:
         fh.write(b'{"kind":"tick","tick":9999,"partial')
-    live = resume_live(out, tmp_path / "k2.jsonl")
+    live = resume_live(out)
     assert 150 <= live.tick_count <= 152
     while live.tick_count < 300:
         live.advance()
     live.writer.close()
-    assert digests(tmp_path / "k2.jsonl")[1:] == digests(tmp_path / "ref.jsonl")[1:]
-    assert replay_world(tmp_path / "k2.jsonl").identical
+    assert digests(out)[1:] == digests(tmp_path / "ref.jsonl")[1:]
+    assert replay_world(out).identical
 
 
 def test_open_ended_header_and_http_reconnect(tmp_path):
@@ -181,7 +181,7 @@ def test_light_stream_and_ticks_by_offset(tmp_path):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     for _ in range(RING + 20):
         live.advance()
-    assert len(live.writer.offsets) == RING + 20
+    assert len(live.writer.index.exact) == RING + 20
     # ticks older than the ring come from disk by offset, in order, byte-identical to what was written
     got = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/ticks?from=3&to=6").read())["ticks"]
     assert [t["tick"] for t in got] == [3, 4, 5] and got[0]["tick"] < live.tick_count - RING
@@ -210,13 +210,13 @@ def test_resumed_live_knows_offsets_of_the_copied_prefix(tmp_path):
     live = open_live(CFG, tmp_path / "o.jsonl")
     for _ in range(40):
         live.advance()
-    live.stop(); live.fsync(); live.writer.close()
-    again = resume_live(tmp_path / "o.jsonl", tmp_path / "o2.jsonl")
-    assert len(again.writer.offsets) == 40
+    live.stop(); live.checkpoint(); live.writer.close()
+    again = resume_live(tmp_path / "o.jsonl")
+    assert again.writer.path == tmp_path / "o.jsonl"          # same file, continued in place
     again.advance()
-    assert len(again.writer.offsets) == 41
+    assert 40 in again.writer.index.exact
     from world.live import read_ticks
-    ticks = read_ticks(tmp_path / "o2.jsonl", again.writer.offsets, 38, 41)
+    ticks = read_ticks(tmp_path / "o.jsonl", again.writer.index, 38, 41)
     assert [t["tick"] for t in ticks] == [38, 39, 40]
     again.writer.close()
 
@@ -375,8 +375,9 @@ def test_control_new_replay_resume_over_http(tmp_path):
     control({"action": "step"})
     time.sleep(0.4)
     resumed = control({"action": "resume_saved", "file": Path(specific["path"]).name})
-    assert resumed["run_id"] == specific["run_id"] and resumed["seed"] == 23 and len(files()) == 5
+    assert resumed["run_id"] == specific["run_id"] and resumed["seed"] == 23 and len(files()) == 4   # same file, continued
+    assert resumed["path"] == specific["path"]
     worlds = get("/worlds")["worlds"]
-    assert len(worlds) == 5 and all(w["seed"] is not None for w in worlds)
+    assert len(worlds) == 4 and all(w["seed"] is not None for w in worlds)
     assert get("/ticks?from=0&to=1")["run_id"] == resumed["run_id"]
     control({"action": "stop"}); session.thread.join(10); server.shutdown()
