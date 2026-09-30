@@ -219,3 +219,43 @@ def test_resumed_live_knows_offsets_of_the_copied_prefix(tmp_path):
     ticks = read_ticks(tmp_path / "o2.jsonl", again.writer.offsets, 38, 41)
     assert [t["tick"] for t in ticks] == [38, 39, 40]
     again.writer.close()
+
+
+def test_every_speed_option_maps_to_the_server_interval(tmp_path):
+    """The page's <select> values are the server's SPEEDS, in ticks per second; the
+    loop sleeps 1/speed between ticks (unthrottled: no sleep)."""
+    import re
+    from world.live import SPEEDS
+    values = re.findall(r'<option value="([^"]+)">', Path("/app/world/live.js").read_text())
+    assert [float(v) for v in values] == list(SPEEDS)
+    live = open_live(CFG, tmp_path / "s.jsonl")
+    expected = {"0.1": 10.0, "0.25": 4.0, "0.5": 2.0, "1": 1.0, "2": 0.5, "5": 0.2, "10": 0.1, "0": None}
+    for value in values:
+        live.set_speed(float(value))
+        assert live.interval() == expected[value], value
+    live.writer.close()
+
+
+def test_control_bursts_do_not_speed_the_world_up(tmp_path):
+    """Fifty speed/pause-status requests a second must not add ticks: the schedule is
+    `last tick + interval`, a control change only re-evaluates it. Steps while
+    running are ignored."""
+    live = open_live(CFG, tmp_path / "burst.jsonl")
+    thread = threading.Thread(target=live.run_forever, daemon=True)
+    thread.start()
+    live.set_speed(2); live.set_paused(False)
+    time.sleep(0.2)
+    start = live.tick_count
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        live.set_speed(2); live.step()          # the storm: same speed again, and steps that mean nothing while running
+        time.sleep(0.02)
+    ticks = live.tick_count - start
+    assert 5 <= ticks <= 7, ticks                # 2 tick/s for 3 s
+    live.set_paused(True)
+    time.sleep(0.6)
+    frozen = live.tick_count
+    time.sleep(1.5)
+    assert live.tick_count == frozen and live.steps == 0
+    live.stop(); thread.join(10)
+    assert read_run(tmp_path / "burst.jsonl").complete

@@ -67,6 +67,7 @@ class LiveWorld:
         self.ring: deque[dict[str, Any]] = deque(prior[-RING:], maxlen=RING)
         self.base_before = prior[-RING - 1] if len(prior) > RING else None
         self.tick_count = len(prior)
+        self.last_tick = 0.0          # monotonic time of the last tick; only schedules the next one, never enters the tick
         self.last_fsync = time.monotonic()
         self.stopped = threading.Event()
 
@@ -81,8 +82,13 @@ class LiveWorld:
 
     def step(self) -> None:
         with self.wake:
-            self.steps += 1
+            if self.paused:                 # a step is one tick of a paused world; while running it means nothing
+                self.steps += 1
             self.wake.notify_all()
+
+    def interval(self) -> float | None:
+        """Seconds between ticks at the current speed; None when unthrottled."""
+        return None if self.speed == 0 else 1.0 / self.speed
 
     def set_speed(self, speed: float) -> None:
         if speed not in SPEEDS:
@@ -162,21 +168,36 @@ class LiveWorld:
         return self._run(ticks, before), base
 
     def run_forever(self) -> None:
+        """The owner loop. Ticks are due at `last_tick + interval`; a control change
+        re-evaluates the schedule but never brings a tick forward, so a burst of
+        control requests cannot speed the world up. A step is exactly one tick of a
+        paused world."""
         try:
             while True:
                 with self.wake:
-                    while not self.stopping and self.paused and self.steps == 0:
-                        self.wake.wait()
-                    if self.stopping:
-                        break
-                    stepping = self.steps > 0
-                    if stepping:
-                        self.steps -= 1
-                    speed = self.speed
+                    while True:
+                        if self.stopping:
+                            return
+                        if self.paused:
+                            if self.steps > 0:
+                                self.steps -= 1
+                                self.last_tick = time.monotonic()
+                                break
+                            self.wake.wait()
+                            continue
+                        gap = self.interval()
+                        now = time.monotonic()
+                        if gap is None:
+                            self.last_tick = now
+                            break
+                        wait = self.last_tick + gap - now
+                        if wait <= 0:
+                            # the next tick is due `gap` after this one was *scheduled*, so the
+                            # tick's own cost does not slow the rate; after a long pause, restart from now
+                            self.last_tick = max(self.last_tick + gap, now - gap)
+                            break
+                        self.wake.wait(timeout=wait)
                 self.advance()
-                if not stepping and speed > 0:
-                    with self.wake:
-                        self.wake.wait(timeout=1.0 / speed)
         finally:
             self.fsync()
             try:
