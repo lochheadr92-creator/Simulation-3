@@ -36,6 +36,7 @@
     <button id="live-new" type="button" data-testid="live-new-world">New random world…</button>
     <button id="live-stop" type="button" data-testid="live-stop">Stop &amp; save</button>`;
   document.body.prepend(bar);
+  for (const id of ['pin-chip', 'full-map']) { const el = document.getElementById(id); if (el) bar.append(el); }   // the viewer's pin controls live in the bar
   const panel = document.createElement('div');
   panel.id = 'live-panel'; panel.hidden = true;
   panel.innerHTML = `
