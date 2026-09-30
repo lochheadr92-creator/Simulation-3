@@ -25,6 +25,7 @@ run file is a saved world you can replay and watch.
 from __future__ import annotations
 
 import argparse
+import secrets
 import sys
 import time
 from dataclasses import dataclass
@@ -190,9 +191,22 @@ LEVERS = ("width", "height", "actors", "starting_food", "source_stock", "source_
           "perception_radius", "food_sources", "water_sources")
 
 
+def seed_argument(value: str):
+    """`--seed N` as before, or `--seed random`: drawn once at launch, then used like any seed."""
+    if value == "random":
+        return "random"
+    return int(value)
+
+
+def random_seed() -> int:
+    """The one place a seed is drawn: once, at world creation, from the OS."""
+    return secrets.randbits(32)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a seeded grid world and write its record stream.")
-    parser.add_argument("--seed", type=int, default=None, help="Required unless --replay is given.")
+    parser.add_argument("--seed", type=seed_argument, default=None, metavar="N|random",
+                        help="Required unless --replay is given. `random` draws one 32-bit seed from the OS at launch.")
     parser.add_argument("--ticks", type=int, default=300)
     for lever in LEVERS:
         parser.add_argument(f"--{lever.replace('_', '-')}", type=int, default=None, help=f"world lever (default from WorldConfig)")
@@ -358,6 +372,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.ticks < 1:
         sys.stderr.write("error: ticks must be positive\n")
         return 2
+    if args.seed == "random":
+        args.seed = random_seed()
+        print(f"seed: {args.seed} (random, drawn once at launch)", flush=True)
     try:
         config = config_from(args)
     except ValueError as exc:

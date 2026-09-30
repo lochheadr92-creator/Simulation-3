@@ -259,3 +259,124 @@ def test_control_bursts_do_not_speed_the_world_up(tmp_path):
     assert live.tick_count == frozen and live.steps == 0
     live.stop(); thread.join(10)
     assert read_run(tmp_path / "burst.jsonl").complete
+
+
+# ------------------------------------------------------------ Phase 5: worlds --
+def test_random_seed_is_drawn_once_and_recorded(tmp_path):
+    from world.live import Session
+    live = open_live(CFG, outdir=tmp_path)
+    session = Session(live, tmp_path)
+    first = session.new_world(None)
+    seed = first["seed"]
+    header = json.loads(Path(first["path"]).open("rb").readline())
+    assert header["scenario"]["seed"] == seed and header["run_id"] == first["run_id"]
+    assert Path(first["path"]).name.startswith(("19", "20")) and f"-seed{seed}-" in Path(first["path"]).name
+    # pause, speed, step and reconnects never touch the seed
+    session.live.set_speed(2); session.live.set_paused(True); session.live.step(); time.sleep(0.3)
+    assert session.status()["seed"] == seed
+    session.live.stop(); session.thread.join(10)
+    events = [h["event"] for h in session.history]
+    assert events == ["stop", "start"]      # the first (never started) world was stopped, the new one started
+
+
+def test_same_seed_and_config_reproduce_and_resume_matches(tmp_path):
+    from world.live import Session
+    live = open_live(CFG, outdir=tmp_path)
+    session = Session(live, tmp_path)
+    session.start()
+    made = session.new_world(None)
+    seed = made["seed"]
+    a = session.live
+    for _ in range(200):
+        a.advance()
+    # recreate from the header's seed + describe(): same genesis, same digests
+    described = a.header["scenario"]
+    b = open_live(WorldConfig.from_describe(described), outdir=tmp_path)   # the header alone recreates the world
+    assert b.header["genesis_digest"] == a.header["genesis_digest"] and b.header["world_digest"] == a.header["world_digest"]
+    assert b.header["run_id"] != a.header["run_id"] and b.writer.path != a.writer.path
+    for _ in range(200):
+        b.advance()
+    assert a.ring[-1]["state_digest"] == b.ring[-1]["state_digest"] and a.ring[-1]["world_digest"] == b.ring[-1]["world_digest"]
+    b.writer.close()
+    # stop a, resume it through the session, continue to 300; compare with an uninterrupted b2 at 300
+    a_path = Path(a.writer.path)
+    session.live.stop(); session.thread.join(10)
+    assert read_run(a_path).complete
+    session.thread = None
+    resumed = session.resume(a_path.name)
+    assert resumed["seed"] == seed and resumed["run_id"] == a.header["run_id"] and resumed["tick"] == 200
+    r = session.live
+    while r.tick_count < 300:
+        r.advance()
+    b2 = open_live(WorldConfig.from_describe(described), outdir=tmp_path)
+    for _ in range(300):
+        b2.advance()
+    assert r.ring[-1]["state_digest"] == b2.ring[-1]["state_digest"]
+    session.live.stop(); session.thread.join(10); b2.writer.close()
+    assert replay_world(Path(r.writer.path)).identical
+    assert digests(Path(r.writer.path))[1:] == digests(Path(b2.writer.path))[1:]
+
+
+def test_two_new_worlds_and_listing(tmp_path):
+    from world.live import Session, list_worlds
+    live = open_live(CFG, outdir=tmp_path)
+    session = Session(live, tmp_path)
+    session.start()
+    session.live.set_speed(0); session.live.set_paused(False)
+    time.sleep(0.4)
+    first = session.new_world(None)
+    session.live.set_speed(0); session.live.set_paused(False)
+    time.sleep(0.4)
+    second = session.new_world(None)
+    assert first["seed"] != second["seed"] and first["run_id"] != second["run_id"] and first["path"] != second["path"]
+    assert read_run(Path(first["path"])).complete       # stopped with an end line, intact
+    assert read_run(Path(live.writer.path)).complete
+    events = [(h["event"], h["file"]) for h in session.history]
+    assert [e for e, _ in events] == ["start", "stop", "start", "stop", "start"]
+    for i in range(1, len(session.history)):           # the log is strictly ordered: no start before the previous stop
+        assert session.history[i]["at"] >= session.history[i - 1]["at"]
+    worlds = list_worlds(tmp_path, Path(second["path"]))
+    assert len(worlds) == 3 and sum(w["current"] for w in worlds) == 1
+    by = {w["file"]: w for w in worlds}
+    assert by[Path(first["path"]).name]["seed"] == first["seed"] and by[Path(first["path"]).name]["ticks"] >= 1
+    session.live.stop(); session.thread.join(10)
+
+
+def test_control_new_replay_resume_over_http(tmp_path):
+    from world.live import Session
+    live = open_live(CFG, outdir=tmp_path)
+    session = Session(live, tmp_path)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(session))
+    port = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    session.start()
+
+    def control(body):
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/control", data=json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/json"})
+        return json.loads(urllib.request.urlopen(req).read())
+
+    def get(path):
+        return json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}{path}").read())
+
+    files = lambda: sorted(p.name for p in tmp_path.glob("*.jsonl"))
+    before = get("/status")
+    # a reconnect / refresh creates nothing
+    urllib.request.urlopen(f"http://127.0.0.1:{port}/").read()
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/events?since=0") as resp:
+        resp.readline()
+    assert get("/status")["run_id"] == before["run_id"] and len(files()) == 1
+    new = control({"action": "new", "seed": None})
+    assert new["run_id"] != before["run_id"] and new["seed"] != before["seed"] and len(files()) == 2
+    specific = control({"action": "new", "seed": 23})
+    assert specific["seed"] == 23 and len(files()) == 3
+    replayed = control({"action": "replay"})
+    assert replayed["seed"] == 23 and replayed["run_id"] != specific["run_id"] and len(files()) == 4
+    control({"action": "step"})
+    time.sleep(0.4)
+    resumed = control({"action": "resume_saved", "file": Path(specific["path"]).name})
+    assert resumed["run_id"] == specific["run_id"] and resumed["seed"] == 23 and len(files()) == 5
+    worlds = get("/worlds")["worlds"]
+    assert len(worlds) == 5 and all(w["seed"] is not None for w in worlds)
+    assert get("/ticks?from=0&to=1")["run_id"] == resumed["run_id"]
+    control({"action": "stop"}); session.thread.join(10); server.shutdown()

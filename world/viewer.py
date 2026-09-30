@@ -40,8 +40,12 @@ CSS_FILE = HERE / "viewer.css"
 JS_FILE = HERE / "viewer.js"
 LIVE_CSS = ("#live-bar{position:sticky;top:0;z-index:50;display:flex;gap:12px;align-items:center;padding:8px 16px;"
             "background:#1b2a2a;color:#e8f0ee;font:14px system-ui,sans-serif;border-bottom:1px solid #3a5551}"
-            "#live-bar button,#live-bar select{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #4d6f6a;background:#243b3a;color:inherit}"
-            "#live-bar button:disabled{opacity:.45}.live-ticks{font-weight:600}.live-ticks.behind{color:#f2c14e}.live-mode{opacity:.7;font-size:.9em}")
+            "#live-bar button,#live-bar select,.live-panel-box button,.live-panel-box select{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #4d6f6a;background:#243b3a;color:inherit}"
+            "#live-bar button:disabled{opacity:.45}.live-ticks{font-weight:600}.live-ticks.behind{color:#f2c14e}.live-mode{opacity:.7;font-size:.9em}.live-seed code{font-weight:600;user-select:all}"
+            "#live-panel{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding-top:60px}"
+            "#live-panel[hidden]{display:none}.live-panel-box{background:#16302f;color:#e6efe9;border:1px solid #4d6f6a;border-radius:10px;padding:18px 22px;width:min(720px,92vw);max-height:80vh;overflow:auto}"
+            ".live-panel-box h3,.live-panel-box h4{margin:0 0 8px}.live-panel-box label{display:block;margin:6px 0}.live-panel-box input[type=number]{margin-left:8px;width:12em}"
+            ".live-actions{display:flex;gap:10px;margin:10px 0 16px}.live-hint{opacity:.75;font-size:.9em}#live-settings{max-height:200px;overflow:auto;font-size:.8em}#live-saved{max-width:100%;margin:4px 0}")
 
 
 def _checkpoints(run: Run) -> dict[str, list[int]]:

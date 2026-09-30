@@ -24,11 +24,14 @@ import hashlib
 import json
 import os
 import queue
+import secrets
 import sys
 import threading
 import time
 import webbrowser
 from collections import deque
+from dataclasses import replace
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -39,7 +42,7 @@ from stream.recover import restored_state
 from stream.run_file import Run, RunWriter
 from world.config import WorldConfig, genesis
 from world.overlay import Overlay
-from world.run import build_parser as run_parser, config_from, run_id_for, world_step
+from world.run import DEFAULT_RUNS_DIR, build_parser as run_parser, config_from, random_seed, run_id_for, world_step
 from world.viewer import render_html
 from world.viewer_index import build_index
 
@@ -106,7 +109,7 @@ class LiveWorld:
 
     def status(self) -> dict[str, Any]:
         return {"tick": self.tick_count, "paused": self.paused, "speed": self.speed, "path": str(self.writer.path),
-                "run_id": self.header["run_id"], "ring": RING, "stopping": self.stopping}
+                "run_id": self.header["run_id"], "seed": self.header["scenario"]["seed"], "ring": RING, "stopping": self.stopping}
 
     def fsync(self) -> None:
         handle = getattr(self.writer, "_handle", None)
@@ -268,9 +271,20 @@ def read_ticks(path: Path, offsets: list[int], start: int, end: int) -> list[dic
     return out
 
 
-def open_live(config: WorldConfig, path: Path) -> LiveWorld:
+def run_identity(config: WorldConfig) -> tuple[str, str]:
+    """A run id of its own for every live world (the deterministic scenario id plus
+    a UTC stamp and a short token) and the file name that goes with it."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    short = secrets.token_hex(4)
+    return f"{run_id_for(config, LIVE_HORIZON)}-live-{stamp}-{short}", f"{stamp}-seed{config.seed}-{short}.jsonl"
+
+
+def open_live(config: WorldConfig, path: Path | None = None, outdir: Path | None = None) -> LiveWorld:
     ledger, overlay = genesis(config)
-    writer = RunWriter(path, run_id=run_id_for(config, LIVE_HORIZON) + "-live", genesis=ledger,
+    run_id, name = run_identity(config)
+    if path is None:
+        path = (outdir or DEFAULT_RUNS_DIR / "live") / name
+    writer = RunWriter(path, run_id=run_id, genesis=ledger,
                        scenario=config.describe(), world=overlay.canonical(), horizon=LIVE_HORIZON, open_ended=True)
     return LiveWorld(config, Engine(ledger), overlay, _patched_writer(writer), writer.header, [])
 
@@ -298,18 +312,115 @@ def resume_live(source: Path, out: Path | None = None) -> LiveWorld:
     engine = Engine(restored_state(prefix.header, last))
     overlay = Overlay.from_canonical(last["world"] if last else prefix.header["world"])
     if out is None:
-        k = 1
-        while True:
-            out = source.with_name(f"{source.stem}.r{k}.jsonl")
-            if not out.exists():
-                break
-            k += 1
+        _, name = run_identity(config)
+        out = source.with_name(name)          # the continued run keeps its run id; its file is new and its own
     writer = _patched_writer(resume_writer(out, prefix))
     return LiveWorld(config, engine, overlay, writer, prefix.header, list(prefix.ticks))
 
 
+def _tail_tick(path: Path) -> int | None:
+    """The last tick number in a run file, read from its tail only."""
+    size = path.stat().st_size
+    with path.open("rb") as fh:
+        fh.seek(max(0, size - 1_000_000))
+        lines = fh.read().splitlines()
+    for line in reversed(lines):
+        if b'"kind":"tick"' in line:
+            try:
+                return json.loads(line)["tick"]
+            except ValueError:
+                continue
+    return None
+
+
+def list_worlds(outdir: Path, current: Path | None, stopped: bool = False) -> list[dict[str, Any]]:
+    """Every live run file in the directory, cheaply: header line and tail only."""
+    out = []
+    for path in sorted(outdir.glob("*.jsonl")):
+        try:
+            with path.open("rb") as fh:
+                header = json.loads(fh.readline())
+        except (OSError, ValueError):
+            continue
+        if header.get("kind") != "header" or not header.get("open_ended"):
+            continue
+        last = _tail_tick(path)
+        out.append({"file": path.name, "run_id": header["run_id"], "seed": header["scenario"]["seed"],
+                    "last_tick": last, "ticks": (last + 1) if last is not None else 0,
+                    "size_mb": round(path.stat().st_size / 1e6, 1), "current": path == current and not stopped})
+    return out
+
+
+class Session:
+    """One live world at a time. New / replay / resume stop the running world
+    through the ordinary stop path first (pause, fsync, end line, writer closed),
+    wait for its owner thread to end, and only then start the next one."""
+
+    def __init__(self, live: LiveWorld, outdir: Path):
+        self.live, self.outdir = live, outdir
+        self.thread: threading.Thread | None = None
+        self.gate = threading.Lock()
+        self.switching = False        # true while one world is being stopped and the next created
+        self.history: list[dict[str, Any]] = []
+
+    def start(self) -> None:
+        assert self.thread is None or not self.thread.is_alive(), "a world is still running"
+        self.thread = threading.Thread(target=self.live.run_forever, name="world", daemon=True)
+        self.thread.start()
+        self.note("start")
+
+    def note(self, event: str) -> None:
+        self.history.append({"at": datetime.now(timezone.utc).isoformat(timespec="milliseconds"), "event": event,
+                             "run_id": self.live.header["run_id"], "seed": self.live.header["scenario"]["seed"],
+                             "file": str(self.live.writer.path), "tick": self.live.tick_count})
+
+    def status(self) -> dict[str, Any]:
+        return {**self.live.status(), "outdir": str(self.outdir), "history": self.history[-20:]}
+
+    def _stop_current(self) -> None:
+        self.live.stop()
+        if self.thread is not None:
+            self.thread.join(30)
+            assert not self.thread.is_alive(), "the old world did not stop"
+            self.live.stopped.wait(5)
+        else:                       # never started: close the file through the same end-line path
+            self.live.fsync()
+            self.live.writer.close()
+        self.note("stop")
+
+    def switch(self, make) -> dict[str, Any]:
+        """Stop, then create with `make()`, then start. Serialised; never two owners."""
+        with self.gate:
+            self.switching = True
+            try:
+                self._stop_current()
+                self.live = make()
+                self.start()
+                return self.status()
+            finally:
+                self.switching = False
+
+    def new_world(self, seed: int | None) -> dict[str, Any]:
+        # every lever of the running world, only the seed replaced; nothing else is ever randomised
+        config = replace(self.live.config, seed=random_seed() if seed is None else int(seed))
+        return self.switch(lambda: open_live(config, outdir=self.outdir))
+
+    def replay(self) -> dict[str, Any]:
+        return self.new_world(self.live.header["scenario"]["seed"])
+
+    def resume(self, name: str) -> dict[str, Any]:
+        source = self.outdir / Path(name).name
+        if not source.exists() or (source == Path(self.live.writer.path) and not self.live.stopping):
+            raise ValueError(f"no saved world {name!r} to resume")
+        return self.switch(lambda: resume_live(source))
+
+
 # ------------------------------------------------------------------ HTTP --
-def make_handler(live: LiveWorld):
+def make_handler(session):
+    """`session` is a Session, or a bare LiveWorld for tests of a single world."""
+    if isinstance(session, LiveWorld):
+        session = Session(session, Path(session.writer.path).parent)
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):   # quiet
             pass
@@ -324,11 +435,12 @@ def make_handler(live: LiveWorld):
             self.wfile.write(raw)
 
         def do_GET(self):
+            live = session.live
             path, _, query = self.path.partition("?")
             params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
             if path == "/":
                 run, base = live.page_run()
-                page = render_html(run, live={"base": base, **live.status()})
+                page = render_html(run, live={"base": base, **live.status(), "outdir": str(session.outdir)})
                 raw = page.encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -337,7 +449,9 @@ def make_handler(live: LiveWorld):
                 self.end_headers()
                 self.wfile.write(raw)
             elif path == "/status":
-                self._json(200, {**live.status(), "scenario": live.header["scenario"]})
+                self._json(200, {**session.status(), "scenario": live.header["scenario"]})
+            elif path == "/worlds":
+                self._json(200, {"outdir": str(session.outdir), "worlds": list_worlds(session.outdir, Path(live.writer.path), live.stopping)})
             elif path == "/ticks":
                 start, end = int(params.get("from", 0)), int(params.get("to", live.tick_count))
                 with live.lock:
@@ -346,7 +460,7 @@ def make_handler(live: LiveWorld):
                 out = [t for t in ring if start <= t["tick"] < end]
                 if start < first:      # older ticks come from the run file on disk, by offset
                     out = read_ticks(Path(live.writer.path), live.writer.offsets, start, min(end, first)) + out
-                self._json(200, {"ticks": out})
+                self._json(200, {"run_id": live.header["run_id"], "ticks": out})
             elif path == "/events":
                 since = int(params.get("since", live.tick_count))
                 light = params.get("light") == "1"      # tick numbers only: the tab fetches what it will show
@@ -355,6 +469,7 @@ def make_handler(live: LiveWorld):
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
+                run_id = live.header["run_id"]
                 try:
                     self._send({"kind": "control", **live.status()})
                     sent = since
@@ -362,7 +477,7 @@ def make_handler(live: LiveWorld):
                         with live.lock:
                             missed = [t for t in live.ring if t["tick"] >= since]
                         for t in missed:
-                            self._send({"kind": "tick", "tick": t, "index": None, "control": live.status()})
+                            self._send({"kind": "tick", "run_id": run_id, "tick": t, "index": None, "control": live.status()})
                             sent = t["tick"] + 1
                     while True:
                         try:
@@ -376,7 +491,7 @@ def make_handler(live: LiveWorld):
                             sent = msg["tick"]["tick"] + 1
                             if light:
                                 msg = {"kind": "tickn", "n": sent, "control": msg["control"]}
-                        self._send(msg)
+                        self._send({"run_id": run_id, **msg})
                         if msg.get("stopping") or (msg.get("control") or {}).get("stopping"):
                             break
                 except (BrokenPipeError, ConnectionResetError, OSError):
@@ -393,6 +508,7 @@ def make_handler(live: LiveWorld):
         def do_POST(self):
             if self.path != "/control":
                 return self._json(404, {"error": "not found"})
+            live = session.live
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length) or b"{}")
             action = body.get("action")
@@ -407,11 +523,20 @@ def make_handler(live: LiveWorld):
                     live.set_speed(float(body.get("speed", 1)))
                 elif action == "stop":
                     live.stop()
+                elif action == "new":
+                    seed = body.get("seed")
+                    if seed is not None and (type(seed) is not int or seed < 0):
+                        return self._json(400, {"error": "seed must be a non-negative integer"})
+                    return self._json(200, session.new_world(seed))
+                elif action == "replay":
+                    return self._json(200, session.replay())
+                elif action == "resume_saved":
+                    return self._json(200, session.resume(str(body.get("file", ""))))
                 else:
                     return self._json(400, {"error": f"unknown action {action!r}"})
             except ValueError as exc:
                 return self._json(400, {"error": str(exc)})
-            self._json(200, live.status())
+            self._json(200, session.status())
     return Handler
 
 
@@ -420,6 +545,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.description = "Run a world live in the browser: it advances while you watch."
     parser.add_argument("--resume", dest="resume_live", default=None, metavar="FILE",
                         help="continue a live world from its saved run (a new file is written next to it)")
+    parser.add_argument("--out-dir", default=None, metavar="DIR",
+                        help="directory for live run files (default runs/live); ignored when --out FILE is given")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--no-open", action="store_true", help="do not open the browser")
     parser.add_argument("--host", default="127.0.0.1")
@@ -431,34 +558,41 @@ def main(argv: list[str] | None = None) -> int:
     if args.resume_live:
         live = resume_live(Path(args.resume_live))
     else:
-        if not args.out:
-            print("live worlds need --out FILE", file=sys.stderr)
+        if args.seed is None:
+            print("live worlds need --seed N or --seed random", file=sys.stderr)
             return 2
-        live = open_live(config_from(args), Path(args.out))
+        if args.seed == "random":
+            args.seed = random_seed()
+            print(f"seed: {args.seed} (random, drawn once at launch)", flush=True)
+        outdir = Path(args.out).parent if args.out else Path(args.out_dir) if args.out_dir else DEFAULT_RUNS_DIR / "live"
+        live = open_live(config_from(args), Path(args.out) if args.out else None, outdir=outdir)
+    session = Session(live, Path(live.writer.path).parent)
     try:
-        server = ThreadingHTTPServer((args.host, args.port), make_handler(live))
+        server = ThreadingHTTPServer((args.host, args.port), make_handler(session))
     except OSError as exc:
         print(f"port {args.port} is not available ({exc}); choose another with --port", file=sys.stderr)
         live.writer._handle.close()
         if not args.resume_live:
-            Path(args.out).unlink(missing_ok=True)   # nothing was recorded; leave no header-only file behind
+            Path(live.writer.path).unlink(missing_ok=True)   # nothing was recorded; leave no header-only file behind
         return 3
     server.daemon_threads = True
-    thread = threading.Thread(target=live.run_forever, name="world", daemon=True)
-    thread.start()
+    session.start()
     url = f"http://{args.host}:{args.port}/"
-    print(f"live world at {url} (paused; writing {live.writer.path})", flush=True)
+    print(f"live world at {url} (paused; seed {live.header['scenario']['seed']}; writing {live.writer.path})", flush=True)
     if not args.no_open:
         webbrowser.open(url)
     serving = threading.Thread(target=server.serve_forever, daemon=True)
     serving.start()
     try:
-        while not live.stopped.wait(0.5):
-            pass
+        while True:
+            live = session.live
+            if live.stopped.wait(0.5) and not session.switching and session.live is live:
+                break               # stopped for good (not replaced by a new world)
     except KeyboardInterrupt:
-        live.stop()
-        live.stopped.wait(10)
+        session.live.stop()
+        session.live.stopped.wait(10)
     server.shutdown()
+    live = session.live
     print(f"stopped at tick {live.tick_count}; resume with: python3 -B -m world.live --resume {live.writer.path}")
     return 0
 
