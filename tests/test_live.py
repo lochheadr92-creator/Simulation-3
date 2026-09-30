@@ -14,7 +14,7 @@ from pathlib import Path
 
 from stream.run_file import read_run
 from world.config import WorldConfig
-from world.live import LIVE_HORIZON, LiveWorld, make_handler, open_live, resume_live
+from world.live import LIVE_HORIZON, RING, LiveWorld, make_handler, open_live, resume_live
 from world.replay import replay_world
 
 CFG = WorldConfig(seed=23, wood_on=True, yard_on=True, stone_on=True, axe_on=True, stores_on=True, provisioning_on=True,
@@ -172,3 +172,50 @@ def test_open_ended_header_and_http_reconnect(tmp_path):
     control({"action": "stop"}); thread.join(10); server.shutdown()
     run = read_run(tmp_path / "h.jsonl")
     assert run.complete and len(run.ticks) == frozen and replay_world(tmp_path / "h.jsonl").identical
+
+
+def test_light_stream_and_ticks_by_offset(tmp_path):
+    live = open_live(CFG, tmp_path / "l.jsonl")
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(live))
+    port = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    for _ in range(RING + 20):
+        live.advance()
+    assert len(live.writer.offsets) == RING + 20
+    # ticks older than the ring come from disk by offset, in order, byte-identical to what was written
+    got = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/ticks?from=3&to=6").read())["ticks"]
+    assert [t["tick"] for t in got] == [3, 4, 5] and got[0]["tick"] < live.tick_count - RING
+    tick_lines = [l for l in (tmp_path / "l.jsonl").read_bytes().splitlines() if b'"kind":"tick"' in l]
+    assert got[0] == json.loads(tick_lines[3])
+    # the light stream carries tick numbers only
+    thread = threading.Thread(target=live.run_forever, daemon=True)
+    thread.start()
+    live.set_speed(0); live.set_paused(False)
+    seen = []
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/events?light=1") as resp:
+        for raw in resp:
+            if raw.startswith(b"data:"):
+                msg = json.loads(raw[5:])
+                if msg["kind"] == "tickn":
+                    assert "tick" not in msg and msg["n"] > RING
+                    seen.append(msg["n"])
+                    if len(seen) >= 5:
+                        break
+    assert seen == sorted(seen)
+    live.stop(); thread.join(10); server.shutdown()
+    assert read_run(tmp_path / "l.jsonl").complete
+
+
+def test_resumed_live_knows_offsets_of_the_copied_prefix(tmp_path):
+    live = open_live(CFG, tmp_path / "o.jsonl")
+    for _ in range(40):
+        live.advance()
+    live.stop(); live.fsync(); live.writer.close()
+    again = resume_live(tmp_path / "o.jsonl", tmp_path / "o2.jsonl")
+    assert len(again.writer.offsets) == 40
+    again.advance()
+    assert len(again.writer.offsets) == 41
+    from world.live import read_ticks
+    ticks = read_ticks(tmp_path / "o2.jsonl", again.writer.offsets, 38, 41)
+    assert [t["tick"] for t in ticks] == [38, 39, 40]
+    again.writer.close()

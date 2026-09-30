@@ -209,16 +209,42 @@ class LiveWorld:
 
 
 def _patched_writer(writer: RunWriter) -> RunWriter:
-    """Remember the last tick line written, so the payload is published byte-for-byte."""
+    """Remember the last tick line written, so the payload is published byte-for-byte,
+    and the byte offset of every tick line, so `/ticks` seeks instead of scanning."""
     original = writer._write
+    writer.offsets = _tick_offsets(Path(writer.path))
 
     def _write(payload):
+        if payload.get("kind") == "tick":
+            writer.offsets.append(writer._handle.tell())
         raw = original(payload)
         if payload.get("kind") == "tick":
             writer.last_line = raw
         return raw
     writer._write = _write
     return writer
+
+
+def _tick_offsets(path: Path) -> list[int]:
+    """Byte offsets of the tick lines already in a file (the copied prefix of a resumed run)."""
+    offsets, pos = [], 0
+    if path.exists():
+        with path.open("rb") as fh:
+            for line in fh:
+                if b'"kind":"tick"' in line:
+                    offsets.append(pos)
+                pos += len(line)
+    return offsets
+
+
+def read_ticks(path: Path, offsets: list[int], start: int, end: int) -> list[dict[str, Any]]:
+    """Tick lines `start <= tick < end` from disk, by seeking to their recorded offsets."""
+    out = []
+    with path.open("rb") as fh:
+        for k in range(max(start, 0), min(end, len(offsets))):
+            fh.seek(offsets[k])
+            out.append(json.loads(fh.readline()))
+    return out
 
 
 def open_live(config: WorldConfig, path: Path) -> LiveWorld:
@@ -297,17 +323,12 @@ def make_handler(live: LiveWorld):
                     ring = list(live.ring)
                 first = live.tick_count - len(ring)
                 out = [t for t in ring if start <= t["tick"] < end]
-                if start < first:      # older ticks come from the run file on disk
-                    with Path(live.writer.path).open("rb") as fh:
-                        for line in fh:
-                            if b'"kind":"tick"' in line:
-                                t = json.loads(line)
-                                if start <= t["tick"] < min(end, first):
-                                    out.append(t)
-                    out.sort(key=lambda t: t["tick"])
+                if start < first:      # older ticks come from the run file on disk, by offset
+                    out = read_ticks(Path(live.writer.path), live.writer.offsets, start, min(end, first)) + out
                 self._json(200, {"ticks": out})
             elif path == "/events":
                 since = int(params.get("since", live.tick_count))
+                light = params.get("light") == "1"      # tick numbers only: the tab fetches what it will show
                 q = live.subscribe()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
@@ -315,12 +336,13 @@ def make_handler(live: LiveWorld):
                 self.end_headers()
                 try:
                     self._send({"kind": "control", **live.status()})
-                    with live.lock:
-                        missed = [t for t in live.ring if t["tick"] >= since]
                     sent = since
-                    for t in missed:
-                        self._send({"kind": "tick", "tick": t, "index": None, "control": live.status()})
-                        sent = t["tick"] + 1
+                    if not light:
+                        with live.lock:
+                            missed = [t for t in live.ring if t["tick"] >= since]
+                        for t in missed:
+                            self._send({"kind": "tick", "tick": t, "index": None, "control": live.status()})
+                            sent = t["tick"] + 1
                     while True:
                         try:
                             msg = q.get(timeout=15)
@@ -331,6 +353,8 @@ def make_handler(live: LiveWorld):
                             if msg["tick"]["tick"] < sent:
                                 continue          # already sent from the ring while catching up
                             sent = msg["tick"]["tick"] + 1
+                            if light:
+                                msg = {"kind": "tickn", "n": sent, "control": msg["control"]}
                         self._send(msg)
                         if msg.get("stopping") or (msg.get("control") or {}).get("stopping"):
                             break
@@ -395,6 +419,8 @@ def main(argv: list[str] | None = None) -> int:
     except OSError as exc:
         print(f"port {args.port} is not available ({exc}); choose another with --port", file=sys.stderr)
         live.writer._handle.close()
+        if not args.resume_live:
+            Path(args.out).unlink(missing_ok=True)   # nothing was recorded; leave no header-only file behind
         return 3
     server.daemon_threads = True
     thread = threading.Thread(target=live.run_forever, name="world", daemon=True)

@@ -41,7 +41,7 @@ JS_FILE = HERE / "viewer.js"
 LIVE_CSS = ("#live-bar{position:sticky;top:0;z-index:50;display:flex;gap:12px;align-items:center;padding:8px 16px;"
             "background:#1b2a2a;color:#e8f0ee;font:14px system-ui,sans-serif;border-bottom:1px solid #3a5551}"
             "#live-bar button,#live-bar select{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #4d6f6a;background:#243b3a;color:inherit}"
-            "#live-bar button:disabled{opacity:.45}.live-ticks{font-weight:600}.live-ticks.behind{color:#f2c14e}")
+            "#live-bar button:disabled{opacity:.45}.live-ticks{font-weight:600}.live-ticks.behind{color:#f2c14e}.live-mode{opacity:.7;font-size:.9em}")
 
 
 def _checkpoints(run: Run) -> dict[str, list[int]]:

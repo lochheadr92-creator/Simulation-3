@@ -55,15 +55,17 @@
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  function world(k) { return k <= 0 ? H.world : ticks[k - 1].world; }
-  function decisions(k) { return k <= 0 ? {} : (ticks[k - 1].decisions || {}); }
-  function observations(k) { return k <= 0 ? {} : (ticks[k - 1].observations || {}); }
+  // in live sample mode some ticks are gaps (null) until fetched; fall back to the nearest earlier held tick
+  function held(k) { let i = k - 1; while (i >= 0 && ticks[i] === null) i--; return i >= 0 ? ticks[i] : null; }
+  function world(k) { if (k <= 0) return H.world; const t = held(k); return t ? t.world : H.world; }
+  function decisions(k) { if (k <= 0) return {}; const t = ticks[k - 1]; return t ? (t.decisions || {}) : {}; }
+  function observations(k) { if (k <= 0) return {}; const t = ticks[k - 1]; return t ? (t.observations || {}) : {}; }
   const OUTCOMES = new Array(n + 1);
   function outcomes(k) {
     if (k <= 0) return {};
     if (!OUTCOMES[k]) {
       const m = {};
-      for (const o of ((ticks[k - 1].record || {}).outcomes || [])) if (!(o.actor in m)) m[o.actor] = o;
+      for (const o of (((ticks[k - 1] || {}).record || {}).outcomes || [])) if (!(o.actor in m)) m[o.actor] = o;
       OUTCOMES[k] = m;
     }
     return OUTCOMES[k];
@@ -73,18 +75,18 @@
   const deadIn = (w, p) => !!(w.died_at && p in w.died_at);
   function food(k, p) {
     if (k === 0) return ((H.genesis || {}).balances || {})[p] || 0;
-    const t = ticks[k - 1]; const a = (t.availability || {})['actor:' + p];
+    const t = held(k) || {}; const a = (t.availability || {})['actor:' + p];
     const b = a === undefined ? ((t.state || {}).balances || {})[p] : a; return b === undefined ? 0 : b;
   }
   function waterHeld(k, p) {
     if (k === 0) return (((H.genesis || {}).holdings || {}).water || {})[p] || 0;
-    const t = ticks[k - 1]; const a = (t.availability || {})['actor@water:' + p];
+    const t = held(k) || {}; const a = (t.availability || {})['actor@water:' + p];
     const h = a === undefined ? ((((t.state || {}).holdings) || {}).water || {})[p] : a; return h === undefined ? 0 : h;
   }
   function stockOf(k, id) {
     try {
       if (k === 0) return H.genesis.sources[id].stock;
-      const t = ticks[k - 1];
+      const t = held(k);
       if ((t.production || []).some(e => e.source_created === id)) return 0;
       let s = t.state.sources[id].stock;
       for (const e of (t.production || [])) if (e.source === id) s += e.amount;
@@ -92,11 +94,11 @@
     } catch (err) { return null; }
   }
   function woodHeld(k, p) {
-    const state = k === 0 ? H.genesis : ticks[k - 1].state;
+    const state = k === 0 ? H.genesis : (held(k) || {}).state || H.genesis;
     return ((state.holdings || {}).wood || {})[p] || 0;
   }
   function stoneHeld(k, p) {
-    const state = k === 0 ? H.genesis : ticks[k - 1].state;
+    const state = k === 0 ? H.genesis : (held(k) || {}).state || H.genesis;
     return ((state.holdings || {}).stone || {})[p] || 0;
   }
   const sourceLabel = s => s.fishing ? 'fishing spot' : s.store ? 'home cache' : s.kind === 'food' ? 'food source' : s.yard ? 'wood yard' : s.kind === 'wood' ? 'wood grove' : s.kind === 'stone' ? 'stone outcrop' : 'well';
@@ -983,7 +985,7 @@
       }
     }
     if (!LAYERS.moments || k < 1) return;
-    for (const e of (ticks[k - 1].production || [])) {
+    for (const e of ((ticks[k - 1] || {}).production || [])) {
       if (!e.source || !SOURCE_BY_ID[e.source]) continue;
       const src = SOURCE_BY_ID[e.source];
       if (!LAYERS[src.kind]) continue;
@@ -1056,7 +1058,8 @@
     opts = opts || {};
     k = clamp(Math.round(Number(k) || 0), 0, n);
     const prev = v; v = k;
-    if (opts.tween && Math.abs(k - prev) === 1 && !REDUCED) anim = { from: prev, to: k, start: performance.now(), dur: tweenDur(opts.stepping) };
+    if (window.liveFill) { window.liveFill(k); if (opts.tween && Math.abs(k - prev) === 1) window.liveFill(prev); }
+    if (opts.tween && Math.abs(k - prev) === 1 && !REDUCED && ticks[Math.min(k, prev) - 1] !== null) anim = { from: prev, to: k, start: performance.now(), dur: tweenDur(opts.stepping) };
     else anim = { from: k, to: k, start: 0, dur: 0 };
     slider.value = v;
     slider.setAttribute('aria-valuetext', `tick ${v} of ${n}`);
@@ -1067,24 +1070,39 @@
     needsDraw = true;
   }
   window.show = show;
-  // Live mode hooks: append a recorded tick and its index increment; nothing is recomputed here.
+  // Live mode hooks: place a recorded tick (by its world tick number; gaps stay null until
+  // filled from /ticks) and its index increment; nothing is recomputed here.
   window.liveAppend = (tick, inc) => {
-    ticks.push(tick); n = ticks.length;
+    const k = tick.tick - TICK0 + 1;            // view index of this tick
+    if (k < 1) return;
+    while (ticks.length < k - 1) ticks.push(null);
+    ticks[k - 1] = tick; n = ticks.length;
     if (inc) {
-      RUN.details.push(inc.details || {});
-      for (const key in (inc.counts || {})) (COUNTS[key] = COUNTS[key] || []).push(inc.counts[key]);
+      RUN.details[k] = inc.details || {};
+      for (const key in (inc.counts || {})) (COUNTS[key] = COUNTS[key] || [])[k] = inc.counts[key];
       for (const e of inc.events || []) { EVENTS.push(e); const i = EVENTS.length - 1; (EV_OF[e.who] = EV_OF[e.who] || []).push(i); if (e.src) (EV_AT_SRC[e.src] = EV_AT_SRC[e.src] || []).push(i); }
       if (inc.wood) for (const s of inc.wood) if (!SOURCE_AT.has(s.position.join(','))) SOURCE_AT.set(s.position.join(','), { kind: 'wood', id: s.id, position: s.position, yard: !!s.yard, cap: s.yard ? (C.yard_rules || {}).capacity : C.wood_rules.cap });
-    } else RUN.details.push({});
+    } else if (!RUN.details[k]) RUN.details[k] = {};
     slider.max = n; needsDraw = true;
     if (typeof renderEvents === 'function') renderEvents();
     if (typeof drawStrip === 'function') drawStrip();
   };
+  window.liveHasTick = k => k <= 0 || (k <= n && ticks[k - 1] != null);
   window.liveTickCount = () => n;
   window.liveView = () => v;
   window.liveShow = (k, tween) => show(k, { tween: !!tween });
   window.liveTweening = () => anim.dur > 0 && performance.now() - anim.start < anim.dur;
   window.liveAnimState = () => ({ view: v, from: anim.from, to: anim.to, t: easeT(performance.now()), people: hits.map(h => ({ id: h.p, x: h.x, y: h.y })) });
+  // Read-only: where each living person is presented right now, in grid units (cell + 0.5 is a cell centre).
+  window.livePositions = () => {
+    const now = performance.now(), t = easeT(now), wb = world(anim.to), wa = world(anim.from), out = {};
+    for (const p of people) {
+      if (!present(wb, p) || deadIn(wb, p)) continue;
+      const pl = placeOf(p, t); if (!pl) continue;
+      out[p] = { gx: pl.gx, gy: pl.gy, from: (wa.positions || {})[p] || null, to: wb.positions[p] };
+    }
+    return { view: v, from: anim.from, to: anim.to, t, tweening: anim.dur > 0 && now - anim.start < anim.dur, people: out };
+  };
   // Read-only view of what is on screen, for scripted checks of the page (tools/*.js).
   window.viewerState = () => ({
     view: v, ticks: n, playing, selected: selected ? Object.assign({}, selected) : null, tab: tabNow,
@@ -1120,7 +1138,7 @@
     else stats.push(['Births', '0']);
     if (BUILD_TICKS) stats.push(['Shelters', `${(c.shelters || [])[v] ?? 0} <small>built</small>`]);
     if (C.wood === 'on') {
-      const state = v === 0 ? H.genesis : ticks[v - 1].state;
+      const state = v === 0 ? H.genesis : (held(v) || {}).state || H.genesis;
       stats.push(['Wood used', `${(state.consumed_by || {}).wood || 0} <small>in construction</small>`]);
     }
     if (ADULT_AT !== null) stats.push(['Children', `${(c.children || [])[v] ?? 0} <small>growing up</small>`]);
@@ -1661,8 +1679,8 @@
       }
       series.crowd.push(crowd);
       if (k >= 1) {
-        for (const o of (ticks[k - 1].record || {}).outcomes || []) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
-        const block = ticks[k - 1].observations || {};
+        for (const o of ((ticks[k - 1] || {}).record || {}).outcomes || []) { if (o.operation === 'claim') { if (o.accepted) totals.claimsOk++; else totals.claimsNo++; } else if (o.operation === 'consume' && o.accepted) totals.eats++; }
+        const block = (ticks[k - 1] || {}).observations || {};
         for (const p of Object.keys(block)) { if ((block[p].sees || block[p].others || []).length) totals.sawOther++; if (Object.prototype.hasOwnProperty.call(block[p], 'source_food')) totals.sawSource++; }
         let anyYield = false; const ds = decisions(k); for (const p in ds) if (ds[p].kind === 'yield') { totals.yields++; anyYield = true; }
         if (anyYield) totals.yieldTicks.push(k);
