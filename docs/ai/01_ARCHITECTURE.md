@@ -1,5 +1,17 @@
 # Current architecture
 
+## Scoped update — care by visible need, 2026-09-30
+
+Checked against `e34decc` plus the local caregiving-priority change.
+`WorldConfig.care_by_need_on` and CLI `--care-by-need` enable optional priority
+for visibly starving children among visible empty-handed dependents. It
+requires childhood and defaults off. `decide.someone_to_help` owns this
+recipient ranking; it consumes the existing `SeenPerson.starving` flag and
+does not gain exact hunger or distant knowledge. Own needs and the existing
+nearby-handoff exception still arbitrate whether help happens. Saved decision
+reasons explain priority through the existing viewer. No overlay or stream
+schema changed, and off-mode descriptions remain unchanged.
+
 ## Scoped update — two birth parents, 2026-09-30
 
 Checked at `fe940ef` plus preserved witnessed-death/configuration work and

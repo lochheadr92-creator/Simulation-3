@@ -1,5 +1,23 @@
 # Current state — volatile snapshot
 
+## Competing children — 2026-09-30
+
+Baseline `e34deccf11b59767aa7a256f5594e1bfbca6282c` was committed and pushed
+to `origin/codex/kernel-first-slice`; the remote branch SHA was verified.
+It includes the preceding shared-care and witnessed-death work. The user then
+authorized this caregiving slice and requested commit/push after completion.
+
+Optional `--care-by-need on` selects visibly starving empty-handed dependents
+before distance and ID. Defaults are unchanged; childhood is required, shared
+care is optional. The seed-24 ordinary scene changes p04's recipient from p23
+to p19 and produces a real transfer and meal. Longer consequences are mixed;
+the option remains off. Fresh validation: 450 subsystem tests and 1,124 full-suite
+tests passed; eight saved comparisons verify/replay, and the ordinary example
+passes recovery/repeat and browser checks. These are builder results.
+Current comparison counts and local viewer
+paths are in the latest [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md) entry.
+Older dated snapshots below retain their original scope and execution results.
+
 ## Shared caregiving — 2026-09-30
 
 Checked on `codex/kernel-first-slice`, HEAD `fe940ef`, with prior local work

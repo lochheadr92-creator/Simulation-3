@@ -65,6 +65,8 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-wood"
     if config.shared_care_on:
         mode += "-shared-care"
+    if config.care_by_need_on:
+        mode += "-care-by-need"
     return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
 
 
@@ -205,6 +207,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="recovery after a birth before either adult can count time together again (default 0)")
     parser.add_argument("--shared-care", choices=("on", "off"), default="off",
                         help="both birth parents use the existing caregiving rule (requires childhood; default off)")
+    parser.add_argument("--care-by-need", choices=("on", "off"), default="off",
+                        help="prefer visibly starving children when choosing whom to feed (requires childhood; default off)")
     parser.add_argument("--offers", choices=("on", "off"), default="on",
                         help="carry a spare unit of food to somebody visibly starving nearby (default on)")
     parser.add_argument("--social-memory", choices=("on", "off"), default="on",
@@ -308,6 +312,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["birth_spacing"] = args.birth_spacing
     levers["childhood_on"] = args.childhood == "on"
     levers["shared_care_on"] = args.shared_care == "on"
+    levers["care_by_need_on"] = args.care_by_need == "on"
     requests = args.requests if args.requests is not None else "off"
     levers["requests_on"] = requests != "off"
     levers["adjacent_requests"] = requests == "adjacent"

@@ -1,4 +1,28 @@
-# Current slice — shared caregiving by both birth parents
+# Current slice — choosing between dependent children
+
+## Current work — care by visible need, 2026-09-30
+
+The user authorized the proposed competing-siblings slice after committing
+and pushing the preceding work as `e34decc`, then requested commit/push on
+completion. A fixed 35-seed scan supplied the ordinary seed-24 example.
+
+Optional `care_by_need_on` requires childhood and defaults off. Only the
+dependent-recipient ranking changes: visible starvation, distance, ID. Own
+needs, the existing nearby-handoff exception, local observation, transfers,
+family links and independent choices remain. No new memory, coordinated
+assignment, exact hunger knowledge or reservation was added. Existing viewer
+code displays the saved reason. Off-mode descriptions remain compatible.
+
+The ordinary chain is p04's changed choice at decision tick 244, delivery at
+world tick 247, and p19's meal at 248. The other sibling later feeds themself.
+This also removes an onward gift to p06, who dies earlier in the changed run;
+do not describe the feature as a survival improvement. Tests cover that local
+choice and meal, tie-breaking, visibility, personal needs, an early-warmth
+tradeoff, configuration, exact transfers and saved replay/recovery/repetition.
+Fresh checks: 450 subsystem tests, then 1,124 full-suite tests passed. Eight
+comparison files verify/replay, and browser playback shows the changed choice,
+delivery and meal. No independent reviewer was used for this slice. See the
+latest WORLD_DIRECTIONS entry for comparisons and remaining limits.
 
 ## Current work — shared caregiving, 2026-09-30
 

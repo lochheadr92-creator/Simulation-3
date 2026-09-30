@@ -296,7 +296,8 @@ def adjacent_request(observation: Observation, config: WorldConfig) -> str | Non
 def someone_to_help(observation: Observation, config: WorldConfig) -> str | None:
     """The person this one is carrying a spare unit to.
 
-    Empty-handed dependents come first, then direct answers and an existing
+    Empty-handed dependents come first (optionally visible hunger emergencies
+    before distance and id), then direct answers and an existing
     promise. Otherwise help someone visibly starving, preferring a remembered
     donor before distance and id. Memory never reveals an absent person or
     creates a need. Thirst shows too, but food does not help it."""
@@ -306,7 +307,8 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
     hungry_children = [seen for seen in observation.others
                        if seen.actor in observation.dependents and seen.food < 1]
     if hungry_children:
-        return min(hungry_children, key=lambda seen: (steps_to(observation.position, seen.position),
+        return min(hungry_children, key=lambda seen: (config.care_by_need_on and not seen.starving,
+                                                      steps_to(observation.position, seen.position),
                                                       seen.actor)).actor
     nearby = adjacent_request(observation, config)
     if nearby is not None:
@@ -764,12 +766,16 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
         hurt = someone_to_help(observation, config)
         where = _seen(observation, hurt)
         if hurt in observation.dependents:
+            priority = ("; visibly starving, prioritised among my empty-handed children"
+                        if config.care_by_need_on
+                        and any(seen.actor == hurt and seen.starving for seen in observation.others)
+                        else "")
             if selected == OFFER:
                 return Decision(actor, OFFER,
-                                f"{hurt} is my child alongside with no food; handing over one of {observation.food}",
+                                f"{hurt} is my child alongside with no food; handing over one of {observation.food}{priority}",
                                 options, amount=1, target=hurt, scores=scores)
             return Decision(actor, GO_OFFER,
-                            f"{hurt} is my child with no food, {steps_to(observation.position, where)} steps away",
+                            f"{hurt} is my child with no food, {steps_to(observation.position, where)} steps away{priority}",
                             options, step=route_step(observation, where, config), target=hurt, scores=scores)
         if observation.food_memory and hurt != someone_to_help(replace(observation, food_memory=()), config):
             when = dict(observation.food_memory)[hurt]

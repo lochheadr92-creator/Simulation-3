@@ -1,5 +1,88 @@
 # Simulation 3 — Development Directions
 
+## Choosing between children when food is scarce — 2026-09-30
+
+Built from `e34deccf11b59767aa7a256f5594e1bfbca6282c`, the committed and
+pushed checkpoint containing shared care, witnessed household death, boolean
+configuration checks and the supplied repair reassessment. The earlier dated
+accounts below describe their implementation sessions before that publication.
+
+`--care-by-need on` prefers visibly starving children among the parent's
+visible, empty-handed dependents, then distance and actor ID. It requires
+childhood, works with either one or both recorded parents, and is off by
+default. It uses the existing visible emergency flag, never exact private
+hunger. Personal needs, local sight, real transfers and separate parental
+choices retain their rules. No new persistent state or viewer calculation
+is needed; the saved decision reason explains the priority.
+
+The first three shared-care worlds (seeds 7, 11 and 23) had no affected
+helping choice through 780 ticks. A fixed scan of seeds 1–35 at 780 ticks,
+with defaults plus shared care, found 14 decision opportunities where the
+recipient ranking differed. Only one was an actual offer or delivery journey;
+the parent's own needs took precedence in the others. This is a small fixed
+sample, not an estimate of general frequency. The scene below was found by
+that scan rather than constructed by adjusting needs or initial positions.
+
+**Watch seed 24, p04, p19 and p23, world ticks 243–262.** At decision tick
+244 (viewer frame 245), p04 carries one food. p23 is adjacent and has hunger
+11; p19 is three steps away and visibly starving (private hunger 53). The
+old rule feeds p23. The new rule sends p04 toward p19, transfers the food at
+world tick 247, and p19 eats at 248: hunger falls from 56 to 27. p23 later
+gathers independently and eats at 262. Removing only the new priority from
+the same decision observation selects p23 again.
+
+The later cost matters. In the old world p23 passes that first unit to p06
+at world tick 248. In the changed world that handoff is absent and p06
+starves at 252 instead of 282. p19 eventually starves at 301 instead of 271;
+p23 dies of thirst at 274 in both. The parent p04 dies of thirst at 285 in
+the changed world but survives to 400 in the comparison. A successful meal
+is not a guaranteed rescue or a general improvement in survival.
+
+Matched 400-tick worlds, defaults plus shared care, changing only care priority:
+
+| Seed | Births off / on | Living off / on | Deaths off / on | Child handoffs off / on |
+| --- | --- | --- | --- | --- |
+| 7 | 6 / 6 | 11 / 11 | 1 / 1 | 6 / 6 |
+| 11 | 13 / 13 | 5 / 5 | 14 / 14 | 16 / 16 |
+| 23 | 14 / 14 | 7 / 7 | 13 / 13 | 14 / 14 |
+| 24 | 22 / 17 | 8 / 4 | 20 / 19 | 14 / 12 |
+
+The first three pairs have identical world states, ledger digests and decisions.
+Seed 24 changes later encounters and births, so population totals compare
+different populations. The feature stays optional. Another explicit tradeoff:
+selecting a distant starving child can forgo an immediate handoff to a nearer
+child before a warmth trip. The existing exception only applies when the
+selected child is alongside; this rule does not grant extra walking time.
+
+Verification: 450 affected subsystem tests passed, followed by **1,124 passing
+tests in the full suite** (291.74 seconds). All eight comparison files
+verify and replay; recovery before the choice, during the journey and after
+delivery matches the uninterrupted scene, and a repeat run matches. Off-mode
+headers and all saved tick fields except seals match 1,600 pre-edit ticks
+across seeds 7, 11, 23 and 24. Seals change with the source identity in the
+header. The actual pre-edit seed-24 file also replays identically. Old rule
+descriptions remain reconstructible when this option is off. A final self-review
+checked the diff, selection/need interaction, saved descriptions, legacy replay
+and source ownership; `git diff --check` passed. No valid tests were weakened.
+
+Edge playback and inspected screenshots show the changed target, native
+reason, accepted transfer and later meal, plus the baseline handoff to p23.
+No browser errors or console warnings. An initial browser script could not
+select an unrendered person link; the final script selects a recorded event.
+Its meal-text assertion was corrected from "hungry" to the observed
+"emergency"; no simulation or viewer change was needed for either script fix.
+
+Local saved viewers, comparison data, scan script/results and logs are under
+`runs/child-priority-2026-09-30/` (ignored by Git). Open `seed24-careTrue.html`
+and `seed24-careFalse.html`. Reproduce a new example with:
+
+```powershell
+py -3 -B -m world.run --seed 24 --ticks 400 --shared-care on --care-by-need on --out runs/child-priority-example.jsonl --html
+```
+
+No kernel, stream or observation source changed. This is builder validation;
+the earlier independent repair PASS does not cover this addition.
+
 ## Both birth parents can care for their child — 2026-09-30
 
 Local work on `codex/kernel-first-slice`, based on `fe940ef` plus the preserved

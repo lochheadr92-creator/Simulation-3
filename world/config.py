@@ -131,6 +131,7 @@ class WorldConfig:
     birth_spacing: int = 0        # recovery ticks before either adult can begin another birth countdown
     childhood_on: bool = True     # the newly born are children for a while (2026-09-28)
     shared_care_on: bool = False  # record both birth parents and give both the existing caregiving role
+    care_by_need_on: bool = False  # prefer visibly starving children among empty-handed dependents
     adult_at: int = 60            # ticks lived before a child is grown
     child_leash: int = 5          # how far from home a child will go for food or water
     cold_rate: int = 1            # cold added per tick spent away from shelter
@@ -167,6 +168,7 @@ class WorldConfig:
             "coordination": type(self.coordination_on) is bool and (not self.coordination_on or self.provisioning_on),
             "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
             "shared_care": not self.shared_care_on or self.childhood_on,
+            "care_by_need": not self.care_by_need_on or self.childhood_on,
             "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
             "knowledge_sharing": type(self.knowledge_sharing_on) is bool and (not self.knowledge_sharing_on or self.source_memory_on),
             "source_memory": type(self.source_memory_on) is bool,
@@ -564,6 +566,12 @@ class WorldConfig:
                                 "empty-handed dependent already on the same or an adjacent cell, only "
                                 "while below every active need threshold and with no water trip due. "
                                 "This does not extend a walking errand")
+        if self.care_by_need_on:
+            out["care_by_need"] = "on"
+            out["decision"] += ("; among visible empty-handed dependent children, prefer those visibly "
+                                "in a hunger emergency, then distance and id. Exact hunger is private. "
+                                "Personal needs and the existing nearby-handoff exception retain priority; "
+                                "parents choose separately, without reserving recipients")
         if self.shared_care_on:
             out["shared_care"] = "on"
             out["decision"] += ("; record both adults in each birth as parents. Both have the existing "
@@ -672,6 +680,9 @@ class WorldConfig:
         shared_care = described.get("shared_care", "off")
         if not isinstance(shared_care, str) or shared_care not in switches:
             raise ValueError("shared_care must be 'on' or 'off'")
+        care_by_need = described.get("care_by_need", "off")
+        if not isinstance(care_by_need, str) or care_by_need not in switches:
+            raise ValueError("care_by_need must be 'on' or 'off'")
         if switches[childhood]:
             for name in ("adult_at", "child_leash"):
                 value = described.get(name)
@@ -774,7 +785,8 @@ class WorldConfig:
                      knowledge_sharing_on=switches[knowledge_sharing],
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",
-                     childhood_on=switches[childhood], shared_care_on=switches[shared_care], **need_values, **counts)
+                     childhood_on=switches[childhood], shared_care_on=switches[shared_care],
+                     care_by_need_on=switches[care_by_need], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config
