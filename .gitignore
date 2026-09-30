@@ -14,3 +14,10 @@ runs/
 node_modules/
 
 
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
