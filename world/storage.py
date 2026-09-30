@@ -10,11 +10,13 @@ STORE_LOW = 2
 FOOD_EXPECT_TICKS = 12
 
 
-def food_expectation(memory, tick, home, others, store_food):
+def food_expectation(memory, tick, home, others, store_food, witnessed_deaths=()):
     """An announcement lasts briefly; only local evidence can end it early."""
     if memory is None:
         return None, None
     speaker, heard = memory
+    if speaker in witnessed_deaths:
+        return None, "witnessed the housemate's death"
     if tick >= heard + FOOD_EXPECT_TICKS:
         return None, "the announcement expired"
     if store_food is not None and store_food >= STORE_LOW:

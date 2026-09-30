@@ -40,7 +40,10 @@
   const THREADS = IDX.threads || [];
   const ADULT_AT = IDX.adult_at || null;           // set only when the run records childhood
   const PARENT = IDX.parent || {};                 // child -> parent, as recorded at birth
-  const CHILDREN = {}; for (const kid in PARENT) (CHILDREN[PARENT[kid]] = CHILDREN[PARENT[kid]] || []).push(kid);
+  const SECOND_PARENT = IDX.second_parent || {};
+  const parentsOf = p => [PARENT[p], SECOND_PARENT[p]].filter(Boolean);
+  const CHILDREN = {};
+  for (const kid in PARENT) for (const p of parentsOf(kid)) (CHILDREN[p] = CHILDREN[p] || []).push(kid);
   function ageOf(w, p) { const a = (w.age || {})[p]; return a === undefined ? null : a; }
   function isChild(w, p) { const a = ageOf(w, p); return ADULT_AT !== null && a !== null && a < ADULT_AT; }
   const media = q => (window.matchMedia ? window.matchMedia(q).matches : false);
@@ -764,9 +767,9 @@
       }
     }
 
-    // family, as the run records it: the selected person's parent and children
+    // Family links come only from the saved birth relationships.
     if (LAYERS.family && selP && ADULT_AT !== null && present(w, selP)) {
-      const kin = [PARENT[selP], ...(CHILDREN[selP] || [])].filter(q => q && present(w, q) && !deadIn(w, q));
+      const kin = [...parentsOf(selP), ...(CHILDREN[selP] || [])].filter(q => q && present(w, q) && !deadIn(w, q));
       const me = placeOf(selP, t);
       if (me) for (const q of kin) {
         const other = placeOf(q, t); if (!other) continue;
@@ -1265,6 +1268,11 @@
     const provisionTrip = (w.provision_trips || {})[p];
     const expectedFood = (w.food_expected || {})[p];
     if (expectedFood) h += `<div class="sec"><h4>Expecting food</h4><div>${personLink(expectedFood[0])} said they were getting food at tick ${expectedFood[1]}.</div><div class="hint">${Math.max(0, expectedFood[1] + C.food_expect_ticks - w.tick)} ticks before the expectation expires. Only a new optional cache trip is postponed; their own needs and helping still come first.</div></div>`;
+    if (ob?.witnessed_deaths?.length) {
+      h += `<div class="sec"><h4>Witnessed deaths</h4><div class="people-links">${ob.witnessed_deaths.map(personLink).join('')}</div>`;
+      if (ob.food_expectation_end) h += `<div class="hint">Stopped expecting food: ${esc(ob.food_expectation_end)}.</div>`;
+      h += '</div>';
+    }
     if (provisionTrip) h += '<div class="sec"><h4>Food for home</h4><div>' + (provisionTrip === 'gather' ? 'Gathering for a low shared cache' : 'Returning after collecting food') + '</div><div class="hint">Own needs and helping can interrupt this outing. Spare food is deposited after reaching home.</div></div>';
     if (emptyMemory.length) h += '<div class="sec"><h4>Empty food remembered</h4>' + emptyMemory.map(([sid, when]) => `<div>${esc(sid)}: empty at tick ${when}; ${Math.max(0, C.empty_source_ticks - ((w.tick || 0) - when))} ticks until forgotten without another sighting</div>`).join('') + '</div>';
     // needs
@@ -1326,7 +1334,7 @@
     const kidsOf = CHILDREN[p] || [];
     if (PARENT[p] || kidsOf.length) {
       const fam = [];
-      if (PARENT[p]) fam.push(`Parent ${personLink(PARENT[p])}${deadIn(w, PARENT[p]) ? ' (died)' : ''}`);
+      if (PARENT[p]) fam.push(`${SECOND_PARENT[p] ? 'Parents' : 'Parent'} ` + parentsOf(p).map(q => personLink(q) + (deadIn(w, q) ? ' (died)' : '')).join(' and '));
       const born = kidsOf.filter(q => present(w, q));
       if (born.length) fam.push('Children ' + born.map(q => personLink(q) + (deadIn(w, q) ? ' (died)' : isChild(w, q) ? ' (a child)' : '')).join(' '));
       h += '<div class="sec"><h4>Family</h4>' + fam.map(x => `<div style="margin:4px 0">${x}</div>`).join('') + '</div>';
@@ -1451,7 +1459,7 @@
     if (hit.type === 'person') {
       const p = hit.id, needs = NEEDS.map(nd => `${nd.label.toLowerCase()} ${needLevel(w, p, nd) ?? '–'}`).join(' · ');
       const carry = `carrying ${food(v, p)} food` + (C.water === 'on' ? `, ${waterHeld(v, p)} water` : '') + (C.wood === 'on' ? `, ${woodHeld(v, p)} wood` : '');
-      const kin = (isChild(w, p) ? 'a child' : '') + (PARENT[p] ? (isChild(w, p) ? ' of ' : 'child of ') + PARENT[p] : '');
+      const kin = (isChild(w, p) ? 'a child' : '') + (PARENT[p] ? (isChild(w, p) ? ' of ' : 'child of ') + parentsOf(p).join(' and ') : '');
       return `<b>${esc(p)}</b> — ${esc(describeAction(p, v))}\n${esc(needs)}\n${esc(carry)}${kin ? '\n' + esc(kin) : ''}`;
     }
     const out = [], key = hit.key;

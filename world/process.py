@@ -233,6 +233,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)), together=dict(overlay.together),
                            age=age, parent=dict(overlay.parent),
+                           second_parent=overlay.second_parent,
                            birth_ready=dict(overlay.birth_ready),
                            terrain_memory={actor: tuple(sorted(cells)) for actor, cells in terrain_memory.items()
                                            if cells},
@@ -292,6 +293,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     thirst, cold = dict(overlay.thirst), dict(overlay.cold)
     held, built = dict(overlay.held), dict(overlay.built)
     age, parent = dict(overlay.age), dict(overlay.parent)
+    second_parent = dict(overlay.second_parent)
     ready = {actor: overlay.birth_ready.get(actor, 0) for actor in overlay.roster}
     born: list[str] = []
     roster_size = len(overlay.roster)
@@ -315,6 +317,8 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
         hunger[name] = held[name] = built[name] = 0
         if config.childhood_on:
             age[name], parent[name] = 0, first
+            if config.shared_care_on:
+                second_parent[name] = second
         yield_at[name] = (config.yield_set[len(overlay.roster) % len(config.yield_set)]
                           if config.yield_on else config.actors + 1)
         if config.water_on:
@@ -335,6 +339,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
                     shelters=overlay.shelters, together=counts, age=age, parent=parent,
+                    second_parent=second_parent,
                     birth_ready=ready if config.birth_spacing or overlay.birth_ready else {},
                     terrain_memory=dict(overlay.terrain_memory), food_memory=dict(overlay.food_memory),
                     patch_condition=dict(overlay.patch_condition),

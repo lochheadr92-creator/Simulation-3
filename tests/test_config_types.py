@@ -10,6 +10,14 @@ from world.replay import replay_world
 from world.run import run_world
 
 INTEGER_FIELDS = [name for name, kind in get_type_hints(WorldConfig).items() if kind is int]
+BOOLEAN_FIELDS = [name for name, kind in get_type_hints(WorldConfig).items() if kind is bool]
+
+
+@pytest.mark.parametrize('name', BOOLEAN_FIELDS)
+@pytest.mark.parametrize('value', [0, 1, 'off', None, [], 1.0])
+def test_boolean_settings_reject_non_booleans_at_construction(name, value):
+    with pytest.raises(ValueError, match=rf'boolean.*\b{name}\b'):
+        replace(WorldConfig(seed=7), **{name: value})
 
 
 @pytest.mark.parametrize('name', INTEGER_FIELDS)
@@ -38,3 +46,17 @@ def test_disabled_settings_may_normalize_without_changing_saved_rules():
     restored = WorldConfig.from_describe(cfg.describe())
     assert restored != cfg
     assert restored.describe() == cfg.describe()
+
+
+@pytest.mark.parametrize('value', [None, 1, True, '123', {1, 2}, (), [], (True,), ('1',), (0,)])
+def test_yield_settings_reject_malformed_collections(value):
+    with pytest.raises(ValueError, match='yield_set'):
+        WorldConfig(seed=7, yield_set=value)
+
+
+def test_yield_list_is_copied_to_immutable_tuple():
+    values = [1, 2, 3]
+    cfg = WorldConfig(seed=7, yield_set=values)
+    values.append(4)
+    assert cfg.yield_set == (1, 2, 3)
+    assert WorldConfig.from_describe(cfg.describe()) == cfg

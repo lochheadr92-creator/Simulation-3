@@ -97,6 +97,7 @@ class Overlay:
     promises: Mapping[str, str] = field(default_factory=dict) # helper -> the person they agreed to bring food to
     age: Mapping[str, int] = field(default_factory=dict)      # ticks lived; everyone at genesis starts grown
     parent: Mapping[str, str] = field(default_factory=dict)   # child -> the person whose home they were born beside
+    second_parent: Mapping[str, str] = field(default_factory=dict)  # child -> other birth parent, when shared care is on
     birth_ready: Mapping[str, int] = field(default_factory=dict)  # first tick eligible after birth recovery
     terrain_memory: Mapping[str, tuple[Position, ...]] = field(default_factory=dict)  # actor -> rough cells remembered
     food_memory: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)  # recipient -> (donor, tick)
@@ -237,6 +238,13 @@ class Overlay:
         object.__setattr__(self, "age", _levels(self.age, positions=positions, name="age"))
         object.__setattr__(self, "birth_ready", _levels(self.birth_ready, positions=positions, name="birth_ready"))
         object.__setattr__(self, "parent", _links(self.parent, positions=positions, name="parent"))
+        if not isinstance(self.second_parent, Mapping):
+            raise ValueError("second_parent must map children to their other birth parent")
+        second_parent = _links(self.second_parent, positions=positions, name="second_parent")
+        if any(child not in self.parent or self.parent[child] == other
+               for child, other in second_parent.items()):
+            raise ValueError("second_parent needs an existing child and a distinct birth parent")
+        object.__setattr__(self, "second_parent", second_parent)
         object.__setattr__(self, "terrain_memory", _terrain_memory(self.terrain_memory, roster=set(positions)))
         memories = {}
         if not isinstance(self.food_memory, Mapping):
@@ -286,6 +294,11 @@ class Overlay:
     def alive(self, actor: str) -> bool:
         return actor not in self.died_at
 
+    def children_of(self, actor: str) -> frozenset[str]:
+        """Birth relationships persist through moves, adulthood and death."""
+        return frozenset(child for links in (self.parent, self.second_parent)
+                         for child, parent in links.items() if parent == actor)
+
     @property
     def living(self) -> tuple[str, ...]:
         return tuple(actor for actor in self.roster if self.alive(actor))
@@ -327,6 +340,7 @@ class Overlay:
             **({"age": dict(self.age)} if self.age else {}),
             **({"birth_ready": dict(self.birth_ready)} if self.birth_ready else {}),
             **({"parent": dict(self.parent)} if self.parent else {}),
+            **({"second_parent": dict(self.second_parent)} if self.second_parent else {}),
             **({"terrain_memory": {actor: [list(cell) for cell in cells]
                                    for actor, cells in self.terrain_memory.items()}}
                if self.terrain_memory else {}),
@@ -339,7 +353,7 @@ class Overlay:
         keys = {"tick", "homes", "positions", "hunger", "yield_at", "died_at"}
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
-                          "age", "parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
+                          "age", "parent", "second_parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
                           "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports"):
                 if extra in data:
                     keys = keys | {extra}
@@ -367,6 +381,7 @@ class Overlay:
                    together=dict(data.get("together", {})),
                    requests=dict(data.get("requests", {})), promises=dict(data.get("promises", {})),
                    age=dict(data.get("age", {})), parent=dict(data.get("parent", {})),
+                   second_parent=dict(data.get("second_parent", {})),
                    birth_ready=dict(data.get("birth_ready", {})),
                    food_memory=dict(data.get("food_memory", {})),
                    patch_condition=dict(data.get("patch_condition", {})),

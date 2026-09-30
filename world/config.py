@@ -130,6 +130,7 @@ class WorldConfig:
     together_ticks: int = 3       # consecutive ticks two settled neighbours must spend side by side
     birth_spacing: int = 0        # recovery ticks before either adult can begin another birth countdown
     childhood_on: bool = True     # the newly born are children for a while (2026-09-28)
+    shared_care_on: bool = False  # record both birth parents and give both the existing caregiving role
     adult_at: int = 60            # ticks lived before a child is grown
     child_leash: int = 5          # how far from home a child will go for food or water
     cold_rate: int = 1            # cold added per tick spent away from shelter
@@ -152,6 +153,12 @@ class WorldConfig:
                      if field.type in (int, "int") and type(getattr(self, field.name)) is not int]
         if bad_types:
             raise ValueError(f"world configuration requires integer values: {', '.join(bad_types)}")
+        bad_booleans = [field.name for field in fields(self)
+                        if field.type in (bool, "bool") and type(getattr(self, field.name)) is not bool]
+        if bad_booleans:
+            raise ValueError(f"world configuration requires boolean values: {', '.join(bad_booleans)}")
+        if not isinstance(self.yield_set, (tuple, list)):
+            raise ValueError("yield_set must be a tuple or list of positive integers")
         checks = {
             "regrowth": type(self.regrowth_on) is bool,
             "seasons": type(self.seasons_on) is bool,
@@ -159,6 +166,7 @@ class WorldConfig:
             "provisioning": type(self.provisioning_on) is bool and (not self.provisioning_on or self.stores_on),
             "coordination": type(self.coordination_on) is bool and (not self.coordination_on or self.provisioning_on),
             "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
+            "shared_care": not self.shared_care_on or self.childhood_on,
             "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
             "knowledge_sharing": type(self.knowledge_sharing_on) is bool and (not self.knowledge_sharing_on or self.source_memory_on),
             "source_memory": type(self.source_memory_on) is bool,
@@ -392,7 +400,10 @@ class WorldConfig:
                 "Speech costs no extra action; listeners hear after making this tick's choices. "
                 "Remember one speaker and the completed heard tick; simultaneous speakers use ID order. "
                 "For food_expect_ticks, postpone only a new optional cache trip. Needs, helping, "
-                "warming and existing outings keep priority. Seeing that speaker back at home with "
+                "warming and existing outings keep priority. At the next tick start, seeing that "
+                "speaker's death at the just-completed boundary ends the expectation: use both "
+                "people's final positions and the listener's sight radius. Older deaths discovered "
+                "later do not count as witnessed. Seeing that speaker back at home with "
                 "at most one carried meal or "
                 "seeing at least provision_low meals in one's home cache ends the expectation early. "
                 "Unseen events do not update it. Moving home or dying clears one's expectation; "
@@ -553,6 +564,13 @@ class WorldConfig:
                                 "empty-handed dependent already on the same or an adjacent cell, only "
                                 "while below every active need threshold and with no water trip due. "
                                 "This does not extend a walking errand")
+        if self.shared_care_on:
+            out["shared_care"] = "on"
+            out["decision"] += ("; record both adults in each birth as parents. Both have the existing "
+                                "local caregiving priority and dependent-child relocation restriction. "
+                                "Homes and personal needs are unchanged. Simultaneous handoffs each "
+                                "transfer one real unit through settlement; parents do not coordinate "
+                                "their choices or learn an absent child's condition")
         if self.births_on:
             out["births"] = "on"
             out["together_ticks"] = self.together_ticks
@@ -651,6 +669,9 @@ class WorldConfig:
         childhood = described.get("childhood", "off")
         if not isinstance(childhood, str) or childhood not in switches:
             raise ValueError("childhood must be 'on' or 'off'")
+        shared_care = described.get("shared_care", "off")
+        if not isinstance(shared_care, str) or shared_care not in switches:
+            raise ValueError("shared_care must be 'on' or 'off'")
         if switches[childhood]:
             for name in ("adult_at", "child_leash"):
                 value = described.get(name)
@@ -753,7 +774,7 @@ class WorldConfig:
                      knowledge_sharing_on=switches[knowledge_sharing],
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",
-                     childhood_on=switches[childhood], **need_values, **counts)
+                     childhood_on=switches[childhood], shared_care_on=switches[shared_care], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config

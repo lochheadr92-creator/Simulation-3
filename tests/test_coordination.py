@@ -6,7 +6,7 @@ from dataclasses import replace
 import pytest
 
 from kernel import Engine
-from stream.run_file import read_run
+from stream.run_file import RunWriter, read_run
 from world.config import WorldConfig, genesis
 from world.decide import decide
 from world.observe import SeenPerson, observe
@@ -15,7 +15,7 @@ from world.process import _births
 from world.recover import recover_world
 from world.replay import replay_world
 from world.run import build_parser, config_from, run_id_for, run_world, world_step
-from world.storage import FOOD_EXPECT_TICKS, update_food_expectations
+from world.storage import FOOD_EXPECT_TICKS, food_expectation, update_food_expectations
 from world.viewer import render_html
 from world.viewer_index import build_index
 
@@ -140,6 +140,127 @@ def test_visible_return_even_empty_or_stocked_cache_ends_expectation():
                                                for s,v in first.engine.state.sources.items()})
     seen = observe("p02", stock, first.processed.overlay, cfg)
     assert seen.food_expected is None and seen.food_expectation_end == "the home cache is stocked"
+
+
+def test_witnessed_death_ends_wait_after_actual_death_and_starts_an_outing():
+    cfg, ledger, world = house()
+    first = world_step(Engine(ledger), world, cfg)
+    # Controlled setup: the announced traveller is now empty-handed and one
+    # tick from starvation. Death still comes through ordinary world processing.
+    endangered = replace(first.processed.overlay,
+                         hunger=dict(first.processed.overlay.hunger, p01=cfg.death_at - 1))
+    empty = replace(first.engine.state, balances=dict(first.engine.state.balances, p01=0))
+    second = world_step(Engine(empty), endangered, cfg)
+    assert second.decisions['p02'].waiting_for_food == 'p01'
+    assert second.processed.overlay.died_at == {'p01': 2}
+    assert second.processed.overlay.food_expected == {'p02': ('p01', 1)}
+    assert second.processed.ledger.totals() == empty.totals()
+
+    third = world_step(second.engine, second.processed.overlay, cfg)
+    seen = third.views['p02']
+    assert seen.witnessed_deaths == ('p01',)
+    assert seen.compact()['witnessed_deaths'] == ['p01']
+    assert seen.food_expected is None
+    assert seen.food_expectation_end == "witnessed the housemate's death"
+    assert third.decisions['p02'].provisioning == 'gather'
+    assert not third.decisions['p02'].waiting_for_food
+    uninformed = replace(seen, food_expected=('p01', 1), food_expectation_end=None,
+                         witnessed_deaths=())
+    assert decide(uninformed, cfg).waiting_for_food == 'p01'
+    assert not third.processed.overlay.food_expected
+    assert second.processed.overlay.food_expected == {'p02': ('p01', 1)}  # immutable input
+    restored = Overlay.from_canonical(third.processed.overlay.canonical())
+    fourth = world_step(third.engine, restored, cfg)
+    assert not fourth.views['p02'].witnessed_deaths
+    assert not fourth.processed.overlay.food_expected
+
+    # Learning what happened changes the expectation, not need priority.
+    assert decide(replace(seen, hunger=cfg.hungry_at), cfg).kind == 'eat'
+    assert decide(replace(seen, cold=1), cfg).kind == 'warm'
+    water_cfg = replace(cfg, water_on=True)
+    assert decide(replace(seen, thirst=cfg.thirsty_at, water=1,
+                          water_source=seen.home, water_stock=0), water_cfg).kind == 'drink'
+
+
+@pytest.mark.parametrize('offset, radius, when, witnessed', [
+    ((0, 0), 0, 2, True), ((1, 1), 1, 2, True), ((2, 0), 1, 2, False),
+    ((1, 0), 0, 2, False), ((0, 0), 1, 1, False),
+])
+def test_death_information_is_local_and_only_at_the_completed_boundary(offset, radius, when, witnessed):
+    cfg, ledger, world = house()
+    cfg = replace(cfg, perception_radius=radius)
+    home = world.homes['p02']
+    world = replace(world, tick=2, cold={'p01': 0, 'p02': 0},
+                    positions=dict(world.positions, p01=(home[0]+offset[0], home[1]+offset[1])),
+                    died_at={'p01': when}, food_expected={'p02': ('p01', 1)})
+    view = observe('p02', replace(ledger, tick=2), world, cfg)
+    assert bool(view.witnessed_deaths) is witnessed
+    assert (view.food_expected is None) is witnessed
+    assert (decide(view, cfg).provisioning == 'gather') is witnessed
+    without_expectation = observe('p02', replace(ledger, tick=2), replace(world, food_expected={}), cfg)
+    assert not without_expectation.witnessed_deaths  # no general death-knowledge system
+    off = observe('p02', replace(ledger, tick=2), world, replace(cfg, coordination_on=False))
+    assert 'witnessed_deaths' not in off.compact()
+
+
+def test_witnessing_someone_else_does_not_cancel_the_speakers_promise():
+    cfg, ledger, world = house()
+    first = world_step(Engine(ledger), world, cfg)
+    view = observe('p02', first.engine.state, first.processed.overlay, cfg)
+    assert food_expectation(view.food_expected, view.tick, view.home, view.others,
+                            view.home_store_food, ('someone-else',)) == (('p01', 1), None)
+
+
+def save_witnessed_death_scene(path):
+    """Controlled scene, not generated genesis or ordinary-world frequency evidence.
+
+    Two adults share a built home. A short hunger margin and empty patches
+    expose the whole sequence in nine ticks. No state is edited after start.
+    """
+    cfg, ledger, world = house()
+    cfg = replace(cfg, satiation=1, emergency_at=26, death_at=27)
+    world = replace(world, hunger={'p01': 24, 'p02': 0})
+    ledger = replace(ledger, sources={s: replace(v, stock=0) for s, v in ledger.sources.items()})
+    engine = Engine(ledger)
+    with RunWriter(path, run_id='controlled-witnessed-death', genesis=ledger,
+                   scenario=cfg.describe(), world=world.canonical(), horizon=9) as writer:
+        for _ in range(9):
+            step = world_step(engine, world, cfg)
+            writer.record(step.record, step.committed, inputs=step.proposals, **step.line_fields())
+            assert step.processed.ledger.totals() == ledger.totals()
+            world, engine = step.processed.overlay, step.engine
+        return writer.close()
+
+
+def test_saved_witnessed_death_recovery_repeat_and_native_viewer(tmp_path):
+    path = tmp_path / 'witnessed.jsonl'
+    trail = save_witnessed_death_scene(path)
+    run = read_run(path)
+    assert run.complete
+    assert run.ticks[0]['decisions']['p01']['announced_to'] == ['p02']
+    assert run.ticks[1]['decisions']['p02']['waiting_for_food'] == 'p01'
+    assert run.ticks[3]['world']['died_at'] == {'p01': 4}
+    witness = run.ticks[4]['observations']['p02']
+    assert witness['witnessed_deaths'] == ['p01']
+    assert witness['food_expectation_end'] == "witnessed the housemate's death"
+    assert run.ticks[4]['decisions']['p02']['provisioning'] == 'gather'
+    assert not run.ticks[4]['world'].get('food_expected')
+    events = build_index(run)['events']
+    assert any(e['kind'] == 'food_expectation_end' and e['k'] == 5
+               and "witnessed the housemate's death" in e['text'] for e in events)
+    assert "witnessed the housemate's death" in render_html(run)
+    assert "Witnessed deaths" in render_html(run)
+    # Custom initial conditions are deliberately not claimed as generated-world
+    # replay. Recovery restores the actual saved ledger/overlay at each cut.
+    lines = path.read_bytes().splitlines(keepends=True)
+    for tick in (2, 3, 4):  # before death, before witnessing, after clearing
+        end = next(i for i, line in enumerate(lines)
+                   if json.loads(line).get('kind') == 'tick' and json.loads(line).get('tick') == tick)
+        cut, restored = tmp_path / f'cut-{tick}.jsonl', tmp_path / f'restored-{tick}.jsonl'
+        cut.write_bytes(b''.join(lines[:end+1]))
+        recover_world(cut, restored)
+        assert read_run(restored).ticks == run.ticks
+    assert save_witnessed_death_scene(tmp_path / 'repeat.jsonl') == trail
 
 
 def test_expectations_are_immutable_preserved_by_births_and_cleared_by_listener_move_or_death():

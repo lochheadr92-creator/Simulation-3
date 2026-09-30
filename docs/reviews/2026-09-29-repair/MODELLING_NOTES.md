@@ -1,5 +1,10 @@
 # Existing rules clarified during the review repair
 
+These are the rules at the reviewed `fe940ef` repair. Subsequent local work
+on 2026-09-30 adds a bounded witnessed-death response and boolean validation;
+see [current development directions](../../../WORLD_DIRECTIONS.md). The
+historical waiting-after-death description below predates that addition.
+
 These notes explain existing behaviour; they do not introduce simulation rules.
 
 - **Knowledge sharing needs shared homes and contact.** A listener must share the speaker's home and be visible within one Chebyshev cell. Source memory is a validated dependency. Generated homes-off worlds give people separate homes, so enabling sharing alone can record firsthand sightings without anyone hearing a report. Use `--source-memory on --knowledge-sharing on --homes on` for a generated-world sharing example. It still needs encounters and a recent empty-source sighting; speech is not guaranteed.

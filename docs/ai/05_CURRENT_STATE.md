@@ -1,5 +1,37 @@
 # Current state — volatile snapshot
 
+## Shared caregiving — 2026-09-30
+
+Checked on `codex/kernel-first-slice`, HEAD `fe940ef`, with prior local work
+preserved. The user authorized the next shared-caregiving slice with "Begin".
+Optional `--shared-care on` records both birth parents and gives both the
+existing local caregiving role and dependent-child relocation responsibility.
+Saved family links, replay/recovery and the current viewer support the added
+relationship; old saves retain only the parents they actually recorded.
+
+Seed 11 now shows p06 feeding p08 while p03 travels for food, followed by the
+child's meal. Three matched seeds show more child handoffs with mixed population
+outcomes; no general survival benefit is established. Fresh full suite:
+**1,105 passed**; six ordinary comparison runs verify/replay, recovery matches
+around birth and delivery, and browser playback passed without errors.
+Implementation remains uncommitted. Detailed verification and paths are in WORLD_DIRECTIONS and the
+current slice; the repair's supplied independent PASS applies only to `fe940ef`.
+
+## Household response and review closure — 2026-09-30
+
+Checked on `codex/kernel-first-slice` at `fe940ef` plus local changes.
+The supplied [reassessment](../reviews/2026-09-29-repair/README.md) clears
+the repair blockers with PASS within its stated scope. Its 901-test result
+is attributed to that independent execution. The reassessment files were
+untracked at the start of this work and are preserved unchanged.
+
+Current local work validates all boolean settings and malformed `yield_set`
+collections. With coordination enabled, a listener who sees their speaker's
+death at the just-completed boundary stops expecting food on their next
+decision. The existing needs and provisioning rules choose what happens next.
+See [current slice](06_CURRENT_SLICE.md) and the latest WORLD_DIRECTIONS entry
+for verification and compatibility. Older snapshots below retain their dates.
+
 ## Review repair — 2026-09-29
 
 The independent report on `81c10b7` is now supplied and signed FAIL,
@@ -8,7 +40,8 @@ with F1/F2 blocking acceptance as presented. The subsequent
 viewer escaping repair, strict integer validation and wider timing-only
 social-memory comparison. At 780 ticks the fixed 35-seed sample activates
 memory in three current worlds and four old-estimate worlds; neither
-activates by 400. The original FAIL remains pending reassessment.
+activates by 400. The original FAIL remains historical; the later scoped
+reassessment above clears its blockers for `fe940ef`.
 See the response for fresh validation; historical counts below are
 attributed to their original runs and are not current certification.
 

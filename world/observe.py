@@ -153,6 +153,7 @@ class Observation:
     housemates_in_view: tuple[str, ...] = ()
     food_expected: tuple[str, int] | None = None
     food_expectation_end: str | None = None
+    witnessed_deaths: tuple[str, ...] = ()  # expected speaker's locally witnessed death
 
     @property
     def at_source(self) -> bool:
@@ -179,6 +180,8 @@ class Observation:
     def compact(self) -> dict[str, Any]:
         """Run-file form: seen identities, and source stock if seen."""
         out: dict[str, Any] = {"sees": [seen.actor for seen in self.others]}
+        if self.witnessed_deaths:
+            out["witnessed_deaths"] = list(self.witnessed_deaths)
         if self.food_expected is not None:
             out["food_expected"] = list(self.food_expected)
         if self.food_expectation_end is not None:
@@ -282,9 +285,17 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
               if config.homes_on else store_sites(config))
     own_cache = next((sid for sid, pos, resident in caches
                       if origin == pos and (overlay.homes[actor] == pos if config.homes_on else resident == actor)), None)
+    # Death follows movement. An existing listener can witness their speaker at
+    # the final positions of the just-completed boundary. Do not give newborns
+    # knowledge of deaths before their birth, or reveal distant/older deaths.
+    expectation = overlay.food_expected.get(actor) if config.coordination_on else None
+    speaker = expectation[0] if expectation else None
+    witnessed_deaths = ((speaker,) if speaker is not None
+                        and overlay.died_at.get(speaker) == overlay.tick
+                        and in_view(origin, overlay.positions[speaker], radius) else ())
     expected, expectation_end = (food_expectation(
         overlay.food_expected.get(actor), ledger.tick, overlay.homes[actor], others,
-        ledger.sources[own_cache].stock if own_cache is not None else None)
+        ledger.sources[own_cache].stock if own_cache is not None else None, witnessed_deaths)
         if config.coordination_on else (None, None))
     choosing_home = (config.homes_on and overlay.alive(actor) and actor in overlay.parent
                      and overlay.age.get(actor, 0) >= config.adult_at and actor not in overlay.home_settled)
@@ -324,6 +335,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
             if config.coordination_on else (),
         food_expected=expected,
         food_expectation_end=expectation_end,
+        witnessed_deaths=witnessed_deaths,
         provision_phase=overlay.provision_trips.get(actor) if config.provisioning_on else None,
         provision_source=provision_source,
         provision_avoided=provision_avoided,
@@ -366,9 +378,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         rough_in_view=frozenset(overlay.terrain_memory.get(actor, ()))
         | frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         **({"age": overlay.age.get(actor, config.adult_at),
-           "children": frozenset(kid for kid, mum in overlay.parent.items() if mum == actor),
-           "dependents": frozenset(kid for kid, mum in overlay.parent.items()
-                                   if mum == actor and overlay.alive(kid)
+           "children": overlay.children_of(actor),
+           "dependents": frozenset(kid for kid in overlay.children_of(actor)
+                                   if overlay.alive(kid)
                                    and overlay.age.get(kid, config.adult_at) < config.adult_at)}
           if config.childhood_on else {}),
         **_water_view(actor, origin, overlay, config, available),

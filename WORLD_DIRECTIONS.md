@@ -1,5 +1,160 @@
 # Simulation 3 — Development Directions
 
+## Both birth parents can care for their child — 2026-09-30
+
+Local work on `codex/kernel-first-slice`, based on `fe940ef` plus the preserved
+witnessed-death/configuration changes below. `--shared-care on` records both
+adults involved in each new birth. Both use the existing caregiving rule:
+help their visible, empty-handed dependent child when their own needs permit.
+It requires childhood and is off by default for comparison. Homes, need
+priorities, food transfers and birth eligibility keep their existing rules.
+
+The existing `parent` field retains the adult whose home anchored the birth.
+A sparse immutable `second_parent` field records the other adult. Both links
+survive movement, later births, adulthood and death. Both parents receive the
+existing restriction against relocation while they have a living dependent.
+No relationship is guessed for old saves. A relationship does not reveal an
+absent child's needs or position. The viewer draws both saved links, names
+both parents in births/inspection, and counts either parent's actual handoff.
+
+Parents decide separately. If both hand over food on the same tick, each
+transfers one real unit; the child receives two and can spend them only from
+the next tick. The focused test checks this accounting and the following meal.
+There is no joint task assignment or automatic guarantee that somebody helps.
+
+**Watch seed 11, p08 and p06, world ticks 40–49:** p08 was born to p03 and
+p06 at tick 16. At 42, p06 hands p08 one of their two food units while p03 is
+empty-handed and travelling to food. At 43 p08 eats. At 44 p06 gives another
+unit, leaving themselves with none, then heads home for warmth. A same-state
+comparison removing only p06's second-parent role changes the tick-42 choice.
+This is generated genesis with default settings plus shared care, not a
+constructed rescue. Open `runs/shared-care-2026-09-30/comparisons/seed11-sharedTrue-400.html`.
+
+Matched 400-tick worlds (defaults, changing only shared care):
+
+| Seed | Births off / on | Living off / on | Deaths off / on | Child handoffs off / on | Second-parent handoffs on |
+| --- | --- | --- | --- | --- | --- |
+| 7 | 6 / 6 | 11 / 11 | 1 / 1 | 5 / 6 | 1 |
+| 11 | 23 / 13 | 7 / 5 | 22 / 14 | 10 / 16 | 5 |
+| 23 | 17 / 14 | 8 / 7 | 15 / 13 | 6 / 14 | 7 |
+
+These are three examples, not a survival result. Changing help changes later
+encounters, births and the population being compared. Shared care stays optional.
+Seed 7's second parent starts an errand by tick 215 but completes no handoff
+within 240 ticks; its first second-parent delivery in the 400-tick run is at
+386. In the first controlled arrangement the first parent delivered before
+the second arrived. These exposed incorrect scene assumptions in two new
+tests. The controlled initial state now makes the first parent empty-handed,
+and the ordinary seed-7 test covers the inspected 400-tick trajectory. No
+existing tests, simulation thresholds or old expected results were changed.
+
+Verification: **502 affected subsystem tests passed**, followed by **1,105
+passing tests in the full suite** (278.82 seconds), including the added
+seed-11 causal check. All six ordinary comparison files verify and replay. Recovery at
+four cuts, before/after a controlled birth and during later care, reproduces
+the saved ticks; the ordinary seed-11 world also recovers identically from
+cuts at completed ticks 15, 16 and 42 (before birth, after birth and after the
+handoff). Controlled and ordinary repeat runs match. Default/off
+configurations match the pre-edit description and every saved tick field
+except seals for seeds 7, 11 and 23 over 240 ticks each (720 ticks). Seals
+change because they chain from a header containing the changed code identity.
+
+Browser playback in Edge checked both parent links, the delivery, the next
+meal, scrubbing before birth, and an older single-parent run rendered with
+the current viewer. No page errors or console warnings. One ad-hoc text
+assertion was corrected to allow line breaks between the parent-link buttons;
+the displayed parents were already correct. Screenshots were inspected.
+
+Off-mode rule descriptions and sparse saved state remain unchanged. The
+pre-edit seed-11 run replays identically with current code; its old file also
+renders and plays. Recovery still requires matching code identity.
+New shared-care headers describe the new rule explicitly. No kernel or stream
+source changed. Logs, comparisons, source backups and saved viewers are under
+`runs/shared-care-2026-09-30/` (ignored by Git). No commit, push or independent
+review of this addition has been made. A final self-review checked state
+preservation through both Overlay construction paths, legacy descriptions,
+all parent-field consumers, viewer escaping and the final diff. JavaScript
+syntax and `git diff --check` passed. This is builder validation, not an
+independent review.
+
+## A listener witnesses a food traveller's death — 2026-09-30
+
+Local work on `codex/kernel-first-slice`, based on `fe940ef`. The user chose
+to close out the review repair and explore this one household consequence.
+The supplied [reassessment](docs/reviews/2026-09-29-repair/README.md) gives
+the preceding repair PASS within its scope; it does not review this addition.
+
+With coordination enabled, a person expecting food can witness the speaker's
+death at the just-completed boundary. Both final positions must be within the
+usual sight radius. The next decision ends that expectation with a recorded
+reason; ordinary needs and provisioning determine what the listener does.
+Unseen deaths and older deaths discovered later do not provide this information.
+This is specific to the existing listener/speaker relationship, not general
+death knowledge or inherited knowledge for a newborn. No new switch, persistent
+overlay field, resource transfer, inheritance or forced outing was added.
+
+The viewer reads the saved `witnessed_deaths` observation and expectation-end
+reason. Its inspector names the witnessed person, and Happenings links the
+ended expectation to the listener's later action.
+
+**Controlled scene:** `runs/witnessed-death-2026-09-30/final/controlled.html`.
+Follow p02 through world ticks 1–7. p01 announces at 1; p02 waits through 4;
+p01 dies at 4; p02 witnesses that death and starts a cache outing at 5.
+They reach the empty patch at 6 and wait there at 7. Knowing the promise
+cannot be fulfilled changes a choice; it does not create food or rescue them.
+This scene deliberately uses a shared built home, empty patches, p01 starting
+at hunger 24, emergency/death thresholds 26/27 and meal satiation 1. No state
+is edited after the start. `save_witnessed_death_scene` in
+`tests/test_coordination.py` reproduces it. It is a controlled initial state,
+not generated genesis and not an ordinary-world replay claim.
+
+**Ordinary-world limit:** no expectation ended through witnessed death in
+seeds 1–35 at 480 ticks with the existing full-feature coordination-test
+configuration. Nor did it occur in seeds 7, 11 and 23 at 780 ticks using
+defaults plus stores, homes, provisioning and coordination. These were scene
+checks, not population statistics. The saved minimal seed-23 world is
+`runs/witnessed-death-2026-09-30/final/ordinary-seed23.jsonl`; it verifies and replays
+identically, and its viewer was played. This addition has not demonstrated
+a new ordinary household scene in that sample. Do not expand it into a broader
+death system on the strength of the controlled example.
+
+Configuration cleanup rejects non-boolean values for every boolean field,
+including inactive switches. `water_on="off"` now raises ValueError. Malformed
+`yield_set` containers fail clearly; lists remain supported and are copied
+to tuples as before. Valid defaults remain unchanged.
+
+The saved coordination rule description now includes witnessed death. Old
+coordination-on runs remain readable, but their previous rule descriptions
+cannot be reconstructed for replay under this changed rule. Coordination-off
+descriptions are unchanged. Recovery retains its matching-code requirement.
+
+**Verification:** configuration and coordination checks passed 354 tests;
+the broader affected subsystem run passed 464. After adding the saved-scene
+check, the full suite passed 1,076 tests. The final narrowing of observation
+to existing listeners and the viewer inspector change were checked afterward
+with 369 passing configuration, coordination, map-viewer and browser-security
+tests. An additional same-state uninformed comparison proves that p02 would
+still wait without the witnessed information; the final eight focused death
+checks passed. Saved cuts before death, before witnessing and after clearing
+continue identically, and repeating the controlled scene gives the same trail.
+
+The controlled scene and ordinary seed-23 page were played in Edge with no
+page errors or console warnings. The controlled inspector shows p01's
+witnessed death, the ended expectation and p02's outing; scrubbing backward
+shows the earlier wait. The first ad-hoc browser assertion expected title
+case where CSS renders uppercase; correcting that text assertion passed.
+This did not require a viewer behaviour fix.
+
+With coordination off, 220 ticks each for seeds 7, 11 and 23 matched the
+pre-change observation implementation in every saved world field and kernel
+record (660 ticks). Default headers and headers with stores/homes/provisioning
+but coordination off also match the previous configuration description.
+These are bounded preservation checks. No kernel or stream source changed.
+
+Local logs, compatibility results, screenshots and final examples live under
+`runs/witnessed-death-2026-09-30/`; runs are ignored and are not supplied by a
+clean clone. No commit, push or independent review of this addition was made.
+
 ## Review repair — 2026-09-29
 
 The independent whole-project review returned a bounded FAIL. The

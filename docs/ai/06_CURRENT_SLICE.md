@@ -1,4 +1,62 @@
-# Current slice — sharing firsthand food sightings
+# Current slice — shared caregiving by both birth parents
+
+## Current work — shared caregiving, 2026-09-30
+
+Authorized by "Begin" following the proposed two-parent caregiving slice.
+Baseline: `codex/kernel-first-slice` at `fe940ef` plus existing uncommitted
+witnessed-death/configuration work. That work and supplied reassessment are
+preserved. No commit or push is authorized or performed.
+
+`--shared-care on` adds a sparse immutable second-parent link at birth;
+childhood is required and the default remains off. Both parents see their
+own family relationship and can help visible empty-handed dependents through
+the existing rule. Both retain personal needs and the existing restriction
+against relocation with living dependents. No additional transfer algorithm,
+remote knowledge, family move, inheritance or shared scheduling is introduced.
+
+The viewer displays both parents and labels handoffs from either using native
+records. Simultaneous handoffs are two accounted transfers; the child cannot
+spend those incoming units on the same tick. Tests cover this, one unavailable
+parent, local visibility, personal needs, adulthood/death, immutable state,
+later births, descriptions/CLI, recovery around birth and deterministic replay.
+
+Fresh validation: 502 affected subsystem tests, then **1,105 full-suite tests
+passed**. Six ordinary comparison runs verify/replay; controlled and ordinary
+cuts recover identically around birth and handoffs. Browser playback checks
+the new family links, delivery/meal and an old single-parent run. Off-mode
+comparison matches 720 pre-edit simulation ticks; the earlier seed-11 file
+also replays identically. This is builder validation, with no independent
+review of the shared-care addition.
+
+The ordinary scene is seed 11, world ticks 40–49, p06 and p08. Their other
+parent p03 seeks food while p06 supplies a meal. Three matched 400-tick seeds
+show mixed population consequences. See the latest WORLD_DIRECTIONS entry
+for the exact comparisons, verification results and local artifact paths.
+The dated accounts below retain the earlier work and its boundaries.
+
+## Current work — 2026-09-30
+
+The user authorized review closure, configuration type corrections and one
+household consequence after `fe940ef`. The supplied independent reassessment
+is [filed here](../reviews/2026-09-29-repair/README.md); its PASS applies to
+that repair only.
+
+`observe` exposes locally visible deaths from the just-completed boundary
+when coordination is enabled, using final positions and the usual sight
+radius. `storage.food_expectation` ends a listener's existing expectation
+when its speaker is among those witnessed deaths. Existing processing clears
+the memory; existing saved observations and viewer events show the cause.
+There is no new overlay field, death rumour, inheritance or forced outing.
+Older deaths discovered later do not count; unseen deaths still wait for
+the ordinary evidence or timeout. Needs keep priority.
+
+The coordination rule description changes, so previous coordination-on
+headers cannot be reconstructed under the new rule. Old runs remain readable;
+coordination-off descriptions are unchanged. Recovery keeps its code-identity
+requirement. Latest results and the watchable example are recorded at the top
+of [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md).
+
+The dated sharing and repair accounts below describe earlier work.
 
 ## Review repair — 2026-09-29
 
@@ -7,7 +65,8 @@ to Claude's supplied signed FAIL. F2 viewer escaping and F4 configuration
 types are repaired; the birth-text assertion and presentation labels are
 strengthened. F1 is investigated across matched seeds without reverting
 terrain-aware departure or forcing a social event. The original report
-is preserved for independent reassessment of the new commit.
+is preserved as history; the supplied reassessment subsequently cleared the
+blockers for `fe940ef`.
 
 - Checked: 2026-09-28 against `22ffe2748dc4c5ee14c71295ff33810c7f456a7c` plus local changes.
 - Authorized: user said "proceed" to bounded sharing and chose to keep terrain-aware departures with causal social-memory tests.

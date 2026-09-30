@@ -1,0 +1,14 @@
+Independent F2 check (Playwright-Python, Chromium 1194 binary, not the repo fixture), target fe940ef.
+Inputs: runs/forged.html rendered by `python -m world.viewer` from the original reviewer forged.jsonl
+        (actor id <img src=x onerror="window.__pwned=7">), and examples/seed29-current.html.
+Actions: load, open #deep, read #totals, click #next x3, read #tick/#selection, collect pageerror + console error/warning.
+
+forged | pwned: None | injected els: 0 | literal id in totals: True | consistency label: True
+   tick label: World tick 3 / 60 | selection: Decision tick 2 — personal selection fro
+   page errors: [] console err/warn: []
+seed29-builder | pwned: None | injected els: 0 | literal id in totals: False | consistency label: True
+   tick label: World tick 3 / 780 | selection: Decision tick 2 — personal selection fro
+   page errors: [] console err/warn: []
+
+Static scan of innerHTML/insertAdjacentHTML sites in world/viewer.js: remaining non-esc() interpolations are
+numeric (v, n, e.k, totals.*) or the fixed category literal e.cat (viewer_index.py add(): build crowd food help life need source wood).

@@ -206,7 +206,7 @@ LEGEND = (
     ('<circle cx="6" cy="6" r="2.4" fill="#f2e5d0"/><rect x="3.5" y="8" width="5" height="6" rx="2" fill="#7fb3d9"/>'
      '<circle cx="14" cy="9" r="1.8" fill="#f2e5d0"/><rect x="12.2" y="10.6" width="3.6" height="4.2" rx="1.5" fill="#d99a7f"/>'
      '<path d="M8.5 13l3.5-1" stroke="#ecb2d6" stroke-dasharray="1 1.6"/>',
-     "a child is smaller until grown; dotted pink joins the selected person to their parent and children"),
+     "a child is smaller until grown; dotted pink joins the selected person to their recorded parents and children"),
     ('<path d="M7 15v-6q3-4 6 0v6z" fill="#8f8a82"/>', "somebody died here"),
     ('<path d="M3 10l7-4 7 4-7 4z" fill="#ffe3a3" fill-opacity=".08" stroke="#ffe3a3" stroke-dasharray="3 2"/>',
      "Chebyshev perception: the square a person can see"),

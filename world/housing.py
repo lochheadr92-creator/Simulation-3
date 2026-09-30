@@ -45,9 +45,9 @@ def can_relocate(actor, overlay, config):
             and (actor not in overlay.parent or actor in overlay.home_settled)
             and overlay.tick - overlay.home_settled.get(actor, 0) >= MOVE_COOLDOWN
             and (overlay.home_strain.get(actor, 0) >= DIFFICULT_OUTINGS or actor in overlay.home_targets)
-            and not any(parent == actor and overlay.alive(child)
+            and not any(overlay.alive(child)
                         and overlay.age.get(child, 0) < config.adult_at
-                        for child, parent in overlay.parent.items()))
+                        for child in overlay.children_of(actor)))
 
 
 def choose_relocation(observation, config):

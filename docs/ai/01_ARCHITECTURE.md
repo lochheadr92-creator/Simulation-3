@@ -1,5 +1,34 @@
 # Current architecture
 
+## Scoped update — two birth parents, 2026-09-30
+
+Checked at `fe940ef` plus preserved witnessed-death/configuration work and
+the local shared-care addition. Optional `shared_care_on` (requires childhood,
+default false) records the other birth adult in sparse `Overlay.second_parent`;
+`parent` keeps the original birth-home link. `Overlay.children_of` unifies
+the two relationships for observation and the existing dependent-child
+relocation restriction. `process` preserves both across ticks and births.
+Ordinary caregiving choice/settlement logic is unchanged; simultaneous offers
+can each deliver one unit. The viewer reads both saved links and native outcomes.
+Old states lack the new field and retain their digest; no second parent is
+inferred. Off-mode configuration descriptions are unchanged. See the current
+slice and latest WORLD_DIRECTIONS for verification and comparison limits.
+
+## Scoped update — witnessed household death, 2026-09-30
+
+Checked at `fe940ef` plus local changes. For an existing food expectation,
+`observe` can record the speaker's death only at the just-completed boundary
+and within the listener's sight, using both final positions. The sparse
+`witnessed_deaths` observation feeds `storage.food_expectation`; existing
+processing then drops the expectation. No new overlay field is required.
+The saved observation and expectation-end event supply the viewer's inspector
+and history. Later discovery of an old death and unseen death do not count.
+The coordination rule description changes; older coordination-on headers
+remain readable but do not reconstruct under the new rule.
+See the current slice and WORLD_DIRECTIONS for verification and the absence
+of activation in the sampled ordinary worlds. The original snapshot below
+retains its original revision metadata.
+
 ## Source snapshot
 
 - Source branch: `codex/kernel-first-slice`

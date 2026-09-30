@@ -256,6 +256,7 @@ def build_index(run: Any) -> dict[str, Any]:
         promises_before = before.get("promises", {}) or {}
         promises_now = world.get("promises", {}) or {}
         parent_of = world.get("parent", {}) or {}         # child -> parent, recorded from birth on
+        second_parent_of = world.get("second_parent", {}) or {}
         tally = {name: 0 for name in counts}
 
         # answers first: a request made last tick is answered, or lapses, on this one
@@ -397,7 +398,7 @@ def build_index(run: Any) -> dict[str, Any]:
                 change = f" ({need} {was} → {now})" if was is not None and now is not None else ""
                 add(k, "food" if kind == "eat" else "water", kind, f"{actor} {verb}{change}", who=actor)
             elif kind == "offer" and target and outcome is not None:
-                dependent = (parent_of.get(target) == actor and adult_at is not None
+                dependent = (actor in (parent_of.get(target), second_parent_of.get(target)) and adult_at is not None
                              and before.get("age", {}).get(target, adult_at) < adult_at)
                 direct = (before.get("requests") or {}).get(target) == actor
                 promised = promises_before.get(actor) == target or direct
@@ -429,7 +430,7 @@ def build_index(run: Any) -> dict[str, Any]:
             if kind == "go_offer" and target and not (was.get("kind") == "go_offer" and was.get("target") == target):
                 if promises_before.get(actor) == target:
                     add(k, "help", "set_out", f"{actor} set off with food for {target}", who=actor, other=target)
-                elif parent_of.get(target) == actor:
+                elif actor in (parent_of.get(target), second_parent_of.get(target)):
                     add(k, "help", "set_out", f"{actor} set off with food for their child {target}",
                         who=actor, other=target)
                 else:
@@ -507,7 +508,8 @@ def build_index(run: Any) -> dict[str, Any]:
             if "born" in entry:
                 born[entry["born"]] = k
                 mother = parent_of.get(entry["born"])
-                add(k, "life", "birth", f"{entry['born']} was born" + (f" to {mother}" if mother else ""),
+                parents = [p for p in (mother, second_parent_of.get(entry["born"])) if p]
+                add(k, "life", "birth", f"{entry['born']} was born" + (" to " + " and ".join(parents) if parents else ""),
                     who=entry["born"], other=mother)
                 tally["born"] += 1
 
@@ -562,6 +564,7 @@ def build_index(run: Any) -> dict[str, Any]:
         "wood": wood,
         "adult_at": adult_at,
         "parent": dict(worlds[-1].get("parent", {}) or {}),
+        "second_parent": dict(worlds[-1].get("second_parent", {}) or {}),
     }
 
 
