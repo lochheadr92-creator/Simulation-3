@@ -298,7 +298,7 @@ class RunWriter:
     resume it from its last sealed tick."""
 
     def __init__(self, path: Path, *, run_id: str, genesis: WorldState, scenario: dict[str, Any],
-                 horizon: int, world: dict[str, Any] | None = None) -> None:
+                 horizon: int, world: dict[str, Any] | None = None, open_ended: bool = False) -> None:
         if type(horizon) is not int or horizon < 0:
             raise RunFileError(f"a run horizon must be an integer of zero or more, got {horizon!r}")
         header: dict[str, Any] = {
@@ -317,6 +317,8 @@ class RunWriter:
         if world is not None:
             header["world"] = world
             header["world_digest"] = digest(world)
+        if open_ended:
+            header["open_ended"] = 1   # a live run: the end line may come before `horizon` ticks
         header["seal"] = header_seal(header)
         self.header = header
         self.path = Path(path)
@@ -397,7 +399,7 @@ class RunWriter:
         file cut, when fewer than `horizon` ticks were recorded."""
         if self._closed:
             return self._trail.hexdigest()
-        if self._ticks != self.header["horizon"]:
+        if self._ticks != self.header["horizon"] and not self.header.get("open_ended"):
             self.abort()
             raise RunFileError(f"closed after {self._ticks} of {self.header['horizon']} ticks; "
                                "the file is left without an end line")
@@ -625,7 +627,8 @@ def read_run(path: Path) -> Run:
                     if sealed:
                         if payload.get("final_seal") != seal:
                             problems.append(f"line {number}: final seal is not the last tick's seal")
-                        if header is not None and payload.get("ticks") != header.get("horizon"):
+                        if (header is not None and payload.get("ticks") != header.get("horizon")
+                                and not (header.get("open_ended") and payload.get("ticks") == len(ticks))):
                             problems.append(f"line {number}: end declares {payload.get('ticks')} ticks, "
                                             f"horizon is {header.get('horizon')}")
                 else:

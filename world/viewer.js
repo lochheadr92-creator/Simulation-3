@@ -19,7 +19,8 @@
   const $ = id => document.getElementById(id);
   const RUN = JSON.parse($('run-data').textContent);
   const IDX = JSON.parse($('view-index').textContent);
-  const H = RUN.header, C = H.scenario || {}, ticks = RUN.ticks, n = ticks.length;
+  const H = RUN.header, C = H.scenario || {}, ticks = RUN.ticks; let n = ticks.length;
+  const TICK0 = (window.LIVE || {}).base || 0;   // live mode: view 0 shows the world at this tick
   const GW = C.width || 12, GH = C.height || 12;
   const people = IDX.people;
   const PIDX = {}; people.forEach((p, i) => { PIDX[p] = i; });
@@ -1050,7 +1051,7 @@
     play: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4l10 6-10 6z" fill="currentColor"/></svg>',
     pause: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="3.4" height="12" rx="1" fill="currentColor"/><rect x="11.6" y="4" width="3.4" height="12" rx="1" fill="currentColor"/></svg>',
   };
-  function tweenDur(stepping) { return REDUCED ? 0 : stepping ? 220 : Math.min(700, 0.92 * 1000 / tps); }
+  function tweenDur(stepping) { return REDUCED ? 0 : window.liveTweenMs ? Math.max(120, window.liveTweenMs) : stepping ? 220 : Math.min(700, 0.92 * 1000 / tps); }
   function show(k, opts) {
     opts = opts || {};
     k = clamp(Math.round(Number(k) || 0), 0, n);
@@ -1059,13 +1060,31 @@
     else anim = { from: k, to: k, start: 0, dur: 0 };
     slider.value = v;
     slider.setAttribute('aria-valuetext', `tick ${v} of ${n}`);
-    tickEl.innerHTML = `World tick ${v} <small>/ ${n}</small>`;
+    tickEl.innerHTML = `World tick ${v + TICK0} <small>/ ${n + TICK0}</small>`;
     updateHud(); updateSummary(); markEvents(); updateFocusCard();
     if (tabNow === 'inspector') renderInspector();
     if ($('deep').open) updateDeep();
     needsDraw = true;
   }
   window.show = show;
+  // Live mode hooks: append a recorded tick and its index increment; nothing is recomputed here.
+  window.liveAppend = (tick, inc) => {
+    ticks.push(tick); n = ticks.length;
+    if (inc) {
+      RUN.details.push(inc.details || {});
+      for (const key in (inc.counts || {})) (COUNTS[key] = COUNTS[key] || []).push(inc.counts[key]);
+      for (const e of inc.events || []) { EVENTS.push(e); const i = EVENTS.length - 1; (EV_OF[e.who] = EV_OF[e.who] || []).push(i); if (e.src) (EV_AT_SRC[e.src] = EV_AT_SRC[e.src] || []).push(i); }
+      if (inc.wood) for (const s of inc.wood) if (!SOURCE_AT.has(s.position.join(','))) SOURCE_AT.set(s.position.join(','), { kind: 'wood', id: s.id, position: s.position, yard: !!s.yard, cap: s.yard ? (C.yard_rules || {}).capacity : C.wood_rules.cap });
+    } else RUN.details.push({});
+    slider.max = n; needsDraw = true;
+    if (typeof renderEvents === 'function') renderEvents();
+    if (typeof drawStrip === 'function') drawStrip();
+  };
+  window.liveTickCount = () => n;
+  window.liveView = () => v;
+  window.liveShow = (k, tween) => show(k, { tween: !!tween });
+  window.liveTweening = () => anim.dur > 0 && performance.now() - anim.start < anim.dur;
+  window.liveAnimState = () => ({ view: v, from: anim.from, to: anim.to, t: easeT(performance.now()), people: hits.map(h => ({ id: h.p, x: h.x, y: h.y })) });
   // Read-only view of what is on screen, for scripted checks of the page (tools/*.js).
   window.viewerState = () => ({
     view: v, ticks: n, playing, selected: selected ? Object.assign({}, selected) : null, tab: tabNow,
@@ -1076,7 +1095,7 @@
   function aliveAt(k) { return (COUNTS.alive || [])[k] ?? 0; }
   function updateHud() {
     const w = world(v);
-    $('hud-tick').innerHTML = `World tick ${v}<small>of ${n}</small>`;
+    $('hud-tick').innerHTML = `World tick ${v + TICK0}<small>of ${n + TICK0}</small>`;
     const bits = [`<span>alive <b>${aliveAt(v)}</b></span>`];
     if (w.season) bits.push(`<span>season <b>${esc(w.season)}</b></span>`);
     if ((COUNTS.born || [])[n]) bits.push(`<span>born <b>${COUNTS.born[v]}</b></span>`);

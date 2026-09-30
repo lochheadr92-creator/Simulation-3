@@ -38,6 +38,10 @@ from world.viewer_index import build_index, food_sources, stock_at
 HERE = Path(__file__).resolve().parent
 CSS_FILE = HERE / "viewer.css"
 JS_FILE = HERE / "viewer.js"
+LIVE_CSS = ("#live-bar{position:sticky;top:0;z-index:50;display:flex;gap:12px;align-items:center;padding:8px 16px;"
+            "background:#1b2a2a;color:#e8f0ee;font:14px system-ui,sans-serif;border-bottom:1px solid #3a5551}"
+            "#live-bar button,#live-bar select{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #4d6f6a;background:#243b3a;color:inherit}"
+            "#live-bar button:disabled{opacity:.45}.live-ticks{font-weight:600}.live-ticks.behind{color:#f2c14e}")
 
 
 def _checkpoints(run: Run) -> dict[str, list[int]]:
@@ -218,11 +222,11 @@ def _layer(key: str, label: str, note: str = "", checked: bool = True) -> str:
             f'<span>{html.escape(label)}</span><small>{html.escape(note)}</small></label>')
 
 
-def render_html(run: Run) -> str:
+def render_html(run: Run, live: dict[str, Any] | None = None) -> str:
     if not run.has_world:
         raise ValueError("this run has no world overlay; use stream.viewer for a kernel-only run")
     prefix_notice = ""
-    if not run.complete and run.last_sealed_tick is not None:
+    if not run.complete and run.last_sealed_tick is not None and not live:
         count = max(0, run.last_sealed_tick + 1)
         prefix_notice = f"Showing only the verified prefix: {count} ticks. Later records are not displayed."
         run = replace(run, ticks=run.ticks[:count], end=None,
@@ -231,8 +235,10 @@ def render_html(run: Run) -> str:
     data = _embed(_run_payload(run))
     index = _embed(build_index(run))
     problems = "".join(f'<li class="problem">{html.escape(p)}</li>' for p in run.problems)
+    live_block = f"<script>window.LIVE = {_embed(live)};</script>" if live else ""
+    live_script = f"<style>{LIVE_CSS}</style><script>{_asset(HERE / 'live.js')}</script>" if live else ""
     name = run.run_id or run.path.name
-    status = "verifies" if run.complete else "DOES NOT VERIFY"
+    status = "live (sealed as written)" if live else "verifies" if run.complete else "DOES NOT VERIFY"
     water = scenario.get("water") == "on"
     warmth = scenario.get("warmth") == "on"
     terrain = scenario.get("terrain") == "on"
@@ -382,7 +388,9 @@ def render_html(run: Run) -> str:
 </details>
 <script id="run-data" type="application/json">{data}</script>
 <script id="view-index" type="application/json">{index}</script>
+{live_block}
 <script>{_asset(JS_FILE)}</script>
+{live_script}
 </body></html>
 """
 

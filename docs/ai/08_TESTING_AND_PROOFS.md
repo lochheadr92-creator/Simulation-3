@@ -1,5 +1,17 @@
 # Testing and proof limits
 
+## Live runtime — 2026-09-30
+
+`python3 -B -m world.live --seed N --preset crafting [flags] --out runs/live/NAME.jsonl [--port 8000] [--no-open]`
+runs a world that advances while you watch (starts paused, 1 tick/s); `--resume runs/live/NAME.jsonl`
+continues a stopped or killed one into `NAME.r1.jsonl`. Controls: Pause, Resume, Step, Speed
+(0.1 … 10 ticks/s, unthrottled), Stop & save; any tab may use them. Persistence: every tick is
+flushed to the OS as written, fsynced on pause/stop and every 5 s. Limits: `read_run` parses the
+whole file on resume (a 20,000-tick file is ~1 GB), and the page carries the last 600 ticks only.
+Tests: `tests/test_live.py` (equal state however driven, pause/step precision, kill -9 + resume,
+open-ended header, HTTP reconnect). Details: top WORLD_DIRECTIONS entry.
+
+
 ## Current browser security prerequisite — 2026-09-29
 
 `tests/test_viewer_security.py` requires Node, the locked Playwright

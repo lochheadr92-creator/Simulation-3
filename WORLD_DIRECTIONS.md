@@ -1,5 +1,66 @@
 # Simulation 3 — Development Directions
 
+## Live worlds: watching the world advance — 2026-09-30
+
+`python3 -B -m world.live --seed 23 --preset crafting [flags] --out runs/live/NAME.jsonl
+[--port 8000] [--no-open]` runs the world in one process and shows it in the
+existing viewer as it advances. Nothing about the rules, defaults or decisions
+changed: the live loop calls the same `world_step` and writes every tick
+through the same `RunWriter`, so a live file replays and recovers like any other.
+
+- **One owner.** A single thread steps the world; it waits for permission (a
+  paused flag, single-step tokens, or the speed interval), computes one tick,
+  appends it, and hands an immutable copy to browser subscribers over
+  Server-Sent Events. HTTP threads only read snapshots and set flags. Wall-clock
+  time never enters the tick path, so the same seed and the same number of
+  ticks give the same state whatever the speed, pauses or restarts (test:
+  `tests/test_live.py`).
+- **Controls.** Starts paused at 1 tick/s. Speeds 0.1 (one tick every 10 s),
+  0.25 (one every 4 s), 0.5, 1, 2, 5, 10 ticks/s and unthrottled. Pause stops
+  advancement (a tick already computing finishes); Step adds exactly one tick;
+  Stop pauses, fsyncs, writes the end line and exits. Any tab may change them;
+  every tab hears the change.
+- **Saving and resuming.** The file is the save. Each tick line is written and
+  flushed to the operating system as it is recorded; the file is fsynced on
+  pause, on stop and every 5 seconds. A tick shown in the browser is therefore
+  at least in the OS buffer; a power cut may lose up to 5 seconds of ticks, a
+  process kill loses nothing written. `--resume runs/live/NAME.jsonl` continues
+  from the sealed prefix (a cut or half-written last line is ignored) into a new
+  file `NAME.r1.jsonl` next to it, through the existing recovery path with its
+  code-identity check. Construction, tasks, plans, possessions, memories and
+  delivery counts all live in the saved world, so they carry over.
+- **Horizon.** A live header declares `horizon` 1,000,000 and `open_ended: 1`.
+  Old files have no such key and are read exactly as before; a live file's end
+  line may declare fewer ticks than the horizon, which the reader accepts only
+  for open-ended headers. Replay of a stopped live file is identical; recovery
+  uses `world.live --resume` (the `--recover` path would try to reach the
+  horizon).
+- **Browser.** On load the page carries the last 600 ticks from memory (about
+  ten minutes at 1 tick/s; ~2–30 MB of JSON depending on population), asks
+  `/status`, and subscribes to `/events?since=` from the last tick it has;
+  `/ticks?from=&to=` serves older ticks from the file. A refresh never starts
+  or duplicates a simulation. Each tick arrives with its index increment
+  (events, sources, counts, details) computed in Python from the previous and
+  the new tick; the browser only appends. A slow tab is dropped from the
+  publisher, never waited for; it reconnects and catches up.
+- **Motion.** Figures move between two *confirmed* tick positions, spread over
+  the whole tick interval, so at 0.1 tick/s the picture can lag the world by up
+  to one tick (10 s); at 1 tick/s by up to 1 s. Unthrottled, the view jumps to
+  the latest tick. Scrubbing the timeline is presentation only; "viewing tick N
+  · world at tick M" appears whenever they differ; "follow live" returns to the
+  front. On pause the confirmed transition finishes and the figures hold.
+
+Measured here (seed 23, all flags): unthrottled 44.7 ticks/s over the first
+300 ticks and 16.9 ticks/s averaged over 5,000 (the population grows to ~30
+and each tick line grows to ~55 KB); disk 21.6 KB/tick early, 55 KB/tick
+averaged over 5,000 → 3.3 MB/min at 1 tick/s, 33 MB/min at 10 tick/s, 56 MB/min
+unthrottled; RSS 162 MB after 600 ticks and 482 MB after 5,000. Resume of the
+5,000-tick file (275 MB) is reported in the phase report. The practical
+session limit is disk and the reader: `read_run` parses the whole file on
+resume, so a 20,000-tick file (~1 GB) takes minutes and several GB of RAM to
+resume, and the browser page (last 600 ticks) stays bounded.
+
+
 ## Recurring work: two corrections, re-evaluation and the work view — 2026-09-30
 
 Third and last slice on `codex/wood-yard-stone-axe`. No new switches. Three
