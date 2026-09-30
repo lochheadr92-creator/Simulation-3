@@ -1239,9 +1239,19 @@
   // ------------------------------------------------------------- pinning --
   // One pinned person: the camera zooms in and follows their presented position
   // every frame; the Inspector opens on them. Selecting somebody else shows that
-  // person but leaves the pin alone. Survives reload within the same run.
+  // person but leaves the pin alone. Survives reload within the same run: it is
+  // kept in the URL hash (#pin=p04&run=<run id>), never in browser storage.
   let pinned = null;
-  const PIN_KEY = 'pin:' + (H.run_id || 'static');
+  const PIN_RUN = String(H.run_id || 'static');
+  function pinHash(p) {
+    const url = new URL(location.href);
+    url.hash = p ? `pin=${encodeURIComponent(p)}&run=${encodeURIComponent(PIN_RUN)}` : '';
+    history.replaceState(null, '', url);
+  }
+  function pinFromHash() {
+    const q = new URLSearchParams(location.hash.replace(/^#/, ''));
+    return q.get('run') === PIN_RUN ? q.get('pin') : null;
+  }
   const PIN_ZOOM = 2.5;
   const chip = document.createElement('div');
   chip.id = 'pin-chip'; chip.hidden = true;
@@ -1258,15 +1268,13 @@
     $('pin-text').textContent = `Following ${pinned}` + (dead ? ` · died at tick ${w.died_at[pinned]}` : '');
   }
   function pin(p) {
-    pinned = p;
-    try { localStorage.setItem(PIN_KEY, p); } catch (e) { /* storage unavailable */ }
+    pinned = p; pinHash(p);
     follow = false; $('follow').setAttribute('aria-pressed', 'false');
     select({ type: 'person', id: p }, true);
     pinChip(); needsDraw = true;
   }
   function unpin(refit) {
-    pinned = null;
-    try { localStorage.removeItem(PIN_KEY); } catch (e) { /* storage unavailable */ }
+    pinned = null; pinHash(null);
     pinChip(); if (refit) fit(true); needsDraw = true;
     if (tabNow === 'inspector') renderInspector();
   }
@@ -1824,6 +1832,6 @@
   setPlaying(false);
   show(0);
   setTab('events');
-  try { const saved = localStorage.getItem(PIN_KEY); if (saved && people.includes(saved)) pin(saved); } catch (e) { /* storage unavailable */ }
+  { const saved = pinFromHash(); if (saved && people.includes(saved)) pin(saved); }
   requestAnimationFrame(loop);
 })();
