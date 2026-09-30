@@ -79,6 +79,19 @@ def store_id(resident: str) -> str:
     return f"store-{resident}"
 
 
+def deposit_room(carried: int, visible_stock: int, capacity: int) -> int:
+    """Units of a named resource to put into a shared store seen at `visible_stock`.
+    The cap is a world rule: two people depositing on the same tick can each see
+    the same room, so a store may end up over the cap by at most one pack."""
+    return max(0, min(carried, capacity - visible_stock))
+
+
+def withdraw_amount(pack: int, need: int, visible_stock: int) -> int:
+    """Units to claim from a shared store: one pack at most, no more than needed
+    or than was seen there. Settlement decides whether the claim succeeds."""
+    return max(0, min(pack, need, visible_stock))
+
+
 def spare_for_store(observation: "Observation") -> int:
     """Only a resident at their finished shelter can put food aside.
 

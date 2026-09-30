@@ -1,5 +1,112 @@
 # Simulation 3 — Development Directions
 
+## Shared wood yards and supply trips — 2026-09-30
+
+Local work on `codex/wood-yard-stone-axe`, branched from `codex/kernel-first-slice`
+at `e34decc`. `--yard on` (or `--preset crafting`, which turns wood and yard on
+unless a switch says otherwise) adds one small structure and one kind of work.
+It requires wood and is off by default. Kernel and settlement rules are unchanged;
+the stream reader accepts an optional `resource` on a `source_created`
+production entry, and files without it reconstruct exactly as before.
+
+Rules:
+
+- **Starting a yard.** An adult whose own shelter is finished, with nothing more
+  pressing to do, sees another adult's unfinished home cell in sight. The wood
+  that home still needs (per the existing 1-wood-per-4-work-ticks rule) minus
+  any wood its owner is seen carrying is the demand. If no yard and no visible
+  yard work lies within 6 steps of that home, the person starts a yard on the
+  visible free cell nearest it (not rough, not a shelter spot, source, home,
+  shelter or yard). Starting is recorded on the decision (`yard_site`) and in
+  the saved world (`yard_work`: builder → site, work ticks). One yard builder at a time per person; someone on a supply trip does not start one.
+- **Building it.** A yard takes 4 work ticks and 2 wood, paid through
+  settlement before work ticks 0 and 2 (`consume`, resource wood), exactly as
+  shelter payments work: a refused payment gives no work. The builder fetches
+  wood by hand from a grove using the existing gather rule, bounded by what the
+  yard still needs. When the last work tick completes, the yard becomes a
+  kernel wood source open to everybody through a production entry
+  `{"source_created": "yard-x-y", "resource": "wood"}`. Its position is then
+  known to all, like a home cache; its stock is known only in sight. If the
+  builder dies first the unfinished yard is dropped (unfinished work is not
+  transferable, as with shelters).
+- **Supplying it.** An idle adult with a finished shelter who sees a yard
+  holding less wood than the shelters in sight need takes a supply task:
+  fetch `min(3, demand − yard stock − carried)` from the nearest grove, carry it
+  to that yard and deposit up to the room below 6. The task keeps its yard and
+  grove. If the grove is empty on arrival it tries the other grove once, then
+  ends with a saved reason. A fetch that has collected nothing 60 ticks after it
+  started is given up with a saved reason. Someone already carrying wood goes
+  straight to deliver. At a full yard the wood is kept and the task ends. Needs,
+  helping, housing and building take their turn first, as with provisioning:
+  the task persists and resumes when the person is idle again. Death ends it;
+  the wood stays with the dead, conserved in the ledger.
+- **Using it.** A shelter builder short of wood takes it from a yard seen with
+  stock (`claim`, one pack, no more than needed or seen), walks first to a known
+  yard nearer than the grove, and otherwise uses the grove. Nobody waits at an
+  empty yard. Settlement decides every claim and deposit.
+- **Capacity note.** The kernel has no cap. 6 is a world rule applied against
+  the stock seen at decision time, so two people depositing on the same tick can
+  each see the same room and overshoot by at most one pack each.
+
+New decision kinds: `build_yard`, `go_yard`, `take_wood`, `deposit_wood`; `go_wood`
+and `gather_wood` are reused for fetching, with reasons naming the yard.
+Modules: `world/yard.py` (demand in sight, site choice, construction, taking),
+`world/work.py` (task lifecycle), `world/storage.py` (`deposit_room`,
+`withdraw_amount`), `world/materials.py` (constants). decide/process only call them.
+
+**Watch seed 23, preset crafting plus stores, provisioning, homes, childhood,
+coordination, relocation, fishing, source memory, knowledge sharing and shared
+care, ticks 90–202:** at 90 p05 (own shelter finished) sees p07's unfinished
+shelter short of 3 wood with no yard nearby and starts a yard at (5, 8). p05
+pays one wood at 99 and 101; `yard-5-8` is created at 102. At 103 p05 sees the
+empty yard and the same shortage and takes a supply task; `wood` is empty on
+arrival, so at 108 p05 retargets to `wood2`, gathers 3 there at 131 and puts 3 in
+the yard at 148. At 165 p09, whose shelter is waiting for wood, takes those 3
+(`take_wood`, accepted). At 176 p01 and p04 both claim the last 2 wood at `wood`
+for the yard; settlement accepts p01 and refuses p04 (`denied_insufficient_source`).
+p01 deposits 2 at 181, p12 takes 2 at 183 and 1 at 196, p11 takes 3 at 202.
+Open `runs/yard-slice1/crafting-full-seed23.html`.
+
+Ordinary 300-tick worlds, preset only / preset plus the flags above:
+
+| Seed | Yards started | Yards finished (tick) | Deposits | Withdrawals | Timed-out fetches |
+| --- | --- | --- | --- | --- | --- |
+| 7 | 2 / 2 | 1 (229) / 2 (217, 284) | 1 / 0 | 1 / 0 | 0 / 0 |
+| 11 | 2 / 3 | 0 / 1 (161) | 0 / 0 | 0 / 0 | 0 / 3 |
+| 23 | 4 / 2 | 0 / 1 (102) | 0 / 5 | 0 / 5 | 0 / 2 |
+
+Where little happened the saved reasons show why: in the preset-only worlds
+eight people build shelters from 24 wood that regrows one unit per grove every
+40 ticks, so groves are empty and yard builders spend their idle ticks walking
+to the site or waiting at an empty grove between hunger, thirst and cold (seed
+11, p02: 20 `go_yard`, 9 `wait_wood`, the rest needs). This is scarcity and
+lack of spare time, not a missing branch. Whether a yard is worth 2 wood in
+such a world is left open. The preset worlds' deaths (1, 4, 5) match the
+matching wood-only worlds; no survival result is claimed.
+
+Verification: `tests/test_yard.py` (11) and `tests/test_supply.py` (5) cover
+payment ticks, refused payment, source creation and the production digest,
+legacy `source_created` without `resource`, deposit/withdrawal accounting and
+conservation, two builders contending for the last wood, task start
+conditions, hunger interruption and resumption, retry and end reasons,
+timeout, the full yard, deaths, a controlled shortage → supply → withdrawal →
+completion chain, `--twice`-style trail equality, replay and recovery from a cut
+after the yard is created. Full suite: **1,127 passed** (366 s). Off-mode
+check: nine baseline files from `e34decc` (seeds 7, 11, 23 × defaults / wood+
+stores+provisioning / all flags, 240 ticks each) rerun with the new code match
+every header field except `seal` and `code_identity` (`config_identity`
+identical) and every tick field except `seal`; `timing` lines are outside all
+digests and were not compared. Browser playback of the seed-23 run showed the
+yard on the map and in the stock list, the deposit in Happenings, and no page
+errors.
+
+Compatibility: headers without `yard` round-trip unchanged. Yard-on headers
+carry the rule text and cannot replay under a changed yard rule. Wood is still
+per-resource integer holdings; there is no item or tool concept yet. Yard
+demand ignores children's homes; supply tasks use the nearest grove and do not
+use the food-only empty-source memory.
+
+
 ## Both birth parents can care for their child — 2026-09-30
 
 Local work on `codex/kernel-first-slice`, based on `fe940ef` plus the preserved

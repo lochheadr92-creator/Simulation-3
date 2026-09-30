@@ -36,7 +36,7 @@ from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume, dep
 from stream.run_file import RunFileError, RunWriter, read_run
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, genesis
 from world.decide import BUILD, CLAIM, DEPOSIT, DRAW, DRINK, EAT, OFFER, Decision, decide
-from world.materials import WOOD, GATHER_WOOD
+from world.materials import WOOD, GATHER_WOOD, BUILD_YARD, TAKE_WOOD, DEPOSIT_WOOD
 from world.observe import Observation, observe
 from world.overlay import Overlay
 
@@ -63,6 +63,8 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-fishing"
     if config.wood_on:
         mode += "-wood"
+    if config.yard_on:
+        mode += "-yard"
     if config.shared_care_on:
         mode += "-shared-care"
     return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
@@ -88,7 +90,11 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
                              resource=WATER))
         elif decision.kind == GATHER_WOOD:
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
-        elif decision.kind == BUILD and decision.amount:
+        elif decision.kind == TAKE_WOOD:
+            out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
+        elif decision.kind == DEPOSIT_WOOD:
+            out.append(deposit(pid, actor, 0, source=decision.target, amount=decision.amount, resource=WOOD))
+        elif decision.kind in (BUILD, BUILD_YARD) and decision.amount:
             out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
     return out
 
@@ -229,8 +235,13 @@ def build_parser() -> argparse.ArgumentParser:
                         help="remember empty food patches and fishing spots (default off)")
     parser.add_argument("--fishing", choices=("on", "off"), default="off",
                         help="bank fishing with finite stocks and steady seasonal renewal (default off)")
-    parser.add_argument("--wood", choices=("on", "off"), default="off",
+    parser.add_argument("--wood", choices=("on", "off"), default=None,
                         help="gather and spend wood to build shelters (requires building; default off)")
+    parser.add_argument("--yard", choices=("on", "off"), default=None,
+                        help="shared wood yards: build one where a shelter is seen short of wood, supply it, "
+                             "take wood from it (requires wood; default off)")
+    parser.add_argument("--preset", choices=("crafting",), default=None,
+                        help="crafting: wood and yard on unless a switch says otherwise")
     parser.add_argument("--building", choices=("on", "off"), default="on",
                         help="people build a permanent shelter on their home cell when nothing else is "
                              "calling (default on)")
@@ -303,7 +314,9 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["source_memory_on"] = args.source_memory == "on"
     levers["knowledge_sharing_on"] = args.knowledge_sharing == "on"
     levers["fishing_on"] = args.fishing == "on"
-    levers["wood_on"] = args.wood == "on"
+    preset = "on" if args.preset == "crafting" else "off"
+    levers["wood_on"] = (args.wood or preset) == "on"
+    levers["yard_on"] = (args.yard or preset) == "on"
     levers["births_on"] = args.births == "on"
     levers["birth_spacing"] = args.birth_spacing
     levers["childhood_on"] = args.childhood == "on"

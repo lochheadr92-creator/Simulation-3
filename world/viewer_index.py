@@ -27,6 +27,8 @@ from typing import Any, Iterable, Mapping
 ACTION_PHRASES: dict[str, str] = {
     "fish": "casting from the bank",
     "go_wood": "walking to gather wood", "gather_wood": "gathering wood", "wait_wood": "waiting for wood to regrow",
+    "go_yard": "walking to a wood yard", "build_yard": "building a wood yard",
+    "take_wood": "taking wood from a yard", "deposit_wood": "putting wood in a yard",
     "go_relocate": "walking to a nearer home", "relocate": "moving into a nearer home",
     "go_settle": "walking to an adult home", "settle_home": "settling into an adult home",
     "deposit": "putting food in the home cache",
@@ -55,6 +57,7 @@ ACTION_PHRASES: dict[str, str] = {
 ACTION_LABELS: dict[str, str] = {
     "fish": "cast for fish",
     "go_wood": "go to wood", "gather_wood": "gather wood", "wait_wood": "wait for wood",
+    "go_yard": "go to yard", "build_yard": "build yard", "take_wood": "take yard wood", "deposit_wood": "stock yard",
     "go_relocate": "walk to nearer home", "relocate": "move home",
     "go_settle": "go to new home", "settle_home": "settle home",
     "deposit": "store spare food",
@@ -79,7 +82,7 @@ CATEGORIES: tuple[tuple[str, str], ...] = (
     ("crowd", "Standing back"),
 )
 
-MOVES = frozenset({"go", "home", "go_offer", "go_water", "go_shelter", "ask", "go_settle", "go_relocate", "go_wood"})
+MOVES = frozenset({"go", "home", "go_offer", "go_water", "go_shelter", "ask", "go_settle", "go_relocate", "go_wood", "go_yard"})
 
 
 def food_sources(cfg: Mapping[str, Any], world: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
@@ -181,6 +184,8 @@ def build_index(run: Any) -> dict[str, Any]:
     food = food_sources(cfg, worlds[-1])
     water = water_sources(cfg)
     wood = cfg.get("wood_sources", [])
+    if cfg.get("yard") == "on":
+        wood = wood + [{"id": sid, "position": pos, "yard": True} for sid, pos in worlds[-1].get("yards", {}).items()]
     build_ticks = cfg.get("build_ticks")
 
     events: list[dict[str, Any]] = []
@@ -346,6 +351,33 @@ def build_index(run: Any) -> dict[str, Any]:
                 add(k, "wood", "wood_used" if amount else "wood_payment_refused",
                     f"{actor} used {amount} wood in their shelter" if amount else f"{actor} could not pay for shelter work",
                     who=actor, amount=amount)
+            if decision.get("yard_site") and not before.get("yard_work", {}).get(actor):
+                add(k, "wood", "yard_started", f"{actor} started a wood yard at {tuple(decision['yard_site'])}: {decision.get('reason')}",
+                    who=actor, src=decision.get("target"))
+            if kind == "build_yard" and decision.get("amount") and outcomes.get(actor) is not None and not outcomes[actor].get("accepted"):
+                add(k, "wood", "yard_payment_refused", f"{actor} could not pay for yard work", who=actor)
+            if kind == "take_wood" and outcomes.get(actor) is not None:
+                outcome = outcomes[actor]
+                amount = _gained(outcome, f"actor@wood:{actor}") if outcome.get("accepted") else 0
+                add(k, "wood", "yard_take" if amount else "yard_take_refused",
+                    f"{actor} took {amount} wood from {decision.get('target')}" if amount else f"{actor} found no wood to take at {decision.get('target')}",
+                    who=actor, src=decision.get("target"), amount=amount)
+            if kind == "deposit_wood" and outcomes.get(actor) is not None:
+                outcome = outcomes[actor]
+                amount = _gained(outcome, f"source:{decision.get('target')}") if outcome.get("accepted") else 0
+                add(k, "wood", "yard_deposit" if amount else "yard_deposit_refused",
+                    f"{actor} put {amount} wood in {decision.get('target')}" if amount else f"{actor} could not put wood in {decision.get('target')}",
+                    who=actor, src=decision.get("target"), amount=amount)
+            if decision.get("supply") and not before.get("supply_tasks", {}).get(actor):
+                add(k, "wood", "supply_start", f"{actor} set out to supply {decision['supply'][1]} with wood", who=actor, src=decision["supply"][1])
+            if decision.get("supply_end"):
+                add(k, "wood", "supply_end", f"{actor}: {decision.get('reason')}", who=actor)
+            if kind in ("go_wood", "go_yard", "gather_wood", "wait_wood", "take_wood") and "shelter work needs wood" in decision.get("reason", "") \
+                    and not str((earlier.get(actor) or {}).get("reason", "")).startswith("shelter work needs wood"):
+                add(k, "wood", "shelter_waiting_wood", f"{actor}'s shelter is waiting for wood: {decision.get('reason')}", who=actor)
+            for entry in tick.get("production") or []:
+                if entry.get("source_created", "").startswith("yard-") and kind == "build_yard":
+                    add(k, "wood", "yard_finished", f"{actor} finished the wood yard {entry['source_created']}", who=actor, src=entry["source_created"])
             if kind == "go_relocate" and before.get("home_targets", {}).get(actor) != decision.get("home_site"):
                 add(k, "build", "relocation_journey", f"{actor} set off for a nearer home at {tuple(decision['home_site'])}", who=actor)
             if kind == "relocate" and world.get("home_settled", {}).get(actor) != k:

@@ -1,5 +1,17 @@
 # Current state — volatile snapshot
 
+## Shared wood yards — 2026-09-30
+
+On `codex/wood-yard-stone-axe`, branched from `codex/kernel-first-slice` at
+`e34decc` (the shared-caregiving work below is committed there as
+`e34decc`, superseding the "uncommitted" notes that follow). `--yard on` /
+`--preset crafting` adds yards built where a shelter is seen short of wood,
+supply tasks that fetch one pack to a yard, and withdrawals by shelter
+builders. New overlay fields `yards`, `yard_work`, `supply_tasks`; new decision
+fields `yard_site`, `supply`, `supply_end`; `source_created` production entries
+may carry `resource`. Full suite **1,127 passed**; off-mode baselines from
+`e34decc` match except seals/code identity. Details in WORLD_DIRECTIONS.
+
 ## Shared caregiving — 2026-09-30
 
 Checked on `codex/kernel-first-slice`, HEAD `fe940ef`, with prior local work

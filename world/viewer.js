@@ -29,7 +29,7 @@
   const SOURCE_AT = new Map();
   FOOD.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'food', id: s.id, position: s.position, fishing: !!s.fishing, store: !!s.store, resident: s.resident, cap: s.fishing ? C.fishing_rules.cap : s.store ? C.store_target : C.source_cap }));
   WELLS.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'water', id: s.id, position: s.position, cap: C.water_cap }));
-  (IDX.wood || []).forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'wood', id: s.id, position: s.position, cap: C.wood_rules.cap }));
+  (IDX.wood || []).forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'wood', id: s.id, position: s.position, yard: !!s.yard, cap: s.yard ? (C.yard_rules || {}).capacity : C.wood_rules.cap }));
   const SOURCE_BY_ID = {}; SOURCE_AT.forEach(s => { SOURCE_BY_ID[s.id] = s; });
   const PHRASE = IDX.phrases || {}, LABEL = IDX.labels || {};
   const MOVES = new Set(IDX.moves || []);
@@ -93,8 +93,14 @@
     const state = k === 0 ? H.genesis : ticks[k - 1].state;
     return ((state.holdings || {}).wood || {})[p] || 0;
   }
-  const sourceLabel = s => s.fishing ? 'fishing spot' : s.store ? 'home cache' : s.kind === 'food' ? 'food source' : s.kind === 'wood' ? 'wood grove' : 'well';
-  const sourceColor = s => s.fishing ? '#75ddd1' : s.kind === 'food' ? '#f2a65e' : s.kind === 'wood' ? '#bc9967' : '#72c8ea';
+  const sourceLabel = s => s.fishing ? 'fishing spot' : s.store ? 'home cache' : s.kind === 'food' ? 'food source' : s.yard ? 'wood yard' : s.kind === 'wood' ? 'wood grove' : 'well';
+  const sourceColor = s => s.fishing ? '#75ddd1' : s.kind === 'food' ? '#f2a65e' : s.yard ? '#d9b27c' : s.kind === 'wood' ? '#bc9967' : '#72c8ea';
+  function drawYard(g, x, y, stock) {
+    g.fillStyle = '#6b4b2a'; g.fillRect(x - 14, y - 4, 28, 4);
+    g.fillStyle = '#c9a26b';
+    for (let j = 0; j < Math.min(stock || 0, 6); j++) { g.beginPath(); g.arc(x - 10 + (j % 3) * 10, y - 8 - Math.floor(j / 3) * 7, 3.5, 0, Math.PI * 2); g.fill(); }
+    if (!stock) { g.strokeStyle = '#c9a26b'; g.lineWidth = 1; g.strokeRect(x - 12, y - 14, 24, 10); }
+  }
   function drawWood(g, x, y, stock) {
     g.fillStyle = '#896340'; g.fillRect(x - 3, y - 31, 6, 29);
     if (stock > 0) {
@@ -564,7 +570,7 @@
     if (held) return 'held';
     if (MOVES.has(kind) && moved) return 'walk';
     if (MOVES.has(kind)) return kind === 'ask' ? 'ask' : 'idle';
-    return { fish: 'fish', build: 'build', gather_wood: 'gather', wait_wood: 'wait', claim: 'gather', draw: 'draw', eat: 'eat', drink: 'drink', offer: 'give', agree: 'agree', wait: 'wait', wait_water: 'wait', yield: 'yield', warm: 'warm', rest: 'rest', dead: 'idle' }[kind] || 'idle';
+    return { fish: 'fish', build: 'build', build_yard: 'build', gather_wood: 'gather', wait_wood: 'wait', take_wood: 'gather', deposit_wood: 'give', claim: 'gather', draw: 'draw', eat: 'eat', drink: 'drink', offer: 'give', agree: 'agree', wait: 'wait', wait_water: 'wait', yield: 'yield', warm: 'warm', rest: 'rest', dead: 'idle' }[kind] || 'idle';
   }
   function drawPerson(g, p, x, y, st, now) {
     const col = COLOR[p], dark = DARK[p], i = PIDX[p] || 0;
@@ -801,6 +807,7 @@
           for (let j=0;j<Math.min(stockOf(k,src.id)||0,6);j++) { g.beginPath(); g.ellipse(c.x-3+(j%3)*6,c.y-3+Math.floor(j/3)*6,2.5,1.2,-0.3,0,Math.PI*2); g.fill(); }
         }
         else if (src.kind === 'food') drawBush(g, src, c.x, c.y, stockOf(k, src.id), (w.patch_condition || {})[src.id]);
+        else if (src.kind === 'wood' && src.yard) { if (stockOf(k, src.id) !== null) drawYard(g, c.x, c.y, stockOf(k, src.id)); }
         else if (src.kind === 'wood') drawWood(g, c.x, c.y, stockOf(k, src.id));
         else drawWell(g, src, c.x, c.y, stockOf(k, src.id), now);
       } });
@@ -1274,6 +1281,10 @@
       h += '</div>';
     }
     if (provisionTrip) h += '<div class="sec"><h4>Food for home</h4><div>' + (provisionTrip === 'gather' ? 'Gathering for a low shared cache' : 'Returning after collecting food') + '</div><div class="hint">Own needs and helping can interrupt this outing. Spare food is deposited after reaching home.</div></div>';
+    const yardWork = (w.yard_work || {})[p];
+    if (yardWork) h += `<div class="sec"><h4>Wood yard under construction</h4><div>Site (${yardWork[0]}, ${yardWork[1]}): work tick ${yardWork[2]} of ${(C.yard_rules || {}).work || '?'} done; carrying ${woodHeld(k, p)} wood.</div><div class="hint">Wood is paid through settlement before work ticks 0 and 2. Needs and helping come first; if the builder dies the unfinished yard is dropped.</div></div>`;
+    const supplyTask = (w.supply_tasks || {})[p];
+    if (supplyTask) h += `<div class="sec"><h4>Wood supply task</h4><div>${supplyTask[0] === 'fetch' ? `Fetching up to ${supplyTask[3]} wood from ${esc(supplyTask[2])}` : `Carrying ${woodHeld(k, p)} wood to ${esc(supplyTask[1])}`}; for ${esc(supplyTask[1])}, started tick ${supplyTask[4]}${supplyTask[5] ? '; retried another grove' : ''}.</div><div class="hint">The task keeps its yard and grove. Needs, helping and housing come first; it ends on the deposit, on empty groves, at a full yard or at death.</div></div>`;
     if (emptyMemory.length) h += '<div class="sec"><h4>Empty food remembered</h4>' + emptyMemory.map(([sid, when]) => `<div>${esc(sid)}: empty at tick ${when}; ${Math.max(0, C.empty_source_ticks - ((w.tick || 0) - when))} ticks until forgotten without another sighting</div>`).join('') + '</div>';
     // needs
     h += '<div class="sec"><h4>Needs</h4>' + NEEDS.map(nd => { const x = needLevel(w, p, nd); return x === null ? '' : needBar(nd, x); }).join('') + '</div>';
@@ -1378,11 +1389,12 @@
     const s = SOURCE_BY_ID[selected.id]; if (!s) { box.innerHTML = ''; return; }
     const w = world(v), st = stockOf(v, s.id);
     if (s.store && st === null) { box.innerHTML = '<div class="hint">This home cache has not been created yet.</div>'; return; }
+    if (s.yard && st === null) { box.innerHTML = '<div class="hint">This wood yard has not been finished yet.</div>'; return; }
     const here = people.filter(p => present(w, p) && !deadIn(w, p) && w.positions[p][0] === s.position[0] && w.positions[p][1] === s.position[1]);
     let h = `<div class="ins-head"><span class="swatch" style="background:${sourceColor(s)};width:18px;height:18px"></span><span class="name">${esc(s.id)}</span><span class="state">${sourceLabel(s)}</span></div>`;
     const condition = (w.patch_condition || {})[s.id];
     const allowance = w.season ? C.season_growth[w.season] : C.renewal_amount;
-    const renewal = s.fishing ? `+${C.fishing_rules.renewal} every ${C.fishing_rules.renewal_every} ticks in either season; cast then catch` : s.store ? 'None — food must be carried here' : s.kind === 'wood' ? `+${C.wood_rules.renewal} every ${C.wood_rules.renewal_every} ticks` : s.kind === 'food' ? `Up to +${allowance} every ${C.renewal_every} ticks${w.season ? ` in the ${esc(w.season)} season` : ''}${condition !== undefined ? '; half when worn, rounded up' : ''}` : `+${C.water_renewal_amount} every ${C.water_renewal_every} ticks`;
+    const renewal = s.fishing ? `+${C.fishing_rules.renewal} every ${C.fishing_rules.renewal_every} ticks in either season; cast then catch` : s.store ? 'None — food must be carried here' : s.yard ? 'None — wood must be carried here' : s.kind === 'wood' ? `+${C.wood_rules.renewal} every ${C.wood_rules.renewal_every} ticks` : s.kind === 'food' ? `Up to +${allowance} every ${C.renewal_every} ticks${w.season ? ` in the ${esc(w.season)} season` : ''}${condition !== undefined ? '; half when worn, rounded up' : ''}` : `+${C.water_renewal_amount} every ${C.water_renewal_every} ticks`;
     h += `<div class="sec"><div class="kv"><span class="k">Where</span><span>(${s.position.join(', ')})</span><span class="k">Stock now</span><span>${stockText(s, v)}</span><span class="k">Renews</span><span>${renewal}</span></div></div>`;
     if (condition !== undefined) h += `<div class="sec"><h4>Patch condition</h4><div>${condition} / ${C.patch_rules.condition_max} — ${condition < C.patch_rules.full_growth_at ? 'worn patch' : 'healthy patch'}</div><div class="hint">Each food harvested costs ${C.patch_rules.wear_per_unit} condition. A tick without a harvest restores ${C.patch_rules.recovery_per_tick}. Full growth returns at ${C.patch_rules.full_growth_at}.</div></div>`;
     if (s.store) h += `<div class="sec"><h4>Shared home cache</h4><div>${C.homes === 'on' ? 'Residents put' : personLink(s.resident) + ' puts'} spare food here after building their shelter, keeping one meal. Nearby people can walk here and collect it. Deposited food becomes available next tick.</div></div>`;

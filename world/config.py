@@ -36,7 +36,9 @@ from world.storage import STORE_TARGET, STORE_LOW, FOOD_EXPECT_TICKS, store_id
 from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
 from world.foraging import EMPTY_SOURCE_TICKS
 from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
-from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
+from world.materials import (WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD,
+                             YARD_WOOD, YARD_WORK, YARD_CAPACITY, YARD_RANGE)
+from world.work import SUPPLY_TIMEOUT
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
                            SEASON_TICKS, SEASONS, season_at, seasonal_growth)
 
@@ -139,6 +141,7 @@ class WorldConfig:
     cold_emergency_at: int = 50
     cold_death_at: int = 80
     wood_on: bool = False         # gather and spend wood to build shelters
+    yard_on: bool = False         # shared wood yards built where a shelter is seen short of wood
     fishing_on: bool = False      # one bank fishing spot with season-independent stock
     source_memory_on: bool = False  # remember empty natural food sources for later journeys
     provisioning_on: bool = False  # make food trips for a low shared home cache
@@ -172,6 +175,7 @@ class WorldConfig:
             "source_memory": type(self.source_memory_on) is bool,
             "fishing": type(self.fishing_on) is bool,
             "wood": type(self.wood_on) is bool and (not self.wood_on or self.building_on),
+            "yard": not self.yard_on or self.wood_on,
             "social_memory": type(self.social_memory_on) is bool,
             "width": self.width >= 3, "height": self.height >= 3, "actors": self.actors >= 1,
             "starting_food": self.starting_food >= 0, "source_stock": self.source_stock >= 0,
@@ -360,6 +364,27 @@ class WorldConfig:
                 "of work_per_wood building ticks. A refused payment gives no work. Wood stays in the named "
                 "consumption sink after use; interrupted work is kept. Groves renew independently of food "
                 "and seasons, up to their cap. No wood trading, storage, skills or salvage is added.")
+        if self.yard_on:
+            out["yard"] = "on"
+            out["yard_rules"] = {"wood": YARD_WOOD, "work": YARD_WORK, "capacity": YARD_CAPACITY,
+                                 "range": YARD_RANGE, "pack": WOOD_PACK, "supply_timeout": SUPPLY_TIMEOUT}
+            out["yard_rule"] = (
+                "An adult with a finished shelter who sees another adult's unfinished home cell, still needing "
+                "more wood than its owner is seen carrying, and no yard or visible yard work within range steps, "
+                "starts a yard on the visible free cell nearest that home. They fetch its wood by hand, pay one "
+                "wood through settlement before yard work ticks 0 and 2, and a refused payment gives no work. "
+                "The finished yard is a shared wood source open to everyone, created by a production entry; "
+                "its position is then known to all and its stock only in sight. A dead builder's unfinished "
+                "yard is dropped. An idle adult with a finished shelter who sees a yard holding less than the "
+                "wood the shelters in sight need takes one supply task: fetch up to pack from the nearest grove "
+                "(one retry at the other grove if it is empty), carry it to that yard and deposit up to the "
+                "room below capacity. The task keeps its yard and grove, waits behind needs, helping and housing, "
+                "and ends on the deposit, on empty groves, at a full yard (the wood is kept), at death (the "
+                "wood stays with the dead) or when a fetch has collected nothing supply_timeout ticks after it "
+                "started. A shelter builder short of wood takes it from a yard seen with stock, "
+                "walks to a known yard nearer than the grove, and otherwise uses the grove; an empty yard is not "
+                "waited at. Same-tick deposits may overshoot capacity by one pack each; settlement decides "
+                "every claim and deposit.")
         if self.relocation_on:
             out["relocation"] = "on"
             out["relocation_rules"] = {"long_outing": LONG_OUTING, "difficult_outings": DIFFICULT_OUTINGS,
@@ -716,6 +741,9 @@ class WorldConfig:
         wood = described.get("wood", "off")
         if not isinstance(wood, str) or wood not in switches:
             raise ValueError("wood must be 'on' or 'off'")
+        yard = described.get("yard", "off")
+        if not isinstance(yard, str) or yard not in switches:
+            raise ValueError("yard must be 'on' or 'off'")
         if not isinstance(relocation, str) or relocation not in switches:
             raise ValueError("relocation must be 'on' or 'off'")
         if not isinstance(homes, str) or homes not in switches:
@@ -770,6 +798,7 @@ class WorldConfig:
                      homes_on=switches[homes],
                      relocation_on=switches[relocation],
                      wood_on=switches[wood], fishing_on=switches[fishing],
+                     yard_on=switches[yard],
                      source_memory_on=switches[source_memory],
                      knowledge_sharing_on=switches[knowledge_sharing],
                      births_on=switches[births], requests_on=switches[requests],

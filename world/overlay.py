@@ -115,6 +115,9 @@ class Overlay:
     empty_sources: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)
     provision_trips: Mapping[str, str] = field(default_factory=dict)  # gather once, then return home
     food_expected: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # listener -> speaker, heard tick
+    yards: Mapping[str, Position] = field(default_factory=dict)  # finished wood yards: source id -> cell
+    yard_work: Mapping[str, tuple[Position, int]] = field(default_factory=dict)  # builder -> (site, work ticks done)
+    supply_tasks: Mapping[str, tuple[str, str, str, int, int, int]] = field(default_factory=dict)  # see world/work.py
 
     def __post_init__(self) -> None:
         if self.season is not None and self.season not in SEASONS:
@@ -123,6 +126,23 @@ class Overlay:
             raise ValueError("a tick must be an integer of zero or more")
         homes = _positions(self.homes)
         positions = _positions(self.positions)
+        object.__setattr__(self, "yards", _positions(self.yards))
+        work = {}
+        for builder, entry in dict(self.yard_work).items():
+            if (builder not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 2
+                    or not isinstance(entry[0], (tuple, list)) or len(entry[0]) != 2
+                    or type(entry[1]) is not int or entry[1] < 0):
+                raise ValueError("yard work needs a known builder, a site and a work count")
+            work[builder] = ((entry[0][0], entry[0][1]), entry[1])
+        object.__setattr__(self, "yard_work", MappingProxyType(dict(sorted(work.items()))))
+        tasks = {}
+        for actor, entry in dict(self.supply_tasks).items():
+            if (actor not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 6
+                    or entry[0] not in ("fetch", "deliver") or not all(isinstance(e, str) and e for e in entry[1:3])
+                    or not all(type(e) is int and e >= 0 for e in entry[3:])):
+                raise ValueError("a supply task needs a known person, a phase, a yard, a grove and counts")
+            tasks[actor] = tuple(entry)
+        object.__setattr__(self, "supply_tasks", MappingProxyType(dict(sorted(tasks.items()))))
         expectations = {}
         if not isinstance(self.food_expected, Mapping):
             raise ValueError("food expectations must map listeners to announcements")
@@ -344,6 +364,10 @@ class Overlay:
             **({"terrain_memory": {actor: [list(cell) for cell in cells]
                                    for actor, cells in self.terrain_memory.items()}}
                if self.terrain_memory else {}),
+            **({"yards": {s: list(pos) for s, pos in self.yards.items()}} if self.yards else {}),
+            **({"yard_work": {p: [site[0], site[1], done] for p, (site, done) in self.yard_work.items()}}
+               if self.yard_work else {}),
+            **({"supply_tasks": {p: list(task) for p, task in self.supply_tasks.items()}} if self.supply_tasks else {}),
         }
 
     @classmethod
@@ -354,7 +378,8 @@ class Overlay:
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "second_parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports"):
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports",
+                          "yards", "yard_work", "supply_tasks"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -398,6 +423,10 @@ class Overlay:
                    home_trip_ticks=dict(data.get("home_trip_ticks", {})),
                    home_strain=dict(data.get("home_strain", {})),
                    shelter_memory=dict(data.get("shelter_memory", {})),
+                   yards=cells(data.get("yards", {})),
+                   yard_work={p: ((entry[0], entry[1]), entry[2]) for p, entry in dict(data.get("yard_work", {})).items()
+                              if isinstance(entry, (list, tuple)) and len(entry) == 3},
+                   supply_tasks={p: tuple(task) for p, task in dict(data.get("supply_tasks", {})).items()},
                    terrain_memory={actor: tuple(tuple(cell) for cell in cells)
                                    for actor, cells in dict(data.get("terrain_memory", {})).items()})
 

@@ -187,7 +187,8 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
     state. A `{"source", "amount"}` entry adds that many units to an existing
     source. A `{"born"}` entry adds a person: an account holding nothing, a
     nothing holding of every named resource, and their name on every source.
-    A `{"source_created"}` entry adds an empty source open to the current roster.
+    A `{"source_created"}` entry adds an empty source open to the current roster;
+    an optional `"resource"` names what it holds (absent: the base resource).
     Neither births nor source creation create units. Pure, on plain JSON, so
     a reader can recompute the state without the kernel. Raises RunFileError on
     a bad entry."""
@@ -202,10 +203,14 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
             raise RunFileError(f"a production entry must be an object, got {entry!r}")
         if "source_created" in entry:
             source_id = entry["source_created"]
-            if (set(entry) != {"source_created"} or not isinstance(source_id, str) or not source_id
-                    or source_id in sources or source_id in seen):
+            resource = entry.get("resource")
+            if (set(entry) - {"resource"} != {"source_created"} or not isinstance(source_id, str) or not source_id
+                    or source_id in sources or source_id in seen
+                    or ("resource" in entry and (not isinstance(resource, str) or not resource))):
                 raise RunFileError("source creation needs a fresh source name and no initial stock")
             sources[source_id] = {"stock": 0, "authorised": sorted(balances)}
+            if resource is not None:
+                sources[source_id]["resource"] = resource   # absent: the base resource, as before
             seen.add(source_id)
             continue
         if "born" in entry:

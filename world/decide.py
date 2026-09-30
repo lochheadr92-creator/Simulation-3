@@ -108,6 +108,9 @@ class Decision:
     waiting_for_food: str | None = None
     source_report: tuple[str, int] | None = None
     report_to: tuple[str, ...] = ()
+    yard_site: Position | None = None    # starting a wood yard here
+    supply: tuple[str, str, str, int, int, int] | None = None   # a wood supply task to record
+    supply_end: str | None = None        # why a wood supply task ends now
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -132,6 +135,12 @@ class Decision:
             out["report_to"] = list(self.report_to)
         if self.waiting_for_food is not None:
             out["waiting_for_food"] = self.waiting_for_food
+        if self.yard_site is not None:
+            out["yard_site"] = list(self.yard_site)
+        if self.supply is not None:
+            out["supply"] = list(self.supply)
+        if self.supply_end is not None:
+            out["supply_end"] = self.supply_end
         return out
 
 
@@ -476,6 +485,11 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
     if config.wood_on and not observation.home_built and not is_child(observation, config) and choice.kind in (HOME, BUILD):
         cost = wood_cost(observation.work_done)
         if observation.wood < cost:
+            if config.yard_on:
+                from world.yard import shelter_wood_from_yard
+                from_yard = shelter_wood_from_yard(observation, config, choice)
+                if from_yard is not None:
+                    return from_yard
             site = observation.wood_source
             if site is None:
                 raise ValueError("wood construction requires an observed grove landmark")
@@ -497,6 +511,15 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    if (config.yard_on and choice.kind in (REST, HOME) and observation.home_built and observation.alive
+            and not is_child(observation, config) and observation.provision_phase is None):
+        from world.yard import yard_decision
+        from world.work import supply_decision
+        starting = observation.yard_site is None and observation.supply_task is None
+        if not (starting and config.warmth_on and observation.at_home and observation.cold > 0):
+            yard_choice = yard_decision(observation, config, choice) or supply_decision(observation, config, choice)
+            if yard_choice is not None:
+                return yard_choice
     if config.provisioning_on and choice.kind in (REST, HOME):
         return _provision_decision(observation, config, choice)
     return choice

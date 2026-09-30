@@ -138,6 +138,15 @@ class Observation:
     wood_source_id: str | None = None
     wood_source: Position | None = None
     wood_stock: int | None = None
+    # yard on: positions of finished yards are known, stock only in sight
+    yards: tuple[tuple[str, Position, int | None], ...] = ()
+    yard_demand: tuple[tuple[str, int], ...] = ()     # (owner, wood still needed) for unfinished shelters in sight
+    yard_nearby: bool = False                          # a yard, or visible yard work, within range
+    yard_site_option: Position | None = None           # where this person could start a yard now
+    yard_site: tuple[Position, int] | None = None      # own yard under construction: site, work done
+    supply_task: tuple[str, str, str, int, int, int] | None = None
+    groves_seen: tuple[tuple[str, int], ...] = ()      # visible grove stocks
+    yard_crowd: int = 0                                # others standing at a visible yard
     fishing_ready: bool = False
     food_sightings: tuple[tuple[str, int, int], ...] = ()
     source_reports: tuple[tuple[str, str, int, int], ...] = ()
@@ -225,6 +234,19 @@ class Observation:
             out["wood_source"] = self.wood_source_id
             if self.wood_stock is not None:
                 out["wood_stock"] = self.wood_stock
+        if self.yards:
+            out["yards"] = [{"id": sid, "position": list(pos), **({"stock": stock} if stock is not None else {})}
+                            for sid, pos, stock in self.yards]
+        if self.yard_demand:
+            out["yard_demand"] = [list(entry) for entry in self.yard_demand]
+        if self.yard_site_option is not None:
+            out["yard_site_option"] = list(self.yard_site_option)
+        if self.yard_site is not None:
+            out["yard_site"] = [self.yard_site[0][0], self.yard_site[0][1], self.yard_site[1]]
+        if self.supply_task is not None:
+            out["supply_task"] = list(self.supply_task)
+        if self.yard_crowd:
+            out["yard_crowd"] = self.yard_crowd
         if self.known_homes:
             out["known_homes"] = [list(site) for site in self.known_homes]
         if self.home_strain:
@@ -305,6 +327,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+        if config.yard_on:
+            from world.yard import yard_view
+            wood_view.update(yard_view(actor, origin, overlay, config, available))
     visible_caches = tuple((sid, pos) for sid, pos, _ in caches
                            if pos in overlay.shelters and in_view(origin, pos, radius))
     # An empty or unseen cache must never replace the ordinary patch fallback.

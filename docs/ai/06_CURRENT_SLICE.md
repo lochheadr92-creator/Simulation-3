@@ -1,6 +1,15 @@
-# Current slice — shared caregiving by both birth parents
+# Current slice — shared wood yards (Slice 1 of wood yard → stone → stone axe)
 
-## Current work — shared caregiving, 2026-09-30
+## Current work — shared wood yards and supply trips, 2026-09-30
+
+Branch `codex/wood-yard-stone-axe` from `e34decc`. `--yard on` is described in
+WORLD_DIRECTIONS (top entry). Next slices: stone as a second named resource,
+a stone axe possession affecting gathering, viewer integration for both. Open
+questions carried forward: no item/tool concept exists (holdings are integer
+counts per named resource); `source_created` now accepts `resource`; supply
+tasks are wood/yard specific by design (no general job framework).
+
+## Previous work — shared caregiving, 2026-09-30 (committed as `e34decc`)
 
 Authorized by "Begin" following the proposed two-parent caregiving slice.
 Baseline: `codex/kernel-first-slice` at `fe940ef` plus existing uncommitted

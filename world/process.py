@@ -229,6 +229,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            home_caches=overlay.home_caches,
                            home_trip_ticks=overlay.home_trip_ticks, home_strain=overlay.home_strain,
                            shelter_memory=overlay.shelter_memory,
+                           yards=overlay.yards, yard_work=overlay.yard_work, supply_tasks=overlay.supply_tasks,
                            food_memory=remember_food(overlay, record) if config.social_memory_on else overlay.food_memory,
                            yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)), together=dict(overlay.together),
@@ -255,6 +256,12 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.coordination_on:
         next_overlay = replace(next_overlay, food_expected=update_food_expectations(
             overlay, next_overlay, decisions, observations or {}))
+    if config.yard_on:
+        from world.work import update_supply
+        from world.yard import apply_yards
+        next_overlay, ledger, created = apply_yards(next_overlay, ledger, decisions, record, config)
+        production.extend(created)
+        next_overlay = replace(next_overlay, supply_tasks=update_supply(overlay, next_overlay, decisions, record))
     growth = seasonal_growth(config.renewal_amount, season) if season is not None else config.renewal_amount
     renewals = [(source_id, config.renewal_every,
                  food_growth(growth, condition[source_id]) if config.regrowth_on else growth,
@@ -353,5 +360,6 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
                     home_caches=overlay.home_caches,
                     home_trip_ticks=overlay.home_trip_ticks, home_strain=overlay.home_strain,
                     shelter_memory=overlay.shelter_memory,
+                    yards=overlay.yards, yard_work=overlay.yard_work, supply_tasks=overlay.supply_tasks,
                     requests=dict(overlay.requests), promises=dict(overlay.promises)),
             grown, born)
