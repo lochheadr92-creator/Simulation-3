@@ -271,3 +271,10 @@ dl.rules dd { margin: 0; color: #cfe0da; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* pinned person: chip and full-map control */
+#pin-chip{display:inline-flex;gap:8px;align-items:center;padding:4px 10px;border-radius:999px;background:#3b5a58;color:#e6efe9;font-weight:600}
+#pin-chip[hidden],#full-map[hidden]{display:none}
+#pin-chip button,#full-map{font:inherit;padding:2px 8px;border-radius:6px;border:1px solid #4d6f6a;background:#243b3a;color:#e6efe9;cursor:pointer}
+header.top #pin-chip,header.top #full-map{margin-left:12px}
+.pin-row{font-size:.85em;opacity:.8}

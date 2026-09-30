@@ -1064,7 +1064,7 @@
     slider.value = v;
     slider.setAttribute('aria-valuetext', `tick ${v} of ${n}`);
     tickEl.innerHTML = `World tick ${v + TICK0} <small>/ ${n + TICK0}</small>`;
-    updateHud(); updateSummary(); markEvents(); updateFocusCard();
+    updateHud(); updateSummary(); markEvents(); updateFocusCard(); if (typeof pinChip === 'function') pinChip();
     if (tabNow === 'inspector') renderInspector();
     if ($('deep').open) updateDeep();
     needsDraw = true;
@@ -1236,6 +1236,46 @@
     const w = world(v); if (!present(w, p)) return;
     const pl = placeOf(p, 1); if (pl) centreOn(pl.x, pl.y - 14);
   }
+  // ------------------------------------------------------------- pinning --
+  // One pinned person: the camera zooms in and follows their presented position
+  // every frame; the Inspector opens on them. Selecting somebody else shows that
+  // person but leaves the pin alone. Survives reload within the same run.
+  let pinned = null;
+  const PIN_KEY = 'pin:' + (H.run_id || 'static');
+  const PIN_ZOOM = 2.5;
+  const chip = document.createElement('div');
+  chip.id = 'pin-chip'; chip.hidden = true;
+  chip.innerHTML = `<span id="pin-text" data-testid="pin-text"></span><button type="button" id="pin-unpin" data-testid="pin-unpin">Unpin</button><button type="button" id="pin-full" data-testid="pin-full-map">Full map</button>`;
+  (document.getElementById('live-bar') || document.querySelector('header.top') || document.body).append(chip);
+  const fullBtn = document.createElement('button');
+  fullBtn.type = 'button'; fullBtn.id = 'full-map'; fullBtn.textContent = 'Full map'; fullBtn.dataset.testid = 'full-map';
+  fullBtn.title = 'Back to the default framing';
+  (document.getElementById('live-bar') || document.querySelector('header.top') || document.body).append(fullBtn);
+  function pinChip() {
+    chip.hidden = !pinned; fullBtn.hidden = !!pinned;
+    if (!pinned) return;
+    const w = world(v), dead = present(w, pinned) && deadIn(w, pinned);
+    $('pin-text').textContent = `Following ${pinned}` + (dead ? ` · died at tick ${w.died_at[pinned]}` : '');
+  }
+  function pin(p) {
+    pinned = p;
+    try { localStorage.setItem(PIN_KEY, p); } catch (e) { /* storage unavailable */ }
+    follow = false; $('follow').setAttribute('aria-pressed', 'false');
+    select({ type: 'person', id: p }, true);
+    pinChip(); needsDraw = true;
+  }
+  function unpin(refit) {
+    pinned = null;
+    try { localStorage.removeItem(PIN_KEY); } catch (e) { /* storage unavailable */ }
+    pinChip(); if (refit) fit(true); needsDraw = true;
+    if (tabNow === 'inspector') renderInspector();
+  }
+  $('pin-unpin').onclick = () => unpin(true);
+  $('pin-full').onclick = () => unpin(true);
+  fullBtn.onclick = () => fit(true);
+  window.viewerPin = () => ({ pinned, cam: { x: cam.x, y: cam.y, z: cam.z }, target: camTarget && { x: camTarget.x, y: camTarget.y, z: camTarget.z },
+    screen: pinned ? (() => { const pl = placeOf(pinned, easeT(performance.now())); return pl ? toScreen(pl.x, pl.y - 14) : null; })() : null, centre: [cw / 2, ch / 2] });
+  window.viewerDeaths = () => Object.entries(world(n).died_at || {}).sort((a, b) => a[1] - b[1]);
   function describeAction(p, k) {
     const w = world(k), d = decisions(k)[p];
     if (!present(w, p)) return `not born yet — arrives at tick ${BORN[p]}`;
@@ -1299,7 +1339,7 @@
     const alive = present(w, p) && !deadIn(w, p);
     const state = !present(w, p) ? ['not born yet', ''] : deadIn(w, p) ? ['dead', 'dead'] : needState(w, p) === 'emergency' ? ['in an emergency', 'emergency'] : needState(w, p) === 'needy' ? ['in need', ''] : ['doing fine', ''];
     let h = `<div class="ins-head"><span class="swatch" style="background:${COLOR[p]};width:18px;height:18px"></span><span class="name">${esc(p)}</span><span class="state ${state[1]}">${state[0]}</span></div>`;
-    h += `<div class="ins-nav"><button class="linkbtn" type="button" data-jump="prev">← their last event</button><button class="linkbtn" type="button" data-jump="next">their next event →</button><button class="linkbtn" type="button" data-jump="centre">show on map</button></div>`;
+    h += `<div class="ins-nav"><button class="linkbtn" type="button" data-jump="prev">← their last event</button><button class="linkbtn" type="button" data-jump="next">their next event →</button><button class="linkbtn" type="button" data-jump="centre">show on map</button><button class="linkbtn" type="button" data-pin="${esc(p)}" data-testid="inspector-pin">${pinned === p ? 'Unpin' : 'Pin · follow with the camera'}</button></div>`;
     if (!present(w, p)) {
       h += `<div class="hint"><p>${esc(p)} is born at tick ${BORN[p]}.</p><p><button class="linkbtn" type="button" data-tick="${BORN[p]}">Go to tick ${BORN[p]}</button></p></div>`;
       box.innerHTML = h; return;
@@ -1504,6 +1544,7 @@
   }
   $('inspector').addEventListener('click', ev => {
     const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.pin) { if (pinned === b.dataset.pin) unpin(true); else pin(b.dataset.pin); return; }
     if (b.dataset.person) { select({ type: 'person', id: b.dataset.person }, true); focusPerson(b.dataset.person); return; }
     if (b.dataset.tick !== undefined) { setPlaying(false); show(Number(b.dataset.tick)); return; }
     if (b.dataset.jump && selected && selected.type === 'person') {
@@ -1723,9 +1764,10 @@
       if (ob) { const names = ob.sees ? ob.sees.slice() : (ob.others || []).map(x => x.id); if (ob.seen_stock) { for (const [id, st] of Object.entries(ob.seen_stock)) names.push(id + '=' + st); } else if (Object.prototype.hasOwnProperty.call(ob, 'source_food')) names.push('S'); sees = names.join(', '); }
       const ya = traitOf(p);
       const kindCell = d ? esc(d.kind) + (d.amount ? ' ' + d.amount : '') + (d.target ? ' → ' + esc(d.target) : '') + ' <span class="meta">' + esc(d.reason) + '</span>' : '';
-      out += `<tr><td>${esc(p)}</td><td class="num">${ya === null ? '' : ya}</td><td>${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td>${water ? '<td class="num">' + (w.thirst || {})[p] + '</td>' : ''}${warmth ? '<td class="num">' + (w.cold || {})[p] + (homeOf(w, p) && w.positions[p].join(',') === homeOf(w, p).join(',') ? ' ⌂' : '') + '</td>' : ''}<td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>${water ? '<td class="num">' + waterHeld(v, p) + '</td>' : ''}<td>${esc(sees)}</td><td>${kindCell}</td><td>${o ? `<span class="${o.accepted ? 'ok' : 'no'}">${esc(o.reason)}</span>` : ''}</td></tr>`;
+      out += `<tr><td>${esc(p)} <button class="linkbtn pin-row" type="button" data-pin="${esc(p)}" data-testid="people-pin-${esc(p)}">${pinned === p ? 'unpin' : 'pin'}</button></td><td class="num">${ya === null ? '' : ya}</td><td>${w.positions[p].join(',')}</td><td class="num b-${b}">${w.hunger[p]}</td>${water ? '<td class="num">' + (w.thirst || {})[p] + '</td>' : ''}${warmth ? '<td class="num">' + (w.cold || {})[p] + (homeOf(w, p) && w.positions[p].join(',') === homeOf(w, p).join(',') ? ' ⌂' : '') + '</td>' : ''}<td class="b-${b}">${dead ? 'dead (t' + w.died_at[p] + ')' : b}</td><td class="num">${food(v, p)}</td>${water ? '<td class="num">' + waterHeld(v, p) + '</td>' : ''}<td>${esc(sees)}</td><td>${kindCell}</td><td>${o ? `<span class="${o.accepted ? 'ok' : 'no'}">${esc(o.reason)}</span>` : ''}</td></tr>`;
     }
     $('people').innerHTML = out;
+    $('people').onclick = ev => { const b = ev.target.closest('button[data-pin]'); if (!b) return; if (pinned === b.dataset.pin) unpin(true); else pin(b.dataset.pin); };
     $('selection').textContent = RUN.details[v].selection;
     $('settlement').textContent = RUN.details[v].settlement;
     const cur = document.getElementById('cursor');
@@ -1751,9 +1793,11 @@
       while (acc >= step) { acc -= step; if (v >= n) { setPlaying(false); break; } show(v + 1, { tween: true }); }
     }
     let moving = false;
-    if (follow && selected && selected.type === 'person' && !drag) {
-      const pl = placeOf(selected.id, easeT(now));
-      if (pl) { if (!camTarget || Math.hypot(camTarget.x - pl.x, camTarget.y - pl.y + 14) > 2) camTarget = { x: pl.x, y: pl.y - 14, z: cam.z }; }
+    const followed = pinned && present(world(anim.to), pinned) ? pinned : (follow && selected && selected.type === 'person' ? selected.id : null);
+    if (followed && !drag) {
+      const pl = placeOf(followed, easeT(now));
+      const z = pinned ? fitView().z * PIN_ZOOM : cam.z;
+      if (pl) { if (!camTarget || Math.hypot(camTarget.x - pl.x, camTarget.y - pl.y + 14) > 0.5 || Math.abs(camTarget.z - z) > 0.01) camTarget = { x: pl.x, y: pl.y - 14, z }; }
     }
     if (camTarget) {
       const f = REDUCED ? 1 : 1 - Math.pow(0.001, dt / 700);
@@ -1780,5 +1824,6 @@
   setPlaying(false);
   show(0);
   setTab('events');
+  try { const saved = localStorage.getItem(PIN_KEY); if (saved && people.includes(saved)) pin(saved); } catch (e) { /* storage unavailable */ }
   requestAnimationFrame(loop);
 })();
