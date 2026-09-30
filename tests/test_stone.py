@@ -18,7 +18,7 @@ def crafting(**changes):
 
 def planned(overlay, who='p02', done=0):
     return replace(overlay, shelters=(overlay.homes[who],), built={p: (12 if p == who else 0) for p in overlay.roster},
-                   axe_work={who: (done, 0)})
+                   axe_work={who: (done, 0, 0)})
 
 
 def test_outcrop_is_placed_after_homes_and_genesis_is_otherwise_unchanged():

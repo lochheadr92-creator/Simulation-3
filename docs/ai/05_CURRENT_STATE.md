@@ -1,5 +1,15 @@
 # Current state — volatile snapshot
 
+## Recurring work: corrections, re-evaluation, work view — 2026-09-30
+
+Third slice on `codex/wood-yard-stone-axe` (final for crafting scope). Cold
+people at home now warm first and then start optional work (was: never start
+while cold); supply and axe timeouts count from the last collection; tasks and
+plans are re-evaluated only when resumed after an interruption (last-acted tick
+recorded in `supply_tasks[6]` / `axe_work[2]`). Inspector gains a Work section
+and yards a ledger. Full suite **1,155 passed**. Off-mode baselines from
+`e34decc` still match except seals/code identity. Details in WORLD_DIRECTIONS.
+
 ## Stone and the stone axe — 2026-09-30
 
 Second slice on `codex/wood-yard-stone-axe`. `--stone on` / `--axe on`

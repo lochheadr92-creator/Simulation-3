@@ -144,7 +144,7 @@ class Observation:
     yard_nearby: bool = False                          # a yard, or visible yard work, within range
     yard_site_option: Position | None = None           # where this person could start a yard now
     yard_site: tuple[Position, int] | None = None      # own yard under construction: site, work done
-    supply_task: tuple[str, str, str, int, int, int] | None = None
+    supply_task: tuple[str, str, str, int, int, int, int] | None = None
     groves_seen: tuple[tuple[str, int], ...] = ()      # visible grove stocks
     yard_crowd: int = 0                                # others standing at a visible yard
     # stone on / axe on
@@ -153,7 +153,7 @@ class Observation:
     stone_source: Position | None = None
     stone_stock: int | None = None
     has_axe: bool = False
-    axe_plan: tuple[int, int] | None = None            # craft ticks done, tick planned
+    axe_plan: tuple[int, int, int] | None = None       # craft ticks done, tick of plan or last material, tick last acted
     deliveries: int = 0                                # wood deposits this person has completed
     fishing_ready: bool = False
     food_sightings: tuple[tuple[str, int, int], ...] = ()

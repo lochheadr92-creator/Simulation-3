@@ -134,7 +134,7 @@ def test_deposit_and_withdrawal_move_wood_through_the_kernel_and_conserve_it():
     ledger, overlay = with_yard(ledger, overlay)
     ledger = with_wood(ledger, p02=3)
     overlay = replace(finished(overlay, 'p02'), positions={**overlay.positions, 'p02': YARD, 'p01': YARD},
-                      supply_tasks={'p02': ('deliver', SID, 'wood', 3, 0, 0)})
+                      supply_tasks={'p02': ('deliver', SID, 'wood', 3, 0, 0, 0)})
     supplier = decide(observe('p02', ledger, overlay, cfg), cfg)
     assert supplier.kind == DEPOSIT_WOOD and supplier.amount == 3 and supplier.target == SID
     builder = decide(observe('p01', ledger, overlay, cfg), cfg)

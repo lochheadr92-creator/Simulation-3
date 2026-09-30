@@ -1,5 +1,117 @@
 # Simulation 3 — Development Directions
 
+## Recurring work: two corrections, re-evaluation and the work view — 2026-09-30
+
+Third and last slice on `codex/wood-yard-stone-axe`. No new switches. Three
+changes to how optional work (yard building, wood supply, axe plans) starts,
+stops and is shown. Each was isolated on seeds 7, 11 and 23, 300 ticks, preset
+crafting plus stores, provisioning, homes, childhood, coordination, relocation,
+fishing, source memory, knowledge sharing and shared care ("config (ii)"); the
+intermediate builds were made in a scratch worktree and not committed.
+
+### (a) Cold-gate correction
+
+Slices 1 and 2 refused to *start* any optional work while the person stood at
+home with any cold at all (`observation.at_home and observation.cold > 0`).
+That was stricter than the food-trip rule, which warms first and then goes
+(`_provision_decision`: "warming up before gathering food for home"). Counting
+the Slice 2 files, the gate swallowed idle-at-home windows in which a start was
+otherwise due: seed 11 (ii) 34 supply starts; seed 23 (ii) 31 supply, 12 axe
+plan, 19 yard starts; seed 23 (ii) 600 ticks 139 / 23 / 19; seed 7 (ii) 1 yard
+start. Now `_decide` computes the start and, if the person is cold at home,
+returns `warm` with the reason "warming up before starting work: …"; the work is
+recorded when it actually begins. What still keeps a cold person in: the
+warmth need in `_decide_needs` (cold at or past `cold_at` wins over every
+optional branch, because the yard branch only runs when the base choice is
+`rest` or `home`), the warm-first return above, and caregiving and hunger and
+thirst taking their turn first as before.
+
+| Seed (ii), 300 ticks | Slice 2 | + cold gate | First difference |
+| --- | --- | --- | --- |
+| 7 | yards 2/2, deposits 0, supply 0/0, plans 0, deaths 0 | same counts | t42 p02 `rest` "fed, at home" → `warm` "warming up before starting work: saw p04's unfinished shelter…" |
+| 11 | yards 3/1, deposits 0, supply 6/3, plans 0, deaths 1 | same counts | t162 p03 warm reason: food trip → "…starting work: wood supply for yard-4-11" |
+| 23 | yards 1/1, deposits 4, withdrawals 4, supply 11/1, plans 5/2, deaths 0 | same counts | t103 p06 warm reason: food trip → "…starting work: wood supply for yard-5-8" |
+
+(Counts are yards started/finished, supply tasks started/ended, axe plans/given up.)
+
+### (b) Timeouts count from the last progress
+
+A supply fetch ends after 60 ticks with no wood collected since it started or
+since its last collection; an axe plan ends after 60 ticks with no wood or
+stone collected since planning or since the last material. Before, the axe
+timer ran from planning even after the wood was in hand, and only fired while
+waiting for stone. Reasons now say which: "no wood collected in the N ticks
+since it started", "no material collected in the N ticks since the last
+material was collected". The constants are unchanged.
+
+| Seed (ii) | + cold gate | + timeouts | First difference |
+| --- | --- | --- | --- |
+| 7 | as above | identical | none |
+| 11 | as above | identical except wording | t225 p03 supply-end reason wording only |
+| 23 | supply 11/1, plans 5/2 | supply 11/2, plans 5/3 | t200 `world` (a plan's clock reset on a collection) |
+
+### (c) Re-evaluation when work resumes
+
+When a task or plan is idle again after something else took a turn (a gap in
+its own decisions, recorded as the last-acted tick in the task) and the yard is
+in sight: a fetch ends with "demand met" if the yard holds at least what the
+shelters in sight need or no shelter in sight needs wood; an axe plan that has
+collected nothing yet ends with "no demand" if no shelter in sight needs wood.
+Out of sight, nothing changes (no omniscience); once any material is collected
+the plan continues (sunk cost) under the progress timeout. The last-acted tick
+was added after a first draft re-evaluated every tick and flapped: p21 in the
+seed 23 600-tick world started and ended the same task on alternate ticks
+535–545 because one step changed which shelters were in sight. Re-evaluating
+only after an interruption removed that; the final runs show nobody with more
+than three starts in 30 ticks. A remaining limit: demand is judged from
+wherever the person stands when they resume, so a task can end "no shelter in
+sight needs wood" a few steps from the shelters that motivated it (seed 23
+(ii) 300, p05 at t105).
+
+| Seed (ii) | + timeouts | + re-evaluation (final) | First difference |
+| --- | --- | --- | --- |
+| 7 | yards 2/2, deaths 0 | identical | none |
+| 11 | supply 6/3, deaths 1 | same counts | t163 p03 supply record gains the last-acted field |
+| 23 | deposits 4, withdrawals 4, supply 11/2, plans 5/3, deaths 0, shelters 10 | deposits 2, withdrawals 1, supply 10/2, plans 2/0, **deaths 7**, shelters 7 | t103 p05 supply record gains the field; paths then diverge |
+
+The seed-23 deaths are thirst at empty wells (p12, p14 at t199 "thirst
+emergency, water empty"; p01 t216), a water cascade that the other stages
+avoided by different walking orders. It is a consequence of moving through a
+marginal world, not of the yard itself, and it is reported rather than tuned
+away.
+
+### Work view (presentation only)
+
+The Inspector gains a **Work** section built from recorded decisions, outcomes
+and world fields: a summary line ("1 delivery, 0 withdrawals, 0 yards built, 0
+axes, 2 tasks ended"), the current task (supply / yard construction / axe plan /
+shelter construction with phase, destination, wanted, carried wood and stone,
+progress) with the saved reason verbatim, and a chronological work history
+(yard started/finished, supply started/ended with the saved reason, deposits,
+withdrawals, stone taken, axe payments, axe made). Clicking a yard shows its
+**ledger**: every accepted deposit and withdrawal in tick order with the running
+stock. Wood is fungible, so no line says whose wood somebody used; the ledger is
+the truthful form of that fact. No labels such as "supplier" are assigned.
+
+### Final exploration (seeds 5, 7, 11, 23, 42; 300 ticks; (i) preset only / (ii) full; plus 600-tick 23 and 42)
+
+| Run | Yards started/finished | Deposits | Withdrawals | Supply started/ended (reasons) | Axe plans/given up/made | Claims of 5 | Deaths |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 5 (i) / (ii) | 0/0 / 0/0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 | 0 / 0 |
+| 7 (i) / (ii) | 2/1 / 2/2 | 1 / 0 | 1 / 0 | 4/0 / 0 | 1/0/0 / 0 | 0 | 1 / 0 |
+| 11 (i) / (ii) | 2/0 / 3/1 | 0 / 0 | 0 / 0 | 0 / 6/3 (3 timeout) | 0 / 0 | 0 | 4 / 1 |
+| 23 (i) / (ii) | 4/0 / 1/1 | 0 / 2 | 0 / 1 | 0 / 10/2 (1 demand met, 1 timeout) | 0 / 2/0/0 | 0 | 5 / 7 |
+| 42 (i) / (ii) | 1/0 / 3/0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 | 0 | 0 / 0 |
+| 23 (ii) 600 | 1/1 | 5 | 1 | 17/8 (2 demand met, 6 timeout) | 9/5/0 | 0 | 15 |
+| 42 (ii) 600 | 4/1 | 2 | 0 | 10/3 (3 timeout) | 3/1/1 (p02, t593) | 0 | 13 |
+
+Deliveries per person never exceeded one in any run. Crafting and the larger
+5-wood claims are implemented and contract-tested; the ordinary runs have not
+yet demonstrated that an axe repays its materials and labour (one axe, p02 in
+seed 42 (ii) at t593, seven ticks before the end; no claim with it). Nothing
+was tuned to change that. Files: `runs/final-slice3/`.
+
+
 ## Stone and the basic stone axe — 2026-09-30
 
 Local work on `codex/wood-yard-stone-axe`, second slice. `--stone on` adds one

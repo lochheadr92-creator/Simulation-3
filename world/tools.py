@@ -13,8 +13,10 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Mapping
 
 from kernel import TickRecord
+from kernel.proposals import OP_CLAIM
 from kernel.state import actor_account, sink_account
-from world.materials import (AXE_TIMEOUT, AXE_WORK, CRAFT_AXE, GATHER_STONE, GO_STONE, STONE, STONE_PACK, WOOD, axe_cost)
+from world.materials import (AXE_TIMEOUT, AXE_WORK, CRAFT_AXE, GATHER_STONE, GATHER_WOOD, GO_STONE, GO_WOOD, STONE,
+                             STONE_PACK, WAIT_WOOD, WOOD, axe_cost)
 
 if TYPE_CHECKING:
     from world.config import WorldConfig
@@ -23,6 +25,8 @@ if TYPE_CHECKING:
     from world.overlay import Overlay
 
 Position = tuple[int, int]
+# kinds a plan issues itself; a gap in them means something else took a turn
+PLAN_KINDS = frozenset({GO_WOOD, GATHER_WOOD, WAIT_WOOD, GO_STONE, GATHER_STONE, CRAFT_AXE, "home"})
 
 
 def tools_view(actor: str, origin: Position, overlay: "Overlay", config: "WorldConfig",
@@ -49,12 +53,13 @@ def axe_decision(observation: "Observation", config: "WorldConfig", choice: "Dec
     from world.decide import HOME, route_step
     from world.yard import _with, fetch_wood
     if observation.axe_plan is not None:
-        done, started = observation.axe_plan
+        done, since, acted = observation.axe_plan
         start: dict[str, Any] = {}
     elif axe_worthwhile(observation, config):
-        done, started, start = 0, observation.tick, {"axe_start": True}
+        done, since, acted, start = 0, observation.tick, observation.tick, {"axe_start": True}
     else:
         return None
+    resumed = not start and observation.tick - acted > 1
     label = f"axe plan (craft tick {done} of {AXE_WORK})"
     if start:
         label = (f"planning an axe: {observation.deliveries} wood deliver{'y' if observation.deliveries == 1 else 'ies'} made "
@@ -62,12 +67,17 @@ def axe_decision(observation: "Observation", config: "WorldConfig", choice: "Dec
     cost = axe_cost(done)
     needs_wood = cost is not None and cost[0] == WOOD and observation.wood < cost[1]
     needs_stone = done <= 1 and observation.stone < 1
+    nothing_yet = done == 0 and observation.wood == 0 and observation.stone == 0
+    if resumed and nothing_yet and not observation.yard_demand and any(stock is not None for _, _, stock in observation.yards):
+        return replace(choice, reason="giving up the axe plan before collecting anything: the yard is in sight and no shelter in sight needs wood",
+                       axe_end="no demand")
+    if (needs_wood or needs_stone) and not start and observation.tick - since >= AXE_TIMEOUT:
+        last = "since it started" if nothing_yet else "since the last material was collected"
+        return replace(choice, reason=f"giving up the axe plan: no material collected in the {observation.tick - since} ticks {last}",
+                       axe_end="timeout")
     if needs_wood:
         return fetch_wood(observation, config, choice, 1 - observation.wood, f"{label}; needs 1 wood", **start)
     if needs_stone:
-        if observation.tick - started >= AXE_TIMEOUT and done == 0:
-            return replace(choice, reason=f"giving up the axe plan: {observation.tick - started} ticks since it started, no stone collected",
-                           axe_end="timeout")
         site = observation.stone_source
         if observation.position != site:
             return _with(choice, GO_STONE, f"{label}; walking to {observation.stone_source_id} for 1 stone",
@@ -92,16 +102,22 @@ def apply_tools(overlay: "Overlay", decisions: Mapping[str, "Decision"], record:
     work = dict(overlay.axe_work)
     axes = set(overlay.axes)
     spent = {res: _consumed(record, sink_account(res)) for res in (WOOD, STONE)}
+    collected = {out.actor for out in record.outcomes if out.accepted and out.operation == OP_CLAIM}
+    now = overlay.tick - 1   # the tick these decisions were made in
     for actor in sorted(decisions):
         decision = decisions[actor]
         if actor in overlay.died_at:
             continue
         if decision.axe_start and actor not in work:
-            work[actor] = (0, overlay.tick - 1)
+            work[actor] = (0, now, now)
         if decision.axe_end is not None:
             work.pop(actor, None)
+        if actor in work and decision.kind in PLAN_KINDS:
+            work[actor] = (work[actor][0], work[actor][1], now)
+        if actor in work and decision.kind in (GATHER_WOOD, GATHER_STONE) and actor in collected:
+            work[actor] = (work[actor][0], now, now)          # a material collected: the timeout starts again
         if decision.kind == CRAFT_AXE and actor in work:
-            done, started = work[actor]
+            done, since, acted = work[actor]
             cost = axe_cost(done)
             if cost is None or spent[cost[0]].get(actor, 0) >= cost[1]:
                 done += 1
@@ -109,7 +125,7 @@ def apply_tools(overlay: "Overlay", decisions: Mapping[str, "Decision"], record:
                 work.pop(actor)
                 axes.add(actor)
             else:
-                work[actor] = (done, started)
+                work[actor] = (done, since, acted)
     for dead in overlay.died_at:
         work.pop(dead, None)
     return replace(overlay, axe_work=work, axes=tuple(sorted(axes)))

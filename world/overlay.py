@@ -117,10 +117,10 @@ class Overlay:
     food_expected: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # listener -> speaker, heard tick
     yards: Mapping[str, Position] = field(default_factory=dict)  # finished wood yards: source id -> cell
     yard_work: Mapping[str, tuple[Position, int]] = field(default_factory=dict)  # builder -> (site, work ticks done)
-    supply_tasks: Mapping[str, tuple[str, str, str, int, int, int]] = field(default_factory=dict)  # see world/work.py
+    supply_tasks: Mapping[str, tuple[str, str, str, int, int, int, int]] = field(default_factory=dict)  # see world/work.py
     deliveries: Mapping[str, int] = field(default_factory=dict)  # completed wood deposits into yards, per person
     axes: tuple[str, ...] = ()  # who owns a stone axe (stays with the dead)
-    axe_work: Mapping[str, tuple[int, int]] = field(default_factory=dict)  # crafter -> (craft ticks done, tick planned)
+    axe_work: Mapping[str, tuple[int, int, int]] = field(default_factory=dict)  # crafter -> (craft ticks done, tick of plan or last material, tick last acted)
 
     def __post_init__(self) -> None:
         if self.season is not None and self.season not in SEASONS:
@@ -151,7 +151,7 @@ class Overlay:
         object.__setattr__(self, "yard_work", MappingProxyType(dict(sorted(work.items()))))
         tasks = {}
         for actor, entry in dict(self.supply_tasks).items():
-            if (actor not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 6
+            if (actor not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 7
                     or entry[0] not in ("fetch", "deliver") or not all(isinstance(e, str) and e for e in entry[1:3])
                     or not all(type(e) is int and e >= 0 for e in entry[3:])):
                 raise ValueError("a supply task needs a known person, a phase, a yard, a grove and counts")

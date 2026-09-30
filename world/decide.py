@@ -109,7 +109,7 @@ class Decision:
     source_report: tuple[str, int] | None = None
     report_to: tuple[str, ...] = ()
     yard_site: Position | None = None    # starting a wood yard here
-    supply: tuple[str, str, str, int, int, int] | None = None   # a wood supply task to record
+    supply: tuple[str, str, str, int, int, int, int] | None = None   # a wood supply task to record
     supply_end: str | None = None        # why a wood supply task ends now
     resource: str | None = None          # what a craft payment is in
     axe_start: bool = False              # planning an axe from this tick
@@ -526,18 +526,22 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
         from world.work import supply_decision
         from world.tools import axe_decision
         starting = observation.yard_site is None and observation.supply_task is None and observation.axe_plan is None
-        if not (starting and config.warmth_on and observation.at_home and observation.cold > 0):
-            if config.axe_on and observation.axe_plan is not None:
-                yard_choice = axe_decision(observation, config, choice)   # materials already sunk: finish first
-            elif config.axe_on and observation.supply_task is None and observation.deliveries >= 1:
-                # a past delivery plus fresh demand is the evidence an axe pays back: plan it before the next trip
-                yard_choice = (yard_decision(observation, config, choice) or axe_decision(observation, config, choice)
-                               or supply_decision(observation, config, choice))
-            else:
-                yard_choice = (yard_decision(observation, config, choice) or supply_decision(observation, config, choice)
-                               or (axe_decision(observation, config, choice) if config.axe_on else None))
-            if yard_choice is not None:
-                return yard_choice
+        if config.axe_on and observation.axe_plan is not None:
+            yard_choice = axe_decision(observation, config, choice)   # materials already sunk: finish first
+        elif config.axe_on and observation.supply_task is None and observation.deliveries >= 1:
+            # a past delivery plus fresh demand is the evidence an axe pays back: plan it before the next trip
+            yard_choice = (yard_decision(observation, config, choice) or axe_decision(observation, config, choice)
+                           or supply_decision(observation, config, choice))
+        else:
+            yard_choice = (yard_decision(observation, config, choice) or supply_decision(observation, config, choice)
+                           or (axe_decision(observation, config, choice) if config.axe_on else None))
+        if yard_choice is not None:
+            if starting and config.warmth_on and observation.at_home and observation.cold > 0:
+                # like a food trip: warm up first, then go; the work is recorded when it actually starts
+                return Decision(observation.actor, WARM, f"warming up before starting work: {yard_choice.reason}",
+                                choice.candidates + (WARM,),
+                                scores=choice.scores + ((WARM, (0, 1)),) if choice.scores is not None else None)
+            return yard_choice
     if config.provisioning_on and choice.kind in (REST, HOME):
         return _provision_decision(observation, config, choice)
     return choice

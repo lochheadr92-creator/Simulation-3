@@ -35,7 +35,7 @@ def groves(ledger, **stocks):
 def test_task_starts_only_on_seen_demand_and_shortage():
     cfg, ledger, overlay = scene()
     choice = decide(observe('p02', ledger, overlay, cfg), cfg)
-    assert choice.kind == GO_WOOD and choice.supply == (FETCH, SID, 'wood', 3, 0, 0)
+    assert choice.kind == GO_WOOD and choice.supply == (FETCH, SID, 'wood', 3, 0, 0, 0)
     assert 'wood supply for yard-1-6' in choice.reason
     covered = decide(observe('p02', groves(ledger), replace(overlay, yards={SID: YARD}), cfg), cfg)
     assert covered.supply is not None
@@ -56,7 +56,7 @@ def test_task_is_recorded_survives_hunger_and_resumes_then_ends_on_the_deposit()
     engine = Engine(ledger)
     s = world_step(engine, overlay, cfg)
     engine, overlay = s.engine, s.processed.overlay
-    assert overlay.supply_tasks == {'p02': (FETCH, SID, 'wood', 3, 0, 0)}
+    assert overlay.supply_tasks == {'p02': (FETCH, SID, 'wood', 3, 0, 0, 0)}
     hungry = replace(overlay, hunger={**overlay.hunger, 'p02': cfg.hungry_at})
     choice = decide(observe('p02', engine.state, hungry, cfg), cfg)
     assert choice.kind == 'eat' and choice.supply is None
@@ -81,15 +81,15 @@ def test_empty_groves_retry_once_then_end_with_a_reason():
     grove, site = wood_sites(cfg)[0]
     empty = groves(ledger, wood=0, wood2=0)
     at_grove = replace(overlay, positions={**overlay.positions, 'p02': site},
-                       supply_tasks={'p02': (FETCH, SID, grove, 3, 0, 0)})
+                       supply_tasks={'p02': (FETCH, SID, grove, 3, 0, 0, 0)})
     choice = decide(observe('p02', empty, at_grove, cfg), cfg)
-    assert choice.kind == GO_WOOD and choice.target == 'wood2' and choice.supply == (FETCH, SID, 'wood2', 3, 0, 1)
-    retried = replace(at_grove, supply_tasks={'p02': (FETCH, SID, grove, 3, 0, 1)})
+    assert choice.kind == GO_WOOD and choice.target == 'wood2' and choice.supply == (FETCH, SID, 'wood2', 3, 0, 1, 0)
+    retried = replace(at_grove, supply_tasks={'p02': (FETCH, SID, grove, 3, 0, 1, 0)})
     choice = decide(observe('p02', empty, retried, cfg), cfg)
     assert choice.supply_end == 'empty groves' and 'no wood left' in choice.reason
     s = world_step(Engine(empty), retried, cfg)
     assert not s.processed.overlay.supply_tasks
-    stale = replace(overlay, supply_tasks={'p02': (FETCH, SID, grove, 3, 0, 0)}, tick=60)
+    stale = replace(overlay, supply_tasks={'p02': (FETCH, SID, grove, 3, 0, 0, 0)}, tick=60)
     choice = decide(observe('p02', replace(ledger, tick=60), stale, cfg), cfg)
     assert choice.supply_end == 'timeout' and '60 ticks since it started' in choice.reason
 
@@ -98,7 +98,7 @@ def test_full_yard_keeps_the_wood_and_death_ends_the_task():
     cfg, ledger, overlay = scene(stock=6)
     carrying = replace(ledger, holdings={**ledger.holdings, WOOD: {**ledger.holdings[WOOD], 'p02': 3}})
     at_yard = replace(overlay, positions={**overlay.positions, 'p02': YARD},
-                      supply_tasks={'p02': (DELIVER, SID, 'wood', 3, 0, 0)})
+                      supply_tasks={'p02': (DELIVER, SID, 'wood', 3, 0, 0, 0)})
     choice = decide(observe('p02', carrying, at_yard, cfg), cfg)
     assert choice.supply_end == 'yard full' and choice.kind != DEPOSIT_WOOD
     s = world_step(Engine(carrying), at_yard, cfg)
@@ -112,8 +112,8 @@ def test_full_yard_keeps_the_wood_and_death_ends_the_task():
 
 def test_overlay_round_trips_tasks_and_yard_work():
     cfg, ledger, overlay = scene()
-    full = replace(overlay, supply_tasks={'p02': (FETCH, SID, 'wood', 3, 0, 0)}, yard_work={'p03': ((5, 5), 1)})
+    full = replace(overlay, supply_tasks={'p02': (FETCH, SID, 'wood', 3, 0, 0, 0)}, yard_work={'p03': ((5, 5), 1)})
     canon = full.canonical()
-    assert canon['supply_tasks'] == {'p02': [FETCH, SID, 'wood', 3, 0, 0]} and canon['yard_work'] == {'p03': [5, 5, 1]}
+    assert canon['supply_tasks'] == {'p02': [FETCH, SID, 'wood', 3, 0, 0, 0]} and canon['yard_work'] == {'p03': [5, 5, 1]}
     assert type(full).from_canonical(canon) == full
     assert 'yards' not in replace(overlay, yards={}).canonical()

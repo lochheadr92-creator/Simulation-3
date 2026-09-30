@@ -1,6 +1,15 @@
-# Current slice — stone and the stone axe (Slice 2 of wood yard → stone → stone axe)
+# Current slice — recurring work made visible (Slice 3, final of wood yard → stone → stone axe)
 
-## Current work — stone and the basic stone axe, 2026-09-30
+## Current work — corrections, re-evaluation and the work view, 2026-09-30
+
+See the top WORLD_DIRECTIONS entry. Crafting scope is closed after this slice.
+Known limits carried forward: the housing site predicate does not exclude yard
+cells (seed 23 (ii) 600: p12's home sits on `yard-5-8`); re-evaluation judges
+demand from where the person stands when resuming; no one reached two
+deliveries in any exploration run; the one finished axe (seed 42 (ii) 600, p02
+at t593) was never used.
+
+## Previous work — stone and the basic stone axe, 2026-09-30
 
 `--stone on`, `--axe on`; see the top WORLD_DIRECTIONS entry. Carried forward
 to Slice 3 (recurring-work visibility and re-evaluation): the axe fired once in

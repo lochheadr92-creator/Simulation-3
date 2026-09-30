@@ -1303,6 +1303,21 @@
     const axeWork = (w.axe_work || {})[p];
     if (axeWork) h += `<div class="sec"><h4>Axe crafting ${axeWork[0]}/${(C.axe_rules || {}).work || 3}</h4><div>Planned at tick ${axeWork[1]}; carrying ${woodHeld(k, p)} wood, ${stoneHeld(k, p)} stone.</div>${savedReason}<div class="hint">1 wood is paid before craft tick 0 and 1 stone before craft tick 1, at the crafter's own shelter. A refused payment gives no progress.</div></div>`;
     if ((w.axes || []).includes(p)) h += `<div class="sec"><h4>Tools</h4><div>axe — gathers up to ${(C.axe_rules || {}).wood_pack || 5} wood per claim instead of ${(C.axe_rules || {}).hand_pack || 3}.</div><div class="hint">No durability or repair. It stays with its owner, even in death.</div></div>`;
+    if (C.yard === 'on') {
+      const WORK_KINDS = new Set(['yard_started', 'yard_finished', 'yard_payment_refused', 'supply_start', 'supply_end', 'yard_deposit', 'yard_deposit_refused', 'yard_take', 'yard_take_refused', 'stone_taken', 'stone_refused', 'axe_planned', 'axe_given_up', 'axe_payment', 'axe_payment_refused', 'axe_made', 'axe_gather']);
+      const work = (EV_OF[p] || []).filter(i => EVENTS[i].k <= k && WORK_KINDS.has(EVENTS[i].kind)).map(i => EVENTS[i]);
+      const count = kind => work.filter(e => e.kind === kind).length;
+      const summary = `${(w.deliveries || {})[p] || 0} deliver${((w.deliveries || {})[p] || 0) === 1 ? 'y' : 'ies'}, ${count('yard_take')} withdrawal${count('yard_take') === 1 ? '' : 's'}, ${count('yard_finished')} yard${count('yard_finished') === 1 ? '' : 's'} built, ${count('axe_made')} axe${count('axe_made') === 1 ? '' : 's'}, ${count('supply_end')} task${count('supply_end') === 1 ? '' : 's'} ended`;
+      let current = '';
+      if (supplyTask) current = `<div><b>Supply task</b> — ${esc(supplyTask[0])} phase; to ${esc(supplyTask[1])} from ${esc(supplyTask[2])}; wanted ${supplyTask[3]}; carrying ${woodHeld(k, p)} wood.</div>`;
+      else if (yardWork) current = `<div><b>Yard construction</b> — site (${yardWork[0]}, ${yardWork[1]}); progress ${yardWork[2]}/${(C.yard_rules || {}).work || 4}; carrying ${woodHeld(k, p)} wood.</div>`;
+      else if (axeWork) current = `<div><b>Axe plan</b> — craft ${axeWork[0]}/${(C.axe_rules || {}).work || 3}; carrying ${woodHeld(k, p)} wood, ${stoneHeld(k, p)} stone.</div>`;
+      else if (C.building === 'on' && (w.built || {})[p] !== undefined && (w.built || {})[p] < C.build_ticks) current = `<div><b>Shelter construction</b> — progress ${(w.built || {})[p]}/${C.build_ticks}; carrying ${woodHeld(k, p)} wood.</div>`;
+      else current = '<div class="hint">No task under way.</div>';
+      h += `<div class="sec"><h4>Work</h4><div class="hint">${summary}</div>${current}${savedReason}<h4>Work history</h4>` +
+        (work.length ? work.slice(-30).map(e => `<button class="mini-ev" type="button" data-tick="${e.k}"><span class="evtick">t${e.k}</span><span>${esc(e.text)}</span></button>`).join('') : '<div class="hint">Nothing recorded yet.</div>') +
+        '<div class="hint">Counted from recorded decisions and outcomes only. Wood is fungible: who later used deposited wood is shown in the yard\'s own ledger, not here.</div></div>';
+    }
     if ((w.deliveries || {})[p]) h += `<div class="sec"><h4>Wood delivered</h4><div>${w.deliveries[p]} deposit${w.deliveries[p] === 1 ? '' : 's'} into yards so far.</div></div>`;
     if (emptyMemory.length) h += '<div class="sec"><h4>Empty food remembered</h4>' + emptyMemory.map(([sid, when]) => `<div>${esc(sid)}: empty at tick ${when}; ${Math.max(0, C.empty_source_ticks - ((w.tick || 0) - when))} ticks until forgotten without another sighting</div>`).join('') + '</div>';
     // needs
@@ -1417,6 +1432,12 @@
     h += `<div class="sec"><div class="kv"><span class="k">Where</span><span>(${s.position.join(', ')})</span><span class="k">Stock now</span><span>${stockText(s, v)}</span><span class="k">Renews</span><span>${renewal}</span></div></div>`;
     if (condition !== undefined) h += `<div class="sec"><h4>Patch condition</h4><div>${condition} / ${C.patch_rules.condition_max} — ${condition < C.patch_rules.full_growth_at ? 'worn patch' : 'healthy patch'}</div><div class="hint">Each food harvested costs ${C.patch_rules.wear_per_unit} condition. A tick without a harvest restores ${C.patch_rules.recovery_per_tick}. Full growth returns at ${C.patch_rules.full_growth_at}.</div></div>`;
     if (s.store) h += `<div class="sec"><h4>Shared home cache</h4><div>${C.homes === 'on' ? 'Residents put' : personLink(s.resident) + ' puts'} spare food here after building their shelter, keeping one meal. Nearby people can walk here and collect it. Deposited food becomes available next tick.</div></div>`;
+    if (s.yard) {
+      const ledger = (EV_AT_SRC[s.id] || []).filter(i => EVENTS[i].k <= v && (EVENTS[i].kind === 'yard_deposit' || EVENTS[i].kind === 'yard_take')).map(i => EVENTS[i]);
+      let running = 0;
+      const rows = ledger.map(e => { running += e.kind === 'yard_deposit' ? e.amount : -e.amount; return `<div class="kv"><span class="k">t${e.k}</span><span>${personLink(e.who)} ${e.kind === 'yard_deposit' ? 'put in' : 'took'} ${e.amount} → ${running}</span></div>`; }).join('');
+      h += `<div class="sec"><h4>Yard ledger</h4>${rows || '<div class="hint">No deposits or withdrawals yet.</div>'}<div class="hint">Every accepted deposit and withdrawal in tick order, with the running stock. Same-tick deposits may overshoot the capacity of ${(C.yard_rules || {}).capacity || 6} by one pack each.</div></div>`;
+    }
     h += `<div class="sec"><h4>Standing here</h4><div class="people-links">${here.length ? here.map(personLink).join('') : '<span class="hint">nobody</span>'}</div></div>`;
     const evs = (EV_AT_SRC[s.id] || []).filter(i => EVENTS[i].k <= v).slice(-12).reverse();
     h += '<div class="sec"><h4>Recently</h4>' + (evs.length ? evs.map(i => { const e = EVENTS[i]; return `<button class="mini-ev" type="button" data-tick="${e.k}"><span class="evtick">t${e.k}</span><span>${esc(e.text)}</span></button>`; }).join('') : '<div class="hint">Nothing yet.</div>') + '</div>';

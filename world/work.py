@@ -28,10 +28,12 @@ if TYPE_CHECKING:
 FETCH = "fetch"
 DELIVER = "deliver"
 PHASES = (FETCH, DELIVER)
-SUPPLY_TIMEOUT = 60   # a fetch that has not collected anything after this many ticks is given up
+SUPPLY_TIMEOUT = 60   # a fetch with no wood collected for this long (since starting or the last collection) is given up
 
-# a task: (phase, yard id, grove id, wanted units, tick started, groves retried)
-Task = tuple[str, str, str, int, int, int]
+# a task: (phase, yard id, grove id, wanted units, tick of start or last collection, groves retried,
+#          tick the task last acted — a gap means an interruption, after which the need is looked at again)
+Task = tuple[str, str, str, int, int, int, int]
+TASK_KINDS = frozenset({GO_WOOD, GATHER_WOOD, GO_YARD, DEPOSIT_WOOD})
 
 
 def start_supply(observation: "Observation", config: "WorldConfig") -> Task | None:
@@ -47,7 +49,7 @@ def start_supply(observation: "Observation", config: "WorldConfig") -> Task | No
     if wanted <= 0 and observation.wood == 0:
         return None
     phase = DELIVER if observation.wood > 0 else FETCH
-    return (phase, sid, observation.wood_source_id, max(wanted, 0), observation.tick, 0)
+    return (phase, sid, observation.wood_source_id, max(wanted, 0), observation.tick, 0, observation.tick)
 
 
 def supply_decision(observation: "Observation", config: "WorldConfig", choice: "Decision") -> "Decision | None":
@@ -61,7 +63,8 @@ def supply_decision(observation: "Observation", config: "WorldConfig", choice: "
         if task is None:
             return None
         fields["supply"] = task
-    phase, yard, grove, wanted, since, retried = task
+    phase, yard, grove, wanted, since, retried, acted = task
+    resumed = not fields and observation.tick - acted > 1   # idle again after something else took a turn
     yards = {sid: (pos, stock) for sid, pos, stock in observation.yards}
     groves = dict(wood_sites(config))
     if yard not in yards or grove not in groves:
@@ -69,8 +72,14 @@ def supply_decision(observation: "Observation", config: "WorldConfig", choice: "
     label = f"wood supply for {yard}"
     if phase == FETCH:
         if observation.tick - since >= SUPPLY_TIMEOUT:
-            return replace(choice, reason=f"ending {label}: {observation.tick - since} ticks since it started, nothing collected yet",
+            return replace(choice, reason=f"ending {label}: no wood collected in the {observation.tick - since} ticks since it started",
                            supply_end="timeout")
+        stock_seen = yards[yard][1]
+        if stock_seen is not None and resumed:
+            demand = sum(need for _, need in observation.yard_demand)
+            if demand == 0 or stock_seen >= demand:
+                what = "no shelter in sight needs wood" if demand == 0 else f"the yard holds {stock_seen} and the shelters in sight need {demand}"
+                return replace(choice, reason=f"ending {label}: demand met, {what}", supply_end="demand met")
         site = groves[grove]
         if observation.position != site:
             return _with(choice, GO_WOOD, f"{label}; walking to {grove}", target=grove,
@@ -86,7 +95,7 @@ def supply_decision(observation: "Observation", config: "WorldConfig", choice: "
             other = others[0][1]
             return _with(choice, GO_WOOD, f"{label}; {grove} has no wood left, trying {other}", target=other,
                          step=route_step(observation, groves[other], config),
-                         supply=(FETCH, yard, other, wanted, since, 1))
+                         supply=(FETCH, yard, other, wanted, since, 1, observation.tick))
         return replace(choice, reason=f"ending {label}: {grove} has no wood left and no other grove to try",
                        supply_end="empty groves")
     pos, stock = yards[yard]
@@ -124,5 +133,7 @@ def update_supply(previous: "Overlay", current: "Overlay", decisions: Mapping[st
             tasks.pop(actor)
         elif (decision is not None and decision.kind == GATHER_WOOD and (actor, OP_CLAIM) in accepted
               and tasks[actor][0] == FETCH):
-            tasks[actor] = (DELIVER,) + tuple(tasks[actor][1:])
+            tasks[actor] = (DELIVER,) + tuple(tasks[actor][1:4]) + (current.tick - 1,) + tuple(tasks[actor][5:6]) + (current.tick - 1,)
+        elif decision is not None and decision.kind in TASK_KINDS:
+            tasks[actor] = tuple(tasks[actor][:6]) + (current.tick - 1,)
     return tasks, deliveries
