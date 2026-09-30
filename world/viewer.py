@@ -260,6 +260,7 @@ def render_html(run: Run) -> str:
         _layer("food", "Food sources"),
         _layer("water", "Wells") if water else "",
         _layer("wood", "Wood groves and yards" if scenario.get("yard") == "on" else "Wood groves") if scenario.get("wood") == "on" else "",
+        _layer("stone", "Stone outcrop") if scenario.get("stone") == "on" else "",
         _layer("stock", "Stock labels"), _layer("homes", "Homes"),
         _layer("shelters", "Shelters") if building else "",
         _layer("rough", "Rough ground") if terrain else "",

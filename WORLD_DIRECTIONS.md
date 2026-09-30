@@ -1,5 +1,102 @@
 # Simulation 3 — Development Directions
 
+## Stone and the basic stone axe — 2026-09-30
+
+Local work on `codex/wood-yard-stone-axe`, second slice. `--stone on` adds one
+finite outcrop; `--axe on` adds a personal tool that gathers more wood per
+claim. `--preset crafting` now turns on wood, yard, stone and axe; explicit
+switches still override. Both are off by default; `stone ⇒ wood`,
+`axe ⇒ stone and yard`. Kernel, settlement and stream rules are unchanged.
+
+Rules:
+
+- **Stone.** One outcrop (`stone`, 8 units, `resource="stone"`) is placed on
+  clear ground after homes, groves and the fishing bank, so with stone off
+  genesis is byte-identical. Its position is a known landmark; its stock is
+  seen only in sight. It does not renew — once bare it stays bare. Stone is
+  claimed one unit at a time, settled by the kernel, and only while an axe is
+  planned, so stone is never decorative. A renewal lever is a possible
+  follow-up if depletion proves to be a dead end.
+- **Why make an axe.** An adult with a finished shelter and no axe plans one
+  when both hold: they have completed at least one wood delivery to a yard
+  (`deliveries`, a per-person count now recorded in the saved world under yard
+  on), and they see a yard and a shelter short of wood again. A 3-wood shelter
+  never repays an axe; only repeated supply does.
+- **Order of work.** A started plan is finished before anything else optional
+  (materials are sunk). Otherwise, someone with a delivery behind them and fresh
+  demand in sight plans the axe *before* taking the next supply trip — the
+  first draft put supply first, and in 1,034 idle-with-demand windows across
+  the exploration runs no plan ever started, because a yard that is short is
+  exactly when supply starts. Without a delivery behind them, supply comes first
+  as before.
+- **Recipe.** 1 wood (gathered by hand under the hand rules) and 1 stone,
+  carried to the crafter's own shelter cell; then 3 craft ticks there. Wood is
+  consumed before craft tick 0 and stone before craft tick 1, one proposal per
+  tick, through settlement with the resource named on the decision. A refused
+  payment gives no progress; an interruption between ticks never charges twice;
+  nothing completes without both payments. The plan is given up with a saved
+  reason when the outcrop is seen bare, or when no stone has been collected 60
+  ticks after planning. Death drops the plan; paid materials stay consumed.
+- **The axe.** A possession recorded in the saved world (`axes`), not a kernel
+  resource. No durability, repair or tiers. It stays with its owner in death,
+  recorded and unusable, like held wood. Its holder's `gather_wood` claims ask
+  for up to 5 instead of 3, still bounded by the stock in sight and the need or
+  demand seen, and still settled by the kernel; the reason says "with the axe".
+
+New kinds: `go_stone`, `gather_stone`, `craft_axe` (with `amount` and
+`resource`). Decision fields `axe_start`, `axe_end`, `resource`; overlay fields
+`deliveries`, `axes`, `axe_work`. Module `world/tools.py` owns the plan and the
+craft; decide/process only call it.
+
+**Watch seed 23, preset crafting plus stores, provisioning, homes, childhood,
+coordination, relocation, fishing, source memory, knowledge sharing and shared
+care, 600 ticks:** p04 puts 2 wood in `yard-5-8` at 181 (the contested claim
+from the yard entry). At 198 p04 plans an axe: "1 wood delivery made and p11's
+shelter still short of wood". Both groves are bare, so the hand-gathered wood
+is slow, and at 298 the plan is given up: "100 ticks since it started, no stone
+collected". At 305, still carrying that wood and seeing p16's shelter short,
+p04 plans again and walks straight to the outcrop, takes 1 stone at 310, pays
+the wood at 338 and the stone at 339, and finishes the axe at 340. At 345 p04
+takes a supply task wanting 5 (the axe pack). Then a famine sets in; p04
+starves at 408 with the axe and the task, having never swung it. Open
+`runs/axe-slice2/crafting-full-seed23-600.html`.
+
+Ordinary runs, 300 ticks (preset only / preset plus the flags above), and the
+600-tick seed 23:
+
+| Run | Plans | Given up | Stone taken | Axes made | Claims of 5 | Payback |
+| --- | --- | --- | --- | --- | --- | --- |
+| 7 / 7 full | 1 (p07, t252) / 0 | 0 | 0 | 0 | 0 | – |
+| 11 / 11 full | 0 / 0 | – | 0 | 0 | 0 | – |
+| 23 / 23 full | 0 / 5 (p01 t182, p05 t183, p09 t194, p04 t198, p01 again t270) | 2 (p01 t260, p04 t298, both timeouts) | 0 | 0 by 300 | 0 | – |
+| 23 full, 600 | 7 (the five above, p04 again t305, p11 t480) | 2 | 1 (p04, t310) | 1 (p04, t340) | 0 | 1 wood + 1 stone + 142 ticks from first plan; 0 wood gathered with it |
+
+Where nothing happened the reasons are the same as for yards: in four of the
+seven worlds no delivery ever completed, so the worthwhile rule never held
+(unreachable by design, not a defect: the rule demands a delivery first). Where
+plans started, hand-gathering the first wood from bare groves ate the 60-tick
+allowance twice. The one axe was made too late to matter and its maker died in
+the famine that followed. Whether the rule should ask for a delivery at all, or
+whether stone and wood scarcity make an axe a poor bet, is left open; nothing
+here was tuned to make it fire.
+
+Verification: `tests/test_stone.py` (4) and `tests/test_axe.py` (7) cover
+placement after homes with stone-off genesis identical, stock and depletion
+without renewal, contention on the last stone, the worthwhile rule and its
+ordering, staged payment with no double charge across a hunger interruption,
+refused payment, deaths, pack bounds (5, stock 4, need 2, hand 3), an
+axe-assisted supply trip conserving wood, switches and the preset, overlay
+round-trips, and a 360-tick seed-23 world that makes an axe, replays, recovers
+from a cut at the completion tick and matches its own repeat. Off-mode: the
+nine `e34decc` baselines match except tick `seal` and header `seal`/
+`code_identity`. Yard-on: the six Slice 1 files in `runs/yard-slice1` rerun
+with `--wood on --yard on` match every decision, outcome, state and
+observation; the only difference is the new `world.deliveries` counter (and so
+`world_digest`) on deposit ticks, which is the recorded truth this slice adds.
+
+Compatibility: headers without `stone`/`axe` round-trip unchanged. Simplifications: no durability, repair or tiers; finite stone; the axe stays with the dead; one outcrop only; children never plan.
+
+
 ## Shared wood yards and supply trips — 2026-09-30
 
 Local work on `codex/wood-yard-stone-axe`, branched from `codex/kernel-first-slice`

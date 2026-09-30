@@ -1,6 +1,14 @@
-# Current slice — shared wood yards (Slice 1 of wood yard → stone → stone axe)
+# Current slice — stone and the stone axe (Slice 2 of wood yard → stone → stone axe)
 
-## Current work — shared wood yards and supply trips, 2026-09-30
+## Current work — stone and the basic stone axe, 2026-09-30
+
+`--stone on`, `--axe on`; see the top WORLD_DIRECTIONS entry. Carried forward
+to Slice 3 (recurring-work visibility and re-evaluation): the axe fired once in
+seven exploration worlds and never paid back; the worthwhile rule (a delivery
+first) and grove scarcity are the two levers to look at, and the `deliveries`
+counter is now recorded truth for that work.
+
+## Previous work — shared wood yards and supply trips, 2026-09-30
 
 Branch `codex/wood-yard-stone-axe` from `e34decc`. `--yard on` is described in
 WORLD_DIRECTIONS (top entry). Next slices: stone as a second named resource,

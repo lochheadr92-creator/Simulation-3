@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from kernel import Source, TickRecord, WorldState
 from kernel.state import actor_account, sink_account, source_account
 from world.materials import (BUILD_YARD, GATHER_WOOD, GO_WOOD, GO_YARD, TAKE_WOOD, WAIT_WOOD, WOOD, WOOD_PACK,
-                             YARD_RANGE, YARD_WORK, remaining_wood, remaining_yard_wood, yard_cost, yard_id)
+                             YARD_RANGE, YARD_WORK, remaining_wood, remaining_yard_wood, wood_pack, yard_cost, yard_id)
 from world.storage import withdraw_amount
 
 if TYPE_CHECKING:
@@ -121,8 +121,10 @@ def fetch_wood(observation: "Observation", config: "WorldConfig", choice: "Decis
     if site is None:
         raise ValueError("yard work requires an observed grove landmark")
     kind = GO_WOOD if observation.position != site else GATHER_WOOD if observation.wood_stock else WAIT_WOOD
-    amount = min(WOOD_PACK, need, observation.wood_stock or 0) if kind == GATHER_WOOD else 0
-    words = {GO_WOOD: f"walking to {observation.wood_source_id}", GATHER_WOOD: f"gathering wood at {observation.wood_source_id}",
+    amount = min(wood_pack(observation.has_axe), need, observation.wood_stock or 0) if kind == GATHER_WOOD else 0
+    words = {GO_WOOD: f"walking to {observation.wood_source_id}",
+             GATHER_WOOD: (f"gathering {amount} wood at {observation.wood_source_id} with the axe" if observation.has_axe
+                           else f"gathering wood at {observation.wood_source_id}"),
              WAIT_WOOD: f"waiting at empty {observation.wood_source_id}"}[kind]
     return _with(choice, kind, f"{why}; {words}", amount=amount, target=observation.wood_source_id,
                  step=route_step(observation, site, config) if kind == GO_WOOD else None, **fields)

@@ -147,6 +147,14 @@ class Observation:
     supply_task: tuple[str, str, str, int, int, int] | None = None
     groves_seen: tuple[tuple[str, int], ...] = ()      # visible grove stocks
     yard_crowd: int = 0                                # others standing at a visible yard
+    # stone on / axe on
+    stone: int = 0
+    stone_source_id: str | None = None
+    stone_source: Position | None = None
+    stone_stock: int | None = None
+    has_axe: bool = False
+    axe_plan: tuple[int, int] | None = None            # craft ticks done, tick planned
+    deliveries: int = 0                                # wood deposits this person has completed
     fishing_ready: bool = False
     food_sightings: tuple[tuple[str, int, int], ...] = ()
     source_reports: tuple[tuple[str, str, int, int], ...] = ()
@@ -247,6 +255,17 @@ class Observation:
             out["supply_task"] = list(self.supply_task)
         if self.yard_crowd:
             out["yard_crowd"] = self.yard_crowd
+        if self.stone_source_id is not None:
+            out["stone"] = self.stone
+            out["stone_source"] = self.stone_source_id
+            if self.stone_stock is not None:
+                out["stone_stock"] = self.stone_stock
+            if self.has_axe:
+                out["has_axe"] = 1
+            if self.axe_plan is not None:
+                out["axe_plan"] = list(self.axe_plan)
+            if self.deliveries:
+                out["deliveries"] = self.deliveries
         if self.known_homes:
             out["known_homes"] = [list(site) for site in self.known_homes]
         if self.home_strain:
@@ -330,6 +349,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         if config.yard_on:
             from world.yard import yard_view
             wood_view.update(yard_view(actor, origin, overlay, config, available))
+        if config.stone_on:
+            from world.tools import tools_view
+            wood_view.update(tools_view(actor, origin, overlay, config, available))
     visible_caches = tuple((sid, pos) for sid, pos, _ in caches
                            if pos in overlay.shelters and in_view(origin, pos, radius))
     # An empty or unseen cache must never replace the ordinary patch fallback.

@@ -29,6 +29,7 @@ ACTION_PHRASES: dict[str, str] = {
     "go_wood": "walking to gather wood", "gather_wood": "gathering wood", "wait_wood": "waiting for wood to regrow",
     "go_yard": "walking to a wood yard", "build_yard": "building a wood yard",
     "take_wood": "taking wood from a yard", "deposit_wood": "putting wood in a yard",
+    "go_stone": "walking to the stone outcrop", "gather_stone": "taking stone", "craft_axe": "crafting an axe at home",
     "go_relocate": "walking to a nearer home", "relocate": "moving into a nearer home",
     "go_settle": "walking to an adult home", "settle_home": "settling into an adult home",
     "deposit": "putting food in the home cache",
@@ -58,6 +59,7 @@ ACTION_LABELS: dict[str, str] = {
     "fish": "cast for fish",
     "go_wood": "go to wood", "gather_wood": "gather wood", "wait_wood": "wait for wood",
     "go_yard": "go to yard", "build_yard": "build yard", "take_wood": "take yard wood", "deposit_wood": "stock yard",
+    "go_stone": "go to stone", "gather_stone": "take stone", "craft_axe": "craft axe",
     "go_relocate": "walk to nearer home", "relocate": "move home",
     "go_settle": "go to new home", "settle_home": "settle home",
     "deposit": "store spare food",
@@ -82,7 +84,7 @@ CATEGORIES: tuple[tuple[str, str], ...] = (
     ("crowd", "Standing back"),
 )
 
-MOVES = frozenset({"go", "home", "go_offer", "go_water", "go_shelter", "ask", "go_settle", "go_relocate", "go_wood", "go_yard"})
+MOVES = frozenset({"go", "home", "go_offer", "go_water", "go_shelter", "ask", "go_settle", "go_relocate", "go_wood", "go_yard", "go_stone"})
 
 
 def food_sources(cfg: Mapping[str, Any], world: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
@@ -378,6 +380,24 @@ def build_index(run: Any) -> dict[str, Any]:
             for entry in tick.get("production") or []:
                 if entry.get("source_created", "").startswith("yard-") and kind == "build_yard":
                     add(k, "wood", "yard_finished", f"{actor} finished the wood yard {entry['source_created']}", who=actor, src=entry["source_created"])
+            if decision.get("axe_start"):
+                add(k, "wood", "axe_planned", f"{actor} planned an axe: {decision.get('reason')}", who=actor)
+            if decision.get("axe_end"):
+                add(k, "wood", "axe_given_up", f"{actor}: {decision.get('reason')}", who=actor)
+            if kind == "gather_stone" and outcomes.get(actor) is not None:
+                amount = _gained(outcomes[actor], f"actor@stone:{actor}") if outcomes[actor].get("accepted") else 0
+                add(k, "wood", "stone_taken" if amount else "stone_refused",
+                    f"{actor} gathered {amount} stone" if amount else f"{actor} found no stone to take", who=actor, src=decision.get("target"), amount=amount)
+            if kind == "craft_axe" and decision.get("amount"):
+                paid = outcomes.get(actor, {}).get("accepted")
+                add(k, "wood", "axe_payment" if paid else "axe_payment_refused",
+                    f"{actor} paid {decision['amount']} {decision.get('resource')} toward an axe" if paid else f"{actor} could not pay {decision['amount']} {decision.get('resource')} for the axe",
+                    who=actor, amount=decision["amount"] if paid else 0)
+            if kind == "craft_axe" and actor in (world.get("axes") or ()) and actor not in (before.get("axes") or ()):
+                add(k, "wood", "axe_made", f"{actor} made an axe", who=actor)
+            if kind == "gather_wood" and "with the axe" in decision.get("reason", "") and outcomes.get(actor, {}).get("accepted"):
+                add(k, "wood", "axe_gather", f"{actor} gathered {_gained(outcomes[actor], f'actor@wood:{actor}')} wood with an axe at {decision.get('target')}",
+                    who=actor, src=decision.get("target"), amount=_gained(outcomes[actor], f"actor@wood:{actor}"))
             if kind == "go_relocate" and before.get("home_targets", {}).get(actor) != decision.get("home_site"):
                 add(k, "build", "relocation_journey", f"{actor} set off for a nearer home at {tuple(decision['home_site'])}", who=actor)
             if kind == "relocate" and world.get("home_settled", {}).get(actor) != k:
@@ -594,6 +614,7 @@ def build_index(run: Any) -> dict[str, Any]:
         "food": food,
         "water": water,
         "wood": wood,
+        "stone": cfg.get("stone_sources", []) if cfg.get("stone") == "on" else [],
         "adult_at": adult_at,
         "parent": dict(worlds[-1].get("parent", {}) or {}),
         "second_parent": dict(worlds[-1].get("second_parent", {}) or {}),

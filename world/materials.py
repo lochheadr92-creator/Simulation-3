@@ -21,6 +21,17 @@ YARD_WORK = 4          # work ticks to finish a yard
 YARD_CAPACITY = 6      # a yard is "full" at this stock; the kernel itself has no cap
 YARD_RANGE = 6         # no second yard within this many steps of a known one
 
+# Stone and the basic stone axe (stone on, axe on). Stone is finite for now.
+STONE = "stone"
+GO_STONE = "go_stone"
+GATHER_STONE = "gather_stone"
+CRAFT_AXE = "craft_axe"
+STONE_STOCK = 8        # one outcrop, no renewal in this slice
+STONE_PACK = 1
+AXE_WOOD_PACK = 5      # an axe holder gathers this much wood per claim instead of WOOD_PACK
+AXE_WORK = 3           # craft ticks at the crafter's own finished shelter
+AXE_TIMEOUT = 60       # a plan that has collected no stone this long after starting is given up
+
 
 def wood_cost(work_done: int) -> int:
     """Pay one wood before starting each group of four work ticks."""
@@ -43,3 +54,12 @@ def remaining_yard_wood(work_done: int) -> int:
 
 def yard_id(site: tuple[int, int]) -> str:
     return f"yard-{site[0]}-{site[1]}"
+
+
+def wood_pack(has_axe: bool) -> int:
+    return AXE_WOOD_PACK if has_axe else WOOD_PACK
+
+
+def axe_cost(craft_done: int) -> tuple[str, int] | None:
+    """One wood before craft tick 0, one stone before craft tick 1, nothing before tick 2."""
+    return {0: (WOOD, 1), 1: (STONE, 1)}.get(craft_done)

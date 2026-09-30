@@ -118,6 +118,9 @@ class Overlay:
     yards: Mapping[str, Position] = field(default_factory=dict)  # finished wood yards: source id -> cell
     yard_work: Mapping[str, tuple[Position, int]] = field(default_factory=dict)  # builder -> (site, work ticks done)
     supply_tasks: Mapping[str, tuple[str, str, str, int, int, int]] = field(default_factory=dict)  # see world/work.py
+    deliveries: Mapping[str, int] = field(default_factory=dict)  # completed wood deposits into yards, per person
+    axes: tuple[str, ...] = ()  # who owns a stone axe (stays with the dead)
+    axe_work: Mapping[str, tuple[int, int]] = field(default_factory=dict)  # crafter -> (craft ticks done, tick planned)
 
     def __post_init__(self) -> None:
         if self.season is not None and self.season not in SEASONS:
@@ -127,6 +130,17 @@ class Overlay:
         homes = _positions(self.homes)
         positions = _positions(self.positions)
         object.__setattr__(self, "yards", _positions(self.yards))
+        if not all(p in positions for p in self.axes) or list(self.axes) != sorted(set(self.axes)):
+            raise ValueError("axes name known people once each, in order")
+        object.__setattr__(self, "axes", tuple(self.axes))
+        for name in ("deliveries", "axe_work"):
+            raw = dict(getattr(self, name))
+            for who, entry in raw.items():
+                values = entry if isinstance(entry, (tuple, list)) else (entry,)
+                if who not in positions or not all(type(v) is int and v >= 0 for v in values):
+                    raise ValueError(f"{name} needs known people and counts")
+            object.__setattr__(self, name, MappingProxyType(
+                {who: (tuple(entry) if isinstance(entry, (tuple, list)) else entry) for who, entry in sorted(raw.items())}))
         work = {}
         for builder, entry in dict(self.yard_work).items():
             if (builder not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 2
@@ -368,6 +382,9 @@ class Overlay:
             **({"yard_work": {p: [site[0], site[1], done] for p, (site, done) in self.yard_work.items()}}
                if self.yard_work else {}),
             **({"supply_tasks": {p: list(task) for p, task in self.supply_tasks.items()}} if self.supply_tasks else {}),
+            **({"deliveries": dict(self.deliveries)} if self.deliveries else {}),
+            **({"axes": list(self.axes)} if self.axes else {}),
+            **({"axe_work": {p: list(entry) for p, entry in self.axe_work.items()}} if self.axe_work else {}),
         }
 
     @classmethod
@@ -379,12 +396,12 @@ class Overlay:
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "second_parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
                           "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports",
-                          "yards", "yard_work", "supply_tasks"):
+                          "yards", "yard_work", "supply_tasks", "deliveries", "axes", "axe_work"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
             raise ValueError(f"a canonical overlay needs exactly the keys {sorted(keys)}")
-        for name in sorted(keys - {"tick", "shelters", "season"}):
+        for name in sorted(keys - {"tick", "shelters", "season", "axes"}):
             if not isinstance(data[name], Mapping):
                 raise ValueError(f"a canonical overlay needs a mapping of {name}")
         if "shelters" in keys and not isinstance(data["shelters"], list):
@@ -427,6 +444,9 @@ class Overlay:
                    yard_work={p: ((entry[0], entry[1]), entry[2]) for p, entry in dict(data.get("yard_work", {})).items()
                               if isinstance(entry, (list, tuple)) and len(entry) == 3},
                    supply_tasks={p: tuple(task) for p, task in dict(data.get("supply_tasks", {})).items()},
+                   deliveries=dict(data.get("deliveries", {})),
+                   axes=tuple(data.get("axes", ())),
+                   axe_work={p: tuple(entry) for p, entry in dict(data.get("axe_work", {})).items()},
                    terrain_memory={actor: tuple(tuple(cell) for cell in cells)
                                    for actor, cells in dict(data.get("terrain_memory", {})).items()})
 

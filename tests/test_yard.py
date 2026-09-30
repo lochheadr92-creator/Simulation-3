@@ -223,7 +223,7 @@ def test_switch_preset_and_headers_round_trip():
         WorldConfig(seed=7, yard_on=True)
     parsed = config_from(build_parser().parse_args(['--seed', '7', '--preset', 'crafting']))
     assert parsed.wood_on and parsed.yard_on
-    parsed = config_from(build_parser().parse_args(['--seed', '7', '--preset', 'crafting', '--yard', 'off']))
+    parsed = config_from(build_parser().parse_args(['--seed', '7', '--preset', 'crafting', '--yard', 'off', '--axe', 'off']))
     assert parsed.wood_on and not parsed.yard_on
     assert not config_from(build_parser().parse_args(['--seed', '7'])).wood_on
     assert genesis(cfg)[1] == genesis(off)[1]

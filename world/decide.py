@@ -74,7 +74,7 @@ from world.overlay import Position
 from world.storage import spare_for_store, store_id, start_provisioning
 from world.housing import GO_SETTLE, SETTLE, GO_RELOCATE, RELOCATE, choose_site, choose_relocation
 from world.fishing import FISH_SOURCE, FISH
-from world.materials import GATHER_WOOD, GO_WOOD, WAIT_WOOD, WOOD_PACK, wood_cost, remaining_wood
+from world.materials import GATHER_WOOD, GO_WOOD, WAIT_WOOD, wood_cost, remaining_wood, wood_pack
 
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
     "eat", "claim", "wait", "yield", "go", "home", "rest", "dead",
@@ -111,6 +111,9 @@ class Decision:
     yard_site: Position | None = None    # starting a wood yard here
     supply: tuple[str, str, str, int, int, int] | None = None   # a wood supply task to record
     supply_end: str | None = None        # why a wood supply task ends now
+    resource: str | None = None          # what a craft payment is in
+    axe_start: bool = False              # planning an axe from this tick
+    axe_end: str | None = None           # why an axe plan ends now
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -141,6 +144,12 @@ class Decision:
             out["supply"] = list(self.supply)
         if self.supply_end is not None:
             out["supply_end"] = self.supply_end
+        if self.resource is not None:
+            out["resource"] = self.resource
+        if self.axe_start:
+            out["axe_start"] = 1
+        if self.axe_end is not None:
+            out["axe_end"] = self.axe_end
         return out
 
 
@@ -494,7 +503,7 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
             if site is None:
                 raise ValueError("wood construction requires an observed grove landmark")
             kind = GO_WOOD if observation.position != site else GATHER_WOOD if observation.wood_stock else WAIT_WOOD
-            amount = min(WOOD_PACK, remaining_wood(observation.work_done, config.build_ticks) - observation.wood,
+            amount = min(wood_pack(observation.has_axe), remaining_wood(observation.work_done, config.build_ticks) - observation.wood,
                          observation.wood_stock or 0) if kind == GATHER_WOOD else 0
             return Decision(observation.actor, kind, "shelter work needs wood; " + {
                 GO_WOOD: "walking to a grove", GATHER_WOOD: "gathering wood to carry home", WAIT_WOOD: "waiting at an empty grove"}[kind],
@@ -515,9 +524,18 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
             and not is_child(observation, config) and observation.provision_phase is None):
         from world.yard import yard_decision
         from world.work import supply_decision
-        starting = observation.yard_site is None and observation.supply_task is None
+        from world.tools import axe_decision
+        starting = observation.yard_site is None and observation.supply_task is None and observation.axe_plan is None
         if not (starting and config.warmth_on and observation.at_home and observation.cold > 0):
-            yard_choice = yard_decision(observation, config, choice) or supply_decision(observation, config, choice)
+            if config.axe_on and observation.axe_plan is not None:
+                yard_choice = axe_decision(observation, config, choice)   # materials already sunk: finish first
+            elif config.axe_on and observation.supply_task is None and observation.deliveries >= 1:
+                # a past delivery plus fresh demand is the evidence an axe pays back: plan it before the next trip
+                yard_choice = (yard_decision(observation, config, choice) or axe_decision(observation, config, choice)
+                               or supply_decision(observation, config, choice))
+            else:
+                yard_choice = (yard_decision(observation, config, choice) or supply_decision(observation, config, choice)
+                               or (axe_decision(observation, config, choice) if config.axe_on else None))
             if yard_choice is not None:
                 return yard_choice
     if config.provisioning_on and choice.kind in (REST, HOME):

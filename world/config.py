@@ -37,7 +37,8 @@ from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_CO
 from world.foraging import EMPTY_SOURCE_TICKS
 from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.materials import (WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD,
-                             YARD_WOOD, YARD_WORK, YARD_CAPACITY, YARD_RANGE)
+                             YARD_WOOD, YARD_WORK, YARD_CAPACITY, YARD_RANGE,
+                             STONE, STONE_STOCK, STONE_PACK, AXE_WORK, AXE_WOOD_PACK, AXE_TIMEOUT)
 from world.work import SUPPLY_TIMEOUT
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
                            SEASON_TICKS, SEASONS, season_at, seasonal_growth)
@@ -142,6 +143,8 @@ class WorldConfig:
     cold_death_at: int = 80
     wood_on: bool = False         # gather and spend wood to build shelters
     yard_on: bool = False         # shared wood yards built where a shelter is seen short of wood
+    stone_on: bool = False        # one finite stone outcrop
+    axe_on: bool = False          # a basic stone axe that gathers more wood per claim
     fishing_on: bool = False      # one bank fishing spot with season-independent stock
     source_memory_on: bool = False  # remember empty natural food sources for later journeys
     provisioning_on: bool = False  # make food trips for a low shared home cache
@@ -176,6 +179,8 @@ class WorldConfig:
             "fishing": type(self.fishing_on) is bool,
             "wood": type(self.wood_on) is bool and (not self.wood_on or self.building_on),
             "yard": not self.yard_on or self.wood_on,
+            "stone": not self.stone_on or self.wood_on,
+            "axe": not self.axe_on or (self.stone_on and self.yard_on),
             "social_memory": type(self.social_memory_on) is bool,
             "width": self.width >= 3, "height": self.height >= 3, "actors": self.actors >= 1,
             "starting_food": self.starting_food >= 0, "source_stock": self.source_stock >= 0,
@@ -247,7 +252,7 @@ class WorldConfig:
         return ((self.width // 4, self.height // 4), (self.width // 4, 3 * self.height // 4))[: self.water_sources]
 
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
-        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self))
+        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self) + stone_sites(self))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -385,6 +390,32 @@ class WorldConfig:
                 "walks to a known yard nearer than the grove, and otherwise uses the grove; an empty yard is not "
                 "waited at. Same-tick deposits may overshoot capacity by one pack each; settlement decides "
                 "every claim and deposit.")
+        if self.stone_on:
+            out["stone"] = "on"
+            out["stone_sources"] = [{"id": sid, "position": list(pos)} for sid, pos in stone_sites(self)]
+            out["stone_rules"] = {"stock": STONE_STOCK, "pack": STONE_PACK, "renewal": 0}
+            out["stone_rule"] = (
+                "One stone outcrop holding stock units sits on clear ground placed after homes, groves and the "
+                "fishing bank, so it moves nothing else. Its position is a known landmark; its stock is visible "
+                "only in sight. Stone does not renew: once bare it stays bare. Stone is taken one unit per claim, "
+                "settled by the kernel, and only while an axe is planned.")
+        if self.axe_on:
+            out["axe"] = "on"
+            out["axe_rules"] = {"wood": 1, "stone": 1, "work": AXE_WORK, "wood_pack": AXE_WOOD_PACK,
+                                "hand_pack": WOOD_PACK, "timeout": AXE_TIMEOUT}
+            out["axe_rule"] = (
+                "An adult with a finished shelter and no axe, who has completed at least one wood delivery to a "
+                "yard and now sees a yard and a shelter short of wood again, plans an axe. The plan is fixed: "
+                "gather 1 wood by hand, then 1 stone from the outcrop, carry both home and craft for work ticks "
+                "at the own shelter cell, paying 1 wood through settlement before craft tick 0 and 1 stone before "
+                "craft tick 1. A refused payment gives no progress and nothing is paid twice. Needs, helping and "
+                "housing come first and the plan resumes afterwards; a started plan is finished before any new "
+                "supply task, otherwise supply comes first. The plan ends with a saved reason when the outcrop is "
+                "bare or when no stone has been collected timeout ticks after planning; paid materials stay "
+                "consumed. The finished axe is a personal possession recorded in the saved world, not a kernel "
+                "resource: no durability, repair or tiers, and a dead owner's axe stays recorded and unusable. "
+                "Its holder gathers up to wood_pack wood per claim instead of hand_pack, still bounded by the "
+                "stock in sight and the need or demand seen, and still settled by the kernel.")
         if self.relocation_on:
             out["relocation"] = "on"
             out["relocation_rules"] = {"long_outing": LONG_OUTING, "difficult_outings": DIFFICULT_OUTINGS,
@@ -744,6 +775,12 @@ class WorldConfig:
         yard = described.get("yard", "off")
         if not isinstance(yard, str) or yard not in switches:
             raise ValueError("yard must be 'on' or 'off'")
+        stone = described.get("stone", "off")
+        if not isinstance(stone, str) or stone not in switches:
+            raise ValueError("stone must be 'on' or 'off'")
+        axe = described.get("axe", "off")
+        if not isinstance(axe, str) or axe not in switches:
+            raise ValueError("axe must be 'on' or 'off'")
         if not isinstance(relocation, str) or relocation not in switches:
             raise ValueError("relocation must be 'on' or 'off'")
         if not isinstance(homes, str) or homes not in switches:
@@ -798,7 +835,7 @@ class WorldConfig:
                      homes_on=switches[homes],
                      relocation_on=switches[relocation],
                      wood_on=switches[wood], fishing_on=switches[fishing],
-                     yard_on=switches[yard],
+                     yard_on=switches[yard], stone_on=switches[stone], axe_on=switches[axe],
                      source_memory_on=switches[source_memory],
                      knowledge_sharing_on=switches[knowledge_sharing],
                      births_on=switches[births], requests_on=switches[requests],
@@ -905,6 +942,22 @@ def fishing_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...
     return ((FISH_SOURCE, site),)
 
 
+@lru_cache(maxsize=None)
+def stone_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """One outcrop on clear ground, placed after homes, groves and the bank so nothing else moves."""
+    if not config.stone_on:
+        return ()
+    rough, spots = config.terrain()
+    taken = (set(homes_for(config).values()) | set(config.food_positions() + config.water_positions())
+             | set(rough) | set(spots) | {pos for _, pos in wood_sites(config) + fishing_sites(config)})
+    free = {(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken}
+    if not free:
+        return ()
+    anchor = (config.width // 2, config.height // 4)
+    site = min(free, key=lambda p: (abs(p[0] - anchor[0]) + abs(p[1] - anchor[1]), p[1], p[0]))
+    return ((STONE, site),)
+
+
 def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
     """The saved initial state: a kernel ledger and the overlay beside it."""
     actors = config.actor_ids()
@@ -923,6 +976,11 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
                         for sid,_ in wood_sites(config)})
         water.setdefault("holdings", {})[WOOD] = {actor: 0 for actor in actors}
         water.setdefault("consumed_by", {})[WOOD] = 0
+    if config.stone_on:
+        sources.update({sid: Source(stock=STONE_STOCK, authorised=frozenset(actors), resource=STONE)
+                        for sid, _ in stone_sites(config)})
+        water.setdefault("holdings", {})[STONE] = {actor: 0 for actor in actors}
+        water.setdefault("consumed_by", {})[STONE] = 0
     ledger = WorldState.genesis(
         balances={actor: config.starting_food for actor in actors},
         sources=sources,

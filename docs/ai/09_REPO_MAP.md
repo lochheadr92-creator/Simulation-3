@@ -19,7 +19,7 @@ Repository root: `C:\dev\03-Living-World-V3`. This is a directory guide; use [sy
 | [docs/ai](00_AGENT_CONSTITUTION.md) | This source-pinned context-compression pack. Start with 00 and 05, then 03. |
 | [kernel](../../kernel/) | Ledger state, proposal construction, settlement, reservations, ordering, canonical encoding, outcomes and diagnostics. |
 | [stream](../../stream/) | JSONL writer/reader, generic scenario runner, replay/recovery, text/HTML inspection and synthetic benchmark. |
-| [world](../../world/) | Configuration, overlay, observe/decide/process, domain helpers (including `yard.py` and `work.py` for shared wood yards), runner, replay/recovery, benchmark and current viewer assets. |
+| [world](../../world/) | Configuration, overlay, observe/decide/process, domain helpers (including `yard.py` and `work.py` for shared wood yards, `tools.py` for stone and the axe), runner, replay/recovery, benchmark and current viewer assets. |
 | [viewer](../../viewer/) | Older independent isometric viewer. Narrower feature compatibility; not the default recommendation for the current world. |
 | [tests](../../tests/) | Pytest contracts and regressions. Some historical artifacts are live test dependencies. |
 | [tools](../../tools/) | Small JavaScript viewer helpers: shoot.js, feed.js and why.js. Inspect before use; these are not simulation entry points. |

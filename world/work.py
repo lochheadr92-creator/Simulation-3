@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from kernel import TickRecord
 from kernel.proposals import OP_CLAIM, OP_DEPOSIT
-from world.materials import DEPOSIT_WOOD, GATHER_WOOD, GO_WOOD, GO_YARD, WAIT_WOOD, WOOD_PACK, YARD_CAPACITY
+from world.materials import DEPOSIT_WOOD, GATHER_WOOD, GO_WOOD, GO_YARD, YARD_CAPACITY, wood_pack
 from world.storage import deposit_room
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ def start_supply(observation: "Observation", config: "WorldConfig") -> Task | No
     if not short:
         return None
     sid, stock = short[0]
-    wanted = min(WOOD_PACK, demand - stock - observation.wood)
+    wanted = min(wood_pack(observation.has_axe), demand - stock - observation.wood)
     if wanted <= 0 and observation.wood == 0:
         return None
     phase = DELIVER if observation.wood > 0 else FETCH
@@ -77,8 +77,10 @@ def supply_decision(observation: "Observation", config: "WorldConfig", choice: "
                          step=route_step(observation, site, config), **fields)
         stock = dict(observation.groves_seen).get(grove, 0)
         if stock > 0:
-            return _with(choice, GATHER_WOOD, f"{label}; gathering {min(wanted, stock, WOOD_PACK)} wood at {grove}",
-                         amount=min(wanted, stock, WOOD_PACK), target=grove, **fields)
+            amount = min(wanted, stock, wood_pack(observation.has_axe))
+            tool = " with the axe" if observation.has_axe else ""
+            return _with(choice, GATHER_WOOD, f"{label}; gathering {amount} wood at {grove}{tool}",
+                         amount=amount, target=grove, **fields)
         others = sorted((steps(site, pos), sid) for sid, pos in groves.items() if sid != grove)
         if retried == 0 and others:
             other = others[0][1]
@@ -102,14 +104,18 @@ def supply_decision(observation: "Observation", config: "WorldConfig", choice: "
 
 
 def update_supply(previous: "Overlay", current: "Overlay", decisions: Mapping[str, "Decision"],
-                  record: TickRecord) -> dict[str, Task]:
+                  record: TickRecord) -> tuple[dict[str, Task], dict[str, int]]:
+    """Next tasks, and the per-person count of completed wood deliveries."""
     tasks = dict(previous.supply_tasks)
+    deliveries = dict(previous.deliveries)
     accepted = {(out.actor, out.operation) for out in record.outcomes if out.accepted}
     for actor, decision in decisions.items():
         if decision.supply is not None:
             tasks[actor] = decision.supply
         if decision.supply_end is not None:
             tasks.pop(actor, None)
+        if decision.kind == DEPOSIT_WOOD and (actor, OP_DEPOSIT) in accepted:
+            deliveries[actor] = deliveries.get(actor, 0) + 1
     for actor in list(tasks):
         decision = decisions.get(actor)
         if not current.alive(actor):
@@ -119,4 +125,4 @@ def update_supply(previous: "Overlay", current: "Overlay", decisions: Mapping[st
         elif (decision is not None and decision.kind == GATHER_WOOD and (actor, OP_CLAIM) in accepted
               and tasks[actor][0] == FETCH):
             tasks[actor] = (DELIVER,) + tuple(tasks[actor][1:])
-    return tasks
+    return tasks, deliveries

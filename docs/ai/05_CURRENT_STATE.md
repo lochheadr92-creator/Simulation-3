@@ -1,5 +1,14 @@
 # Current state — volatile snapshot
 
+## Stone and the stone axe — 2026-09-30
+
+Second slice on `codex/wood-yard-stone-axe`. `--stone on` / `--axe on`
+(`--preset crafting` = wood + yard + stone + axe). One finite outcrop; an axe
+is an overlay possession (`axes`) paid with 1 wood + 1 stone through staged
+consumes over 3 craft ticks (`axe_work`), planned only after a recorded wood
+delivery (`deliveries`) with demand still in sight; holders claim 5 wood
+instead of 3. Details and the exploration table in WORLD_DIRECTIONS.
+
 ## Shared wood yards — 2026-09-30
 
 On `codex/wood-yard-stone-axe`, branched from `codex/kernel-first-slice` at
