@@ -54,7 +54,7 @@ from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, 
 from world.decide import AGREE, ASK, BUILD, Decision
 from world.overlay import Overlay
 from world.social import remember_food
-from world.storage import update_provisioning, update_food_expectations
+from world.storage import remember_contributions, update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
 
@@ -251,9 +251,18 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         production.extend(created)
     if config.provisioning_on:
         next_overlay = replace(next_overlay, provision_trips=update_provisioning(overlay, next_overlay, decisions, record))
+    if config.remembered_contribution_on:
+        # Tick-start observations plus this tick's accepted deposits. Movement
+        # has already been applied to next_overlay and does not grant a sight.
+        next_overlay = replace(next_overlay, contribution_memory=remember_contributions(
+            overlay, next_overlay, record, observations or {}, config))
     if config.coordination_on:
-        next_overlay = replace(next_overlay, food_expected=update_food_expectations(
-            overlay, next_overlay, decisions, observations or {}))
+        expectations, selections = update_food_expectations(
+            overlay, next_overlay, decisions, observations or {},
+            next_overlay.contribution_memory if config.remembered_contribution_on else None,
+            overlay.contribution_selection if config.remembered_contribution_on else None)
+        next_overlay = replace(next_overlay, food_expected=expectations,
+                               contribution_selection=selections if config.remembered_contribution_on else {})
     growth = seasonal_growth(config.renewal_amount, season) if season is not None else config.renewal_amount
     renewals = [(source_id, config.renewal_every,
                  food_growth(growth, condition[source_id]) if config.regrowth_on else growth,
@@ -342,6 +351,8 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
                     food_sightings=overlay.food_sightings, source_reports=overlay.source_reports,
                     provision_trips=overlay.provision_trips,
                     food_expected=overlay.food_expected,
+                    contribution_memory=overlay.contribution_memory,
+                    contribution_selection=overlay.contribution_selection,
                     fishing_cast=overlay.fishing_cast,
                     season=overlay.season,
                     home_targets=overlay.home_targets, home_settled=overlay.home_settled,

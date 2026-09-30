@@ -1,5 +1,45 @@
 # Simulation 3 — Development Directions
 
+## Remembered household contributions — 2026-09-29
+
+A resident who sees a housemate successfully put food into their shared home cache remembers that one deposit. When several housemates later announce food trips in the same tick, the listener relies on the remembered contributor if that person is one of the speakers already eligible to be heard. This is a memory of one event. It is not a judgement of reliability, character, or a longer relationship.
+
+The switch is `--remembered-contribution on`. It is off by default. It requires coordination, which requires provisioning, which requires stores. In a generated world, people come to share a home through `--homes on`. The memory rule itself applies only to people who already share a home; it does not create households.
+
+**Witnessing.** The observation is the one taken at the start of the deposit tick, before anyone moves that tick. It counts only together with an accepted settlement that adds a positive amount of food to that home cache. The observer must see the contributor standing on the cache cell, and the cache must be their shared home. Someone who steps into sight, or onto the cell, during the tick was not in that observation and learns nothing. Someone who was in it and then walks away still remembers. A refused deposit, a zero deposit, a deposit that is not food, a deposit into another household's cache, and later noticing that the cache holds food do not create a memory.
+
+**What is stored.** Each resident keeps the latest qualifying deposit only: the contributor and the completed world tick. A newer tick replaces an older one, even if the earlier person had contributed before. Two deposits in the same tick keep the lower actor id. Moving home clears that resident's memory, so an old household cannot become evidence about a new one. Newborns start without one. The memory does not report someone else's later move or death. A remembered person is preferred only while they are independently eligible under the existing announcement rule: alive, still in the listener's household, and actually heard that tick. One speaker is unchanged. The twelve-tick wait is unchanged. Hunger, thirst, warmth, and caregiving keep their priority. An expired announcement is not treated as dishonesty, and an unseen journey creates no negative memory.
+
+With the switch off, announcements keep the lowest actor id and the new fields are left out of the saved world.
+
+**In the viewer.** The inspector separates the memory from its effect. "Remembered contribution" means the deposit was seen. The expectation line claims a changed speaker only when the usual lowest-id choice would have been someone else, for example: "Expecting p03's food trip; saw p03 contribute food at world tick 1." If the remembered person would have been selected anyway, the line says the memory did not change the selected speaker.
+
+The controlled scene is in `runs/remembered-contribution/`. `witness.jsonl` is the deposit tick: p03 stores food, p02 is at home and remembers p03 at world tick 1, and p01 starts out of sight at (4, 10). p01 walks to (4, 9), which is inside sight by the end of the tick, and still learns nothing. `scene.jsonl` is the later announcement: p01 and p03 both set out, so the usual order would pick p01, and p02's expectation is p03 instead. On the following tick p02 stays home waiting for p03. Removing only that memory makes the same announcement state select p01. The step is still none either way: the changed result is who they expect, not a different walk. `same-speaker.jsonl` remembers p01, who already wins the usual order, and the inspector says the memory did not change the speaker. Edge was opened on these pages through Playwright. The inspector showed those sentences. The pages reported no errors.
+
+**Ordinary runs, declared before they were examined.** Seeds 1–5, 800 ticks each. Defaults otherwise, plus stores, provisioning, coordination, homes, and remembered contribution on. The matched control is the same configuration with remembered contribution off. Perception radius 3, 6 starting residents, a 12 by 12 grid, two food sources and two water sources, water, warmth, terrain, building, offers, births, childhood, and social memory on. Requests, regrowth, seasons, fishing, wood, relocation, source memory, knowledge sharing, and scoring off.
+
+| Seed | Witnessed contributions | Competing announcement ticks | Memory changed the speaker | Action differences vs off | Living / deaths |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 3 | 0 | 0 | 0 | 7 / 10, same off |
+| 2 | 1 | 0 | 0 | 0 | 7 / 14, same off |
+| 3 | 6 | 0 | 0 | 0 | 9 / 11, same off |
+| 4 | 5 | 0 | 0 | 0 | 11 / 11, same off |
+| 5 | 21 | 0 | 0 | 0 | 10 / 13, same off |
+
+World ticks below are the completed overlay ticks stored in the memory.
+
+- Seed 1: p08 saw p04 at 340; p09 saw p02 at 380; p03 saw p10 at 396. Still held at the end.
+- Seed 2: p01 saw p08 at 190. Still held at the end.
+- Seed 3: p07 saw p01 at 255, then again at 279; p01 saw p07 at 278, then again at 432; p05 saw p08 at 382; p08 saw p05 at 387. End memories are those latest ticks.
+- Seed 4: p05 saw p07 at 125, then again at 248; p07 saw p05 at 151, then at 234, then at 276. End memories are p05 at 248 and p07 at 276.
+- Seed 5: p06 saw p08 at 168, 194, 246, 272, 308, 332, 361, 379, 450, and 473; p08 saw p06 at 183, 243, and 313; p01 saw p11 at 335, 376, 395, 450, and 476; p11 saw p01 at 369, 401, and 428. End memories are p01 at 476, p06 at 473, p08 at 313, and p11 at 428.
+
+Announcements did occur: 20, 10, 11, 15, and 32 hearings across the five on-runs. None of those ticks gave one listener two eligible speakers, so the memory had no choice to change. Final ledgers match the controls on every tick. The only saved difference is the contribution memory itself. These runs show that residents do witness household deposits, including a later deposit replacing an earlier one. They do not show the memory changing a later trip, a meal, or who survives. That speaker change is visible in the controlled scene above, not in this five-seed sample.
+
+`py -3 -B -m pytest -q -p no:cacheprovider tests` in the worktree: 907 passed, 1 failed. The failure is `tests/test_viewer_security.py`, because this worktree has no `node_modules` and Node could not load Playwright. The same test with `NODE_PATH` pointed at the main checkout's `node_modules` passed in 1.50s. Focused contribution, coordination, provisioning, stores, housing, and config-type tests: 233 passed. No test was weakened.
+
+Files are `runs/remembered-contribution/seed1-on.jsonl` through `seed5-off.jsonl`, with viewers beside the scene files. This account is the implementation check, not an independent review.
+
 ## Review repair — 2026-09-29
 
 The independent whole-project review returned a bounded FAIL. The

@@ -59,6 +59,8 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-provisioning"
     if config.coordination_on:
         mode += "-coordination"
+    if config.remembered_contribution_on:
+        mode += "-remembered-contribution"
     if config.fishing_on:
         mode += "-fishing"
     if config.wood_on:
@@ -215,6 +217,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="gather food for a low home cache (requires stores on; default off)")
     parser.add_argument("--coordination", choices=("on", "off"), default="off",
                         help="announce food trips to nearby housemates (requires provisioning on; default off)")
+    parser.add_argument("--remembered-contribution", choices=("on", "off"), default="off",
+                        help="when several housemates announce a food trip, prefer the one whose shared-cache "
+                             "deposit you saw (requires coordination; default off)")
     parser.add_argument("--homes", choices=("on", "off"), default="off",
                         help="grown children establish or join a nearby home (requires childhood; default off)")
     parser.add_argument("--relocation", choices=("on", "off"), default="off",
@@ -294,6 +299,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["stores_on"] = args.stores == "on"
     levers["provisioning_on"] = args.provisioning == "on"
     levers["coordination_on"] = args.coordination == "on"
+    levers["remembered_contribution_on"] = args.remembered_contribution == "on"
     levers["homes_on"] = args.homes == "on"
     levers["relocation_on"] = args.relocation == "on"
     levers["source_memory_on"] = args.source_memory == "on"

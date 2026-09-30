@@ -114,6 +114,8 @@ class Overlay:
     empty_sources: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)
     provision_trips: Mapping[str, str] = field(default_factory=dict)  # gather once, then return home
     food_expected: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # listener -> speaker, heard tick
+    contribution_memory: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # observer -> contributor, tick
+    contribution_selection: Mapping[str, tuple[str, int, str, int, int]] = field(default_factory=dict)  # listener -> contributor, contribution tick, selected, changed, heard tick
 
     def __post_init__(self) -> None:
         if self.season is not None and self.season not in SEASONS:
@@ -134,6 +136,32 @@ class Overlay:
                 raise ValueError("food expectations need distinct known people and a past heard tick")
             expectations[listener] = (speaker, heard)
         object.__setattr__(self, "food_expected", MappingProxyType(dict(sorted(expectations.items()))))
+        if not isinstance(self.contribution_memory, Mapping):
+            raise ValueError("contribution_memory must map observers to one witnessed deposit")
+        contributions = {}
+        for actor, entry in self.contribution_memory.items():
+            if actor not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 2:
+                raise ValueError("a remembered contribution needs a known observer, contributor and tick")
+            contributor, when = entry
+            if (not isinstance(contributor, str) or contributor not in positions or contributor == actor
+                    or type(when) is not int or not 0 < when <= self.tick):
+                raise ValueError("a remembered contribution needs another known resident and a completed tick")
+            contributions[actor] = (contributor, when)
+        object.__setattr__(self, "contribution_memory", MappingProxyType(dict(sorted(contributions.items()))))
+        if not isinstance(self.contribution_selection, Mapping):
+            raise ValueError("contribution_selection must map listeners to a recorded choice")
+        choices = {}
+        for actor, entry in self.contribution_selection.items():
+            if actor not in positions or not isinstance(entry, (tuple, list)) or len(entry) != 5:
+                raise ValueError("a contribution selection needs five recorded values")
+            contributor, when, selected, changed, heard = entry
+            if (not isinstance(contributor, str) or contributor not in positions or contributor == actor
+                    or not isinstance(selected, str) or selected not in positions or selected == actor
+                    or type(when) is not int or type(heard) is not int or type(changed) is not int
+                    or changed not in (0, 1) or not 0 < when <= heard <= self.tick):
+                raise ValueError("a contribution selection needs known people and completed ticks")
+            choices[actor] = (contributor, when, selected, changed, heard)
+        object.__setattr__(self, "contribution_selection", MappingProxyType(dict(sorted(choices.items()))))
         trips = dict(self.provision_trips)
         if any(p not in positions or phase not in ("gather", "return") for p, phase in trips.items()):
             raise ValueError("provision trips need known people and gather or return phases")
@@ -295,6 +323,10 @@ class Overlay:
             "tick": self.tick,
             **({"provision_trips": dict(self.provision_trips)} if self.provision_trips else {}),
             **({"food_expected": {p: list(entry) for p, entry in self.food_expected.items()}} if self.food_expected else {}),
+            **({"contribution_memory": {p: list(entry) for p, entry in self.contribution_memory.items()}}
+               if self.contribution_memory else {}),
+            **({"contribution_selection": {p: list(entry) for p, entry in self.contribution_selection.items()}}
+               if self.contribution_selection else {}),
             **({"food_sightings": {p: [list(e) for e in entries] for p, entries in self.food_sightings.items()}} if self.food_sightings else {}),
             **({"source_reports": {p: [list(e) for e in entries] for p, entries in self.source_reports.items()}} if self.source_reports else {}),
             **({"empty_sources": {p: [list(e) for e in entries] for p,entries in self.empty_sources.items()}}
@@ -340,7 +372,7 @@ class Overlay:
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports"):
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "contribution_memory", "contribution_selection", "food_sightings", "source_reports"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -376,6 +408,8 @@ class Overlay:
                    source_reports=dict(data.get("source_reports", {})),
                    provision_trips=dict(data.get("provision_trips", {})),
                    food_expected=dict(data.get("food_expected", {})),
+                   contribution_memory=dict(data.get("contribution_memory", {})),
+                   contribution_selection=dict(data.get("contribution_selection", {})),
                    fishing_cast=cells(data.get("fishing_cast", {})),
                    home_targets=cells(data.get("home_targets", {})),
                    home_settled=dict(data.get("home_settled", {})),

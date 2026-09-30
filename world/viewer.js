@@ -1249,6 +1249,7 @@
     else if (d) {
       h += `<div class="what">${esc(describeAction(p, k))}</div><div class="why">“${esc(d.reason || '')}”</div>`;
       if (d.helped_at !== undefined) h += `<button class="linkbtn" type="button" data-tick="${d.helped_at}">See the earlier gift at tick ${d.helped_at}</button>`;
+      if (d.contribution_tick !== undefined) h += `<button class="linkbtn" type="button" data-tick="${Number(d.contribution_tick)}">See the witnessed contribution at tick ${Number(d.contribution_tick)}</button>`;
       if (d.candidates && d.candidates.length) {
         h += '<div class="alts" title="What else was open to them this tick, as recorded">' + d.candidates.map(c => {
           const sc = d.scores && d.scores[c] ? `<span class="sc">${d.scores[c].join(',')}</span>` : '';
@@ -1264,7 +1265,18 @@
     const emptyMemory = (w.empty_sources || {})[p] || [];
     const provisionTrip = (w.provision_trips || {})[p];
     const expectedFood = (w.food_expected || {})[p];
-    if (expectedFood) h += `<div class="sec"><h4>Expecting food</h4><div>${personLink(expectedFood[0])} said they were getting food at tick ${expectedFood[1]}.</div><div class="hint">${Math.max(0, expectedFood[1] + C.food_expect_ticks - w.tick)} ticks before the expectation expires. Only a new optional cache trip is postponed; their own needs and helping still come first.</div></div>`;
+    if (expectedFood) {
+      const sel = (w.contribution_selection || {})[p];
+      let line = `${personLink(expectedFood[0])} said they were getting food at tick ${expectedFood[1]}.`;
+      if (sel && sel[2] === expectedFood[0] && sel[4] === expectedFood[1]) {
+        line = sel[3] && sel[0] === sel[2]
+          ? `Expecting ${personLink(sel[2])}'s food trip; saw ${personLink(sel[0])} contribute food at world tick ${Number(sel[1])}.`
+          : `Expecting ${personLink(sel[2])}'s food trip. Remembered ${personLink(sel[0])} contributing food at world tick ${Number(sel[1])}; that memory did not change the selected speaker.`;
+      }
+      h += `<div class="sec"><h4>Expecting food</h4><div>${line}</div><div class="hint">${Math.max(0, expectedFood[1] + C.food_expect_ticks - w.tick)} ticks before the expectation expires. Only a new optional cache trip is postponed; their own needs and helping still come first.</div></div>`;
+    }
+    const contributionMemory = (w.contribution_memory || {})[p];
+    if (contributionMemory) h += `<div class="sec"><h4>Remembered contribution</h4><div>Saw ${personLink(contributionMemory[0])} put food in the shared home cache at world tick ${Number(contributionMemory[1])}.</div><div class="hint">One witnessed deposit. It records that event, not a judgement of reliability. It prefers that person only when they are among the housemates heard announcing a food trip.</div></div>`;
     if (provisionTrip) h += '<div class="sec"><h4>Food for home</h4><div>' + (provisionTrip === 'gather' ? 'Gathering for a low shared cache' : 'Returning after collecting food') + '</div><div class="hint">Own needs and helping can interrupt this outing. Spare food is deposited after reaching home.</div></div>';
     if (emptyMemory.length) h += '<div class="sec"><h4>Empty food remembered</h4>' + emptyMemory.map(([sid, when]) => `<div>${esc(sid)}: empty at tick ${when}; ${Math.max(0, C.empty_source_ticks - ((w.tick || 0) - when))} ticks until forgotten without another sighting</div>`).join('') + '</div>';
     // needs

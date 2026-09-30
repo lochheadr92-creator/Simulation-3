@@ -1,5 +1,9 @@
 # Current state — volatile snapshot
 
+## Remembered contribution — 2026-09-29
+
+Local work on `codex/remembered-contribution`, based on `fe940ef`. The feature, its switch, and the seed 1–5 results are in [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md) and [the current slice](06_CURRENT_SLICE.md). The repair note below is the previous snapshot.
+
 ## Review repair — 2026-09-29
 
 The independent report on `81c10b7` is now supplied and signed FAIL,

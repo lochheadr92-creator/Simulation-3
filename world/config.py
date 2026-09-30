@@ -143,6 +143,7 @@ class WorldConfig:
     provisioning_on: bool = False  # make food trips for a low shared home cache
     knowledge_sharing_on: bool = False  # share firsthand empty-source sightings with adjacent housemates
     coordination_on: bool = False  # briefly trust a nearby housemate's announced food trip
+    remembered_contribution_on: bool = False  # prefer a housemate whose food deposit you saw when several announce
 
     def __post_init__(self) -> None:
         # Check every scalar integer, including inactive feature settings, before
@@ -158,6 +159,10 @@ class WorldConfig:
             "stores": type(self.stores_on) is bool,
             "provisioning": type(self.provisioning_on) is bool and (not self.provisioning_on or self.stores_on),
             "coordination": type(self.coordination_on) is bool and (not self.coordination_on or self.provisioning_on),
+            "remembered_contribution": (
+                type(self.remembered_contribution_on) is bool
+                and (not self.remembered_contribution_on or self.coordination_on)
+            ),
             "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
             "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
             "knowledge_sharing": type(self.knowledge_sharing_on) is bool and (not self.knowledge_sharing_on or self.source_memory_on),
@@ -397,6 +402,19 @@ class WorldConfig:
                 "seeing at least provision_low meals in one's home cache ends the expectation early. "
                 "Unseen events do not update it. Moving home or dying clears one's expectation; "
                 "births preserve existing listeners. There is no same-tick worker allocation.")
+        if self.remembered_contribution_on:
+            out["remembered_contribution"] = "on"
+            out["remembered_contribution_rule"] = (
+                "Remember the latest food deposit a resident saw a housemate make into their shared home cache. "
+                "Witnessing is the tick-start view, before anyone moves: the contributor is in sight at that cache "
+                "cell, and settlement accepted a positive food deposit into the cache. A refused or empty deposit, "
+                "a later look at the stock, and another household's cache leave no memory. Keep one contributor and "
+                "the completed contribution tick. A newer tick replaces it. The same tick keeps the lower actor id. "
+                "Moving home clears the memory. Newborns start without one. A distant move or death is not reported. "
+                "When several eligible housemates announce food trips on the same tick, prefer the remembered "
+                "contributor if they are one of those speakers. Otherwise keep the lowest actor id. One speaker is "
+                "unchanged. The memory does not lengthen the wait or postpone hunger, thirst, warmth or caregiving. "
+                "An expired announcement is not a failed contribution.")
         if self.provisioning_on:
             out["provisioning"] = "on"
             out["provision_low"] = STORE_LOW
@@ -679,6 +697,9 @@ class WorldConfig:
         coordination = described.get("coordination", "off")
         if not isinstance(coordination, str) or coordination not in switches:
             raise ValueError("coordination must be on or off")
+        remembered_contribution = described.get("remembered_contribution", "off")
+        if not isinstance(remembered_contribution, str) or remembered_contribution not in switches:
+            raise ValueError("remembered_contribution must be on or off")
         if not isinstance(provisioning, str) or provisioning not in switches:
             raise ValueError("provisioning must be on or off")
         homes = described.get("homes", "off")
@@ -746,6 +767,7 @@ class WorldConfig:
                      stores_on=switches[stores],
                      provisioning_on=switches[provisioning],
                      coordination_on=switches[coordination],
+                     remembered_contribution_on=switches[remembered_contribution],
                      homes_on=switches[homes],
                      relocation_on=switches[relocation],
                      wood_on=switches[wood], fishing_on=switches[fishing],

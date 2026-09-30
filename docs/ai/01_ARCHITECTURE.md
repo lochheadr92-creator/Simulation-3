@@ -9,6 +9,7 @@
 - Authority: [AGENTS.md](../../AGENTS.md) wins over this pack; [WORLD_DIRECTIONS.md](../../WORLD_DIRECTIONS.md) supplies current development direction.
 - Evidence source: kernel/, stream/, world/ and viewer source; dependency tests.
 - Refresh trigger: after architectural or state-ownership boundary changes.
+- 2026-09-29 addition: the coordination row and the default-switch sentence now mention remembered contribution, checked against local `codex/remembered-contribution` based on `fe940ef`. The rest of this snapshot was not re-audited.
 
 ## Product and layers
 
@@ -86,9 +87,9 @@ Need arbitration considers time remaining to lethal levels, with current caregiv
 | Fishing | Optional bank location with finite stock, a cast then a later catch; fish become ordinary food. |
 | Source memory | Optional dated empty-source memory influences later food destinations; fresh local sightings and expiry update it. |
 | Stores/provisioning | Optional shared food caches and trips to natural food sources, followed by return and ordinary deposit. Trips can be interrupted or return without surplus. |
-| Coordination | Optional departure announcements to visible housemates. Listeners temporarily postpone optional trips; needs/helping retain priority. Speech is not a worker assignment or delivery guarantee. |
+| Coordination | Optional departure announcements to visible housemates. Listeners temporarily postpone optional trips; needs/helping retain priority. Speech is not a worker assignment or delivery guarantee. Optional remembered contribution keeps one witnessed home-cache deposit and, when several housemates announce in the same tick, prefers that contributor if they are already eligible. |
 
-Defaults in WorldConfig enable water, warmth, terrain/routing, construction, offers, social memory, births and childhood. Requests, ecology switches, stores, adult homes, relocation, wood, fishing, source memory, provisioning and coordination are off; birth spacing is zero. Coordination requires provisioning, which requires stores; homes requires childhood, relocation requires homes, and wood requires building. Config validation is authoritative for combinations.
+Defaults in WorldConfig enable water, warmth, terrain/routing, construction, offers, social memory, births and childhood. Requests, ecology switches, stores, adult homes, relocation, wood, fishing, source memory, provisioning, coordination and remembered contribution are off; birth spacing is zero. Coordination requires provisioning, which requires stores. Remembered contribution requires coordination. Homes requires childhood, relocation requires homes, and wood requires building. Config validation is authoritative for combinations.
 
 See [system map](03_SYSTEM_MAP.md) for code and tests, and [roadmap](07_ROADMAP.md) for suggestions that are not implemented commitments.
 

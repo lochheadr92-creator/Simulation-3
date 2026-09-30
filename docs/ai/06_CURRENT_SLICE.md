@@ -1,4 +1,14 @@
-# Current slice — sharing firsthand food sightings
+# Current slice — remembered household contributions
+
+Checked 2026-09-29 on branch `codex/remembered-contribution`, based on `fe940ef`. Local implementation, not committed in this note. The switch `remembered_contribution_on` is off unless set. It requires coordination.
+
+A resident remembers the latest food deposit they saw a housemate make into their shared home cache. Witnessing is the tick-start observation plus an accepted positive food deposit. The memory is one contributor and one world tick. It is used only when several eligible food-trip announcements arrive in the same tick, and only to prefer that contributor over the lowest actor id. One speaker, an ineligible person, and the case where the lowest id is already the remembered person do not claim a changed choice. Moving home clears the observer's memory. Newborns have none. The wait length and need priorities are unchanged.
+
+The controlled scene and seeds 1–5 at 800 ticks are recorded in [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md). The five ordinary runs recorded witnessed deposits and no competing announcements, so they did not show a changed speaker. The controlled scene does. This is implementation verification, not an independent review.
+
+The sections below are the previous sharing and travel notes.
+
+# Previous slice — sharing firsthand food sightings
 
 ## Review repair — 2026-09-29
 

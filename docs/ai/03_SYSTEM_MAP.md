@@ -9,6 +9,7 @@
 - Authority: [AGENTS.md](../../AGENTS.md) wins over this pack; [WORLD_DIRECTIONS.md](../../WORLD_DIRECTIONS.md) supplies current development direction.
 - Evidence source: listed source entry points and test files.
 - Refresh trigger: after significant module/file movement or subsystem changes.
+- 2026-09-29 addition: remembered-contribution row, checked against local `codex/remembered-contribution` based on `fe940ef`. The rest of this map was not re-audited.
 
 Use this after [current state](05_CURRENT_STATE.md). Paths are relative links to this checkout. Test links identify where to inspect verification, not executed results. Shared context: [architecture](01_ARCHITECTURE.md), [invariants](02_INVARIANTS.md), and [WORLD_DIRECTIONS](../../WORLD_DIRECTIONS.md).
 
@@ -29,6 +30,7 @@ Use this after [current state](05_CURRENT_STATE.md). Paths are relative links to
 | Shared caches and provisioning | [storage](../../world/storage.py): spare_for_store, start_provisioning, update_provisioning; decide: _provision_decision | Ledger deposits/claims, need interruptions, natural sources | [stores](../../tests/test_stores.py), [provisioning](../../tests/test_provisioning.py) |
 | Firsthand source reports (local update 2026-09-28) | [foraging](../../world/foraging.py): remember_sightings, usable_reports, update_reports; observe/decide/process/overlay | Adjacent housemates, provenance, expiry, personal/provisioning destinations, saved viewer reasons | [knowledge sharing](../../tests/test_knowledge_sharing.py) |
 | Household announcements | storage: food_expectation, update_food_expectations; observation/decision fields | Local hearing after choices, optional trip postponement | [coordination](../../tests/test_coordination.py) |
+| Remembered contribution | storage: remember_contributions, prefer_contribution; overlay contribution_memory and contribution_selection | Tick-start sight of an accepted home-cache deposit; preference only among competing announcements | [remembered contribution](../../tests/test_remembered_contribution.py) |
 | Run, read, replay, recover | run: world_step/run_world; [run_file](../../stream/run_file.py): RunWriter/read_run; [world replay](../../world/replay.py); [world recovery](../../world/recover.py) | Full causal record, canonical state, sealed prefixes | [replay](../../tests/test_replay.py), [recovery](../../tests/test_recovery.py), [damaged suffix](../../tests/test_damaged_suffix.py) |
 | Watch and inspect | [world viewer](../../world/viewer.py), [index](../../world/viewer_index.py), [JS](../../world/viewer.js), [CSS](../../world/viewer.css) | Saved run only; people/events/history/inspector | [map viewer](../../tests/test_map_viewer.py), feature viewer assertions |
 | Cost and isolation | [world bench](../../world/bench.py), [stream bench](../../stream/bench.py), kernel boundaries | Specific workload timing/memory and instance safety | [world bench tests](../../tests/test_world_bench.py), [bench tests](../../tests/test_bench.py), [dependency direction](../../tests/test_dependency_direction.py) |

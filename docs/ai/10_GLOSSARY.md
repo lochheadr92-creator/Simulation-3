@@ -9,6 +9,7 @@
 - Authority: [AGENTS.md](../../AGENTS.md) wins over this pack; [WORLD_DIRECTIONS.md](../../WORLD_DIRECTIONS.md) supplies current development direction.
 - Evidence source: source types/functions and current feature descriptions.
 - Refresh trigger: when project terminology changes.
+- 2026-09-29 addition: remembered contribution, checked against local `codex/remembered-contribution` based on `fe940ef`. The other rows were not re-audited.
 
 Definitions describe this revision. Follow [system map](03_SYSTEM_MAP.md) for implementation; [architecture](01_ARCHITECTURE.md) explains relationships.
 
@@ -37,6 +38,7 @@ Definitions describe this revision. Follow [system map](03_SYSTEM_MAP.md) for im
 | Shelter memory | Retained potential housing locations; unseen vacancies can be stale. |
 | Provisioning | Gathering for a low home cache, followed by a return phase. A started outing does not guarantee surplus. |
 | Food expectation | Listener's remembered household announcement, temporarily delaying an optional trip. Not a reservation, assigned job or guaranteed delivery. |
+| Remembered contribution | One witnessed deposit into the observer's shared home cache: contributor and world tick. Used only to choose among competing food-trip announcements. Not a reliability score. |
 | Cast / catch | Separate fishing steps; a catch claims ordinary food, which can be eaten later. |
 | Shared cache | Kernel food source representing stored food at a home. No automatic growth. |
 | Need slack | Remaining ticks to a lethal level at the configured rise rate, used in need arbitration. |

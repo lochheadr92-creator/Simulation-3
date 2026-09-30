@@ -313,8 +313,35 @@ def build_index(run: Any) -> dict[str, Any]:
                     who=actor, other=listener)
             waiting_for = decision.get("waiting_for_food")
             if waiting_for and (earlier.get(actor) or {}).get("waiting_for_food") != waiting_for:
-                add(k, "food", "food_expected_wait", f"{actor} postponed a cache trip, expecting food from {waiting_for}",
-                    who=actor, other=waiting_for)
+                if decision.get("contribution_changed") and decision.get("remembered_contributor") == waiting_for:
+                    wait_text = (f"{actor} postponed a cache trip, expecting {waiting_for}'s food trip; "
+                                 f"saw {waiting_for} contribute food at world tick {decision.get('contribution_tick')}")
+                elif "contribution_tick" in decision and not decision.get("contribution_changed"):
+                    wait_text = (f"{actor} postponed a cache trip, expecting food from {waiting_for}; "
+                                 f"remembered {decision.get('remembered_contributor')} contributing food at world tick "
+                                 f"{decision.get('contribution_tick')}, which did not change the selected speaker")
+                else:
+                    wait_text = f"{actor} postponed a cache trip, expecting food from {waiting_for}"
+                add(k, "food", "food_expected_wait", wait_text, who=actor, other=waiting_for)
+            old_memory = before.get("contribution_memory", {}).get(actor)
+            new_memory = world.get("contribution_memory", {}).get(actor)
+            if new_memory and new_memory != old_memory:
+                add(k, "food", "contribution_witnessed",
+                    f"{actor} saw {new_memory[0]} contribute food at world tick {new_memory[1]}",
+                    who=actor, other=new_memory[0], seen_at=new_memory[1])
+            new_choice = world.get("contribution_selection", {}).get(actor)
+            old_choice = before.get("contribution_selection", {}).get(actor)
+            if new_choice and new_choice != old_choice:
+                contributor, when, selected, changed = new_choice[0], new_choice[1], new_choice[2], new_choice[3]
+                if changed and contributor == selected:
+                    add(k, "food", "contribution_choice",
+                        f"{actor} expects {selected}'s food trip; saw {selected} contribute food at world tick {when}",
+                        who=actor, other=selected, seen_at=when)
+                else:
+                    add(k, "food", "contribution_memory_present",
+                        f"{actor} remembered {contributor} contributing food at world tick {when}; "
+                        f"the usual speaker order still selected {selected}",
+                        who=actor, other=selected, seen_at=when)
             if memory_view.get("food_expectation_end"):
                 speaker = before.get("food_expected", {}).get(actor, [None])[0]
                 add(k, "food", "food_expectation_end",

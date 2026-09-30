@@ -158,7 +158,8 @@ def test_expectations_are_immutable_preserved_by_births_and_cleared_by_listener_
     away = replace(world, positions=dict(world.positions,p01=(home[0]+1,home[1])))
     view = observe("p02",replace(ledger,tick=1),away,cfg)
     for current in (replace(away,homes=dict(away.homes,p02=(0,0))), replace(away,died_at={"p02":1})):
-        assert not update_food_expectations(away,current,{}, {"p02":view})
+        expectations, selections = update_food_expectations(away, current, {}, {"p02": view})
+        assert not expectations and not selections
 
 
 def test_headers_cli_and_default_compatibility():

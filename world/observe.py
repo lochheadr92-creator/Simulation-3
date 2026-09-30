@@ -153,6 +153,8 @@ class Observation:
     housemates_in_view: tuple[str, ...] = ()
     food_expected: tuple[str, int] | None = None
     food_expectation_end: str | None = None
+    contribution_memory: tuple[str, int] | None = None
+    contribution_selection: tuple[str, int, str, int, int] | None = None
 
     @property
     def at_source(self) -> bool:
@@ -183,6 +185,10 @@ class Observation:
             out["food_expected"] = list(self.food_expected)
         if self.food_expectation_end is not None:
             out["food_expectation_end"] = self.food_expectation_end
+        if self.contribution_memory is not None:
+            out["contribution_memory"] = list(self.contribution_memory)
+        if self.contribution_selection is not None:
+            out["contribution_selection"] = list(self.contribution_selection)
         if self.housemates_in_view:
             out["housemates_in_view"] = list(self.housemates_in_view)
         if self.provision_phase is not None:
@@ -324,6 +330,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
             if config.coordination_on else (),
         food_expected=expected,
         food_expectation_end=expectation_end,
+        contribution_memory=overlay.contribution_memory.get(actor) if config.remembered_contribution_on else None,
+        contribution_selection=overlay.contribution_selection.get(actor) if config.remembered_contribution_on else None,
         provision_phase=overlay.provision_trips.get(actor) if config.provisioning_on else None,
         provision_source=provision_source,
         provision_avoided=provision_avoided,

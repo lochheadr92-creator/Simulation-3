@@ -106,6 +106,9 @@ class Decision:
     provisioning: str | None = None
     announced_to: tuple[str, ...] = ()
     waiting_for_food: str | None = None
+    remembered_contributor: str | None = None
+    contribution_tick: int | None = None
+    contribution_changed: int | None = None
     source_report: tuple[str, int] | None = None
     report_to: tuple[str, ...] = ()
 
@@ -132,6 +135,10 @@ class Decision:
             out["report_to"] = list(self.report_to)
         if self.waiting_for_food is not None:
             out["waiting_for_food"] = self.waiting_for_food
+        if self.contribution_tick is not None:
+            out["remembered_contributor"] = self.remembered_contributor
+            out["contribution_tick"] = self.contribution_tick
+            out["contribution_changed"] = self.contribution_changed
         return out
 
 
@@ -514,9 +521,23 @@ def _provision_decision(observation: Observation, config: WorldConfig, choice: D
                         choice.candidates + (WARM,),
                         scores=choice.scores + ((WARM, (0, 1)),) if choice.scores is not None else None)
     if phase is None and config.coordination_on and observation.food_expected is not None:
-        speaker, heard = observation.food_expected
-        return replace(choice, waiting_for_food=speaker,
-                       reason=f"{speaker} said they were getting food at tick {heard}; postponing my cache trip")
+        speaker, heard = observation.food_expected[0], observation.food_expected[1]
+        reason = f"{speaker} said they were getting food at tick {heard}; postponing my cache trip"
+        remembered_contributor = contribution_tick = contribution_changed = None
+        selection = observation.contribution_selection
+        if selection is not None and selection[2] == speaker and selection[4] == heard:
+            remembered_contributor, contribution_tick, contribution_changed = selection[0], selection[1], selection[3]
+            if contribution_changed and remembered_contributor == speaker:
+                reason = (f"Expecting {speaker}'s food trip; saw {speaker} contribute food "
+                          f"at world tick {contribution_tick}")
+            else:
+                reason = (f"Expecting {speaker}'s food trip; remembered {remembered_contributor} "
+                          f"contributing food at world tick {contribution_tick}, which did not "
+                          f"change the selected speaker")
+        return replace(choice, waiting_for_food=speaker, reason=reason,
+                       remembered_contributor=remembered_contributor,
+                       contribution_tick=contribution_tick,
+                       contribution_changed=contribution_changed)
     phase = phase or "gather"
     sid, site, stock = observation.provision_source
     if phase == "return":
