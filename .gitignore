@@ -21,3 +21,8 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# generated evidence and platform scratch (never delivery)
+.emergent/phase*/
+.emergent/*.log
+.emergent/cron/
