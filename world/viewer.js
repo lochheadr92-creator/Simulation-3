@@ -923,10 +923,10 @@
       } else if (e.kind === 'unanswered') {
         g.save(); g.setLineDash([1.5, 4]); g.strokeStyle = `rgba(200,200,190,${(0.7 * (1 - 0.5 * t)).toFixed(3)})`; g.lineWidth = 1.2; arc(g, a, b, lift); g.stroke(); g.restore();
         bubble(g, a.x + 9, a.y - 10, '…', 'rgba(210,210,200,0.9)', '#2a2a24');
-      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'fed_child') {
+      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'gave_water' || e.kind === 'fed_child') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(241,197,110,0.45)'; g.lineWidth = 1.2; g.stroke();
         const u = REDUCED ? 1 : t, q = along(a, b, m, u);
-        g.fillStyle = '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
+        g.fillStyle = e.kind === 'gave_water' ? '#7fb3d9' : '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
         if (u > 0.85) { g.fillStyle = '#ffe3a3'; g.font = '700 8px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('+1', b.x, b.y - 12 - 6 * (u - 0.85) / 0.15); }
       } else if (e.kind === 'refused') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(255,148,131,0.6)'; g.lineWidth = 1.2; g.stroke();
@@ -1564,7 +1564,7 @@
     for (const e of EVENTS) {
       if (e.kind === 'death') { g.fillStyle = 'rgba(255,148,131,0.9)'; g.fillRect(xs(e.k) - 0.5, H2 - 7, 1.5, 6); }
       else if (e.kind === 'birth') { g.fillStyle = 'rgba(159,220,170,0.95)'; g.fillRect(xs(e.k) - 0.5, 1, 1.5, 6); }
-      else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'agree' || e.kind === 'fed_child') { g.fillStyle = 'rgba(241,197,110,0.95)'; g.beginPath(); g.arc(xs(e.k), H2 / 2, 1.6, 0, Math.PI * 2); g.fill(); }
+      else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'gave_water' || e.kind === 'agree' || e.kind === 'fed_child') { g.fillStyle = 'rgba(241,197,110,0.95)'; g.beginPath(); g.arc(xs(e.k), H2 / 2, 1.6, 0, Math.PI * 2); g.fill(); }
     }
   }
 

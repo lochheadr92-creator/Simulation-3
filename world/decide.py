@@ -34,6 +34,12 @@ Priority, highest first:
   offer  no need calling, holding a spare unit, and somebody visibly
          starving is alongside: hand them one unit through the kernel
   go_offer  the same, but they are further off: one step towards them
+  Water care (water_care_on, off by default): a parent with nothing of their own
+         calling who holds water and sees their dependent child in a visible
+         thirst emergency hands over one unit; a parent who holds none and has
+         a dependent child whose home is further from water than child_leash
+         walks to water and draws, then brings it home. A child born out of
+         reach of water cannot fetch it, and nobody else notices them.
   build  no need calling, at home, no shelter there yet: spend the tick
          putting one up. It is permanent, and it slows hunger and thirst
          for whoever stands on it afterwards
@@ -68,7 +74,7 @@ from heapq import heappop, heappush
 from math import inf as INF
 from typing import Any
 
-from world.config import WorldConfig
+from world.config import WATER, WorldConfig
 from world.observe import Observation
 from world.overlay import Position
 from world.storage import spare_for_store, store_id, start_provisioning
@@ -108,6 +114,7 @@ class Decision:
     waiting_for_food: str | None = None
     source_report: tuple[str, int] | None = None
     report_to: tuple[str, ...] = ()
+    resource: str | None = None          # what an offer hands over; None means food
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -132,6 +139,8 @@ class Decision:
             out["report_to"] = list(self.report_to)
         if self.waiting_for_food is not None:
             out["waiting_for_food"] = self.waiting_for_food
+        if self.resource is not None:
+            out["resource"] = self.resource
         return out
 
 
@@ -612,6 +621,10 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
     water = water_candidates(observation, config)
     warmth = warmth_candidates(observation, config)
     every = food + water + warmth
+    if config.water_care_on:
+        care = _water_care(observation, config, food, water)
+        if care is not None:
+            return replace(care, candidates=every + ((care.kind,) if care.kind not in every else ()))
     # Finish a handoff already within reach before heading home early. This
     # buys no extra walking time and never postpones an active need or a
     # water trip. The usual food choice still owns the recipient and transfer.
@@ -695,6 +708,76 @@ def _water_decision(observation: Observation, config: WorldConfig, selected: str
               else f"leaving in time for water: thirst {observation.thirst}, {steps_to(observation.position, well)} "
                    f"steps, none held")
     return Decision(actor, GO_WATER, reason, (), step=route_step(observation, well, config), target=target)
+
+
+def stranded_from_water(observation: Observation, config: WorldConfig) -> bool:
+    """A dependent child lives at this person's home and the home is further
+    from every water source than a child will go. Derived from the home and
+    the map only; it does not reveal how thirsty the child is or where."""
+    return (bool(observation.dependents) and bool(config.water_positions())
+            and min(steps_to(observation.home, well) for well in config.water_positions()) > config.child_leash)
+
+
+CARE_MARGIN = 2   # ticks a parent keeps in hand when putting a child's thirst before their own needs
+
+
+def own_slack(observation: Observation, config: WorldConfig) -> int | float:
+    """Ticks before the nearest of this person's own lethal levels arrives."""
+    levels = [slack(observation.thirst, config.thirst_death_at, config.thirst_rate),
+              slack(observation.hunger, config.death_at, config.hunger_rate)]
+    if config.warmth_on:
+        levels.append(slack(observation.cold, config.cold_death_at, config.cold_rate))
+    return min(levels)
+
+
+def _water_care(observation: Observation, config: WorldConfig, food: tuple[str, ...],
+                water: tuple[str, ...]) -> Decision | None:
+    """Parents bringing water to a child who cannot fetch it. A parent puts this
+    ahead of their own needs only while those leave enough ticks in hand for
+    the walk and CARE_MARGIN to spare. Returns None when neither part applies,
+    and the usual rules decide.
+
+    Hand over: holding water, with a dependent child in view who is visibly
+    parched, or who is out of reach of water and holds none. Parched children
+    first, then distance and id.
+    Fetch: holding none, a dependent child out of reach of water, nothing of
+    their own calling for food or water, and no food handoff under way."""
+    actor = observation.actor
+    if not observation.alive or observation.water_source is None:
+        return None
+    stranded = stranded_from_water(observation, config)
+    slack_left = own_slack(observation, config)
+    if observation.water >= 1:
+        wanting = [seen for seen in observation.others if seen.actor in observation.dependents
+                   and (seen.parched or (stranded and seen.water == 0))]
+        if wanting:
+            seen = min(wanting, key=lambda s: (not s.parched, steps_to(observation.position, s.position), s.actor))
+            away = steps_to(observation.position, seen.position)
+            why = "visibly parched" if seen.parched else "out of reach of water and holding none"
+            if slack_left > away + CARE_MARGIN:
+                if away <= 1:
+                    return Decision(actor, OFFER, f"{seen.actor} is my child, {why}; "
+                                    f"handing over one of {observation.water} water", (), amount=1,
+                                    target=seen.actor, resource=WATER)
+                return Decision(actor, GO_OFFER, f"{seen.actor} is my child, {why}, {away} steps away; "
+                                "carrying water to them", (), step=route_step(observation, seen.position, config),
+                                target=seen.actor, resource=WATER)
+    well = observation.water_source
+    if (observation.water == 0 and stranded and not water and all(action in IDLE for action in food)
+            and OFFER not in food and GO_OFFER not in food
+            and slack_left > 2 * steps_to(observation.position, well) + CARE_MARGIN):
+        target = observation.water_source_id if len(config.water_source_ids()) > 1 else None
+        if observation.position == well:
+            stock = observation.water_stock
+            if stock is None:
+                raise AssertionError(f"{actor} is at the water but did not observe its stock")
+            if stock < 1:
+                return None
+            return Decision(actor, DRAW, f"my child cannot reach water; drawing {min(config.draw_amount, stock)} "
+                            "to take home", (), amount=min(config.draw_amount, stock), target=target)
+        return Decision(actor, GO_WATER, f"my child cannot reach water; walking {steps_to(observation.position, well)} "
+                        "steps to bring some home", (), step=route_step(observation, well, config), target=target)
+    return None
 
 
 def _decide_food(observation: Observation, config: WorldConfig) -> Decision:

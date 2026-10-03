@@ -397,6 +397,15 @@ def build_index(run: Any) -> dict[str, Any]:
                 verb = "ate" if kind == "eat" else "drank"
                 change = f" ({need} {was} → {now})" if was is not None and now is not None else ""
                 add(k, "food" if kind == "eat" else "water", kind, f"{actor} {verb}{change}", who=actor)
+            elif kind == "offer" and target and outcome is not None and decision.get("resource") == "water":
+                child = actor in (parent_of.get(target), second_parent_of.get(target))
+                who_ = f"their child {target}" if child else target
+                if outcome.get("accepted"):
+                    add(k, "water", "gave_water", f"{actor} handed {who_} a unit of water", who=actor, other=target)
+                else:
+                    add(k, "water", "refused_water",
+                        f"{actor} tried to hand {who_} water, but it was refused: "
+                        f"{_plain_refusal(outcome.get('reason', ''))}", who=actor, other=target)
             elif kind == "offer" and target and outcome is not None:
                 dependent = (actor in (parent_of.get(target), second_parent_of.get(target)) and adult_at is not None
                              and before.get("age", {}).get(target, adult_at) < adult_at)
@@ -428,7 +437,10 @@ def build_index(run: Any) -> dict[str, Any]:
                             thread.update(end="refused", ended=k)
             was = earlier.get(actor) or {}
             if kind == "go_offer" and target and not (was.get("kind") == "go_offer" and was.get("target") == target):
-                if promises_before.get(actor) == target:
+                if decision.get("resource") == "water":
+                    add(k, "water", "set_out", f"{actor} set off with water for their child {target}",
+                        who=actor, other=target)
+                elif promises_before.get(actor) == target:
                     add(k, "help", "set_out", f"{actor} set off with food for {target}", who=actor, other=target)
                 elif actor in (parent_of.get(target), second_parent_of.get(target)):
                     add(k, "help", "set_out", f"{actor} set off with food for their child {target}",

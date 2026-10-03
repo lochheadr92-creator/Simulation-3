@@ -79,6 +79,7 @@ class SeenPerson:
     food: int                 # free units at tick start, as the kernel reports them
     starving: bool = False    # visibly in a hunger emergency
     parched: bool = False     # visibly in a thirst emergency
+    water: int | None = None  # free water units; filled in only when water care is on
 
     @property
     def in_distress(self) -> bool:
@@ -90,6 +91,8 @@ class SeenPerson:
             out["starving"] = 1
         if self.parched:
             out["parched"] = 1
+        if self.water:
+            out["water"] = self.water
         return out
 
 
@@ -250,7 +253,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     others = tuple(
         SeenPerson(other, overlay.positions[other], available[actor_account(other)],
                    starving=overlay.hunger[other] >= config.emergency_at,
-                   parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at)
+                   parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at,
+                   water=available[actor_account(other, WATER)] if config.water_care_on else None)
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )

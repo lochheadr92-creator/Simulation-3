@@ -132,6 +132,7 @@ class WorldConfig:
     childhood_on: bool = True     # the newly born are children for a while (2026-09-28)
     shared_care_on: bool = False  # record both birth parents and give both the existing caregiving role
     care_by_need_on: bool = False  # prefer visibly starving children among empty-handed dependents
+    water_care_on: bool = False   # parents bring water to dependent children who cannot reach it themselves
     adult_at: int = 60            # ticks lived before a child is grown
     child_leash: int = 5          # how far from home a child will go for food or water
     cold_rate: int = 1            # cold added per tick spent away from shelter
@@ -169,6 +170,7 @@ class WorldConfig:
             "homes": type(self.homes_on) is bool and (not self.homes_on or self.childhood_on),
             "shared_care": not self.shared_care_on or self.childhood_on,
             "care_by_need": not self.care_by_need_on or self.childhood_on,
+            "water_care": not self.water_care_on or (self.childhood_on and self.water_on),
             "relocation": type(self.relocation_on) is bool and (not self.relocation_on or self.homes_on),
             "knowledge_sharing": type(self.knowledge_sharing_on) is bool and (not self.knowledge_sharing_on or self.source_memory_on),
             "source_memory": type(self.source_memory_on) is bool,
@@ -572,6 +574,13 @@ class WorldConfig:
                                 "in a hunger emergency, then distance and id. Exact hunger is private. "
                                 "Personal needs and the existing nearby-handoff exception retain priority; "
                                 "parents choose separately, without reserving recipients")
+        if self.water_care_on:
+            out["water_care"] = "on"
+            out["decision"] += ("; a parent with no need calling who has a living dependent child whose home is "
+                                "further from water than child_leash, and holds no water, walks to water and draws "
+                                "for them. A parent holding water who sees their dependent child in a visible "
+                                "thirst emergency hands over one unit through the kernel. Personal needs keep "
+                                "priority; parents do not learn an absent child's thirst or position")
         if self.shared_care_on:
             out["shared_care"] = "on"
             out["decision"] += ("; record both adults in each birth as parents. Both have the existing "
@@ -683,6 +692,9 @@ class WorldConfig:
         care_by_need = described.get("care_by_need", "off")
         if not isinstance(care_by_need, str) or care_by_need not in switches:
             raise ValueError("care_by_need must be 'on' or 'off'")
+        water_care = described.get("water_care", "off")
+        if not isinstance(water_care, str) or water_care not in switches:
+            raise ValueError("water_care must be 'on' or 'off'")
         if switches[childhood]:
             for name in ("adult_at", "child_leash"):
                 value = described.get(name)
@@ -786,7 +798,8 @@ class WorldConfig:
                      births_on=switches[births], requests_on=switches[requests],
                      adjacent_requests=request_range == "adjacent",
                      childhood_on=switches[childhood], shared_care_on=switches[shared_care],
-                     care_by_need_on=switches[care_by_need], **need_values, **counts)
+                     care_by_need_on=switches[care_by_need],
+                     water_care_on=switches[water_care], **need_values, **counts)
         if config.describe() != dict(described):
             raise ValueError("the world description does not round-trip exactly")
         return config

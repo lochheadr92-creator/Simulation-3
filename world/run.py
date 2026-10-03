@@ -67,6 +67,8 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-shared-care"
     if config.care_by_need_on:
         mode += "-care-by-need"
+    if config.water_care_on:
+        mode += "-water-care"
     return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
 
 
@@ -80,7 +82,8 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
         elif decision.kind == CLAIM:
             out.append(claim(pid, actor, 0, sources={decision.target or FOOD_SOURCE: decision.amount}))
         elif decision.kind == OFFER:
-            out.append(transfer(pid, actor, 0, to=decision.target, amount=decision.amount))
+            out.append(transfer(pid, actor, 0, to=decision.target, amount=decision.amount,
+                                resource=decision.resource))
         elif decision.kind == DEPOSIT:
             out.append(deposit(pid, actor, 0, source=decision.target, amount=decision.amount))
         elif decision.kind == DRINK:
@@ -209,6 +212,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="both birth parents use the existing caregiving rule (requires childhood; default off)")
     parser.add_argument("--care-by-need", choices=("on", "off"), default="off",
                         help="prefer visibly starving children when choosing whom to feed (requires childhood; default off)")
+    parser.add_argument("--water-care", choices=("on", "off"), default="off",
+                        help="parents bring water to dependent children who cannot reach it themselves (requires childhood and water; default off)")
     parser.add_argument("--offers", choices=("on", "off"), default="on",
                         help="carry a spare unit of food to somebody visibly starving nearby (default on)")
     parser.add_argument("--social-memory", choices=("on", "off"), default="on",
@@ -313,6 +318,7 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     levers["childhood_on"] = args.childhood == "on"
     levers["shared_care_on"] = args.shared_care == "on"
     levers["care_by_need_on"] = args.care_by_need == "on"
+    levers["water_care_on"] = args.water_care == "on"
     requests = args.requests if args.requests is not None else "off"
     levers["requests_on"] = requests != "off"
     levers["adjacent_requests"] = requests == "adjacent"
