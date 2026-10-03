@@ -1,0 +1,43 @@
+Sat Oct  3 19:20:53 2026    C:\Users\RJLoc\OneDrive\Desktop\Documents\ChatGPT\Simulation 3 - Living World Engineer\work\consolidation-019503c\housing-profile.pstats
+
+         454767102 function calls (359716469 primitive calls) in 75.049 seconds
+
+   Ordered by: cumulative time
+   List reduced from 3100 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    557/1    0.018    0.000   75.388   75.388 {built-in method builtins.exec}
+        1    0.000    0.000   75.387   75.387 <frozen runpy>:201(run_module)
+        1    0.000    0.000   75.041   75.041 <frozen runpy>:65(_run_code)
+        1    0.000    0.000   75.040   75.040 __main__.py:1(<module>)
+        1    0.000    0.000   75.040   75.040 __init__.py:246(_console_main)
+        1    0.000    0.000   75.040   75.040 __init__.py:204(_main)
+   472/66    0.000    0.000   74.958    1.136 _manager.py:111(_hookexec)
+   472/66    0.001    0.000   74.958    1.136 _callers.py:76(_multicall)
+    317/2    0.000    0.000   74.956   37.478 _hooks.py:497(__call__)
+        1    0.000    0.000   74.915   74.915 main.py:376(pytest_cmdline_main)
+        1    0.000    0.000   74.915   74.915 main.py:317(wrap_session)
+        1    0.000    0.000   74.883   74.883 main.py:380(_main)
+      7/4    0.000    0.000   74.881   18.720 runner.py:340(from_call)
+        1    0.000    0.000   74.661   74.661 main.py:397(pytest_runtestloop)
+        1    0.000    0.000   74.660   74.660 runner.py:115(pytest_runtest_protocol)
+        1    0.000    0.000   74.660   74.660 runner.py:123(runtestprotocol)
+        3    0.000    0.000   74.660   24.887 runner.py:236(call_and_report)
+        3    0.000    0.000   74.660   24.887 runner.py:250(<lambda>)
+        1    0.000    0.000   74.656   74.656 runner.py:173(pytest_runtest_call)
+        1    0.000    0.000   74.656   74.656 python.py:1705(runtest)
+        1    0.015    0.015   74.656   74.656 python.py:160(pytest_pyfunc_call)
+        1    0.058    0.058   74.641   74.641 test_housing.py:208(test_saved_housing_replays_recovers_and_viewer_follows_new_homes)
+    29047    0.147    0.000   50.388    0.002 canonical.py:71(canonical_bytes)
+32334136/29047    9.953    0.000   34.603    0.001 canonical.py:55(_encode)
+18343728/43132    4.448    0.000   34.550    0.001 {method 'join' of 'str' objects}
+8205146/303503    2.481    0.000   34.479    0.000 canonical.py:65(<genexpr>)
+        2    0.000    0.000   32.366   16.183 replay.py:28(replay_world)
+    24080    0.021    0.000   30.068    0.001 canonical.py:75(digest)
+     1722    0.071    0.000   24.888    0.014 run.py:135(world_step)
+        2    0.016    0.008   22.058   11.029 replay.py:77(compare)
+        2    0.035    0.018   21.508   10.754 run.py:150(run_world)
+        5    0.054    0.011   20.906    4.181 run_file.py:500(read_run)
+23326008/12339780    3.018    0.000   20.438    0.000 canonical.py:64(<genexpr>)
+     1002    0.005    0.000   16.601    0.017 run_file.py:368(record)
+25380510/31706    9.663    0.000   15.639    0.000 canonical.py:22(canonicalise)

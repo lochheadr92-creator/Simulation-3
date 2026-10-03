@@ -211,6 +211,7 @@ def test_scored_choices_record_the_selected_gathering_action():
     assert max(choice.scores, key=lambda item: item[1])[0] == choice.kind
 
 
+@pytest.mark.long_run
 def test_saved_outing_replays_recovers_and_is_visible(tmp_path):
     cfg = WorldConfig(seed=7, stores_on=True, homes_on=True, provisioning_on=True,
                       fishing_on=True, source_memory_on=True, regrowth_on=True,

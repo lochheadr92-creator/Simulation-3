@@ -135,6 +135,7 @@ def test_birth_preserves_both_patch_conditions():
     assert Overlay.from_canonical(after.canonical()).digest() == after.digest()
 
 
+@pytest.mark.long_run
 def test_saved_run_replays_recovers_and_viewer_uses_recorded_condition(tmp_path):
     path = tmp_path / "patches.jsonl"
     cfg = WorldConfig(seed=7, regrowth_on=True)

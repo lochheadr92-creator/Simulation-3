@@ -4,3 +4,5 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+markers = ["long_run: extended saved-world integration, replay, recovery and repeat checks; included in the default full suite"]

@@ -164,6 +164,7 @@ def test_state_config_and_cli_round_trip_without_changing_old_shapes():
     assert config_from(args).relocation_on
 
 
+@pytest.mark.long_run
 def test_recorded_move_repeats_and_recovers_mid_journey(tmp_path):
     cfg=WorldConfig(seed=7,homes_on=True,relocation_on=True,stores_on=True,seasons_on=True,
                     regrowth_on=True,source_stock=8,source_cap=16,renewal_amount=3)

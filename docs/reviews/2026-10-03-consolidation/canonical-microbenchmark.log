@@ -1,0 +1,27 @@
+{
+  "rounds": 5,
+  "encodes_each": 256,
+  "results": [
+    {
+      "tick": 100,
+      "bytes": 6821,
+      "old_ms_median_256": 114.37,
+      "new_ms_median_256": 42.49,
+      "ratio": 0.372
+    },
+    {
+      "tick": 200,
+      "bytes": 10976,
+      "old_ms_median_256": 179.89,
+      "new_ms_median_256": 67.08,
+      "ratio": 0.373
+    },
+    {
+      "tick": 399,
+      "bytes": 9123,
+      "old_ms_median_256": 180.14,
+      "new_ms_median_256": 69.38,
+      "ratio": 0.385
+    }
+  ]
+}

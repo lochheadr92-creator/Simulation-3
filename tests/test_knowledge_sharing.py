@@ -173,6 +173,7 @@ def test_cli_header_and_disabled_compatibility():
     with pytest.raises(ValueError): replace(cfg,source_memory_on=False)
 
 
+@pytest.mark.long_run
 def test_saved_reports_replay_recovery_and_viewer(tmp_path):
     cfg=WorldConfig(seed=23, source_memory_on=True,knowledge_sharing_on=True,
                     stores_on=True,homes_on=True,provisioning_on=True,coordination_on=True,

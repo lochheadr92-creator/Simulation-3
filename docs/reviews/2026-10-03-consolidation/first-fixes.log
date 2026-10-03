@@ -1,0 +1,19 @@
+........................................................................ [ 15%]
+........................................................................ [ 31%]
+........................................................................ [ 47%]
+........................................................................ [ 63%]
+........................................................................ [ 79%]
+........................................................................ [ 95%]
+.....................                                                    [100%]
+============================ slowest 10 durations =============================
+9.51s call     tests/test_coordination.py::test_saved_announcement_replay_recovery_repeat_and_viewer
+5.79s call     tests/test_child_priority.py::test_saved_ordinary_scene_replays_recovers_repeats_and_explains_the_choice
+4.32s call     tests/test_shared_care.py::test_generated_world_replay_repeat_and_actual_second_parent_care
+0.91s call     tests/test_child_priority.py::test_ordinary_seed24_choice_transfer_meal_and_sibling_consequence
+0.51s call     tests/test_nearby_caregiving.py::test_seed7_parent_delivers_and_child_eats_through_normal_settlement
+0.41s call     tests/test_review_regressions.py::test_exhaustive_small_contested_transactions
+0.17s call     tests/test_shared_care.py::test_saved_birth_recovery_before_and_after_birth_and_viewer
+0.08s call     tests/test_shared_care.py::test_seed11_second_parent_delivery_changes_the_choice_and_leads_to_a_meal
+0.06s call     tests/test_coordination.py::test_saved_witnessed_death_recovery_repeat_and_native_viewer
+0.04s call     tests/test_config_types.py::test_valid_edge_settings_save_and_replay
+453 passed in 22.32s

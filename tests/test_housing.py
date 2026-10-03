@@ -205,6 +205,7 @@ def test_config_overlay_round_trips_and_old_shapes_stay_unchanged():
     assert run_id_for(cfg,300) != run_id_for(old,300)
 
 
+@pytest.mark.long_run
 def test_saved_housing_replays_recovers_and_viewer_follows_new_homes(tmp_path):
     cfg = WorldConfig(seed=11, homes_on=True, stores_on=True, seasons_on=True, regrowth_on=True,
                       source_stock=8, source_cap=16, renewal_amount=3)

@@ -139,6 +139,7 @@ def test_birth_keeps_other_peoples_memories_and_fishing_casts():
     assert grown.totals()==ledger.totals()
 
 
+@pytest.mark.long_run
 def test_saved_run_replays_and_recovers_with_memories_and_visible_reroutes(tmp_path):
     cfg=WorldConfig(seed=23,source_memory_on=True,fishing_on=True,wood_on=True,homes_on=True,
                     stores_on=True,relocation_on=True,seasons_on=True,regrowth_on=True,

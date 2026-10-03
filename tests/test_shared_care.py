@@ -209,6 +209,7 @@ def test_saved_birth_recovery_before_and_after_birth_and_viewer(tmp_path):
     assert save_birth_scene(tmp_path / "repeat.jsonl") == trail
 
 
+@pytest.mark.long_run
 def test_generated_world_replay_repeat_and_actual_second_parent_care(tmp_path):
     cfg = WorldConfig(seed=7, shared_care_on=True)
     path = tmp_path / "ordinary.jsonl"

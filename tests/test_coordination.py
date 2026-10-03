@@ -297,6 +297,7 @@ def test_headers_cli_and_default_compatibility():
     with pytest.raises(ValueError): WorldConfig.from_describe(bad)
 
 
+@pytest.mark.long_run
 def test_saved_announcement_replay_recovery_repeat_and_viewer(tmp_path):
     cfg=WorldConfig(seed=23,stores_on=True,homes_on=True,provisioning_on=True,coordination_on=True,
                     fishing_on=True,source_memory_on=True,wood_on=True,relocation_on=True,

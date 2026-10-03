@@ -99,6 +99,7 @@ def test_config_cli_and_old_state_compatibility():
             WorldConfig.from_describe(described)
 
 
+@pytest.mark.long_run
 def test_saved_seasons_replay_recover_and_supply_viewer_events(tmp_path):
     cfg = WorldConfig(seed=7, seasons_on=True, regrowth_on=True,
                       source_stock=8, source_cap=16, renewal_amount=3)

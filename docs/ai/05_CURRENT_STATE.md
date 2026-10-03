@@ -1,5 +1,24 @@
 # Current state — volatile snapshot
 
+## Baseline consolidation — 2026-10-03
+
+Verified starting branch `codex/kernel-first-slice`, HEAD `019503c`, initially
+clean. The consolidation additions began local and uncommitted; check Git for
+current publication status. Deferred worktrees were preserved. [Consolidation report](../reviews/2026-10-03-consolidation/REVIEW.md)
+records the two narrow production fixes, test selection and causal evidence.
+
+Full suite: **1149 passed in 237.08s (0:03:57)**. Fast selection: **1127 passed, 22 deselected in 34.15s**. Default pytest still includes
+all tests. The family settings are defaults plus shared care and care-by-need;
+asking tests disable learned donor preference from genesis. Seed-29 donor memory
+changes a real choice at decision 588, followed through 192 native world steps.
+No unified memory, scarcity, seasons, reciprocity or branch consolidation was
+implemented. Fresh Edge inspection on 2026-10-04 followed the family, asking
+and donor-memory scenes. Independent review of the new repairs remains incomplete;
+older independent PASS evidence is not extended to this work.
+
+This entry refreshes this consolidation scope only. Older dated sections below
+describe their earlier snapshots; they do not describe current Git publication.
+
 ## Competing children — 2026-09-30
 
 Baseline `e34deccf11b59767aa7a256f5594e1bfbca6282c` was committed and pushed

@@ -1,0 +1,38 @@
+........................................................................ [  6%]
+........................................................................ [ 12%]
+........................................................................ [ 19%]
+........................................................................ [ 25%]
+........................................................................ [ 32%]
+........................................................................ [ 38%]
+........................................................................ [ 44%]
+........................................................................ [ 51%]
+........................................................................ [ 57%]
+........................................................................ [ 64%]
+........................................................................ [ 70%]
+........................................................................ [ 76%]
+........................................................................ [ 83%]
+........................................................................ [ 89%]
+........................................................................ [ 96%]
+............................................                             [100%]
+============================ slowest 20 durations =============================
+20.23s call     tests/test_housing.py::test_saved_housing_replays_recovers_and_viewer_follows_new_homes
+18.48s call     tests/test_knowledge_sharing.py::test_saved_reports_replay_recovery_and_viewer
+15.58s call     tests/test_provisioning.py::test_saved_outing_replays_recovers_and_is_visible
+14.65s call     tests/test_source_memory.py::test_saved_run_replays_and_recovers_with_memories_and_visible_reroutes
+13.25s call     tests/test_social_memory.py::test_default_world_replay_without_social_activation_requirement[26-780]
+12.91s call     tests/test_coordination.py::test_saved_announcement_replay_recovery_repeat_and_viewer
+12.22s call     tests/test_wood.py::test_saved_wood_world_replays_recovers_and_shows_the_material_chain
+10.16s call     tests/test_fishing.py::test_saved_run_replays_recovers_mid_cast_and_viewer_shows_fishing
+8.92s call     tests/test_regrowth.py::test_saved_run_replays_recovers_and_viewer_uses_recorded_condition
+8.58s call     tests/test_child_priority.py::test_saved_ordinary_scene_replays_recovers_repeats_and_explains_the_choice
+7.56s call     tests/test_social_memory.py::test_saved_memory_survives_births_replay_and_recovery
+7.55s call     tests/test_social_memory.py::test_default_world_replay_without_social_activation_requirement[14-650]
+7.12s call     tests/test_relocation.py::test_recorded_move_repeats_and_recovers_mid_journey
+6.59s call     tests/test_stores.py::test_run_replays_recovers_and_viewer_records_real_deposits
+5.54s call     tests/test_shared_care.py::test_generated_world_replay_repeat_and_actual_second_parent_care
+4.50s call     tests/test_seasons.py::test_saved_seasons_replay_recover_and_supply_viewer_events
+4.03s call     tests/test_warmth.py::test_a_warmth_world_is_sealed_replays_and_actually_shelters_people
+4.00s call     tests/test_water.py::test_a_water_world_is_sealed_replays_and_keeps_food_and_water_apart
+2.72s call     tests/test_sources.py::test_a_default_world_run_claims_from_its_targets_records_what_was_seen_and_replays
+1.70s call     tests/test_warmth.py::test_warmth_changes_what_people_do
+1124 passed in 228.07s (0:03:48)

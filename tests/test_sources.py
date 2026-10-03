@@ -132,6 +132,7 @@ def test_each_source_renews_on_its_own_cadence_up_to_its_cap():
     assert second.ledger.totals() == {None: engine.state.totals()[None] + 2, WATER: engine.state.totals()[WATER] + 4}
 
 
+@pytest.mark.long_run
 def test_a_default_world_run_claims_from_its_targets_records_what_was_seen_and_replays(tmp_path: Path):
     cfg = WorldConfig(seed=7)
     run_world(cfg, 300, tmp_path / "w.jsonl")

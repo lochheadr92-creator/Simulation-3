@@ -216,6 +216,7 @@ def test_scoring_records_the_cast_and_urgent_water_interrupts_it():
     assert interrupted.kind == 'drink'
 
 
+@pytest.mark.long_run
 def test_saved_run_replays_recovers_mid_cast_and_viewer_shows_fishing(tmp_path):
     cfg = WorldConfig(seed=23, fishing_on=True, wood_on=True, homes_on=True, stores_on=True,
                       relocation_on=True, seasons_on=True, regrowth_on=True,

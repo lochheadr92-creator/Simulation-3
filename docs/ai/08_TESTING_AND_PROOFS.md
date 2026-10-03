@@ -1,5 +1,32 @@
 # Testing and proof limits
 
+## Baseline consolidation — 2026-10-03
+
+From starting `019503c` plus the local consolidation changes, measured on Windows
+with Core Ultra 9 285K / Python 3.12.14 / pytest 9.1.1:
+
+- Complete suite: **1149 passed in 237.08s (0:03:57)**.
+- Fast selection: **1127 passed, 22 deselected in 34.15s**. The result is above
+  the approximate 30-second target; keep the checks and investigate before
+  claiming a strict 30-second budget.
+
+Use `python -B -m pytest -m "not long_run"` for the short development loop.
+Use `python -B -m pytest` for the complete suite before sharing a change; this
+remains the default. `python -B -m pytest -m long_run` selects the extended saved
+world checks alone. Substitute the available Python environment on the machine.
+The timings above used `-p no:cacheprovider --durations=20` and fresh basetemps.
+
+Markers change selection only; all previous assertions and horizons remain.
+New request-lifecycle and donor-memory continuation contracts are in
+`tests/test_requests_without_social_memory.py` and `tests/test_memory_counterfactual.py`.
+The latter expects ordinary replay to match and an explicitly labelled
+single-observation counterfactual to diverge. Rendering and automated DOM tests
+do not establish that somebody watched the scene. Fresh Edge inspection on
+2026-10-04 followed both family scenes, asking and the donor-memory comparison.
+See the [report and logs](../reviews/2026-10-03-consolidation/REVIEW.md).
+
+The source snapshots below retain their dates; their older counts are historical.
+
 ## Current browser security prerequisite — 2026-09-29
 
 `tests/test_viewer_security.py` requires Node, the locked Playwright

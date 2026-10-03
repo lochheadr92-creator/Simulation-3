@@ -1,5 +1,38 @@
 # Simulation 3 — Development Directions
 
+## Baseline consolidation — 2026-10-03
+
+The selected starting point is `019503c` on `codex/kernel-first-slice`.
+Current work consolidates its existing household and stranger-helping behavior;
+cultivation/live-viewer and other branches remain deferred. There are no new
+behavioral rules or changed defaults. See the [consolidation report](docs/reviews/2026-10-03-consolidation/REVIEW.md)
+for source scope, exact checks, saved scenes and limitations.
+
+Canonical encoding was the measured hot path in repeated saved-world checks;
+the encoder now avoids the old per-value Python formatting overhead while
+preserving canonical bytes and unlimited integers. The full suite remains the
+default; extended world checks can be selected separately. Final results:
+**1149 passed in 237.08s (0:03:57)** full; **1127 passed, 22 deselected in 34.15s** fast. These are local results, not new performance
+claims for every machine.
+
+The family aquarium is explicitly defaults plus shared care and care-by-need.
+Seeds 7/11/23/24 each produced real child handoffs over 400 ticks. Request worlds
+with learned donor preference off delivered food in both request modes. In
+ordinary seed 29, hiding p23's memory once at decision 588 switches a journey
+to former donor p10 into an immediate gift to p19; their continuations remain
+different at tick 780. The worlds already supply these opportunities without
+new scarcity or weather. Keep causal consequences as the acceptance question;
+counts and survival describe a configuration, not a score to maximize.
+
+The early-warmth care handoff now retains why a starving child was selected.
+Source review and tests found no further blocker in the three original additions.
+Fresh Edge inspection on 2026-10-04 followed both family scenes, a fulfilled food
+request, and the donor-memory choice and its labelled counterfactual. A fresh
+critical check of the two production fixes passed 26 focused tests; 2,000 seeded
+canonical comparisons matched the prior encoder byte for byte. The new repairs
+still need a completed independent review before adding new social rules.
+Existing dated entries below retain their original evidence and scope.
+
 ## Choosing between children when food is scarce — 2026-09-30
 
 Built from `e34deccf11b59767aa7a256f5594e1bfbca6282c`, the committed and

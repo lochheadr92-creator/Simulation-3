@@ -1,0 +1,38 @@
+........................................................................ [  6%]
+........................................................................ [ 12%]
+........................................................................ [ 19%]
+........................................................................ [ 25%]
+........................................................................ [ 31%]
+........................................................................ [ 38%]
+........................................................................ [ 44%]
+........................................................................ [ 51%]
+........................................................................ [ 57%]
+........................................................................ [ 63%]
+........................................................................ [ 70%]
+........................................................................ [ 76%]
+........................................................................ [ 83%]
+........................................................................ [ 89%]
+........................................................................ [ 95%]
+...............................................                          [100%]
+============================ slowest 20 durations =============================
+1.46s call     tests/test_warmth.py::test_warmth_changes_what_people_do
+1.20s call     tests/test_replay.py::test_world_runs_replay_identically[False-False-23]
+1.19s call     tests/test_replay.py::test_world_runs_replay_identically[False-True-23]
+1.18s call     tests/test_viewer_security.py::test_verified_run_actor_id_is_text_in_rendered_dom
+1.09s call     tests/test_birth_spacing.py::test_spacing_run_is_deterministic_saved_and_replayable
+1.08s call     tests/test_world_view.py::test_synthetic_50_by_2000_renders_inside_the_declared_size
+1.08s call     tests/test_replay.py::test_world_runs_replay_identically[False-False-11]
+1.01s call     tests/test_replay.py::test_world_runs_replay_identically[False-True-11]
+0.96s call     tests/test_replay.py::test_world_runs_replay_identically[True-False-11]
+0.95s call     tests/test_replay.py::test_world_runs_replay_identically[True-True-11]
+0.90s call     tests/test_child_priority.py::test_ordinary_seed24_choice_transfer_meal_and_sibling_consequence
+0.72s call     tests/test_replay.py::test_world_runs_replay_identically[False-False-7]
+0.72s call     tests/test_replay.py::test_world_runs_replay_identically[False-True-7]
+0.66s call     tests/test_review_followups.py::test_damaged_viewer_embeds_only_verified_prefix_and_legacy_view_refuses_births
+0.60s setup    tests/test_claude_review_findings.py::test_text_view_after_a_birth
+0.56s call     tests/test_nearby_caregiving.py::test_seed7_parent_delivers_and_child_eats_through_normal_settlement
+0.55s call     tests/test_map_viewer.py::test_family_is_shown_only_as_the_run_records_it
+0.54s call     tests/test_replay.py::test_a_resealed_altered_decision_replays_different_at_exactly_that_tick
+0.48s call     tests/test_recovery.py::test_the_runner_commands_recover
+0.46s call     tests/test_replay.py::test_world_runs_replay_identically[True-True-7]
+1127 passed, 22 deselected in 34.15s

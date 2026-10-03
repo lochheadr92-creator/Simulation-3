@@ -69,7 +69,15 @@ def _encode(value: Any) -> str:
 
 
 def canonical_bytes(value: Any) -> bytes:
-    return _encode(canonicalise(value)).encode("utf-8")
+    value = canonicalise(value)
+    try:
+        # The standard encoder emits the same canonical JSON in compiled code.
+        # Preserve the unbounded-integer contract without changing Python's
+        # process-wide integer conversion limit.
+        encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    except ValueError:
+        encoded = _encode(value)
+    return encoded.encode("utf-8")
 
 
 def digest(value: Any) -> str:

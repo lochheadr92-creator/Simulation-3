@@ -1,5 +1,25 @@
 # Living World V3: roadmap
 
+## Baseline consolidation — 2026-10-03
+
+This roadmap is historical planning, not an active sequence of gates. The world
+already includes births, children, requests, received-food memory and optional
+household rules. Current direction lives in AGENTS.md and WORLD_DIRECTIONS.md.
+The old Stage 2-next statement below is a dated snapshot, not the next assignment.
+
+Current consolidation has demonstrated request delivery with learned donor
+preference off, and an ordinary received-food memory choice whose counterfactual
+changes later physical outcomes. Request/promise state remains necessary; this
+does not mean every kind of memory is removed. The existing donor store is four
+identities, not the old proposal's roughly 32 request-outcome records. That older
+request-outcome memory design is not implemented or required by the current
+direction. No new stage acceptance or general survival improvement is claimed.
+
+See [the consolidation report](docs/reviews/2026-10-03-consolidation/REVIEW.md).
+Fresh viewer inspection was completed on 2026-10-04. Independent review of the
+two new repairs remains to finish; other branches and new behavior remain
+deferred. Dated material below is retained for historical context.
+
 The plan, not a rulebook. Six people is the behavioural starter world; 50 is
 the engineering target. The stages go in this order because each depends on
 the one before. The older, fuller wording (budgets, confirmation floors, stage

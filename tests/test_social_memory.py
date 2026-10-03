@@ -109,6 +109,7 @@ def test_memory_stays_personal_and_does_not_reveal_absent_or_dead_donors():
     assert not observe("a", ledger, ov, replace(cfg, social_memory_on=False)).food_memory
 
 
+@pytest.mark.long_run
 def test_saved_memory_survives_births_replay_and_recovery(tmp_path):
     cfg = WorldConfig(seed=7)
     assert WorldConfig.from_describe(cfg.describe()) == cfg
@@ -139,6 +140,7 @@ def test_saved_memory_survives_births_replay_and_recovery(tmp_path):
 # Keep both ordinary replay checks, and establish the social contract in a
 # controlled encounter below, without pinning a replacement lucky seed.
 @pytest.mark.parametrize("seed,horizon", [(14, 650), (26, 780)])
+@pytest.mark.long_run
 def test_default_world_replay_without_social_activation_requirement(tmp_path, seed, horizon):
     """Replay plus conditional provenance checks, not evidence of activation."""
     path = tmp_path / "social.jsonl"

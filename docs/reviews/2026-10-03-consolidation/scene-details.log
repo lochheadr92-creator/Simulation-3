@@ -1,0 +1,120 @@
+{
+  "walking": {
+    "deliveries": 15,
+    "next_tick_meals": [
+      {
+        "giver": "p04",
+        "recipient": "p01",
+        "delivered_at": 56,
+        "ate_at": 57
+      },
+      {
+        "giver": "p06",
+        "recipient": "p08",
+        "delivered_at": 75,
+        "ate_at": 76
+      },
+      {
+        "giver": "p07",
+        "recipient": "p09",
+        "delivered_at": 76,
+        "ate_at": 77
+      },
+      {
+        "giver": "p05",
+        "recipient": "p11",
+        "delivered_at": 93,
+        "ate_at": 94
+      },
+      {
+        "giver": "p02",
+        "recipient": "p07",
+        "delivered_at": 99,
+        "ate_at": 100
+      },
+      {
+        "giver": "p04",
+        "recipient": "p06",
+        "delivered_at": 100,
+        "ate_at": 101
+      },
+      {
+        "giver": "p04",
+        "recipient": "p03",
+        "delivered_at": 101,
+        "ate_at": 102
+      },
+      {
+        "giver": "p04",
+        "recipient": "p02",
+        "delivered_at": 108,
+        "ate_at": 109
+      },
+      {
+        "giver": "p09",
+        "recipient": "p05",
+        "delivered_at": 123,
+        "ate_at": 124
+      },
+      {
+        "giver": "p01",
+        "recipient": "p13",
+        "delivered_at": 149,
+        "ate_at": 150
+      },
+      {
+        "giver": "p02",
+        "recipient": "p14",
+        "delivered_at": 152,
+        "ate_at": 153
+      },
+      {
+        "giver": "p01",
+        "recipient": "p03",
+        "delivered_at": 185,
+        "ate_at": 186
+      },
+      {
+        "giver": "p02",
+        "recipient": "p08",
+        "delivered_at": 189,
+        "ate_at": 190
+      }
+    ],
+    "social_memory": false,
+    "seed": 23,
+    "ticks": 220
+  },
+  "adjacent": {
+    "deliveries": 3,
+    "next_tick_meals": [
+      {
+        "giver": "p02",
+        "recipient": "p01",
+        "delivered_at": 92,
+        "ate_at": 93
+      },
+      {
+        "giver": "p05",
+        "recipient": "p11",
+        "delivered_at": 93,
+        "ate_at": 94
+      },
+      {
+        "giver": "p04",
+        "recipient": "p03",
+        "delivered_at": 104,
+        "ate_at": 105
+      }
+    ],
+    "social_memory": false,
+    "seed": 23,
+    "ticks": 220
+  }
+}
+{"seed": 11, "completed_tick": 16, "actor": "p06", "decision": {"candidates": ["rest"], "kind": "rest", "reason": "fed, at home"}, "family_events": []}
+{"seed": 11, "completed_tick": 17, "actor": "p06", "decision": {"candidates": ["rest", "go_water"], "kind": "go_water", "reason": "leaving in time for water: thirst 21, 2 steps, none held", "step": [3, 10], "target": "water2"}, "family_events": [{"k": 17, "cat": "help", "kind": "fed_child", "text": "p02 fed their child p07", "who": "p02", "other": "p07"}]}
+{"seed": 11, "completed_tick": 18, "actor": "p06", "decision": {"candidates": ["home"], "kind": "home", "reason": "fed, walking home", "step": [3, 11]}, "family_events": []}
+{"seed": 24, "completed_tick": 245, "actor": "p04", "decision": {"candidates": ["go_offer"], "kind": "go_offer", "reason": "p19 is my child with no food, 3 steps away; visibly starving, prioritised among my empty-handed children", "step": [7, 4], "target": "p19"}, "family_events": []}
+{"seed": 24, "completed_tick": 247, "actor": "p04", "decision": {"amount": 1, "candidates": ["offer"], "kind": "offer", "reason": "p19 is my child alongside with no food; handing over one of 1; visibly starving, prioritised among my empty-handed children", "target": "p19"}, "family_events": [{"k": 247, "cat": "help", "kind": "fed_child", "text": "p04 fed their child p19", "who": "p04", "other": "p19"}]}
+{"seed": 24, "completed_tick": 248, "actor": "p04", "decision": {"candidates": ["home"], "kind": "home", "reason": "fed, walking home", "step": [7, 4]}, "family_events": []}

@@ -135,6 +135,7 @@ def test_switch_cli_and_old_headers_round_trip():
     with pytest.raises(ValueError): replace(cfg,building_on=False)
 
 
+@pytest.mark.long_run
 def test_saved_wood_world_replays_recovers_and_shows_the_material_chain(tmp_path):
     cfg=WorldConfig(seed=11,wood_on=True,homes_on=True,stores_on=True,relocation_on=True,
                     seasons_on=True,regrowth_on=True,source_stock=8,source_cap=16,renewal_amount=3)

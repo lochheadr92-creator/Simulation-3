@@ -193,6 +193,7 @@ def test_warmth_off_and_on_reach_the_same_two_need_decisions_until_cold_calls():
 
 # --- a whole run ---------------------------------------------------------------
 
+@pytest.mark.long_run
 def test_a_warmth_world_is_sealed_replays_and_actually_shelters_people(tmp_path: Path):
     cfg = WorldConfig(seed=7, warmth_on=True)
     run_world(cfg, 400, tmp_path / "w.jsonl")

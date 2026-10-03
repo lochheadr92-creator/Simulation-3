@@ -9,6 +9,8 @@ was.
 
 from __future__ import annotations
 
+import pytest
+
 from pathlib import Path
 
 from stream.run_file import read_run
@@ -66,6 +68,7 @@ def test_the_two_need_rule():
     assert not water_trip_due(ob(thirst=13, water=1), cfg)
 
 
+@pytest.mark.long_run
 def test_a_water_world_is_sealed_replays_and_keeps_food_and_water_apart(tmp_path: Path):
     cfg = WorldConfig(seed=7, water_on=True)
     run_world(cfg, 400, tmp_path / "w.jsonl")

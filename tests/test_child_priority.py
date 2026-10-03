@@ -149,6 +149,7 @@ def test_ordinary_seed24_choice_transfer_meal_and_sibling_consequence():
         engine, world = step.engine, step.processed.overlay
 
 
+@pytest.mark.long_run
 def test_saved_ordinary_scene_replays_recovers_repeats_and_explains_the_choice(tmp_path):
     cfg = WorldConfig(seed=24, shared_care_on=True, care_by_need_on=True)
     path = tmp_path / "siblings.jsonl"
@@ -168,3 +169,18 @@ def test_saved_ordinary_scene_replays_recovers_repeats_and_explains_the_choice(t
         cut.write_bytes(b"".join(lines[:end+1]))
         recover_world(cut, restored)
         assert read_run(restored).ticks == run.ticks
+
+
+def test_starving_priority_is_explained_when_handoff_precedes_warmth():
+    cfg, view = competing_children()
+    cfg = replace(cfg, warmth_on=True)
+    view = replace(view, home=(5, 8), cold=cfg.cold_at - 1,
+                   others=(view.others[0], replace(view.others[1], position=(5, 4))))
+    ordinary = decide(view, replace(cfg, care_by_need_on=False))
+    prioritised = decide(view, cfg)
+    assert (ordinary.kind, ordinary.target) == ("offer", "p02")
+    assert (prioritised.kind, prioritised.target) == ("offer", "p03")
+    assert "before heading home for warmth" in prioritised.reason
+    assert "visibly starving" in prioritised.reason
+    assert ordinary.reason == ("p02 is my child alongside with no food; "
+                               "handing over one before heading home for warmth")

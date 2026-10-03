@@ -195,6 +195,7 @@ def test_switch_header_and_default_compatibility():
         WorldConfig.from_describe(bad)
 
 
+@pytest.mark.long_run
 def test_run_replays_recovers_and_viewer_records_real_deposits(tmp_path):
     cfg = WorldConfig(seed=7, stores_on=True, regrowth_on=True, seasons_on=True,
                       source_stock=8, source_cap=16, renewal_amount=3)

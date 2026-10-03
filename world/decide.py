@@ -621,9 +621,11 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
             and (not config.water_on or observation.thirst < config.thirsty_at)
             and someone_to_help(observation, config) in observation.dependents):
         handoff = _decide_food(observation, config)
-        return replace(handoff, candidates=every,
-                       reason=f"{handoff.target} is my child alongside with no food; "
-                              "handing over one before heading home for warmth")
+        reason = (f"{handoff.target} is my child alongside with no food; "
+                  "handing over one before heading home for warmth")
+        if config.care_by_need_on:
+            reason = f"{handoff.reason}; before heading home for warmth"
+        return replace(handoff, candidates=every, reason=reason)
     calling: list[tuple[int | float, tuple[str, ...], tuple[str, ...], Any]] = []
     if water:
         calling.append((slack(observation.thirst, config.thirst_death_at, config.thirst_rate),
