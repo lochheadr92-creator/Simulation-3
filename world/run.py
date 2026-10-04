@@ -31,16 +31,22 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume, deposit, transfer
+from kernel import Engine, Proposal, TickRecord, WorldState, cancel, claim, complete, consume, deposit, reserve, transfer
 
 from stream.run_file import RunFileError, RunWriter, read_run
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, genesis
-from world.decide import BUILD, CLAIM, DEPOSIT, DRAW, DRINK, EAT, OFFER, Decision, decide
+from world.decide import BUILD, CLAIM, DEPOSIT, DRAW, DRINK, EAT, HOST, OFFER, Decision, decide
 from world.materials import WOOD, GATHER_WOOD
 from world.observe import Observation, observe
 from world.overlay import Overlay
 
+from world.crafting import CRAFT, GATHER_STONE, RECIPES, STONE
+from world.farming import GRAIN, HARVEST, PLANT
+from world.aftermath import COLLECT
+from world.pledges import RESOURCES
+from world.structures import DIG, LIGHT, REPAIR
 from world.process import Processed, advance
+from world.registry import FEATURES, LEVER_DEFAULTS
 
 DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
@@ -69,19 +75,37 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-care-by-need"
     if config.water_care_on:
         mode += "-water-care"
-    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + feature_tag(config) + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
 
 
-def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
+def feature_tag(config: WorldConfig) -> str:
+    """Run-id suffix for the rich-world features: their names when there are few,
+    else a count and a short digest of the names and settings, so the file name
+    stays readable and still differs for a different combination."""
+    if not config.features:
+        return ""
+    if len(config.features) <= 3 and not config.feature_levers:
+        return "-" + "+".join(config.features)
+    from kernel import digest
+    return f"-{len(config.features)}features-{digest([list(config.features), [list(p) for p in config.feature_levers]])[:6]}"
+
+
+def proposals_for(decisions: dict[str, Decision], tick: int, overlay: Overlay | None = None) -> list[Proposal]:
     out: list[Proposal] = []
     for actor in sorted(decisions):
         decision = decisions[actor]
         pid = f"t{tick}-{actor}"
-        if decision.kind == EAT:
-            out.append(consume(pid, actor, 0, amount=decision.amount))
+        if decision.kind == OFFER and decision.keeping and decision.action:
+            out.append(complete(pid, actor, 0, action_id=decision.action))     # hand over what a promise holds
+        elif decision.kind == EAT:
+            out.append(consume(pid, actor, 0, amount=decision.amount, resource=decision.resource))
+        elif decision.kind == PLANT:
+            out.append(consume(pid, actor, 0, amount=1, resource=GRAIN))
+        elif decision.kind == HARVEST:
+            out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=GRAIN))
         elif decision.kind == CLAIM:
             out.append(claim(pid, actor, 0, sources={decision.target or FOOD_SOURCE: decision.amount}))
-        elif decision.kind == OFFER:
+        elif decision.kind in (OFFER, HOST):
             out.append(transfer(pid, actor, 0, to=decision.target, amount=decision.amount,
                                 resource=decision.resource))
         elif decision.kind == DEPOSIT:
@@ -93,8 +117,30 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
                              resource=WATER))
         elif decision.kind == GATHER_WOOD:
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
+        elif decision.kind in (REPAIR, LIGHT) or (decision.kind == DIG and decision.amount):
+            out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
+        elif decision.kind == COLLECT:
+            for i, (resource, units) in enumerate(decision.estate):
+                out.append(transfer(f"t{tick}-{actor}-take-{resource}", decision.target, 20 + 10 * len(out) + i, to=actor,
+                                    amount=units, resource=None if resource == "food" else resource))   # in the dead person's name
+        elif decision.kind == GATHER_STONE:
+            out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=STONE))
+        elif decision.kind == CRAFT and decision.target in RECIPES:
+            for order, (resource, units) in enumerate(RECIPES[decision.target]):
+                out.append(consume(f"{pid}-{resource}", actor, order, amount=units, resource=resource))
         elif decision.kind == BUILD and decision.amount:
             out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
+        for asker, kind, verdict, _, held in decision.answered:
+            if verdict == "yes" and held:
+                params = {"to": asker, "amount": held}
+                if RESOURCES[kind] is not None:
+                    params["resource"] = RESOURCES[kind]
+                out.append(reserve(f"{pid}-hold", actor, 1, operation="transfer", params=params))    # a promise holds the units
+        if decision.gave_up and decision.action:
+            out.append(cancel(f"{pid}-cancel", actor, 2, action_id=decision.action))
+    if overlay is not None:
+        for helper, action in overlay.pledges.release:
+            out.append(cancel(f"t{tick}-{helper}-release", helper, 3, action_id=action))   # a promise that ended gives its units back
     return out
 
 
@@ -141,7 +187,7 @@ def world_step(engine: Engine, overlay: Overlay, config: WorldConfig) -> WorldSt
     available = state.availability()
     views = {actor: observe(actor, state, overlay, config, available) for actor in overlay.living}
     decisions = {actor: decide(views[actor], config) for actor in overlay.living}
-    proposals = proposals_for(decisions, state.tick)
+    proposals = proposals_for(decisions, state.tick, overlay)
     record = engine.tick(proposals)
     committed = engine.state
     processed = advance(overlay, decisions, record, committed, config, views)
@@ -252,6 +298,10 @@ def build_parser() -> argparse.ArgumentParser:
                              "not all reach a need on the same tick")
     parser.add_argument("--trips", choices=("on", "off"), default="on",
                         help="leave for the source in time when holding no food (default on)")
+    parser.add_argument("--features", default="", metavar="NAMES",
+                        help="comma-separated rich-world features to switch on; known: " + ", ".join(sorted(FEATURES)))
+    parser.add_argument("--lever", action="append", default=[], metavar="NAME=VALUE",
+                        help="set a rich-world feature setting; repeatable; known: " + ", ".join(sorted(LEVER_DEFAULTS)))
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
     parser.add_argument("--html", action="store_true", help="Render the map viewer next to the run file.")
     parser.add_argument("--replay", default=None, metavar="FILE",
@@ -322,6 +372,14 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     requests = args.requests if args.requests is not None else "off"
     levers["requests_on"] = requests != "off"
     levers["adjacent_requests"] = requests == "adjacent"
+    levers["features"] = tuple(sorted({name.strip() for name in args.features.split(",") if name.strip()}))
+    overrides = []
+    for item in args.lever:
+        name, _, value = item.partition("=")
+        if not value.lstrip("-").isdigit():
+            raise ValueError(f"--lever needs NAME=INTEGER, got {item!r}")
+        overrides.append((name.strip(), int(value)))
+    levers["feature_levers"] = tuple(overrides)
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")
     levers["water_on"] = water == "on"
     warmth = args.warmth if args.warmth is not None else ("off" if args.scoring == "on" else "on")

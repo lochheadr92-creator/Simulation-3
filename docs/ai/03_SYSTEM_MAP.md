@@ -1,5 +1,44 @@
 # System retrieval map
 
+## Rich-world additions, P0-P4 — 2026-10-04
+
+| Concept / purpose | Primary files and entry points | Tests to start with |
+| --- | --- | --- |
+| Optional features, settings, header text | [registry](../../world/registry.py), [feature](../../world/feature.py), [config](../../world/config.py): `on`, `lever`, `describe`, `from_describe` | [individuality](../../tests/test_individuality.py) (configuration section) |
+| Temperament, skills, inner state | [persona](../../world/persona.py), [traits](../../world/traits.py); decide/storage/process consume them | individuality |
+| Fatigue and sleep | [rest](../../world/rest.py); [decide](../../world/decide.py): `_decide_needs`, `rest_candidates`, `_relief_wait` | individuality |
+| Set-aside options | [explain](../../world/explain.py); `Decision.rejected` | individuality |
+| Day, night, weather, exposure | [sky](../../world/sky.py), [draw](../../world/draw.py); `process.advance` (cold, rough ground, promises), `observe` (`chill`, sight), [decide](../../world/decide.py): `cold_slack`, `weather_hold` | [sky tests](../../tests/test_sky.py) |
+| Staying with a need | [steady](../../world/steady.py); `_decide_needs` and `NEED_OF` in decide | sky tests |
+| Beliefs, hearsay, forgetting | [belief](../../world/belief.py): `file_beliefs`, `advance_beliefs`; persona `beliefs`; `process.advance` | [wolves tests](../../tests/test_wolves.py) |
+| Wolves, bites, hurt | [wolves](../../world/wolves.py), [things](../../world/things.py); `process.advance` (after movement); `observe` (`wolves_seen`, `danger`); decide: `_threat`, `flee_step`, `errand_holds`, `_danger_plan` | wolves tests |
+| Viewer: wolves and beliefs | [viewer_wolves.js](../../world/viewer_wolves.js), [viewer_wolves.py](../../world/viewer_wolves.py) | wolves tests (browser) |
+| Friends, chats, greetings, grudges, loneliness | [society](../../world/society.py): `advance_society`, `put`, `check_bond`; decide: `_social`, `someone_to_help`; `process.advance`; belief `advance_beliefs` (trust gate) | [society tests](../../tests/test_society.py) |
+| Viewer: relationships | [viewer_society.js](../../world/viewer_society.js), [viewer_society.py](../../world/viewer_society.py) | society tests (browser) |
+| Baseline guard and ledger audit | [disabled-mode test](../../tests/test_disabled_mode_baseline.py), [ledger audit](../../tests/ledger_audit.py) | those files |
+| Viewer parts | [viewer.js](../../world/viewer.js) extension points, [viewer_persona.js](../../world/viewer_persona.js), [viewer_rich.py](../../world/viewer_rich.py) | [rich viewer](../../tests/test_rich_viewer.py) |
+
+
+## Rich-world additions, P5-P12 — 2026-10-04
+
+| Concept / purpose | Primary files and entry points | Tests to start with |
+| --- | --- | --- |
+| Requests, promises, kernel reservations as escrow, building together, hosting | [pledges](../../world/pledges.py): `advance_pledges`; decide: `_pledges`, `_answer`, `_keep`; [run](../../world/run.py): `proposals_for` (reserve, complete, cancel) | [pledges](../../tests/test_pledges.py) |
+| Stone, tools, crafting | [crafting](../../world/crafting.py): `apply_crafting`, `RECIPES`; decide: `_craft`; `stream/run_file.apply_production` (`made`) | [crafting](../../tests/test_crafting.py) |
+| Fields, growth, rot, spoilage, grain | [farming](../../world/farming.py): `advance_farming`, `Plot`; decide: `_farm`; production entries `rotted`, `spoiled` | [farming](../../tests/test_farming.py) |
+| Shelter wear, fires, dug wells | [structures](../../world/structures.py): `advance_structures`, `Struct`; decide: `_maintain` | [structures](../../tests/test_structures.py) |
+| Couples, pregnancy, ageing, orphans, grief, travellers | [family](../../world/family.py): `advance_family`, `lifespan`; process: `_births`, `_arrive` | [family](../../tests/test_family.py) |
+| Graves, death records, collecting belongings | [aftermath](../../world/aftermath.py): `advance_aftermath`, `Death`; decide: `_grave`; run: transfers in the dead person's name | [aftermath](../../tests/test_aftermath.py) |
+| What people know of the ground, curiosity | [ground](../../world/ground.py): `refresh_ground`, `Ground`; decide: `_explore`; observe: `patches_seen_now`, `wells_seen` | [exploration](../../tests/test_exploration.py) |
+| Worn paths | [paths](../../world/paths.py): `advance_paths`; decide: `route_step`; process: rough-ground hold | exploration |
+| Scenes and the rich world | [presets](../../world/presets.py): `SCENES`, `rich_world`, `make_config` | [launch](../../tests/test_launch.py) |
+| Start, watch and resume runs from a browser page | [launch](../../world/launch.py): `Launcher`, `make_server`; `world/recover.py` for resuming | launch |
+| Viewer observer tools (minimap, fog, headings, link) | [viewer_observer.js](../../world/viewer_observer.js); `viewer.py`: `_script` | [observer viewer](../../tests/test_observer_viewer.py), [inspector sections](../../tests/test_inspector_sections.py) |
+| Viewer feature parts for P5-P11 | `viewer_pledges`, `viewer_crafting`, `viewer_farming`, `viewer_structures`, `viewer_family`, `viewer_aftermath`, `viewer_ground` (`.js` and `.py`), registered in `viewer.py` `JS_PARTS` and `viewer_rich.py` `DERIVERS` | each feature's tests, inspector sections |
+
+New overlay blocks beyond the persona: `pledges`, `family`, `ground` and the `things` block (wolves, plots, structures, deaths, paths). Each is sparse in the canonical form, validated against the roster on load, and carried forward by `dataclasses.replace`.
+
+
 ## Source snapshot
 
 - Source branch: `codex/kernel-first-slice`

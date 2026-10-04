@@ -271,3 +271,52 @@ dl.rules dd { margin: 0; color: #cfe0da; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- set-aside options, temperament and skills ---------- */
+.aside { margin-top: 8px; font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line2); padding-top: 6px; }
+.aside b { display: block; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
+.aside-row { margin: 3px 0; line-height: 1.35; }
+.aside-row .what { color: var(--fg); }
+.aside-row .code { display: inline-block; font-size: 10.5px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--line2); margin-right: 4px; }
+.aside-row .code.less_urgent, .aside-row .code.too_late { color: var(--food); border-color: rgba(242, 166, 94, .5); }
+.aside-row .code.unavailable, .aside-row .code.unknown, .aside-row .code.missing { color: var(--water); border-color: rgba(114, 200, 234, .5); }
+.aside-row .code.unwilling, .aside-row .code.failed_before, .aside-row .code.dangerous { color: var(--need); border-color: rgba(255, 148, 131, .5); }
+.aside-row .code.weather { color: var(--crowd); border-color: rgba(192, 168, 244, .5); }
+.trait { display: grid; grid-template-columns: 78px 1fr 62px; gap: 8px; align-items: center; font-size: 12.5px; margin: 4px 0; }
+.trait .lab { color: var(--muted); }
+.trait .track { position: relative; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .07); }
+.trait .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: rgba(183, 166, 240, .85); }
+.trait .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: rgba(255, 255, 255, .35); }
+.trait .val { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.trait-note { color: var(--faint); font-size: 11.5px; margin: 0 0 4px 86px; line-height: 1.3; }
+.skill { display: grid; grid-template-columns: 78px 1fr; gap: 8px; font-size: 12.5px; margin: 3px 0; }
+.skill .lab { color: var(--muted); }
+.skill .lv { color: var(--fg); }
+.skill .lv small { color: var(--faint); margin-left: 6px; }
+.attempt { font-size: 12px; margin: 3px 0; color: var(--muted); }
+.attempt .ok { color: var(--ok); }
+.attempt .no { color: var(--no); }
+
+/* ---------- what a person believes about wolves ---------- */
+.belief { margin: 4px 0; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.belief b { color: var(--fg); }
+.belief .conf { display: block; height: 3px; margin-top: 3px; border-radius: 2px; background: var(--raise); overflow: hidden; }
+.belief .conf span { display: block; height: 100%; background: var(--need); }
+.belief.hurt-note { color: var(--need); }
+.aside-row .code.hurt { color: var(--need); border-color: rgba(255, 148, 131, .5); }
+
+/* ---------- relationships ---------- */
+.bond { margin: 5px 0; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.bond b { color: var(--fg); }
+.bond .track { display: block; height: 3px; margin: 3px 0 2px; border-radius: 2px; background: var(--raise); overflow: hidden; }
+.bond .fill { display: block; height: 100%; background: var(--life); }
+.bond .fill.bad { background: var(--need); }
+.bond .val { display: block; font-size: 11px; color: var(--faint); }
+.bond-note { color: var(--need); font-size: 11.5px; }
+
+/* ---------- minimap ---------- */
+#minimap {
+  position: absolute; right: 12px; bottom: 12px; width: 132px; height: 132px; border-radius: 10px; cursor: crosshair;
+  background: rgba(8, 20, 24, 0.78); box-shadow: inset 0 0 0 1px var(--line2), 0 4px 14px rgba(0, 0, 0, .35); touch-action: none;
+}
+@media (max-width: 900px) { #minimap { display: none; } }

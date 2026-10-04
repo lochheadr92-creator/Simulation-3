@@ -55,12 +55,23 @@ from typing import Any
 from kernel import WorldState
 from kernel.state import actor_account, source_account
 
-from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, wood_sites, fishing_sites
+from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, stone_sites, wood_sites, fishing_sites
+from world.crafting import STONE, tools_held
+from world.aftermath import heirs
+from world.farming import GRAIN, STATES, plot_of
+from world.ground import patches_in_view
+from world.paths import worn
+from world.structures import find as find_struct, lit_cells, well_id
+from world.config import well_sites
 from world.storage import food_expectation
 from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
+from world.pledges import views as pledge_views
+from world.sky import Sky, exposure, sight
+from world.society import IDLE_LOOK
+from world.wolves import danger_cells, is_active
 
 
 def chebyshev(a: Position, b: Position) -> int:
@@ -80,6 +91,9 @@ class SeenPerson:
     starving: bool = False    # visibly in a hunger emergency
     parched: bool = False     # visibly in a thirst emergency
     water: int | None = None  # free water units; filled in only when water care is on
+    asleep: bool = False      # visibly asleep (the sleep feature)
+    busy: bool = False        # visibly occupied with something else: walking somewhere, drawing, eating (bonds feature)
+    wood: int | None = None   # free wood carried; filled in only when pledges and wood are on
 
     @property
     def in_distress(self) -> bool:
@@ -93,6 +107,8 @@ class SeenPerson:
             out["parched"] = 1
         if self.water:
             out["water"] = self.water
+        if self.wood:
+            out["wood"] = self.wood
         return out
 
 
@@ -157,6 +173,56 @@ class Observation:
     food_expected: tuple[str, int] | None = None
     food_expectation_end: str | None = None
     witnessed_deaths: tuple[str, ...] = ()  # expected speaker's locally witnessed death
+    traits: tuple[int, ...] = ()           # own traits, in world.traits order; empty when personality is off
+    skills: tuple[int, ...] = ()           # own practice points, in world.traits order; empty when skills are off
+    fatigue: int | None = None             # own tiredness; None when sleep is off
+    asleep: bool = False                   # was asleep at the start of the tick
+    tried: tuple[tuple[str, str, int, int], ...] = ()   # own recent attempts: kind, target, tick, 1 ok / 0 refused
+    doing: str | None = None               # the kind of what this person decided last tick
+    sky: Sky | None = None                 # phase, weather and temperature, which everybody feels (sky feature)
+    chill: int = 0                         # extra cold a tick out in the open in this sky; everybody feels it
+    wolves_seen: tuple[tuple[str, Position], ...] = ()   # wolves within sight right now: id and cell (wolves feature)
+    wolves_active: frozenset[str] = frozenset()          # which of them are visibly stalking rather than lying quiet
+    beliefs: tuple[tuple[Any, ...], ...] = ()            # own beliefs: kind, subject, x, y, seen, learned, via
+    hurt: int = 0                                        # own injury; 0 when wolves are off
+    danger: frozenset[Position] = frozenset()            # cells near a wolf they see or believe in; routes avoid them
+    bonds: tuple[tuple[Any, ...], ...] = ()              # own view of each person they have dealt with (bonds feature)
+    lonely: int = 0                                      # own need for company
+    talking: tuple[str, int] | None = None               # who they are talking to and since when
+    stone: int = 0                                       # own stone in hand (crafting feature)
+    stone_source_id: str | None = None
+    stone_source: Position | None = None
+    stone_stock: int | None = None
+    tools: tuple[str, ...] = ()                          # tools they carry
+    kin_dead: frozenset[str] = frozenset()               # dead people who were their partner, parent or child
+    graves: tuple[tuple[Any, ...], ...] = ()             # markers in sight: dead, x, y, tick, what lies there to take, 1 if kin, units left in all (aftermath)
+    partner: str | None = None                           # who they are paired with (family feature)
+    grief: int = 0                                       # how much they are grieving
+    elder: bool = False
+    home_condition: int | None = None                    # their shelter's condition, when it stands in sight (structures)
+    fire_fuel: int = 0                                   # ticks left in their own fire, if it is in sight
+    lit: bool = False                                    # standing near a burning fire
+    well_site: Position | None = None                    # where they would dig a well
+    well_progress: int = 0                               # ticks dug so far
+    grain: int = 0                                       # own grain in hand (farming feature)
+    plot: tuple[int, ...] | None = None                  # their field if in sight: x, y, state index, soil, cared, grown
+    field_stock: int | None = None                       # grain standing in it, if in sight
+    field_id: str | None = None
+    pledge_requests: tuple[tuple[Any, ...], ...] = ()    # asked of them, asker in sight: asker, kind, amount, x, y (pledges feature)
+    pledge_owed: tuple[tuple[Any, ...], ...] = ()        # promised by them: id, kind, asker, amount, x, y, due, held, action, arrived, done
+    pledge_asked: tuple[tuple[Any, ...], ...] = ()       # asked by them: id, kind, helper, asked or promised (once heard), made, due
+    ground: tuple[tuple[int, int], ...] = ()             # patches they have seen and when, last (exploration feature)
+    patches_seen_now: frozenset[int] = frozenset()       # patches with any cell in sight this tick
+    worn_in_view: frozenset[Position] = frozenset()      # paths in sight (paths feature)
+    wells_seen: tuple[tuple[Any, ...], ...] = ()         # finished wells in sight: owner, x, y (exploration with structures)
+
+    @property
+    def storm(self) -> bool:
+        return self.sky is not None and self.sky.storm
+
+    @property
+    def night(self) -> bool:
+        return self.sky is not None and self.sky.night
 
     @property
     def at_source(self) -> bool:
@@ -208,6 +274,8 @@ class Observation:
             out["source_reports"] = [list(e) for e in self.source_reports]
         if self.report_listeners:
             out["report_listeners"] = list(self.report_listeners)
+        if self.wolves_seen:
+            out["wolves_seen"] = [[wolf, cell[0], cell[1], int(wolf in self.wolves_active)] for wolf, cell in self.wolves_seen]
         if self.empty_sources:
             out["empty_sources"] = dict(self.empty_sources)
         if self.food_choice_changed is not None:
@@ -249,12 +317,22 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         available = ledger.availability()
     view = ledger.view_for(actor)
     origin = overlay.positions[actor]
-    radius = config.perception_radius
+    persona = overlay.persona
+    asleep = actor in persona.asleep
+    # A sleeper sees only their own cell; everybody else can see that they are asleep.
+    radius = 0 if asleep else sight(config, overlay.sky, config.perception_radius)
+    lit = config.on("structures") and origin in lit_cells(overlay.things.structures, 2)
+    if lit and not asleep and overlay.sky is not None and overlay.sky.night:
+        radius += config.lever("fire_light")                       # firelight wins back some of the dark
     others = tuple(
         SeenPerson(other, overlay.positions[other], available[actor_account(other)],
                    starving=overlay.hunger[other] >= config.emergency_at,
                    parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at,
-                   water=available[actor_account(other, WATER)] if config.water_care_on else None)
+                   water=available[actor_account(other, WATER)] if (config.water_care_on or config.on("pledges")) else None,
+                   wood=available[actor_account(other, WOOD)] if config.on("pledges") and config.wood_on else None,
+                   asleep=other in persona.asleep,
+                   busy=(config.on("bonds") and persona.doing.get(other) is not None
+                         and persona.doing[other] not in IDLE_LOOK))
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
@@ -304,11 +382,60 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     choosing_home = (config.homes_on and overlay.alive(actor) and actor in overlay.parent
                      and overlay.age.get(actor, 0) >= config.adult_at and actor not in overlay.home_settled)
     relocating = can_relocate(actor, overlay, config)
+    # With graves, whether a child is dead is something a parent learns by seeing the grave or being told, not by being alive.
+    known_dead = {b[1] for b in persona.beliefs.get(actor, ()) if b[0] == "death"} if config.on("aftermath") else None
     wood_view = {}
     if config.wood_on:
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+    if config.on("aftermath"):
+        records = {d.person: d for d in overlay.things.deaths}
+        seen_graves = []
+        for s in overlay.things.structures:
+            if s.kind == "grave" and in_view(origin, s.cell, radius):
+                record = records.get(s.owner)
+                live = tuple((r, available.get(actor_account(s.owner, None if r == "food" else r), 0))
+                             for r in ("food",) + tuple(sorted(ledger.holdings)))                # what lies there to take
+                held = ledger.balances.get(s.owner, 0) + sum(h.get(s.owner, 0) for h in ledger.holdings.values())   # all of it, on hold or not
+                kin = record is not None and actor in heirs(overlay, record)
+                seen_graves.append((s.owner, s.x, s.y, s.a, tuple((r, n) for r, n in live if n > 0), int(kin), held))
+        wood_view["graves"] = tuple(sorted(seen_graves))
+        believed = {b[1] for b in overlay.persona.beliefs.get(actor, ()) if b[0] == "death"}      # only deaths they know of
+        wood_view["kin_dead"] = frozenset(d.person for d in overlay.things.deaths
+                                          if d.person in believed and actor in heirs(overlay, d))
+    if config.on("exploration"):
+        wood_view.update({"ground": overlay.ground.seen.get(actor, ()), "patches_seen_now": patches_in_view(origin, radius, config)})
+        if config.on("structures"):
+            wood_view["wells_seen"] = tuple(sorted((s.owner, s.x, s.y) for s in overlay.things.structures
+                                                   if s.kind == "well" and s.b and in_view(origin, s.cell, radius)))
+    if config.on("paths"):
+        wood_view["worn_in_view"] = frozenset(cell for cell in worn(overlay.things.paths, config) if in_view(origin, cell, radius))
+    if config.on("family"):
+        wood_view.update({"partner": overlay.family.partner.get(actor), "grief": overlay.family.grief.get(actor, 0),
+                          "elder": overlay.age.get(actor, 0) >= config.lever("elder_at")})
+    if config.on("structures"):
+        mine_s = overlay.things.structures
+        cell = overlay.homes[actor]
+        shelter = find_struct(mine_s, "shelter", actor)
+        fire = find_struct(mine_s, "fire", actor)
+        well = find_struct(mine_s, "well", actor)
+        site = next((pos for owner, pos in well_sites(config) if owner == actor), None)
+        wood_view.update({
+            "lit": lit, "well_site": site if not (well and well.b) else None, "well_progress": well.a if well and not well.b else 0,
+            **({"home_condition": shelter.a} if shelter is not None and in_view(origin, cell, radius) else {}),
+            **({"fire_fuel": fire.a} if fire is not None and in_view(origin, cell, radius) else {}),
+        })
+    if config.on("farming"):
+        mine = plot_of(overlay.things.plots, actor)
+        wood_view["grain"] = available[actor_account(actor, GRAIN)]
+        if mine is not None and in_view(origin, mine.cell, radius):
+            wood_view.update({"plot": (mine.x, mine.y, STATES.index(mine.state), mine.soil, mine.cared, mine.grown),
+                              "field_stock": available[source_account(mine.source)], "field_id": mine.source})
+    if config.on("crafting"):
+        sid, site, stock = target_source(origin, stone_sites(config), radius, available)
+        wood_view.update({"stone": available[actor_account(actor, STONE)], "stone_source_id": sid, "stone_source": site,
+                          "stone_stock": stock, "tools": tools_held(available, actor)})
     visible_caches = tuple((sid, pos) for sid, pos, _ in caches
                            if pos in overlay.shelters and in_view(origin, pos, radius))
     # An empty or unseen cache must never replace the ordinary patch fallback.
@@ -329,7 +456,19 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                        if in_view(origin, position, radius)) if several else ()
     seen_stock = tuple(sorted(dict(seen_stock + tuple((sid, available[source_account(sid)])
                                                     for sid, _ in visible_caches)).items()))
+    sighted = ([wolf for wolf in overlay.things.wolves if in_view(origin, wolf.position, radius)]
+               if config.on("wolves") else [])
+    wolves_seen = tuple((wolf.id, wolf.position) for wolf in sighted)
+    beliefs = persona.beliefs.get(actor, ())
+    asked, owing, asking = (pledge_views(overlay.pledges, actor, {seen.actor for seen in others})
+                            if config.on("pledges") else ((), (), ()))
     return Observation(
+        pledge_requests=asked, pledge_owed=owing, pledge_asked=asking,
+        wolves_seen=wolves_seen, beliefs=beliefs, hurt=persona.hurt.get(actor, 0),
+        bonds=persona.bonds.get(actor, ()), lonely=persona.lonely.get(actor, 0), talking=persona.talking.get(actor),
+        wolves_active=frozenset(wolf.id for wolf in sighted if is_active(wolf, overlay.sky)),
+        danger=(danger_cells(beliefs, wolves_seen, ledger.tick, config, overlay.sky)
+                if config.on("wolves") else frozenset()),
         food_sightings=sightings, source_reports=reports,
         report_food_avoided=report_food_avoided, report_provision_avoided=report_provision_avoided,
         report_listeners=tuple(seen.actor for seen in others
@@ -383,11 +522,15 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         | frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         **({"age": overlay.age.get(actor, config.adult_at),
            "children": overlay.children_of(actor),
-           "dependents": frozenset(kid for kid in overlay.children_of(actor)
-                                   if overlay.alive(kid)
+           "dependents": frozenset(kid for kid in (set(overlay.children_of(actor)) | {
+                                       c for c, g in overlay.family.guardian.items() if g == actor})
+                                   if (overlay.alive(kid) if known_dead is None else kid not in known_dead)
                                    and overlay.age.get(kid, config.adult_at) < config.adult_at)}
           if config.childhood_on else {}),
-        **_water_view(actor, origin, overlay, config, available),
+        traits=persona.traits.get(actor, ()), skills=persona.skills.get(actor, ()),
+        fatigue=persona.fatigue.get(actor), asleep=asleep, tried=persona.tried.get(actor, ()),
+        doing=persona.doing.get(actor), sky=overlay.sky, chill=exposure(config, overlay.sky, False),
+        **_water_view(actor, origin, overlay, config, available, radius),
     )
 
 
@@ -413,15 +556,25 @@ def target_source(origin: Position, known: tuple[tuple[str, Position], ...], rad
 
 
 def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldConfig,
-                available: Mapping[str, int]) -> dict[str, Any]:
+                available: Mapping[str, int], radius: int) -> dict[str, Any]:
     if not config.water_on:
         return {}
     known = tuple(zip(config.water_source_ids(), config.water_positions()))
-    well_id, well, stock = target_source(origin, known, config.perception_radius, available)
+    if config.on("structures"):
+        # a well somebody dug is not a landmark: it is used once it has been seen
+        wells = {s.owner: s.cell for s in overlay.things.structures if s.kind == "well" and s.b}
+        if config.on("exploration"):
+            # and once seen it is remembered: believed wells are used from out of sight, and one in sight that is dry is not
+            held = {b[1]: (b[2], b[3]) for b in overlay.persona.beliefs.get(actor, ()) if b[0] == "well"}
+            known += tuple((well_id(owner), cell) for owner, cell in sorted({**held, **{o: c for o, c in wells.items() if in_view(origin, c, radius)}}.items())
+                           if not (in_view(origin, cell, radius) and available[source_account(well_id(owner))] == 0))
+        else:
+            known += tuple((well_id(owner), cell) for owner, cell in wells.items() if in_view(origin, cell, radius))
+    chosen_id, well, stock = target_source(origin, known, radius, available)
     return {
         "thirst": overlay.thirst[actor],
         "water": available[actor_account(actor, WATER)],
         "water_source": well,
         "water_stock": stock,
-        "water_source_id": well_id,
+        "water_source_id": chosen_id,
     }

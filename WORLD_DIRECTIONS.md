@@ -1,5 +1,286 @@
 # Simulation 3 — Development Directions
 
+## Start, watch and resume worlds from a page — 2026-10-04
+
+The twelfth piece: no new simulation rule, only ways to look. `python -m world.launch` serves a page on this machine with
+the named scenes (plain, rich, wolves, village, families, explorers), a seed, a length and the features with their rules; it runs
+the world, shows the viewer while the run is still being written, lists saved runs and resumes a run that was cut short. The viewer
+gained a minimap you can click, a knowledge fog for the selected person (ground never seen, ground seen before, ground in sight, and
+what they believe: gold if they saw it, blue if they were told), arrows for where people are heading next, a ring where an event
+happened, and a link that remembers the tick and the person.
+
+**What to watch.** Open the launcher, start the "explorers" scene, tick "Watch while it runs", select a person, and turn on
+Knowledge fog. **Limits.** The fog does not count firelight. Resuming works only for the same code and only up to the planned length.
+Watching live reloads the page, so zoom and pan reset. The page itself saves nothing but its URL hash.
+
+## Paths, patches and curiosity — 2026-10-04
+
+The eleventh piece: `exploration` and `paths`. Each person remembers, for every 3x3 patch of the map, the last time any of it
+was in sight. Rough ground they remember is forgotten once its patch has gone unseen for 240 ticks. A curious person with spare time
+walks to a patch near home they have not looked at for a long time. A finished well that somebody sees is remembered and used from
+out of sight. Every step wears the cell a little, wear fades, and a worn cell is a path: worn rough ground costs no extra tick, and
+between two equally near steps people take the worn one they can see. A person who remembers a cell as rough still plans round it until
+they see it again, even if it has since been worn through.
+
+**What watching found.** Paths form along the busy lines between homes and water within a few hundred ticks. Exploring is rare: spare
+time is scarce, so a surveyed world has between none and six exploring trips in 600 ticks. No rough cell was worn through in a
+surveyed world, because people go round rough ground rather than over it. No well was built in the surveyed rich worlds, so a found
+well is only shown by constructed scenes.
+
+## Graves and what the dead leave — 2026-10-04
+
+The tenth piece: `aftermath`. When somebody dies a grave is set where they fell and a record is saved: when, where, how old, the cause,
+who was in sight, what they held, and who collected it. The cause is for whoever reads the run; the people know only what they saw or were
+told. Somebody who sees a grave believes that person died, and may tell others. Grief comes only from a death somebody has learned of.
+The belongings stay in the dead person's account until a living person collects them from the grave: the partner, a parent or a child
+first, anybody in need after a while. Collecting is an ordinary transfer in the dead person's name, so every unit stays accounted for.
+
+**What watching found.** Between one and four collections in a 700-tick world, nobody mourning at a grave (mourning needs both grief and
+spare time), and almost every death was learned of by sight rather than by telling, because conversations are rare in a small world.
+Writing the tests found two bugs: a gift made on the tick somebody died was recorded as a collection, and the observation listed kin
+deaths the person had not heard of.
+
+## Couples, children, old age and newcomers — 2026-10-04
+
+The ninth piece: `family`. Two free adults who talk, like each other and trust each other become a couple. A couple that stays side by
+side for a while may have a child: the pregnancy lasts 30 ticks, the carrier is hungrier, and the child is born beside them with traits from
+both parents. Everybody has a lifespan fixed by the seed and dies of old age at the end of it; elders slow down. A child with no
+living parent is taken in by the nearest adult who can see them. The bereaved grieve and do no chores while it lasts. When few people
+are left a traveller may arrive. The limits on the population are settings written into the run.
+
+**What watching found.** Couples did not form at the first setting (35), so the default is 18; they are still rare in small worlds.
+Old age kills a world that survives long enough: in 600 ticks, 11 of 62 deaths in eight rich worlds were old age.
+
+## Shelters that wear, fires and wells — 2026-10-04
+
+The eighth piece: `structures`. A finished shelter loses condition with time and storms; below a limit it leaks, at zero it
+collapses and its owner starts building again. Somebody at home with wood mends it, and a neighbour at the door adds the same
+again. At night, with wolves about, somebody at home with wood lights a fire that warms, lights and keeps wolves away. A diligent
+person with wood may dig a well by their home; once finished it gives water, and it is used only by those who have seen it.
+
+**What watching found.** Upkeep is badly outpaced by wear in the rich world: across eight 600-tick worlds 31 shelters were
+built, 25 collapsed and only 21 repairs were made, because somebody with a worn shelter is mostly serving a need. Switching
+structures off did not change the number of cold deaths (18 of 62 with it, 18 of 64 without, over the same eight seeds), so the
+cold deaths are not caused by wear. There are no hut, house or storehouse kinds.
+
+## Fields, crops, rot and grain — 2026-10-04
+
+The seventh piece: `farming`. Each founder has a field. Seed is spent, the crop grows (faster in rain), and harvest wears the soil,
+which mends when the field lies fallow. Grain rots if left and spoils a third at a time when stored. Grain is eaten before berries
+because it is what spoils, and a unit of it feeds a little more than a berry does (36 hunger against 30).
+
+**What watching found.** Fields are planted and harvested but rarely: across eight rich worlds, 22 plantings. Newborns have no
+field. There is no trading of grain.
+
+## Stone, tools and making things — 2026-10-04
+
+The sixth piece: `crafting`. A quarry gives stone. A person at home with the materials makes an axe (faster building), a pick
+(a bigger stone pack), a basket (a bigger wood pack) or a hoe (one more grain at harvest). Making spends the inputs through the kernel and the
+tool exists by a recorded entry tied to what was spent that tick.
+
+**What watching found.** Tools are made rarely (two in eight rich worlds in 600 ticks). Nobody asks for stone or a tool.
+
+## Asking, promising, building together and hosting — 2026-10-04
+
+The fifth piece: `pledges`. A person who needs water, food, wood or a hand building or mending asks somebody they can see. The one asked
+answers yes or no with a reason. A yes puts the units on hold in the kernel so the helper cannot spend them meanwhile; the promise ends
+kept, declined, expired, failed or interrupted, and each ending has a plain reason and, when it deserves one, a grievance. Somebody at
+a builder's door adds a tick of work. A host with food to spare feeds a guest at their door who has none.
+
+**What watching found.** Help is asked for and given: 185 `help` ticks across eight rich worlds. In storms most declines are "unfit",
+so askers try several people in turn. The test that nobody holds two promises at once was too weak at first (a second asker too far away
+to be answered hid a missing rule); it now uses a second asker as close as the first.
+
+## Friends, talk, grudges: relationships — 2026-10-04
+
+The fourth piece of the rich world: one more optional feature, `bonds` (it needs `beliefs`).
+[RICH_WORLD.md](RICH_WORLD.md) has the phase plan and the next step.
+
+**What people feel.** Each person keeps a short list of the people they know: how well they
+like them (bond), how far they trust them, any grudge, when they last met and why the grudge
+exists. A person's feelings are in their own head only: nobody else's observation or choice can read
+them, and a test moves someone out of sight to show it. A new need, company, grows slowly and falls while talking.
+
+**What they do about it.** Somebody lonely and with nothing urgent talks to a free person in reach
+who has not been avoided lately, or walks towards one in view, or to a home they have heard of, or
+to the well where people gather. A conversation needs both people to want it; if the other was busy
+the attempt is recorded as failed and they try someone else later. People greet each other for free
+as they pass. Chat passes on what a person believes: where a home is, then fresh wolf news, with its
+original date, and only when the listener trusts the teller enough.
+
+**What goes wrong.** A person who lost a race for food to somebody else in view, or who starved
+in front of a free neighbour holding spare food that was not offered, holds a grudge. They confront the
+other person, who apologises if they are generous enough and not holding a grudge themselves; otherwise
+it is a quarrel and both like each other less. Grudges fade slowly. Helping prefers friends and skips people
+somebody resents, except for hungry dependents. A gift softens a grudge.
+
+**What watching found.** Most chat attempts were first not returned because the other person was
+busy and neither could tell; showing what others are doing fixed it. Quarrels never happened until confronting became a free speech act.
+Friends are rare in small, spread-out worlds. Over eight seeds at 300 ticks, 20 of 70 people died with
+bonds against 35 of 85 without; births differ between the runs, so that is not a claim company
+helps.
+
+**What to watch.** A speech bubble and a teal thread between two people at a well, a "?" over the lonely,
+a Company bar in the inspector, and a Relationships section listing who the selected person likes,
+trusts, resents and why, with the quarrels and apologies in the event list.
+
+**Next.** Requests, promises and cooperation (P5): water, tools and building help that can be accepted,
+declined, broken or interrupted by a death, with grievances to match.
+
+## Wolves, and a memory that keeps dates — 2026-10-04
+
+The third piece of the rich world: two more optional features, `beliefs` and `wolves` (wolves
+need the sky). [RICH_WORLD.md](RICH_WORLD.md) has the phase plan and the next step.
+
+**What people believe.** A belief is one remembered fact: a kind of thing (so far a wolf), which
+one, where it was, when it was seen, when this person learned it and who told them. What a
+person sees, they believe first-hand. What they are told, they believe with the date of the
+original sighting, so a rumour is never fresher for being repeated. Beliefs fade after 240 ticks
+and only the ten freshest are kept. Nothing about a wolf reaches a person except through sight or
+a telling: an unseen wolf changes nobody's plans, and a test moves one out of sight to show it.
+
+**The wolves.** One wolf arrives at tick 40 and lives at a den on the map's edge where nobody
+lives. It hunts only at dusk and night, bites anyone in the open beside it (under a finished
+shelter nobody is touched), and goes back to its den to rest by day, or after a bite or a chase it
+gave up. A bite is 25 hurt; hurt heals faster resting at home; past 40 each step costs a tick
+more; at 100 the person dies. Everyone knows wolves hunt after dusk, so by day nowhere counts as
+dangerous and a wolf seen lying by its den is nothing to run from.
+
+**What people do.** They see a wolf only inside their sight (two cells at night). A wolf in view
+within three steps makes them run, for a built home if they have one, else away, and the
+need that runs out first still wins: somebody one drink from death drinks. Seeing a wolf they
+did not see a moment ago they call out to everyone awake in view, who then believe it. A person
+puts off a food or water errand to a place a wolf was lately near, whether they saw it or were
+told, until the need cannot wait; then they go and the decision says they are taking the
+risk. Routes go round believed danger when that is cheaper than the extra steps, and a hurt
+person at home stays in while the need can wait.
+
+**What watching found.** The first version put two wolves out all day and every sighting
+sent people running; whole worlds died of thirst and cold while fleeing. A wolf's den
+turned out to be a person's home, so one person was bitten at their own door every nine ticks.
+A route search that judged only a window of the map sent somebody round the edge of the world
+and made another step back and forth until they froze. Each is fixed by a rule above and pinned
+by a test. Across eight seeds at 300 ticks the final rules cost 33 deaths of 77 people with one
+wolf against 34 of 82 without, with 18 bites and about 25 ticks a world spent running; nobody
+was killed by a wolf, they lost time. Two wolves cost 38 of 71. Switching the holds off made
+it 48 of 77.
+
+**What to watch.** A grey wolf by its den at dusk, a dashed ring on the map where the selected
+person believes it was (fainter as it ages, labelled with who told them), "Knows about wolves"
+in the inspector, and in the set-aside list a trip put off because of a wolf or a wound.
+
+**Next.** Relationships and conversation (P4), now done: see the entry above.
+
+## A sky: day, night, weather and what being out in it costs — 2026-10-04
+
+The second piece of the rich world, two more optional features (`sky`, `steady`),
+saved in the run header and off by default. [RICH_WORLD.md](RICH_WORLD.md) has the
+phase plan and the exact next step.
+
+**The sky.** A day is 120 ticks: dawn, day, dusk, then 36 ticks of night. Weather
+changes in fronts every 30 ticks and follows a fixed table, so a storm builds through
+rain and never arrives out of a clear sky. Temperature is the day's base plus the hour,
+the weather and (when seasons are on) the season. Everything is fixed by the seed and
+the tick, and every tick's world records the sky, so the viewer shows what was
+recorded and replay checks it. A person out in the cold, the rain or a storm gains extra
+cold each tick; under a finished shelter they gain none. Sight shrinks at night and in
+storms, climbing onto rough ground costs a tick more in a storm, nobody starts building
+or an optional outing in a storm, and (with sleep on) bedtime comes earlier at night.
+
+**Planning with the weather.** The first version charged the cold but left every plan
+using the nominal rate, and eight seeds of 300 ticks produced 27 cold deaths against
+none without the sky. Three rules fixed that, and each is visible in the inspector:
+
+* Cold's time-left and the "start for home" rule use the cold rate of the sky people
+  are in, and away from home the walk back is taken off the time left, so somebody
+  turns for home while they still can.
+* Somebody at home does not set out on a food or water errand when the round trip would
+  carry their cold past the emergency level, unless the need cannot wait any longer.
+  They stay in and warm up, and the set-aside list says "waiting out bad weather".
+* `steady`: whatever a person was serving last tick counts as 8 ticks more urgent when
+  the next choice is made, so a need has to be clearly worse before they give up the
+  errand. Without it people stepped out of their door and straight back in; in three
+  seeds that happened 63, 52 and 125 times, and with it 4, 11 and 9. A later pass added three
+  smaller rules to it: a need whose relief can be taken this tick counts for as much again,
+  somebody who reaches the well a tick early takes the water rather than turning back, and
+  somebody already out is not called home until the cold they would arrive with is a little past
+  the usual line. Across five seeds that cut the remaining door reversals from 44 to 15.
+
+Results of those eight seeds (7, 11, 14, 23, 31, 42, 57, 64) at 300 ticks, with
+explain, personality, skills and sleep on: 34 dead of 93 people without the sky, 51 of
+87 with the first sky, 38 of 75 after planning with the weather's rate, and 34 of 82
+with steadiness and the walk-back rule, of which 2 died of cold. These are what those
+runs did. The weather-wait rule had no measurable effect on survival in them (12 cold
+deaths with it and 12 without, before steadiness). Later, with wolves in the same worlds,
+switching it off (and the wolf holds) raised deaths from 33 to 48 of 77, so it does matter
+once nights hold more than cold.
+
+**What to watch.** The clock and weather in the corner of the map, the night tint, the
+rain streaks, and in the inspector: a person at their hut in a rainy night, building
+or resting, with the errand they did not make and why.
+
+**Next.** A belief model and wildlife (P3): what people know about places and
+dangers, how old it is, and who told them.
+
+## People with temperaments, skills and sleep — 2026-10-04
+
+The first piece of the rich world. Three optional features, each saved in the run
+header and off by default (`--features explain,personality,skills,sleep`). With all
+of them off a run is identical to before; `tests/test_disabled_mode_baseline.py`
+checks 16 configurations against digests made from the untouched baseline commit.
+[RICH_WORLD.md](RICH_WORLD.md) holds the full inventory, phase plan and next step.
+
+**Temperament.** Everyone has five traits from 0 to 100: generosity, sociability,
+caution, diligence, curiosity. They are drawn at genesis from their own generator
+(so no home or terrain cell moves) and a newborn inherits its two birth adults'
+average with a small deterministic offset. A trait only matters as a distance from
+50. Stingy people (generosity under 35) keep their last unit from a stranger, though
+never from their own child; generous people (75 and over) hand water to somebody
+visibly parched. Cautious people set off a few ticks earlier for food, water and
+home, and go to bed earlier. Diligent people work on through more tiredness and
+keep the shared cache better stocked. Sociability and curiosity are stored but act
+only through conversation and exploration, which come later.
+
+**Skills.** Gathering, fishing, building, farming and crafting each collect practice
+points from real work: an accepted claim, a casting, a finished work tick. Levels
+begin at 0, 8, 24, 48, 80 and 120 points. Every two gathering levels add a unit to a
+pack, every two fishing levels a unit to a catch, and each building level takes a
+tick off a shelter.
+
+**Sleep.** Fatigue is a fourth need that nobody dies of directly. It rises while
+awake, faster on work ticks. A tired person goes home and sleeps for about fifteen
+ticks, waking early only when another need cannot wait. "Cannot wait" means the
+time left is no more than the time to reach the remedy and finish with it, plus a
+small margin, so distance finally enters a choice. At the limit people collapse
+where they stand and stay down. Sleepers see only their own cell; everybody else
+can see they are asleep.
+
+**Why a choice was not made.** Each decision now records the options it set aside
+with a reason: less urgent, too late, unwilling. The inspector lists them, and a
+person remembers their last four distinct attempts and whether each worked.
+
+Watching ordinary worlds (10 seeds, 300 ticks) found four faults that tests alone
+had not, each now fixed and pinned by a test:
+
+1. Cautious people arrived at the source before they were hungry, could not claim,
+   turned round, set off again, and repeated. Arriving within their own margin they
+   now stock up.
+2. A tired person turned back mid-trip to go to bed, then had to make the trip
+   again. A food or water errand that fits before collapse is now finished first,
+   and somebody already on an errand needs a few more ticks of reason to abandon it.
+3. Waiting at an empty source counted as an errand and postponed sleep until
+   collapse. Waiting is now costed as a full renewal period and gets no commitment.
+4. Collapse was one tick long, so a starving, exhausted person collapsed every
+   third tick. A collapsed person now stays down until ten points of fatigue have
+   gone, except for one life-saving bite or sip of something already in hand.
+
+What it did to the worlds: people sleep about 15-20% of the time in ordinary
+runs. Famine worlds (seeds 11, 23, 57, 88) still collapse and starve, now with
+exhaustion in the mix; no one dies of tiredness itself. Births fell in several
+boom-and-bust seeds because sleepers cannot spend settled ticks side by side, and
+rose in a few quiet ones; this is a trade-off to watch, not a tuned result.
+Files grow by about a third (a persona block each tick, plus the set-aside lists).
+
 ## Baseline consolidation — 2026-10-03
 
 The selected starting point is `019503c` on `codex/kernel-first-slice`.

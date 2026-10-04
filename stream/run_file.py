@@ -188,6 +188,8 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
     source. A `{"born"}` entry adds a person: an account holding nothing, a
     nothing holding of every named resource, and their name on every source.
     A `{"source_created"}` entry adds an empty source open to the current roster.
+    A `{"made", "item", "amount"}` entry adds that many of a held item to a person; the audit
+    checks it against the inputs the kernel settled spending.
     Neither births nor source creation create units. Pure, on plain JSON, so
     a reader can recompute the state without the kernel. Raises RunFileError on
     a bad entry."""
@@ -210,8 +212,8 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
             continue
         if "born" in entry:
             born = entry.get("born")
-            if not isinstance(born, str) or not born:
-                raise RunFileError(f"a birth needs a name, got {born!r}")
+            if set(entry) != {"born"} or not isinstance(born, str) or not born:
+                raise RunFileError(f"a birth needs a name and nothing else, got {entry!r}")
             if born in balances or born in seen:
                 raise RunFileError(f"{born!r} is born twice, or was already here")
             seen.add(born)
@@ -220,6 +222,32 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
                 source["authorised"] = sorted(set(source.get("authorised", [])) | {born})
             for held in (produced.get("holdings") or {}).values():
                 held[born] = 0
+            continue
+        if "spoiled" in entry:
+            actor, item, units = entry.get("spoiled"), entry.get("item"), entry.get("amount")
+            held = (produced.get("holdings") or {}).get(item) if isinstance(item, str) else None
+            if (set(entry) != {"spoiled", "item", "amount"} or held is None or actor not in held
+                    or type(units) is not int or not 0 < units <= held[actor]):
+                raise RunFileError(f"spoilage needs a person, an item they hold and no more than they hold, got {entry!r}")
+            held[actor] -= units
+            produced["consumed_by"][item] += units
+            continue
+        if "rotted" in entry:
+            source_id, units = entry.get("rotted"), entry.get("amount")
+            source = sources.get(source_id) if isinstance(source_id, str) else None
+            if (set(entry) != {"rotted", "amount"} or source is None or "resource" not in source
+                    or type(units) is not int or not 0 < units <= source["stock"]):
+                raise RunFileError(f"rot needs a named-resource source and no more than stands in it, got {entry!r}")
+            source["stock"] -= units
+            produced["consumed_by"][source["resource"]] += units
+            continue
+        if "made" in entry:
+            actor, item, units = entry.get("made"), entry.get("item"), entry.get("amount")
+            held = (produced.get("holdings") or {}).get(item) if isinstance(item, str) else None
+            if (set(entry) != {"made", "item", "amount"} or actor not in balances or held is None or actor not in held
+                    or type(units) is not int or units <= 0):
+                raise RunFileError(f"making needs a person, an item they can hold and a positive amount, got {entry!r}")
+            held[actor] += units
             continue
         source_id = entry.get("source")
         amount = entry.get("amount")

@@ -30,8 +30,21 @@
   FOOD.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'food', id: s.id, position: s.position, fishing: !!s.fishing, store: !!s.store, resident: s.resident, cap: s.fishing ? C.fishing_rules.cap : s.store ? C.store_target : C.source_cap }));
   WELLS.forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'water', id: s.id, position: s.position, cap: C.water_cap }));
   (IDX.wood || []).forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'wood', id: s.id, position: s.position, cap: C.wood_rules.cap }));
+  (IDX.stone || []).forEach(s => SOURCE_AT.set(s.position.join(','), { kind: 'stone', id: s.id, position: s.position, cap: s.cap }));
   const SOURCE_BY_ID = {}; SOURCE_AT.forEach(s => { SOURCE_BY_ID[s.id] = s; });
   const PHRASE = IDX.phrases || {}, LABEL = IDX.labels || {};
+  const FEATURES_ON = new Set(C.features || []), TABLES = C.feature_tables || {};
+  const HAS = f => FEATURES_ON.has(f);
+  const REJECT_LABEL = TABLES.rejection_reasons || {};
+  // Extension points. Files named viewer_*.js are spliced in near the end of this closure and register here. They read
+  // recorded values only: nothing in them decides, predicts or changes anything in the world.
+  //   sections  inspector blocks: { after: 'tick'|'needs'|'facts'|'end', html(ctx) }
+  //   poseOf    decision kind -> pose name;  poses  pose name -> full-body drawer returning nothing
+  //   marks     little signs above a head;  standing  things that stand in the world, depth sorted
+  //   overlays  screen-space tints and labels drawn after the world;  hud  html bits for the corner clock: fn(world, view)
+  //   onchange  called after the view or the selection changes
+  const EXT = { sections: [], poseOf: {}, poses: {}, marks: [], standing: [], overlays: [], hud: [], onchange: [] };
+  const extHtml = (where, ctx) => EXT.sections.filter(x => x.after === where).map(x => x.html(ctx) || '').join('');
   const MOVES = new Set(IDX.moves || []);
   const BUILD_TICKS = C.build_ticks || 0;
   const EVENTS = IDX.events || [];
@@ -93,8 +106,8 @@
     const state = k === 0 ? H.genesis : ticks[k - 1].state;
     return ((state.holdings || {}).wood || {})[p] || 0;
   }
-  const sourceLabel = s => s.fishing ? 'fishing spot' : s.store ? 'home cache' : s.kind === 'food' ? 'food source' : s.kind === 'wood' ? 'wood grove' : 'well';
-  const sourceColor = s => s.fishing ? '#75ddd1' : s.kind === 'food' ? '#f2a65e' : s.kind === 'wood' ? '#bc9967' : '#72c8ea';
+  const sourceLabel = s => s.fishing ? 'fishing spot' : s.store ? 'home cache' : s.kind === 'food' ? 'food source' : s.kind === 'wood' ? 'wood grove' : s.kind === 'stone' ? 'quarry' : 'well';
+  const sourceColor = s => s.fishing ? '#75ddd1' : s.kind === 'food' ? '#f2a65e' : s.kind === 'wood' ? '#bc9967' : s.kind === 'stone' ? '#b3b0a6' : '#72c8ea';
   function drawWood(g, x, y, stock) {
     g.fillStyle = '#896340'; g.fillRect(x - 3, y - 31, 6, 29);
     if (stock > 0) {
@@ -114,7 +127,10 @@
   const NEEDS = [{ key: 'hunger', label: 'Hunger', at: C.hungry_at, em: C.emergency_at, max: C.death_at, color: '#f2a65e', word: 'hungry' }];
   if (C.water === 'on') NEEDS.push({ key: 'thirst', label: 'Thirst', at: C.thirsty_at, em: C.thirst_emergency_at, max: C.thirst_death_at, color: '#72c8ea', word: 'thirsty' });
   if (C.warmth === 'on') NEEDS.push({ key: 'cold', label: 'Cold', at: C.cold_at, em: C.cold_emergency_at, max: C.cold_death_at, color: '#b9dcff', word: 'cold' });
-  function needLevel(w, p, need) { const m = w[need.key]; return m && p in m ? m[p] : null; }
+  function needLevel(w, p, need) {
+    if (need.get) { const x = need.get(w, p); return x === undefined ? null : x; }
+    const m = w[need.key]; return m && p in m ? m[p] : null;
+  }
   function needState(w, p) {
     let worst = 'fine';
     for (const need of NEEDS) {
@@ -410,6 +426,15 @@
     return { gx, gy, x: isoX(gx, gy), y: isoY(gx, gy) - e, e };
   }
   function cellCentre(x, y) { return { x: isoX(x + 0.5, y + 0.5), y: isoY(x + 0.5, y + 0.5) - elev(x, y) }; }
+  // how far somebody could see at a recorded view: the run's perception radius, less at night and in a storm, none asleep
+  // (firelight is not counted)
+  function sightAt(w, p) {
+    if (((w.persona || {}).asleep || {})[p] !== undefined) return 0;
+    const base = typeof C.perception_radius === 'number' ? C.perception_radius : 0, lev = C.feature_levers || {};
+    if (!w.sky || base <= 0) return base;
+    const cut = (w.sky.phase === 'night' ? (lev.night_sight || 0) : 0) + (w.sky.weather === 'storm' ? (lev.storm_sight || 0) : 0);
+    return Math.max(1, base - cut);
+  }
   function roughMemory(w, p) {
     const cells = ((w.terrain_memory || {})[p]) || [];
     return cells.map(c => Array.isArray(c) ? c : null).filter(Boolean);
@@ -561,6 +586,7 @@
   function poseOf(d, moved, held) {
     const kind = d ? d.kind : null;
     if (!kind) return 'idle';
+    if (EXT.poseOf[kind]) return EXT.poseOf[kind];
     if (held) return 'held';
     if (MOVES.has(kind) && moved) return 'walk';
     if (MOVES.has(kind)) return kind === 'ask' ? 'ask' : 'idle';
@@ -579,6 +605,7 @@
     if (st.pose === 'yield') { g.save(); g.setLineDash([2, 2]); g.strokeStyle = 'rgba(192,168,244,0.95)'; g.lineWidth = 1.3; ell(g, 0, 0, 12, 5.5); g.stroke(); g.restore(); }
     if (st.selected) { g.strokeStyle = 'rgba(255,227,163,0.95)'; g.lineWidth = 1.6; ell(g, 0, 0, 13.5, 6.2); g.stroke(); }
     else if (st.hovered) { g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 1.2; ell(g, 0, 0, 12.5, 5.8); g.stroke(); }
+    if (EXT.poses[st.pose]) { EXT.poses[st.pose](g, p, st, now, col, dark, i); g.restore(); return; }
     const walking = st.pose === 'walk' && !REDUCED && st.stride;
     const ph = now * 0.014 + i * 1.7;
     const swing = walking ? Math.sin(ph) : st.pose === 'walk' ? 0.55 : 0;   // a held stride when paused
@@ -627,6 +654,7 @@
     g.rotate(-lean);
     // little signs above the head
     const gy = -30 - bob;
+    for (const mark of EXT.marks) mark(g, p, st, now, gy);
     if (pose === 'wait') {
       g.fillStyle = 'rgba(250,246,232,0.95)'; rrect(g, 5, gy - 7, 11, 8, 3); g.fill();
       g.beginPath(); g.moveTo(7, gy + 1); g.lineTo(6, gy + 3.5); g.lineTo(9.5, gy + 1); g.fill();
@@ -645,7 +673,8 @@
         const bx = -w / 2 + 4 + j * 8 - (pose === 'wait' ? 5 : 0), by = gy - 2;
         g.fillStyle = 'rgba(10,20,22,0.8)'; g.beginPath(); g.arc(bx, by, 3.7, 0, Math.PI * 2); g.fill();
         g.fillStyle = b.em ? '#ff7a66' : b.color; g.strokeStyle = b.em ? '#ff7a66' : b.color; g.lineWidth = 1;
-        if (b.key === 'hunger') { g.beginPath(); g.arc(bx, by, 2.1, 0, Math.PI * 2); g.fill(); }
+        if (b.glyph) b.glyph(g, bx, by);
+        else if (b.key === 'hunger') { g.beginPath(); g.arc(bx, by, 2.1, 0, Math.PI * 2); g.fill(); }
         else if (b.key === 'thirst') { droplet(g, bx, by + 0.3, 1.5); g.fill(); }
         else { flake(g, bx, by, 2.4); g.stroke(); }
       });
@@ -705,7 +734,7 @@
     }
     if (LAYERS.memory && selP && present(w, selP)) {
       const nowSeen = new Set();
-      const radius2 = C.perception_radius;
+      const radius2 = sightAt(w, selP);
       if (typeof radius2 === 'number' && !deadIn(w, selP)) {
         const [px, py] = w.positions[selP];
         for (const key of ROUGH) {
@@ -742,7 +771,7 @@
     if (LAYERS.perception !== 'off' && typeof radius === 'number') {
       const whose = LAYERS.perception === 'everyone' ? people.filter(p => present(w, p) && !deadIn(w, p)) : (selP && present(w, selP) && !deadIn(w, selP) ? [selP] : []);
       for (const p of whose) {
-        const [x, y] = w.positions[p];
+        const [x, y] = w.positions[p], radius = sightAt(w, p);
         const x0 = Math.max(0, x - radius), y0 = Math.max(0, y - radius), x1 = Math.min(GW - 1, x + radius) + 1, y1 = Math.min(GH - 1, y + radius) + 1;
         const lift = -4;
         const pts = [[isoX(x0, y0), isoY(x0, y0) + lift], [isoX(x1, y0), isoY(x1, y0) + lift], [isoX(x1, y1), isoY(x1, y1) + lift], [isoX(x0, y1), isoY(x0, y1) + lift]];
@@ -802,6 +831,7 @@
         }
         else if (src.kind === 'food') drawBush(g, src, c.x, c.y, stockOf(k, src.id), (w.patch_condition || {})[src.id]);
         else if (src.kind === 'wood') drawWood(g, c.x, c.y, stockOf(k, src.id));
+        else if (src.kind === 'stone') { const n = Math.min(stockOf(k, src.id) || 0, 6); for (let j = 0; j < Math.max(1, n); j++) drawStone(g, c.x - 9 + (j % 3) * 9, c.y - 5 + Math.floor(j / 3) * 4, 1.2); }
         else drawWell(g, src, c.x, c.y, stockOf(k, src.id), now);
       } });
     }
@@ -830,6 +860,7 @@
         } });
       }
     }
+    for (const ext of EXT.standing) ext({ g, k, w, t, now, items, sheltersNow });
     hits = [];
     if (LAYERS.people) for (const p of people) {
       if (!present(w, p)) continue;
@@ -845,13 +876,13 @@
       const badges = [];
       for (const need of NEEDS) {
         const x = needLevel(w, p, need); if (x === null || need.at === undefined) continue;
-        if (x >= need.at) badges.push({ key: need.key, color: need.color, em: need.em !== undefined && x >= need.em });
+        if (x >= need.at) badges.push({ key: need.key, color: need.color, glyph: need.glyph, em: need.em !== undefined && x >= need.em });
       }
       const bornNow = BORN[p] === k && anim.from !== anim.to;
       let towards = 1;
       if (dec && dec.target && w.positions[dec.target]) towards = isoX(w.positions[dec.target][0], w.positions[dec.target][1]) >= isoX(b[0], b[1]) ? 1 : -1;
       const st = {
-        pose, badges, towards, food: food(k, p), water: waterHeld(k, p), wood: woodHeld(k, p),
+        pose, badges, towards, food: food(k, p), water: waterHeld(k, p), wood: woodHeld(k, p), sheltered: sheltersNow.has(b.join(',')),
         emergency: badges.some(x => x.em) && !diedNow, selected: p === selP, hovered: hovered === p, stride: anim.from !== anim.to || playing,
         scale: (bornNow ? 0.35 + 0.65 * t : 1) * (isChild(w, p) ? 0.72 : 1), alpha: diedNow ? Math.max(0.25, 1 - t * 0.75) : 1,
       };
@@ -876,6 +907,7 @@
 
     // screen-space labels
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const ext of EXT.overlays) ext({ g, k, w, t, now, width: cw, height: ch });
     drawLabels(g, w, k, t);
     needsDraw = false;
   }
@@ -923,10 +955,10 @@
       } else if (e.kind === 'unanswered') {
         g.save(); g.setLineDash([1.5, 4]); g.strokeStyle = `rgba(200,200,190,${(0.7 * (1 - 0.5 * t)).toFixed(3)})`; g.lineWidth = 1.2; arc(g, a, b, lift); g.stroke(); g.restore();
         bubble(g, a.x + 9, a.y - 10, '…', 'rgba(210,210,200,0.9)', '#2a2a24');
-      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'gave_water' || e.kind === 'fed_child') {
+      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'gave_water' || e.kind === 'gave_wood' || e.kind === 'fed_child') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(241,197,110,0.45)'; g.lineWidth = 1.2; g.stroke();
         const u = REDUCED ? 1 : t, q = along(a, b, m, u);
-        g.fillStyle = e.kind === 'gave_water' ? '#7fb3d9' : '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
+        g.fillStyle = e.kind === 'gave_water' ? '#7fb3d9' : e.kind === 'gave_wood' ? '#a9794a' : '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
         if (u > 0.85) { g.fillStyle = '#ffe3a3'; g.font = '700 8px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('+1', b.x, b.y - 12 - 6 * (u - 0.85) / 0.15); }
       } else if (e.kind === 'refused') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(255,148,131,0.6)'; g.lineWidth = 1.2; g.stroke();
@@ -1042,6 +1074,7 @@
     updateHud(); updateSummary(); markEvents(); updateFocusCard();
     if (tabNow === 'inspector') renderInspector();
     if ($('deep').open) updateDeep();
+    for (const f of EXT.onchange) f();
     needsDraw = true;
   }
   window.show = show;
@@ -1062,6 +1095,7 @@
     bits.push(`<span>died <b>${(COUNTS.dead || [])[v] ?? Object.keys(w.died_at || {}).length}</b></span>`);
     if (BUILD_TICKS) bits.push(`<span>shelters <b>${(COUNTS.shelters || [])[v] ?? 0}</b></span>`);
     if (ADULT_AT !== null) bits.push(`<span>children <b>${(COUNTS.children || [])[v] ?? 0}</b></span>`);
+    for (const f of EXT.hud) { const b = f(w, v); if (b) bits.push(b); }
     $('hud-line').innerHTML = bits.join('');
     canvas.setAttribute('aria-label', `Isometric map of the world at tick ${v} of ${n}: ${aliveAt(v)} alive.`);
     if (!playing) $('live').textContent = `World tick ${v}. ${aliveAt(v)} alive.`;
@@ -1172,6 +1206,7 @@
     if (onlySelected) applyFilter();
     updateFocusCard();
     if (openInspector) setTab('inspector'); else if (tabNow === 'inspector') renderInspector();
+    for (const f of EXT.onchange) f();
     needsDraw = true;
   }
   function focusPerson(p) {
@@ -1183,7 +1218,9 @@
     if (!present(w, p)) return `not born yet — arrives at tick ${BORN[p]}`;
     if (deadIn(w, p)) return `${DIED[p] ? DIED[p].cause : 'died'} at tick ${w.died_at[p]}`;
     if (!d) return k === 0 ? 'at the start: nothing decided yet' : 'nothing recorded this tick';
-    return (PHRASE[d.kind] || d.kind) + (d.target && !SOURCE_BY_ID[d.target] ? ` → ${d.target}` : d.target ? ` (${d.target})` : '');
+    let phrase = PHRASE[d.kind] || d.kind;
+    if (d.resource && (d.kind === 'offer' || d.kind === 'go_offer')) phrase = phrase.replace('food', d.resource);   // water and wood are given too
+    return phrase + (d.target && !SOURCE_BY_ID[d.target] ? ` → ${d.target}` : d.target ? ` (${d.target})` : '');
   }
   function updateFocusCard() {
     const card = $('focus');
@@ -1258,10 +1295,16 @@
           return `<span class="alt${c === d.kind ? ' on' : ''}">${esc(LABEL[c] || c)}${sc}</span>`;
         }).join('') + '</div>';
       }
+      if (d.rejected && d.rejected.length) {
+        h += '<div class="aside" title="Options this person weighed and set aside, with the reason recorded at the moment they chose"><b>Set aside</b>' +
+          d.rejected.map(r => `<div class="aside-row"><span class="code ${esc(r[1])}">${esc(REJECT_LABEL[r[1]] || r[1])}</span> <span class="what">${esc(LABEL[r[0]] || r[0])}</span> — ${esc(r[2])}</div>`).join('') + '</div>';
+      }
       if (o) h += `<div class="outcome">Kernel: ${esc(o.operation)} <span class="${o.accepted ? 'ok' : 'no'}">${o.accepted ? 'accepted' : 'refused'}</span>${o.accepted ? '' : ' (' + esc(o.reason) + ')'}</div>`;
       if (deadIn(w, p)) h += `<div class="outcome no">Died at the end of this tick — ${esc(DIED[p] ? DIED[p].cause : '')}</div>`;
     } else h += `<div class="why">${k === 0 ? 'The world has just begun; nobody has decided anything yet.' : 'No decision recorded this tick.'}</div>`;
     h += '</div></div>';
+    const xctx = { w, p, k, d, o, ob, alive };
+    h += extHtml('tick', xctx);
     const sourceReports = (w.source_reports || {})[p] || [];
     if (sourceReports.length) h += '<div class="sec"><h4>Food reports heard</h4>' + sourceReports.map(([sid, speaker, seen, heard]) => `<div>${personLink(speaker)} saw ${esc(sid)} empty at tick ${seen}; heard at tick ${heard}. Expires at tick ${seen + C.empty_source_ticks}.</div>`).join('') + '</div>';
     const emptyMemory = (w.empty_sources || {})[p] || [];
@@ -1277,6 +1320,7 @@
     if (emptyMemory.length) h += '<div class="sec"><h4>Empty food remembered</h4>' + emptyMemory.map(([sid, when]) => `<div>${esc(sid)}: empty at tick ${when}; ${Math.max(0, C.empty_source_ticks - ((w.tick || 0) - when))} ticks until forgotten without another sighting</div>`).join('') + '</div>';
     // needs
     h += '<div class="sec"><h4>Needs</h4>' + NEEDS.map(nd => { const x = needLevel(w, p, nd); return x === null ? '' : needBar(nd, x); }).join('') + '</div>';
+    h += extHtml('needs', xctx);
     // facts
     const pos = w.positions[p], home = homeOf(w, p), key = pos.join(','), homeKey = home ? home.join(',') : '';
     const ground = [];
@@ -1303,6 +1347,7 @@
     }
     if (ADULT_AT !== null && lived !== null) facts.push(['Age', lived < ADULT_AT ? `a child: ${lived} of the ${ADULT_AT} ticks it takes to grow up` : 'grown']);
     h += '<div class="sec"><h4>Facts</h4><div class="kv">' + facts.map(([a, b]) => `<span class="k">${a}</span><span>${esc(b)}</span>`).join('') + '</div></div>';
+    h += extHtml('facts', xctx);
     // errands and company, straight from the world state
     const links = [];
     if (C.homes === 'on') {
@@ -1368,6 +1413,7 @@
         return `<div class="thread">t${th.asked}: ${who} — ${end}${th.detours ? `, turned aside ${th.detours}×` : ''}</div>`;
       }).join('') + '</div>';
     }
+    h += extHtml('end', xctx);
     // recent events
     const mineEv = (EV_OF[p] || []).filter(i => EVENTS[i].k <= k).slice(-10).reverse();
     h += '<div class="sec"><h4>Recently</h4>' + (mineEv.length ? mineEv.map(i => { const e = EVENTS[i]; return `<button class="mini-ev" type="button" data-tick="${e.k}"><span class="evtick">t${e.k}</span><span>${esc(e.text)}</span></button>`; }).join('') : '<div class="hint">Nothing recorded about them yet.</div>') + '</div>';
@@ -1382,7 +1428,7 @@
     let h = `<div class="ins-head"><span class="swatch" style="background:${sourceColor(s)};width:18px;height:18px"></span><span class="name">${esc(s.id)}</span><span class="state">${sourceLabel(s)}</span></div>`;
     const condition = (w.patch_condition || {})[s.id];
     const allowance = w.season ? C.season_growth[w.season] : C.renewal_amount;
-    const renewal = s.fishing ? `+${C.fishing_rules.renewal} every ${C.fishing_rules.renewal_every} ticks in either season; cast then catch` : s.store ? 'None — food must be carried here' : s.kind === 'wood' ? `+${C.wood_rules.renewal} every ${C.wood_rules.renewal_every} ticks` : s.kind === 'food' ? `Up to +${allowance} every ${C.renewal_every} ticks${w.season ? ` in the ${esc(w.season)} season` : ''}${condition !== undefined ? '; half when worn, rounded up' : ''}` : `+${C.water_renewal_amount} every ${C.water_renewal_every} ticks`;
+    const renewal = s.fishing ? `+${C.fishing_rules.renewal} every ${C.fishing_rules.renewal_every} ticks in either season; cast then catch` : s.store ? 'None — food must be carried here' : s.kind === 'wood' ? `+${C.wood_rules.renewal} every ${C.wood_rules.renewal_every} ticks` : s.kind === 'stone' ? '+1 every 50 ticks' : s.kind === 'food' ? `Up to +${allowance} every ${C.renewal_every} ticks${w.season ? ` in the ${esc(w.season)} season` : ''}${condition !== undefined ? '; half when worn, rounded up' : ''}` : `+${C.water_renewal_amount} every ${C.water_renewal_every} ticks`;
     h += `<div class="sec"><div class="kv"><span class="k">Where</span><span>(${s.position.join(', ')})</span><span class="k">Stock now</span><span>${stockText(s, v)}</span><span class="k">Renews</span><span>${renewal}</span></div></div>`;
     if (condition !== undefined) h += `<div class="sec"><h4>Patch condition</h4><div>${condition} / ${C.patch_rules.condition_max} — ${condition < C.patch_rules.full_growth_at ? 'worn patch' : 'healthy patch'}</div><div class="hint">Each food harvested costs ${C.patch_rules.wear_per_unit} condition. A tick without a harvest restores ${C.patch_rules.recovery_per_tick}. Full growth returns at ${C.patch_rules.full_growth_at}.</div></div>`;
     if (s.store) h += `<div class="sec"><h4>Shared home cache</h4><div>${C.homes === 'on' ? 'Residents put' : personLink(s.resident) + ' puts'} spare food here after building their shelter, keeping one meal. Nearby people can walk here and collect it. Deposited food becomes available next tick.</div></div>`;
@@ -1680,6 +1726,8 @@
     if (needsDraw || moving || tweening || playing || ambient) { draw(now); lastPaint = now; }
     requestAnimationFrame(loop);
   }
+
+  /*@PARTS@*/
 
   // --------------------------------------------------------------- start --
   renderEvents();

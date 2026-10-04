@@ -1,5 +1,38 @@
 # Testing and proof limits
 
+## Rich-world checks — 2026-10-04
+
+* Disabled-mode guard: `python -B -m pytest tests/test_disabled_mode_baseline.py`
+  compares seal-free tick content digests with values made from baseline `02af86b`.
+  (Trail digests include seals, which chain from a hash of every source file, so they
+  change with any edit and prove nothing across revisions.)
+* Ledger audit: `tests/ledger_audit.py` explains every account change in a saved run.
+  Use it in any feature test that moves resources.
+* Features run with `--features a,b,c` and `--lever name=value`.
+* Knowledge claims about wolves are checked in `tests/test_wolves.py`: every first-hand belief in a saved run matches a sighting
+  the run recorded, every hearsay belief matches a recorded telling, and a wolf moved out of everybody's sight changes no
+  observation or decision. Mutating a rule (hunting hours, posture, danger price, tie-break, hearsay dating) fails a test.
+* Relationship claims are checked in `tests/test_society.py`: every warm or greeting bond entry in a saved run was
+  mutual and within reach, every grudge that grew has a recorded cause, every home belief traces to a chat, and
+  moving a person out of sight changes nothing they decide. Mutating a rule (one-sided chat, unthrottled greetings, no trust gate,
+  helping the resented, unseen starvation as a grievance, no confrontation cooldown, unbounded bonds) fails a test.
+* Weather and planning claims are checked on saved worlds in `tests/test_sky.py`: the recorded sky is the rule at
+  every tick, cold rises by exactly the declared arithmetic, and a steady world has far fewer out-and-straight-back
+  moves than the same world without it. Survey runs of several seeds are how behaviour was judged; their numbers
+  are recorded in [RICH_WORLD.md](../../RICH_WORLD.md) with what they do and do not show.
+* Browser tests need Playwright's browser build. If the installed build differs from the
+  locked Playwright's, point `PLAYWRIGHT_BROWSERS_PATH` at a directory of links to it.
+
+* P5-P12 checks (2026-10-04): `tests/test_pledges.py`, `test_crafting.py`, `test_farming.py`, `test_structures.py`, `test_family.py`,
+  `test_aftermath.py` and `test_exploration.py` each hold unit scenes, strict storage tests and a saved-world audit that re-derives
+  the feature's state from recorded values (for example `test_exploration.py` rebuilds every person's remembered rough ground, patch
+  dates and the whole wear table from recorded positions alone; `test_aftermath.py` checks that every taker has an accepted transfer out of
+  the dead person's account). `tests/test_launch.py` starts a real local server on a free port. Browser checks
+  (`test_observer_viewer.py`, `test_inspector_sections.py`, the launcher page in `test_launch.py`) need Node and Playwright; tests marked
+  `long_run` run whole worlds. Rule mutations were tried by hand for each feature (the lists are in RICH_WORLD.md); they are not part
+  of the suite, so a future change that weakens a rule is caught only where a test already pins it.
+
+
 ## Baseline consolidation — 2026-10-03
 
 From starting `019503c` plus the local consolidation changes, measured on Windows

@@ -27,15 +27,23 @@ import random
 from collections.abc import Mapping
 from functools import lru_cache
 from dataclasses import dataclass, fields
+from functools import cached_property
 from typing import Any
 
 from kernel import Source, WorldState
 
 from world.overlay import Overlay
+from world.persona import Persona, genesis_persona
+from world.sky import sky_at
+from world.registry import (FEATURES, LEVER_DEFAULTS, cross_checks, feature_problems, lever_defaults)
 from world.storage import STORE_TARGET, STORE_LOW, FOOD_EXPECT_TICKS, store_id
 from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
 from world.foraging import EMPTY_SOURCE_TICKS
 from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
+from world.crafting import STONE, STONE_STOCK, TOOLS
+from world.farming import GRAIN, Plot, field_id
+from world.structures import well_id
+from world.things import Things
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
                            SEASON_TICKS, SEASONS, season_at, seasonal_growth)
@@ -146,6 +154,8 @@ class WorldConfig:
     provisioning_on: bool = False  # make food trips for a low shared home cache
     knowledge_sharing_on: bool = False  # share firsthand empty-source sightings with adjacent housemates
     coordination_on: bool = False  # briefly trust a nearby housemate's announced food trip
+    features: tuple[str, ...] = ()  # optional rich-world features, by name: see world/registry.py
+    feature_levers: tuple[tuple[str, int], ...] = ()  # settings that differ from their feature's defaults
 
     def __post_init__(self) -> None:
         # Check every scalar integer, including inactive feature settings, before
@@ -161,7 +171,22 @@ class WorldConfig:
             raise ValueError(f"world configuration requires boolean values: {', '.join(bad_booleans)}")
         if not isinstance(self.yield_set, (tuple, list)):
             raise ValueError("yield_set must be a tuple or list of positive integers")
+        try:
+            features = tuple(self.features)
+            overrides = dict(self.feature_levers)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("features must be a list of names and feature_levers name/value pairs") from exc
+        # Store only the settings that differ from their defaults, so a configuration
+        # rebuilt from its own description compares equal to the original.
+        defaults = lever_defaults(features)
+        object.__setattr__(self, "features", features)
+        object.__setattr__(self, "feature_levers", tuple(sorted(
+            ((name, value) for name, value in overrides.items() if defaults.get(name) != value),
+            key=lambda item: str(item[0]))))
         checks = {
+            "features": not feature_problems(self.features, self.feature_levers)
+                        and not cross_checks(self.features, self.feature_levers),
+            "features_with_scoring": not (self.features and self.scoring_on),   # scoring has no rich actions
             "regrowth": type(self.regrowth_on) is bool,
             "seasons": type(self.seasons_on) is bool,
             "stores": type(self.stores_on) is bool,
@@ -204,6 +229,11 @@ class WorldConfig:
                 and 0 <= self.cold_at <= self.cold_emergency_at < self.cold_death_at),
             "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
+            "pledges_with_requests": not (self.on("pledges") and self.requests_on),   # one way of asking, not two
+            "ground_needs_terrain": not (self.on("exploration") or self.on("paths")) or self.terrain_on,
+            "crafting_needs_wood": not self.on("crafting") or (self.wood_on and self.building_on),
+            "family_needs_births_and_childhood": not self.on("family") or (self.births_on and self.childhood_on),
+            "structures_need_wood_and_water": not self.on("structures") or (self.wood_on and self.building_on and self.water_on),
             "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,
             "birth_spacing": type(self.birth_spacing) is int and self.birth_spacing >= 0,
@@ -223,6 +253,18 @@ class WorldConfig:
     @property
     def name(self) -> str:
         return "grid-world"
+
+    def on(self, feature: str) -> bool:
+        """Whether an optional rich-world feature is switched on."""
+        return feature in self.features
+
+    @cached_property
+    def _lever_values(self) -> dict[str, int]:
+        return {**LEVER_DEFAULTS, **dict(self.feature_levers)}
+
+    def lever(self, name: str) -> int:
+        """The effective value of a feature setting: its default unless overridden."""
+        return self._lever_values[name]
 
     @property
     def source_position(self) -> tuple[int, int]:
@@ -247,7 +289,9 @@ class WorldConfig:
         return ((self.width // 4, self.height // 4), (self.width // 4, 3 * self.height // 4))[: self.water_sources]
 
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
-        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self))
+        return (self.food_positions() + self.water_positions()
+                + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self) + stone_sites(self))
+                + tuple(pos for _, pos in field_sites(self) + well_sites(self)))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -364,6 +408,12 @@ class WorldConfig:
                 "of work_per_wood building ticks. A refused payment gives no work. Wood stays in the named "
                 "consumption sink after use; interrupted work is kept. Groves renew independently of food "
                 "and seasons, up to their cap. No wood trading, storage, skills or salvage is added.")
+        if self.on("structures"):
+            out["well_sites"] = [{"owner": owner, "id": well_id(owner), "position": list(pos)} for owner, pos in well_sites(self)]
+        if self.on("farming"):
+            out["fields"] = [{"owner": owner, "id": field_id(owner), "position": list(pos)} for owner, pos in field_sites(self)]
+        if self.on("crafting"):
+            out["stone_sources"] = [{"id": sid, "position": list(pos)} for sid, pos in stone_sites(self)]
         if self.relocation_on:
             out["relocation"] = "on"
             out["relocation_rules"] = {"long_outing": LONG_OUTING, "difficult_outings": DIFFICULT_OUTINGS,
@@ -624,6 +674,14 @@ class WorldConfig:
                                 "takes from that source, recorded as the decision's target")
             out["perception"] += ("; with several sources, every source position is a known landmark and "
                                   "seen_stock records the free stock of each source in view")
+        if self.features:
+            # Written only when something is on, so every earlier header still round-trips.
+            out["features"] = list(self.features)
+            out["feature_levers"] = {name: self.lever(name) for name in sorted(lever_defaults(self.features))}
+            out["feature_rules"] = {name: FEATURES[name].rule for name in self.features}
+            tables = {key: value for name in self.features for key, value in FEATURES[name].tables.items()}
+            if tables:
+                out["feature_tables"] = tables
         return out
 
     @classmethod
@@ -777,7 +835,14 @@ class WorldConfig:
             counts[key] = len(listed) if listed is not None else 1
         if not switches[water]:
             counts["water_sources"] = cls.__dataclass_fields__["water_sources"].default   # unused when off
+        features = described.get("features", [])
+        if not isinstance(features, list) or any(not isinstance(name, str) for name in features):
+            raise ValueError("features must be a list of names")
+        feature_levers = described.get("feature_levers", {})
+        if not isinstance(feature_levers, dict) or any(type(v) is not int for v in feature_levers.values()):
+            raise ValueError("feature_levers must map names to integers")
         config = cls(**values, birth_spacing=described.get("birth_spacing", 0),
+                     features=tuple(features), feature_levers=tuple(feature_levers.items()),
                      yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
                      water_on=switches[water], warmth_on=switches[warmth],
@@ -886,6 +951,64 @@ def wood_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
 
 
 @lru_cache(maxsize=None)
+def stone_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """One quarry on clear ground away from homes, other sources, groves and the bank."""
+    if not config.on("crafting"):
+        return ()
+    rough, spots = config.terrain()
+    taken = (set(homes_for(config).values()) | set(config.food_positions() + config.water_positions())
+             | set(rough) | set(spots) | {pos for _, pos in wood_sites(config) + fishing_sites(config)})
+    free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
+    if not free:
+        return ()
+    anchor = (config.width // 2, config.height // 4)
+    return ((STONE, min(free, key=lambda p: (abs(p[0] - anchor[0]) + abs(p[1] - anchor[1]), p[1], p[0]))),)
+
+
+@lru_cache(maxsize=None)
+def field_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """Each founder's field: the nearest clear cell to their home, by distance, then row, then column."""
+    if not config.on("farming"):
+        return ()
+    rough, spots = config.terrain()
+    homes = homes_for(config)
+    taken = (set(homes.values()) | set(config.food_positions() + config.water_positions()) | set(rough) | set(spots)
+             | {pos for _, pos in wood_sites(config) + fishing_sites(config) + stone_sites(config)})
+    out = []
+    for owner in sorted(homes):
+        home = homes[owner]
+        free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
+        if not free:
+            break
+        cell = min(free, key=lambda p: (abs(p[0] - home[0]) + abs(p[1] - home[1]), p[1], p[0]))
+        taken.add(cell)
+        out.append((owner, cell))
+    return tuple(out)
+
+
+@lru_cache(maxsize=None)
+def well_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """Where each founder would dig a well: the nearest clear cell to their home that no field or source uses."""
+    if not config.on("structures") or not config.water_on:
+        return ()
+    rough, spots = config.terrain()
+    homes = homes_for(config)
+    taken = (set(homes.values()) | set(config.food_positions() + config.water_positions()) | set(rough) | set(spots)
+             | {pos for _, pos in wood_sites(config) + fishing_sites(config) + stone_sites(config) + field_sites(config)})
+    out = []
+    for owner in sorted(homes):
+        home = homes[owner]
+        free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken
+                and abs(x - home[0]) + abs(y - home[1]) >= 2]
+        if not free:
+            break
+        cell = min(free, key=lambda p: (abs(p[0] - home[0]) + abs(p[1] - home[1]), p[1], p[0]))
+        taken.add(cell)
+        out.append((owner, cell))
+    return tuple(out)
+
+
+@lru_cache(maxsize=None)
 def fishing_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
     """Use a clear bank cell near the west edge without moving existing landmarks."""
     if not config.fishing_on:
@@ -919,6 +1042,20 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
                         for sid,_ in wood_sites(config)})
         water.setdefault("holdings", {})[WOOD] = {actor: 0 for actor in actors}
         water.setdefault("consumed_by", {})[WOOD] = 0
+    if config.on("structures") and config.water_on:
+        sources.update({well_id(owner): Source(stock=0, authorised=frozenset(actors), resource=WATER)
+                        for owner, _ in well_sites(config)})
+    if config.on("farming"):
+        sources.update({field_id(owner): Source(stock=0, authorised=frozenset(actors), resource=GRAIN)
+                        for owner, _ in field_sites(config)})
+        water.setdefault("holdings", {})[GRAIN] = {actor: config.lever("starting_grain") for actor in actors}
+        water.setdefault("consumed_by", {})[GRAIN] = 0
+    if config.on("crafting"):
+        sources.update({sid: Source(stock=STONE_STOCK, authorised=frozenset(actors), resource=STONE)
+                        for sid, _ in stone_sites(config)})
+        for resource in (STONE,) + TOOLS:
+            water.setdefault("holdings", {})[resource] = {actor: 0 for actor in actors}
+            water.setdefault("consumed_by", {})[resource] = 0
     ledger = WorldState.genesis(
         balances={actor: config.starting_food for actor in actors},
         sources=sources,
@@ -939,5 +1076,8 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         thirst=staggered(config, config.thirsty_at) if config.water_on else {},
         cold={actor: 0 for actor in actors} if config.warmth_on else {},
         age={actor: config.adult_at for actor in actors} if config.childhood_on else {},
+        persona=genesis_persona(config, actors) if config.features else Persona(),
+        sky=sky_at(config, 0) if config.on("sky") else None,
+        things=Things(plots=tuple(Plot(owner, x, y) for owner, (x, y) in field_sites(config))) if config.on("farming") else Things(),
     )
     return ledger, overlay

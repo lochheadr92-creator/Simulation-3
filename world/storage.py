@@ -2,6 +2,8 @@
 
 from typing import TYPE_CHECKING
 
+from world.traits import provision_low
+
 if TYPE_CHECKING:
     from world.observe import Observation
 
@@ -51,7 +53,8 @@ def start_provisioning(observation, config):
     """A resident can notice a low cache only while standing at home."""
     return (config.provisioning_on and observation.alive and observation.at_home
             and observation.home_built and observation.home_store_food is not None
-            and observation.home_store_food < STORE_LOW and observation.food <= 1
+            and observation.home_store_food < provision_low(STORE_LOW, observation.traits)
+            and observation.food <= 1
             and not (config.childhood_on and observation.age < config.adult_at))
 
 

@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from world.viewer_rich import rich_index
+
 # What each recorded decision kind looks like in plain words. The page uses the
 # same table, so a new kind the world grows shows up as its own name until a
 # phrase is added here.
@@ -154,13 +156,22 @@ def _plain_refusal(reason: str) -> str:
 
 
 def _cause_of_death(world: Mapping[str, Any], actor: str, cfg: Mapping[str, Any]) -> str:
-    """Which recorded need stood at or past its declared lethal level."""
+    """Which recorded need stood at or past its declared lethal level, or the saved death record's cause."""
+    for record in (world.get("things") or {}).get("deaths", []):
+        if record[0] == actor:
+            return record[5]
     if "death_at" in cfg and world.get("hunger", {}).get(actor, -1) >= cfg["death_at"]:
         return "starved"
     if "thirst_death_at" in cfg and world.get("thirst", {}).get(actor, -1) >= cfg["thirst_death_at"]:
         return "died of thirst"
     if "cold_death_at" in cfg and world.get("cold", {}).get(actor, -1) >= cfg["cold_death_at"]:
         return "froze to death"
+    lethal = (cfg.get("feature_levers") or {}).get("lethal_hurt")
+    if lethal is not None and ((world.get("persona") or {}).get("hurt") or {}).get(actor, 0) >= lethal:
+        return "was killed by a wolf"
+    old_age = (cfg.get("feature_levers") or {}).get("old_age_at", 480) if "family" in (cfg.get("features") or []) else None
+    if old_age is not None and (world.get("age") or {}).get(actor, 0) >= old_age:
+        return "died of old age"
     return "died"
 
 
@@ -181,6 +192,7 @@ def build_index(run: Any) -> dict[str, Any]:
     food = food_sources(cfg, worlds[-1])
     water = water_sources(cfg)
     wood = cfg.get("wood_sources", [])
+    stone = [{**s, "cap": 10} for s in cfg.get("stone_sources", [])]
     build_ticks = cfg.get("build_ticks")
 
     events: list[dict[str, Any]] = []
@@ -250,6 +262,8 @@ def build_index(run: Any) -> dict[str, Any]:
                 add(k, "build", "supply_strain", f"{actor} returned from a costly supply outing; home strain is now {strain}", who=actor)
         outcomes: dict[str, dict[str, Any]] = {}
         for outcome in (tick.get("record") or {}).get("outcomes", []):
+            if outcome.get("operation") in ("reserve", "cancel"):
+                continue                    # a promise holding or returning units is not what the decision did
             outcomes.setdefault(outcome.get("actor"), outcome)
         positions = world.get("positions", {})
         died_at, died_before = world.get("died_at", {}), before.get("died_at", {})
@@ -406,6 +420,13 @@ def build_index(run: Any) -> dict[str, Any]:
                     add(k, "water", "refused_water",
                         f"{actor} tried to hand {who_} water, but it was refused: "
                         f"{_plain_refusal(outcome.get('reason', ''))}", who=actor, other=target)
+            elif kind == "offer" and target and outcome is not None and decision.get("resource") == "wood":
+                if outcome.get("accepted"):
+                    add(k, "wood", "gave_wood", f"{actor} handed {target} a unit of wood", who=actor, other=target)
+                else:
+                    add(k, "wood", "refused_wood",
+                        f"{actor} tried to hand {target} wood, but it was refused: "
+                        f"{_plain_refusal(outcome.get('reason', ''))}", who=actor, other=target)
             elif kind == "offer" and target and outcome is not None:
                 dependent = (actor in (parent_of.get(target), second_parent_of.get(target)) and adult_at is not None
                              and before.get("age", {}).get(target, adult_at) < adult_at)
@@ -560,6 +581,16 @@ def build_index(run: Any) -> dict[str, Any]:
         if "end" not in thread:
             thread["end"] = "still carrying at the end" if thread.get("answer") == "agreed" else "waiting at the end"
 
+    categories = [list(pair) for pair in CATEGORIES]
+    phrases, labels, moves = dict(ACTION_PHRASES), dict(ACTION_LABELS), set(MOVES)
+    extra = rich_index(run, worlds, cfg)
+    if extra is not None:
+        events = sorted(events + extra["events"], key=lambda event: event["k"])    # stable: ties keep their order
+        categories += extra["categories"]
+        phrases.update(extra["phrases"])
+        labels.update(extra["labels"])
+        moves.update(extra["moves"])
+
     return {
         "people": people,
         "born": born,
@@ -567,13 +598,14 @@ def build_index(run: Any) -> dict[str, Any]:
         "events": events,
         "threads": threads,
         "counts": counts,
-        "categories": [list(pair) for pair in CATEGORIES],
-        "phrases": ACTION_PHRASES,
-        "labels": ACTION_LABELS,
-        "moves": sorted(MOVES),
+        "categories": categories,
+        "phrases": phrases,
+        "labels": labels,
+        "moves": sorted(moves),
         "food": food,
         "water": water,
         "wood": wood,
+        "stone": stone,
         "adult_at": adult_at,
         "parent": dict(worlds[-1].get("parent", {}) or {}),
         "second_parent": dict(worlds[-1].get("second_parent", {}) or {}),

@@ -1,5 +1,56 @@
 # Current architecture
 
+## Scoped update — rich-world features, P0-P4 — 2026-10-04
+
+Checked against `02af86b` plus the local rich-world commits. Optional behaviour
+now arrives as named features: [registry](../../world/registry.py) collects
+[Feature](../../world/feature.py) declarations that each owning module writes
+beside its code (needs, integer settings, rule text, display tables).
+`WorldConfig.features` and `feature_levers` select them; the header gains
+`features`, `feature_levers`, `feature_rules` and `feature_tables` only when something
+is on, and `from_describe` still requires an exact round trip. Inner state lives in
+one immutable [Persona](../../world/persona.py) carried in the overlay (traits, skills,
+fatigue, sleep, recent attempts, last decision kind), validated against the roster and
+sparse in the canonical form. `process.advance` and `_births` now use `replace`, so an
+overlay field no rule names is carried forward instead of reset. [Sleep](../../world/rest.py)
+is a fourth need arbitrated by the existing least-slack rule plus a time-to-relief
+urgency test and remembered-doing hysteresis. Decisions may record set-aside options
+([explain](../../world/explain.py)). The [sky](../../world/sky.py) (day, night, weather, temperature)
+is a pure function of the seed and tick, written into every tick's overlay so the viewer and replay
+read recorded values; `process.advance` charges exposure on cold, and `observe` carries the current
+`chill` so the planning rules (`cold_slack`, `shelter_trip_due`, `weather_hold` in
+[decide](../../world/decide.py)) use the cold rate of the sky people are in.
+[steady](../../world/steady.py) adds commitment to need arbitration. [belief](../../world/belief.py)
+holds dated, attributed beliefs in the persona (sight files first-hand, being told files hearsay that keeps
+its original date); [wolves](../../world/wolves.py) and [things](../../world/things.py) put hunters in the
+overlay. A person's observation holds only wolves inside their sight and their own beliefs, and
+`decide` reads nothing else about wolves. [society](../../world/society.py) keeps a person's bonds (bond, trust, grudge, last
+contact, reason) and loneliness in the persona; `advance_society` changes them only from the tick's decisions and
+outcomes (mutual chat and greeting, gifts, quarrels, apologies) and is called from `process.advance`. Chat tellings in
+`advance_beliefs` need a reciprocal chat and enough trust in the teller. The observation carries only the person's own
+bonds and whether somebody in view looks busy. The viewer core exposes extension points and
+`viewer_<feature>.js` parts are spliced in only for runs that record the feature.
+Status and next steps live in [RICH_WORLD.md](../../RICH_WORLD.md).
+
+
+## Scoped update — rich-world features, P5-P12 — 2026-10-04
+
+Checked against the local commits on `claude/youthful-bardeen-wc346l`; the full suite had not been run on this tree when
+this was written (see [RICH_WORLD.md](../../RICH_WORLD.md) for the log). Anything that moves a balance still goes through
+settlement: a promise is a native kernel reservation (`reserve`, `complete`, `cancel`) whose units are escrow; collecting a
+dead person's belongings is a `transfer` proposal issued in the dead person's name from their own account (the actor named
+in the outcome is the dead person, which `stream/run_file` and the ledger audit treat like any other). Changes that are not
+exchanges between accounts are recorded production entries accepted by `apply_production`: a tool made (`made`, tied to the
+inputs spent that tick), grain rotted or spoiled (`rotted`, `spoiled`, which move units into a named sink), a field
+growing or a well filling (`source`; each founder's field and well source is created empty at genesis). The overlay gained `pledges`, `family`, `ground` and a
+`things` block holding wolves, plots, structures, death records and worn-path wear; people's remembered patches
+(`ground`), rough ground (`terrain_memory`) and beliefs are the only record of what they know, and the observation is built
+from sight and those records. `Observation.kin_dead` lists only deaths the person believes in. A rough-ground hold, a path
+and a grave are all state in the overlay, so replay and recovery reproduce them. The viewer stays a static page with no
+network calls; `world/launch.py` is a separate local server that runs worlds, serves the viewer for a run that is still being
+written (through the verified-prefix reader) and resumes cut runs with the stream's recovery.
+
+
 ## Scoped update — care by visible need, 2026-09-30
 
 Checked against `e34decc` plus the local caregiving-priority change.

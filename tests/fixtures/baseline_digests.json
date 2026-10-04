@@ -1,0 +1,252 @@
+{
+ "baseline_commit": "02af86b",
+ "configs": [
+  {
+   "config": {
+    "seed": 7
+   },
+   "content_digest": "d54c2ce3c08e74304a6c82018c327365e14b71814b5611f48872193c81c73589",
+   "deaths": 0,
+   "final_overlay_digest": "e3d748c800b0c7214c3b48cd11ed1a0540b67a9961838c1bdd2c020944991357",
+   "final_state_digest": "91f566998f5554fe8c046702d2293fcfbdc420fe1f2c072386e4ab7bc406837a",
+   "name": "defaults-seed7",
+   "survivors": 7,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "seed": 11
+   },
+   "content_digest": "0b8bf4a84d27c2c9e72519fad60c46aff0edbda72dab1798d19c80070a0baed4",
+   "deaths": 3,
+   "final_overlay_digest": "6b9b4d612e9a43242815ab405c8ef7cfffba517000e4492982336ba15616bd50",
+   "final_state_digest": "61ca0c5bea5b6b442cd0a94336153f3f7d21d120cd426a7733682ad312249b16",
+   "name": "defaults-seed11",
+   "survivors": 24,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "seed": 23
+   },
+   "content_digest": "f0e1d980902a72a3546d800b1d2d8eaddeccc9ebc9d1156ebb4bbaf0b0a0cbfa",
+   "deaths": 8,
+   "final_overlay_digest": "ab4cb7ef1b80592fe51f9008d4886601dbaeab544aaca193f92169c8452df75f",
+   "final_state_digest": "4b8873cac9d6ad2c01306d3451ee9f8deeb861693ff0e7935d7a5859db807451",
+   "name": "defaults-seed23",
+   "survivors": 13,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "births_on": false,
+    "building_on": false,
+    "childhood_on": false,
+    "claim_amount": 2,
+    "death_at": 16,
+    "emergency_at": 10,
+    "food_sources": 1,
+    "hungry_at": 5,
+    "offers_on": false,
+    "plan_trips": false,
+    "renewal_every": 3,
+    "satiation": 6,
+    "seed": 3,
+    "social_memory_on": false,
+    "stagger_start": false,
+    "terrain_on": false,
+    "warmth_on": false,
+    "water_on": false
+   },
+   "content_digest": "298b965bbdeb3ab40eb542a6beb3b047db4e5b95ac627e542b9d13c8aefb091d",
+   "deaths": 3,
+   "final_overlay_digest": "e31e35d0b35854d709c941faa3c133cc7eca5c2ca375804c91ef53502811aa59",
+   "final_state_digest": "64947aebf48212f0609afbeceee7d68da8c44691a54a657d8e353650549a1fd4",
+   "name": "short-range-seed3",
+   "survivors": 3,
+   "ticks": 120
+  },
+  {
+   "config": {
+    "births_on": false,
+    "building_on": false,
+    "childhood_on": false,
+    "food_sources": 1,
+    "offers_on": false,
+    "seed": 5,
+    "social_memory_on": false,
+    "stagger_start": false,
+    "terrain_on": false,
+    "warmth_on": false,
+    "water_on": false
+   },
+   "content_digest": "941633890ba5f3cb85ddeb8138c3e03a886b7d3ed80495540fd0a5a6c671f6fe",
+   "deaths": 0,
+   "final_overlay_digest": "aa541e4f414a0af5acf55254e585747cfb7be1177fb747cf40e052477fce77cc",
+   "final_state_digest": "c076abfedf247a95d77c02779ff574e6deef79713b5097fae0c93f08a4541c2b",
+   "name": "one-source-food-only-seed5",
+   "survivors": 6,
+   "ticks": 120
+  },
+  {
+   "config": {
+    "adjacent_requests": true,
+    "requests_on": true,
+    "seed": 23
+   },
+   "content_digest": "c4adbfab49aec8c64008de9049ed4231785eb63e4db79a16addde807754cc729",
+   "deaths": 9,
+   "final_overlay_digest": "5a46fe64bce95c3ed35bdbc0eef17094e76ed5fc993a29227c6556eb3af3411f",
+   "final_state_digest": "af7943dd41bb63bec8f651227c8df10b0ec8a52a17750ca0397b15d3416ad0a7",
+   "name": "asking-adjacent-seed23",
+   "survivors": 14,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "requests_on": true,
+    "seed": 7
+   },
+   "content_digest": "60e9113845d63c29e2e0c47cd3c3a338d0d1ab3c8d4b7ab1bab14c2e338bff44",
+   "deaths": 0,
+   "final_overlay_digest": "bd4d512b48a27e058ecf7ccb37528bbef659e887f123f0d45d658abf7d56e959",
+   "final_state_digest": "e4a54e5c0bb2fa18b97f2cc526fa83c94c19f848a8fb0eae18e7c9aab50000d4",
+   "name": "asking-walking-seed7",
+   "survivors": 6,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "regrowth_on": true,
+    "seasons_on": true,
+    "seed": 11
+   },
+   "content_digest": "675d717660e984b44cd4d452a7e2bb922472656672e681ac855de3132c1c0ebb",
+   "deaths": 5,
+   "final_overlay_digest": "4e2f60a753645efe50ba7e69e8f448f5545d90f0767f6cbd487f542a6a4f6199",
+   "final_state_digest": "f092096556b47e7f5220547afc9cfc75976e2f7ba7c30c9ab2fff9ed9fc2efba",
+   "name": "regrowth-seasons-seed11",
+   "survivors": 16,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "coordination_on": true,
+    "homes_on": true,
+    "provisioning_on": true,
+    "seed": 23,
+    "stores_on": true
+   },
+   "content_digest": "80bb8d441ffb7486c9202c28da4c29b21e78f03bc627c83fa860bbc122b47780",
+   "deaths": 3,
+   "final_overlay_digest": "450bd5305769bd8cc0bb4518ab52aedd4a6807029237c093b17e75c82349eefc",
+   "final_state_digest": "14d030f6274522f46553ca04df192290ba714e63986b0af58a6edc02378ac803",
+   "name": "stores-homes-provisioning-coordination-seed23",
+   "survivors": 16,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "fishing_on": true,
+    "homes_on": true,
+    "knowledge_sharing_on": true,
+    "seed": 11,
+    "source_memory_on": true,
+    "stores_on": true
+   },
+   "content_digest": "11fac4d57ef7c14896a795d832bbcb6dd03680ed9534070b59ee4519c3e89353",
+   "deaths": 20,
+   "final_overlay_digest": "45709ef90507064b8042fa9fa2ed6ecaa57340a529b2ea987f935fb221883ba4",
+   "final_state_digest": "a6d72b8b00e1d43f65549653ee0bc4f7e25b9f679802570ac5c2be04e7a2f9e8",
+   "name": "fishing-sourcememory-sharing-seed11",
+   "survivors": 10,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "seed": 7,
+    "wood_on": true
+   },
+   "content_digest": "bec69e49ee5e617fb3d834dc681586e5390f37588f50193435790157ecd71fb6",
+   "deaths": 0,
+   "final_overlay_digest": "e0e0125442146b5cbbb60ab9bc90c6b1b2fb133c12af9ce91af8f4f0a04a81e2",
+   "final_state_digest": "dad9f268450c6f1429bfa14fb6d9f68ad79c22d4a57b41a8eb38620f3f919d2d",
+   "name": "wood-seed7",
+   "survivors": 6,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "care_by_need_on": true,
+    "seed": 24,
+    "shared_care_on": true,
+    "water_care_on": true
+   },
+   "content_digest": "97e99c287e81a9404c5aea471e054122695553a7f88117251c143934d5246094",
+   "deaths": 4,
+   "final_overlay_digest": "be4a35cbe6e040691fa36fff54a6a17bd43cd62029c6ec43b8eb829b054b534c",
+   "final_state_digest": "c90c09888f9ecaedabcacdf0ecc0b7d4139d3365f3810fcc47b4940758889e27",
+   "name": "family-care-seed24",
+   "survivors": 15,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "homes_on": true,
+    "relocation_on": true,
+    "seed": 7
+   },
+   "content_digest": "cf9476bf7fe6eb54e23f090c40739c951220c78bc1728eacae4de75356e37df2",
+   "deaths": 0,
+   "final_overlay_digest": "d3fce0d20379bb29e4d78cecd5aa7b84fc5b5d356d726fc4d095c8313b48a67d",
+   "final_state_digest": "87e57443d65ca609a1357ecde392d7e769974d0a4cbc2a3fe2a726aee67182c6",
+   "name": "relocation-seed7",
+   "survivors": 7,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "scoring_on": true,
+    "seed": 5,
+    "warmth_on": false,
+    "water_on": false
+   },
+   "content_digest": "8bfefe98a453f0e00cf9302a719e83258beccdd473c06553ce4483b3987f8c24",
+   "deaths": 0,
+   "final_overlay_digest": "2c6ab26d6bc47dddb738036d3ab735a4b7cfe5ef61272b8e20f07a301b4cf363",
+   "final_state_digest": "4be9d264ca607fc35a3a7ffb493cbe1ed80be80f0c439daf8a098f397968ff84",
+   "name": "scoring-seed5",
+   "survivors": 6,
+   "ticks": 120
+  },
+  {
+   "config": {
+    "birth_spacing": 30,
+    "seed": 23
+   },
+   "content_digest": "9b948638d482f5ad13fc3e1ceafdd89f334db82039da2a075aa9c3091db96c66",
+   "deaths": 1,
+   "final_overlay_digest": "5230f911c809c8fea274aa6d3b38e306c898a2f777f1d00c797d5f6704c72ae8",
+   "final_state_digest": "528305b353bc6a1d110f6470f590db6c6dbf08f7352cf999f3478a480edb5736",
+   "name": "birth-spacing-seed23",
+   "survivors": 12,
+   "ticks": 200
+  },
+  {
+   "config": {
+    "actors": 12,
+    "height": 16,
+    "seed": 9,
+    "width": 16
+   },
+   "content_digest": "e7b7a2ec0e4766fa740ccddc2f899e1b8f92e7509df1ab780bfe0739452a247e",
+   "deaths": 9,
+   "final_overlay_digest": "7ad6c992716bb00cd053180045605a6da07e66804fd5e5d4652eaf93ef556f06",
+   "final_state_digest": "b774215cf23fbf76bffc1683bf2da203c32d44755b6083fd34779cdd1098d331",
+   "name": "bigger-world-seed9",
+   "survivors": 7,
+   "ticks": 160
+  }
+ ],
+ "note": "Digests of fresh runs of these configurations at baseline commit 02af86b, before the rich-world work. content_digest hashes every tick line without its seal; seals chain from a hash of the source files, so a whole-line digest changes with any code edit. Every option the rich-world work adds is off in these configurations, so any change here means existing behaviour moved."
+}
