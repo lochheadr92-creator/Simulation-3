@@ -1,6 +1,6 @@
 # System retrieval map
 
-## Rich-world additions, P0-P2 — 2026-10-04
+## Rich-world additions, P0-P3 — 2026-10-04
 
 | Concept / purpose | Primary files and entry points | Tests to start with |
 | --- | --- | --- |
@@ -10,6 +10,9 @@
 | Set-aside options | [explain](../../world/explain.py); `Decision.rejected` | individuality |
 | Day, night, weather, exposure | [sky](../../world/sky.py), [draw](../../world/draw.py); `process.advance` (cold, rough ground, promises), `observe` (`chill`, sight), [decide](../../world/decide.py): `cold_slack`, `weather_hold` | [sky tests](../../tests/test_sky.py) |
 | Staying with a need | [steady](../../world/steady.py); `_decide_needs` and `NEED_OF` in decide | sky tests |
+| Beliefs, hearsay, forgetting | [belief](../../world/belief.py): `file_beliefs`, `advance_beliefs`; persona `beliefs`; `process.advance` | [wolves tests](../../tests/test_wolves.py) |
+| Wolves, bites, hurt | [wolves](../../world/wolves.py), [things](../../world/things.py); `process.advance` (after movement); `observe` (`wolves_seen`, `danger`); decide: `_threat`, `flee_step`, `errand_holds`, `_danger_plan` | wolves tests |
+| Viewer: wolves and beliefs | [viewer_wolves.js](../../world/viewer_wolves.js), [viewer_wolves.py](../../world/viewer_wolves.py) | wolves tests (browser) |
 | Baseline guard and ledger audit | [disabled-mode test](../../tests/test_disabled_mode_baseline.py), [ledger audit](../../tests/ledger_audit.py) | those files |
 | Viewer parts | [viewer.js](../../world/viewer.js) extension points, [viewer_persona.js](../../world/viewer_persona.js), [viewer_rich.py](../../world/viewer_rich.py) | [rich viewer](../../tests/test_rich_viewer.py) |
 

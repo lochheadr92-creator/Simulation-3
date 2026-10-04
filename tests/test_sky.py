@@ -15,7 +15,7 @@ from kernel import Engine
 from stream.run_file import read_run
 from tests.ledger_audit import audit_run
 from world.config import WorldConfig, genesis
-from world.decide import cold_slack, decide, shelter_trip_due, slack, weather_hold
+from world.decide import cold_slack, decide, errand_holds, shelter_trip_due, slack
 from world.observe import Observation, observe
 from world.overlay import Overlay
 from world.process import advance
@@ -225,7 +225,7 @@ def test_somebody_at_home_waits_out_weather_the_trip_would_not_survive_and_says_
     assert held.kind == "rest" and "waiting out the rain at night" in held.reason
     assert "go_water" not in held.candidates
     assert [tuple(r[:2]) for r in held.rejected if r[1] == "weather"] == [("go_water", "weather")]
-    assert weather_hold(thirsty_at_home(config, RAINY_NIGHT), config, "water") is not None
+    assert [code for code, _ in errand_holds(thirsty_at_home(config, RAINY_NIGHT), config, "water")] == ["weather"]
     assert decide(thirsty_at_home(config, CLEAR_DAY), config).kind == "go_water"           # the same trip in fair weather
 
 
@@ -252,9 +252,9 @@ def test_a_hungry_person_at_home_waits_for_the_same_reason_and_does_not_claim_to
 def test_the_hold_is_for_people_at_home_and_changes_nothing_without_the_sky():
     config = cfg()
     away = replace(thirsty_at_home(config, RAINY_NIGHT), position=(5, 2))
-    assert weather_hold(away, config, "water") is None and decide(away, config).kind == "go_water"
+    assert errand_holds(away, config, "water") == () and decide(away, config).kind == "go_water"
     plain = WorldConfig(seed=7, features=("explain",))
-    assert weather_hold(thirsty_at_home(plain, None), plain, "water") is None
+    assert errand_holds(thirsty_at_home(plain, None), plain, "water") == ()
 
 
 def walking_to_water(config, **changes):

@@ -1,5 +1,50 @@
 # Simulation 3 — Development Directions
 
+## Wolves, and a memory that keeps dates — 2026-10-04
+
+The third piece of the rich world: two more optional features, `beliefs` and `wolves` (wolves
+need the sky). [RICH_WORLD.md](RICH_WORLD.md) has the phase plan and the next step.
+
+**What people believe.** A belief is one remembered fact: a kind of thing (so far a wolf), which
+one, where it was, when it was seen, when this person learned it and who told them. What a
+person sees, they believe first-hand. What they are told, they believe with the date of the
+original sighting, so a rumour is never fresher for being repeated. Beliefs fade after 240 ticks
+and only the ten freshest are kept. Nothing about a wolf reaches a person except through sight or
+a telling: an unseen wolf changes nobody's plans, and a test moves one out of sight to show it.
+
+**The wolves.** One wolf arrives at tick 40 and lives at a den on the map's edge where nobody
+lives. It hunts only at dusk and night, bites anyone in the open beside it (under a finished
+shelter nobody is touched), and goes back to its den to rest by day, or after a bite or a chase it
+gave up. A bite is 25 hurt; hurt heals faster resting at home; past 40 each step costs a tick
+more; at 100 the person dies. Everyone knows wolves hunt after dusk, so by day nowhere counts as
+dangerous and a wolf seen lying by its den is nothing to run from.
+
+**What people do.** They see a wolf only inside their sight (two cells at night). A wolf in view
+within three steps makes them run, for a built home if they have one, else away, and the
+need that runs out first still wins: somebody one drink from death drinks. Seeing a wolf they
+did not see a moment ago they call out to everyone awake in view, who then believe it. A person
+puts off a food or water errand to a place a wolf was lately near, whether they saw it or were
+told, until the need cannot wait; then they go and the decision says they are taking the
+risk. Routes go round believed danger when that is cheaper than the extra steps, and a hurt
+person at home stays in while the need can wait.
+
+**What watching found.** The first version put two wolves out all day and every sighting
+sent people running; whole worlds died of thirst and cold while fleeing. A wolf's den
+turned out to be a person's home, so one person was bitten at their own door every nine ticks.
+A route search that judged only a window of the map sent somebody round the edge of the world
+and made another step back and forth until they froze. Each is fixed by a rule above and pinned
+by a test. Across eight seeds at 300 ticks the final rules cost 33 deaths of 77 people with one
+wolf against 34 of 82 without, with 18 bites and about 25 ticks a world spent running; nobody
+was killed by a wolf, they lost time. Two wolves cost 38 of 71. Switching the holds off made
+it 48 of 77.
+
+**What to watch.** A grey wolf by its den at dusk, a dashed ring on the map where the selected
+person believes it was (fainter as it ages, labelled with who told them), "Knows about wolves"
+in the inspector, and in the set-aside list a trip put off because of a wolf or a wound.
+
+**Next.** Relationships and conversation (P4): people who pass on what they believe,
+gifts, quarrels, apologies and avoidance.
+
 ## A sky: day, night, weather and what being out in it costs — 2026-10-04
 
 The second piece of the rich world, two more optional features (`sky`, `steady`),
@@ -36,8 +81,9 @@ explain, personality, skills and sleep on: 34 dead of 93 people without the sky,
 87 with the first sky, 38 of 75 after planning with the weather's rate, and 34 of 82
 with steadiness and the walk-back rule, of which 2 died of cold. These are what those
 runs did. The weather-wait rule had no measurable effect on survival in them (12 cold
-deaths with it and 12 without, before steadiness), so it is there for what it shows,
-not for what it saves.
+deaths with it and 12 without, before steadiness). Later, with wolves in the same worlds,
+switching it off (and the wolf holds) raised deaths from 33 to 48 of 77, so it does matter
+once nights hold more than cold.
 
 **What to watch.** The clock and weather in the corner of the map, the night tint, the
 rain streaks, and in the inspector: a person at their hut in a rainy night, building

@@ -163,6 +163,9 @@ def _cause_of_death(world: Mapping[str, Any], actor: str, cfg: Mapping[str, Any]
         return "died of thirst"
     if "cold_death_at" in cfg and world.get("cold", {}).get(actor, -1) >= cfg["cold_death_at"]:
         return "froze to death"
+    lethal = (cfg.get("feature_levers") or {}).get("lethal_hurt")
+    if lethal is not None and ((world.get("persona") or {}).get("hurt") or {}).get(actor, 0) >= lethal:
+        return "was killed by a wolf"
     return "died"
 
 

@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from kernel.proposals import OP_CLAIM
 
+from world.belief import check_belief
 from world.feature import Feature
 from world.rest import COLLAPSE, SLEEP, WORK_KINDS, rest_rate
 from world.traits import BUILDING, FISHING, GATHERING, SKILL_STEPS, SKILLS, TRAITS
@@ -120,6 +121,8 @@ class Persona:
     asleep: Mapping[str, int] = field(default_factory=dict)               # person -> tick they fell asleep
     tried: Mapping[str, tuple[tuple[str, str, int, int], ...]] = field(default_factory=dict)  # kind, target, tick, 1 ok / 0 refused
     doing: Mapping[str, str] = field(default_factory=dict)                # what each person decided last tick, so a choice can resist flip-flopping
+    beliefs: Mapping[str, tuple[tuple[Any, ...], ...]] = field(default_factory=dict)   # person -> what they believe (world.belief)
+    hurt: Mapping[str, int] = field(default_factory=dict)                 # person -> injury; the dead keep what they died of
 
     def __post_init__(self) -> None:
         if not isinstance(self.doing, Mapping) or any(
@@ -147,18 +150,38 @@ class Persona:
             if checked:
                 tried[actor] = tuple(checked)
         object.__setattr__(self, "tried", MappingProxyType(tried))
+        object.__setattr__(self, "hurt", _ints(self.hurt, "hurt"))
+        if not isinstance(self.beliefs, Mapping):
+            raise ValueError("beliefs must map people to what they believe")
+        beliefs = {}
+        for actor in sorted(self.beliefs):
+            entries = self.beliefs[actor]
+            if not isinstance(actor, str) or not isinstance(entries, (list, tuple)):
+                raise ValueError(f"beliefs of {actor!r} must be a list")
+            if any(not isinstance(e, (list, tuple)) or len(e) != 7 for e in entries):
+                raise ValueError(f"beliefs of {actor!r} must each be kind, subject, x, y, seen, learned, via")
+            ordered = tuple(sorted((tuple(e) for e in entries), key=lambda e: (str(e[0]), str(e[1]))))
+            if len({(e[0], e[1]) for e in ordered}) != len(ordered):
+                raise ValueError(f"{actor!r} believes the same thing twice")
+            if ordered:
+                beliefs[actor] = ordered
+        object.__setattr__(self, "beliefs", MappingProxyType(beliefs))
 
     def __bool__(self) -> bool:
-        return bool(self.traits or self.skills or self.fatigue or self.asleep or self.tried or self.doing)
+        return bool(self.traits or self.skills or self.fatigue or self.asleep or self.tried or self.doing
+                    or self.beliefs or self.hurt)
 
     def check(self, roster: set[str], tick: int) -> None:
         for name in ("traits", "skills", "fatigue"):
             names = set(getattr(self, name))
             if names and names != roster:
                 raise ValueError(f"{name} must name every person, or nobody")
-        for name in ("asleep", "tried", "doing"):
+        for name in ("asleep", "tried", "doing", "beliefs", "hurt"):
             if set(getattr(self, name)) - roster:
                 raise ValueError(f"{name} must name known people")
+        for actor, entries in self.beliefs.items():
+            for entry in entries:
+                check_belief(actor, entry, roster, tick)
         if any(when > tick for when in self.asleep.values()):
             raise ValueError("somebody fell asleep after the overlay's tick")
         if any(entry[2] > tick for entries in self.tried.values() for entry in entries):
@@ -178,16 +201,23 @@ class Persona:
             out["tried"] = {a: [list(e) for e in entries] for a, entries in self.tried.items()}
         if self.doing:
             out["doing"] = dict(self.doing)
+        if self.beliefs:
+            out["beliefs"] = {a: [list(e) for e in entries] for a, entries in self.beliefs.items()}
+        if self.hurt:
+            out["hurt"] = dict(self.hurt)
         return out
 
     @classmethod
     def from_canonical(cls, data: Mapping[str, Any]) -> "Persona":
-        if not isinstance(data, Mapping) or set(data) - {"traits", "skills", "fatigue", "asleep", "tried", "doing"}:
-            raise ValueError("a canonical persona holds traits, skills, fatigue, asleep, tried and doing only")
+        if not isinstance(data, Mapping) or set(data) - {"traits", "skills", "fatigue", "asleep", "tried", "doing",
+                                                         "beliefs", "hurt"}:
+            raise ValueError("a canonical persona holds traits, skills, fatigue, asleep, tried, doing, beliefs and hurt only")
         return cls(traits=dict(data.get("traits", {})), skills=dict(data.get("skills", {})),
                    fatigue=dict(data.get("fatigue", {})), asleep=dict(data.get("asleep", {})),
                    tried={a: tuple(tuple(e) for e in entries) for a, entries in dict(data.get("tried", {})).items()},
-                   doing=dict(data.get("doing", {})))
+                   doing=dict(data.get("doing", {})),
+                   beliefs={a: tuple(tuple(e) for e in entries) for a, entries in dict(data.get("beliefs", {})).items()},
+                   hurt=dict(data.get("hurt", {})))
 
 
 def genesis_persona(config: "WorldConfig", actors: tuple[str, ...]) -> Persona:
@@ -270,4 +300,4 @@ def advance_persona(previous: "Overlay", current: "Overlay", decisions: Mapping[
         del asleep[actor]                      # the dead are not asleep
     for actor in [a for a in doing if a in current.died_at]:
         del doing[actor]
-    return Persona(traits=persona.traits, skills=skills, fatigue=fatigue, asleep=asleep, tried=tried, doing=doing)
+    return replace(persona, skills=skills, fatigue=fatigue, asleep=asleep, tried=tried, doing=doing)

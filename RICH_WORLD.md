@@ -87,6 +87,27 @@ Two facts about the existing code shape the work:
   when the round trip would push their cold past the emergency level and the need can
   still wait. The held errand is left out of the candidates and shows as a `weather`
   entry in the decision's set-aside list. Later holds (danger, injury) follow the same shape.
+* **One belief model, general by kind.** `world/belief.py`: a belief is (kind, subject, x, y,
+  seen, learned, via). Sight files first-hand beliefs; being told files hearsay that keeps the
+  original `seen`, so a rumour never gets younger. The same thing is one belief (later sighting
+  wins, first-hand wins a tie); beliefs older than `memory_span` are forgotten and only the
+  freshest `memory_slots` are kept. Confidence is derived, never stored. Only wolves are a belief
+  kind so far; each later phase that adds a thing people must find out about adds a kind. The
+  older special-case memories (empty sources, sightings, reports, rough ground) are untouched.
+* **Things in the world are one block.** `world/things.py` carries what is neither a person, food
+  nor a building (wolves so far) in the overlay and writes it into every tick.
+* **Wolves hunt in the dark and rest by day.** They need the sky: they bite only at dusk and
+  night, only people in the open, and walk back to a den (an edge cell nobody lives on) to rest
+  by day or after a bite. People see a wolf only inside their sight, which shrinks at night.
+  By day a wolf seen is lying by its den and nobody runs; at night every wolf seen looks
+  dangerous. Everybody knows wolves hunt after dusk, so by day no place counts as dangerous.
+* **Danger is a path cost, not a wall.** A believed wolf makes the cells near it cost
+  `danger_cost` more to cross. The whole map is searched so a step taken now is the first step of
+  the same cheapest way next tick; an earlier version searched a window and sent people round the
+  map's edge. Ground nobody has seen still counts as open.
+* **Risk is recorded.** A need at its emergency level, or with no more than the ticks to reach and
+  finish the errand plus a margin left, sends a person to a place they believe is dangerous, and
+  the decision's reason says so ("taking the risk: ...").
 * **Steadiness is its own feature.** `steady` makes what a person served last tick count
   as `commitment` ticks more urgent in the least-slack rule. It is separate from `sky`
   so each can be switched off and measured alone.
@@ -112,7 +133,7 @@ the viewer. `partial` says what is missing.
 | P0 | Baseline, golden digests, ledger audit, replace-based overlay updates, this record | done |
 | P1 | Traits, skills, fatigue and sleep | done for its scope (committed); sociability and curiosity are stored but act only once P4/P11 exist; skills farming/crafting count practice once P6/P7 exist |
 | P2 | Day/night, temperature, rain, storms, exposure, planning in the weather, steadiness | done (see log); farming and fire do not use the sky yet; lighting by fire waits for P8 |
-| P3 | Belief model, wolves, danger knowledge, safety | not started |
+| P3 | Belief model, wolves, danger knowledge, safety | done for wolves (see log); no other kind of thing is believed in yet; stored beliefs are not yet exchanged in conversation (P4); dens are not themselves beliefs |
 | P4 | Relationships, conversations, quarrels, apologies | not started |
 | P5 | Generalised requests, commitments, escrow, cooperation, hosting | not started |
 | P6 | Stone, tools, crafting, hauling | not started |
@@ -159,6 +180,24 @@ Entries say who ran what and when. A number here is a result of that run only.
   (12 cold deaths with and without, before steadiness). These are what those runs did, not a
   claim about every seed. Tick time stayed about 7-8 ms and a 300-tick file about 2 MB.
 
+* P3: `tests/test_wolves.py` 52 passed (belief merging, forgetting, hearsay keeping its date,
+  strict validation, overlay round trip; every wolf rule; what is observed and decided depends
+  only on sight and belief, with a counterfactual that moves a wolf out of sight; flight, holds,
+  risk, speech, routes that go round danger and never dither; bites, healing, limping, death;
+  whole saved world: audit, replay, recovery from a cut, every first-hand belief matches a recorded
+  sighting, every hearsay belief matches a recorded telling, every flight followed a wolf seen;
+  a real browser selects somebody who was warned). Five mutations of the rules (hunting hours,
+  posture, danger price, first-hand tie-break, hearsay dating) were each caught by a test.
+  Disabled-mode guard 16/16. Survey (8 seeds, 300 ticks, personality, skills, sleep, sky, steady,
+  explain, beliefs on): people who died / people in the run, no wolves 34 / 82; one wolf 33 / 77
+  (18 bites, 202 ticks spent running, 5 of cold); two wolves 38 / 71 (37 bites). Same eight seeds with
+  one wolf, switching the holds off: without the danger and hurt holds 37 / 76 died, without any
+  hold (weather too) 48 / 77, with all of them 33 / 77, so the holds help. At 700 ticks in
+  four seeds: no wolves 14 / 29, one wolf 15 / 27, two wolves 15 / 24. Nobody was killed by a wolf
+  in these runs: wolves cost people time, and the deaths come from need they could not meet.
+  Tick time about 7.4 ms; a 300-tick file about 1.6 MB. **Full suite at the P3 commit: 1338
+  passed in 658.68s (10m59s)**, run fresh from an isolated copy of the working tree.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -167,6 +206,6 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P3: one belief model (what a person saw or was told, how old it is, who said so, when it
-fades) and wolves that hunt people in the open. People see a wolf, run, call out to those in
-view, avoid the places it was, put trips off, and take the risk when a need cannot wait.
+P4: relationships and conversation. Greetings, visits, conversations that pass on what people
+believe (with its age and teller kept), gifts, quarrels, apologies and avoidance, all grounded
+in what two people actually know of each other, and a companionship need.

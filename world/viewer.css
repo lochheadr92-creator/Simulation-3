@@ -296,3 +296,11 @@ dl.rules dd { margin: 0; color: #cfe0da; }
 .attempt { font-size: 12px; margin: 3px 0; color: var(--muted); }
 .attempt .ok { color: var(--ok); }
 .attempt .no { color: var(--no); }
+
+/* ---------- what a person believes about wolves ---------- */
+.belief { margin: 4px 0; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.belief b { color: var(--fg); }
+.belief .conf { display: block; height: 3px; margin-top: 3px; border-radius: 2px; background: var(--raise); overflow: hidden; }
+.belief .conf span { display: block; height: 100%; background: var(--need); }
+.belief.hurt-note { color: var(--need); }
+.aside-row .code.hurt { color: var(--need); border-color: rgba(255, 148, 131, .5); }

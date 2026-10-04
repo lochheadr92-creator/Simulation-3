@@ -57,9 +57,12 @@ from world.social import remember_food
 from world.storage import update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
+from world.belief import advance_beliefs
 from world.persona import advance_persona, born as persona_born
 from world.sky import exposure, sight, sky_at, storm_hold
+from world.things import Things
 from world.traits import build_goal
+from world.wolves import HEALING_KINDS, advance_wolves, mend
 
 if TYPE_CHECKING:
     from world.observe import Observation
@@ -183,6 +186,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             positions[actor] = decision.step
             if decision.step in rough:
                 held[actor] = 1 + storm_hold(overlay.sky)       # a storm makes the climb out cost an extra tick
+            if config.on("wolves") and overlay.persona.hurt.get(actor, 0) >= config.lever("limp_at"):
+                held[actor] = max(held[actor], 1)               # a limp: the next step waits a tick
         if (decision is not None and decision.kind == BUILD
                 and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
             built[actor] += 1                           # interrupted work is never lost
@@ -213,6 +218,20 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 or (config.warmth_on and cold[actor] >= config.cold_death_at)):
             died_at[actor] = settled.tick
             died.append(actor)
+    wolves, hurt = overlay.things.wolves, dict(overlay.persona.hurt)
+    if config.on("wolves"):
+        # after everybody has moved: wolves hunt those in the open, and the hurt are mended or finished
+        living = {actor for actor in overlay.living if actor not in died_at}
+        resting = {actor for actor in living if decisions.get(actor) is not None
+                   and decisions[actor].kind in HEALING_KINDS and positions[actor] == overlay.homes[actor]}
+        hurt = mend(hurt, living, resting, settled.tick, config)
+        wolves, bites = advance_wolves(config, settled.tick, wolves, positions, living, shelters, overlay.sky,
+                                       set(overlay.homes.values()) | set(config.all_source_positions()))
+        for actor in sorted(bites):
+            hurt[actor] = hurt.get(actor, 0) + bites[actor]
+            if hurt[actor] >= config.lever("lethal_hurt"):
+                died_at[actor] = settled.tick
+                died.append(actor)
     condition = (recover_patches(overlay.patch_condition, config.food_source_ids(), record)
                  if config.regrowth_on else dict(overlay.patch_condition))
     season = season_at(settled.tick) if config.seasons_on else None
@@ -250,6 +269,12 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
 
     if config.features:
         next_overlay = replace(next_overlay, persona=advance_persona(overlay, next_overlay, decisions, record, config))
+    if config.on("wolves"):
+        next_overlay = replace(next_overlay, things=Things(wolves=wolves),
+                               persona=replace(next_overlay.persona, hurt=hurt))
+    if config.on("beliefs"):
+        next_overlay = replace(next_overlay, persona=replace(
+            next_overlay.persona, beliefs=advance_beliefs(overlay, next_overlay, decisions, observations or {}, config)))
     if config.on("sky"):
         next_overlay = replace(next_overlay, sky=sky_at(config, settled.tick))
     production: list[dict[str, Any]] = []

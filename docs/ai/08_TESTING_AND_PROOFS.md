@@ -9,6 +9,9 @@
 * Ledger audit: `tests/ledger_audit.py` explains every account change in a saved run.
   Use it in any feature test that moves resources.
 * Features run with `--features a,b,c` and `--lever name=value`.
+* Knowledge claims about wolves are checked in `tests/test_wolves.py`: every first-hand belief in a saved run matches a sighting
+  the run recorded, every hearsay belief matches a recorded telling, and a wolf moved out of everybody's sight changes no
+  observation or decision. Mutating a rule (hunting hours, posture, danger price, tie-break, hearsay dating) fails a test.
 * Weather and planning claims are checked on saved worlds in `tests/test_sky.py`: the recorded sky is the rule at
   every tick, cold rises by exactly the declared arithmetic, and a steady world has far fewer out-and-straight-back
   moves than the same world without it. Survey runs of several seeds are how behaviour was judged; their numbers

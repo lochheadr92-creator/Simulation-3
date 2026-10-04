@@ -1,6 +1,6 @@
 # Current architecture
 
-## Scoped update — rich-world features, P0-P2 — 2026-10-04
+## Scoped update — rich-world features, P0-P3 — 2026-10-04
 
 Checked against `02af86b` plus the local rich-world commits. Optional behaviour
 now arrives as named features: [registry](../../world/registry.py) collects
@@ -20,7 +20,11 @@ is a pure function of the seed and tick, written into every tick's overlay so th
 read recorded values; `process.advance` charges exposure on cold, and `observe` carries the current
 `chill` so the planning rules (`cold_slack`, `shelter_trip_due`, `weather_hold` in
 [decide](../../world/decide.py)) use the cold rate of the sky people are in.
-[steady](../../world/steady.py) adds commitment to need arbitration. The viewer core exposes extension points and
+[steady](../../world/steady.py) adds commitment to need arbitration. [belief](../../world/belief.py)
+holds dated, attributed beliefs in the persona (sight files first-hand, being told files hearsay that keeps
+its original date); [wolves](../../world/wolves.py) and [things](../../world/things.py) put hunters in the
+overlay. A person's observation holds only wolves inside their sight and their own beliefs, and
+`decide` reads nothing else about wolves. The viewer core exposes extension points and
 `viewer_<feature>.js` parts are spliced in only for runs that record the feature.
 Status and next steps live in [RICH_WORLD.md](../../RICH_WORLD.md).
 

@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from world.belief import BELIEFS
 from world.explain import EXPLAIN
 from world.feature import Feature
 from world.persona import PERSONALITY, SKILLS_FEATURE
 from world.rest import SLEEP_FEATURE
 from world.sky import SKY_FEATURE
 from world.steady import STEADY
+from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    EXPLAIN, PERSONALITY, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, STEADY,
+    BELIEFS, EXPLAIN, PERSONALITY, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, STEADY, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -69,6 +71,13 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
             problems.append("sleep needs tired_at of at least 20 and collapse_at of at least 30")
         if not 1 <= v("collapse_recovery") < v("collapse_at") - v("tired_at"):
             problems.append("sleep needs collapse_recovery between 1 and collapse_at - tired_at")
+    if "beliefs" in features and (v("memory_span") < 1 or v("memory_slots") < 1):
+        problems.append("beliefs need memory_span and memory_slots of at least 1")
+    if "wolves" in features:
+        if min(v("wolves"), v("wolf_arrival"), v("wolf_sense"), v("bite"), v("heal_every"), v("alarm")) < 1:
+            problems.append("wolves need wolves, wolf_arrival, wolf_sense, bite, heal_every and alarm of at least 1")
+        if not 1 <= v("limp_at") < v("lethal_hurt") or v("bite") >= v("lethal_hurt"):
+            problems.append("wolves need limp_at below lethal_hurt, and one bite below lethal_hurt")
     if "sky" in features:
         if v("twilight") < 1 or v("front_ticks") < 1 or min(v("night_sight"), v("storm_sight")) < 0:
             problems.append("sky needs twilight and front_ticks of at least 1")

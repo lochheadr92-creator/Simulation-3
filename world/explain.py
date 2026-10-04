@@ -19,6 +19,7 @@ FAILED_BEFORE = "failed_before"  # their last attempt at it failed
 UNWILLING = "unwilling"          # their own temperament, or a grudge, says no
 DANGEROUS = "dangerous"          # a danger they know of lies in the way
 WEATHER = "weather"              # the trip would cost more cold than they can spare
+HURT = "hurt"                    # too hurt to go out while the need can wait
 
 REASONS = {
     UNKNOWN: "did not know of a way",
@@ -30,6 +31,7 @@ REASONS = {
     UNWILLING: "not willing",
     DANGEROUS: "a known danger in the way",
     WEATHER: "waiting out bad weather",
+    HURT: "too hurt to go out",
 }
 
 Rejection = tuple[str, str, str]    # what, reason code, plain detail
@@ -43,7 +45,7 @@ EXPLAIN = Feature(
         "missing (a prerequisite is lacking), less_urgent (another need runs out sooner), too_late (relief "
         "could not be reached and finished in time), failed_before (the last attempt failed), unwilling (the "
         "person's own temperament or a grudge), dangerous (a known danger lies in the way) or weather (the trip "
-        "would cost more cold than they can spare). The options come "
+        "would cost more cold than they can spare) or hurt (too hurt to go out). The options come "
         "from the checks the decision itself made, when it made them. People also remember their last four "
         "distinct attempts: what, where, when and whether it worked."),
     tables={"rejection_reasons": REASONS},

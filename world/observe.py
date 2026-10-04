@@ -62,6 +62,7 @@ from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
 from world.sky import Sky, exposure, sight
+from world.wolves import danger_cells, is_active
 
 
 def chebyshev(a: Position, b: Position) -> int:
@@ -167,6 +168,11 @@ class Observation:
     doing: str | None = None               # the kind of what this person decided last tick
     sky: Sky | None = None                 # phase, weather and temperature, which everybody feels (sky feature)
     chill: int = 0                         # extra cold a tick out in the open in this sky; everybody feels it
+    wolves_seen: tuple[tuple[str, Position], ...] = ()   # wolves within sight right now: id and cell (wolves feature)
+    wolves_active: frozenset[str] = frozenset()          # which of them are visibly stalking rather than lying quiet
+    beliefs: tuple[tuple[Any, ...], ...] = ()            # own beliefs: kind, subject, x, y, seen, learned, via
+    hurt: int = 0                                        # own injury; 0 when wolves are off
+    danger: frozenset[Position] = frozenset()            # cells near a wolf they see or believe in; routes avoid them
 
     @property
     def storm(self) -> bool:
@@ -226,6 +232,8 @@ class Observation:
             out["source_reports"] = [list(e) for e in self.source_reports]
         if self.report_listeners:
             out["report_listeners"] = list(self.report_listeners)
+        if self.wolves_seen:
+            out["wolves_seen"] = [[wolf, cell[0], cell[1], int(wolf in self.wolves_active)] for wolf, cell in self.wolves_seen]
         if self.empty_sources:
             out["empty_sources"] = dict(self.empty_sources)
         if self.food_choice_changed is not None:
@@ -351,7 +359,15 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                        if in_view(origin, position, radius)) if several else ()
     seen_stock = tuple(sorted(dict(seen_stock + tuple((sid, available[source_account(sid)])
                                                     for sid, _ in visible_caches)).items()))
+    sighted = ([wolf for wolf in overlay.things.wolves if in_view(origin, wolf.position, radius)]
+               if config.on("wolves") else [])
+    wolves_seen = tuple((wolf.id, wolf.position) for wolf in sighted)
+    beliefs = persona.beliefs.get(actor, ())
     return Observation(
+        wolves_seen=wolves_seen, beliefs=beliefs, hurt=persona.hurt.get(actor, 0),
+        wolves_active=frozenset(wolf.id for wolf in sighted if is_active(wolf, overlay.sky)),
+        danger=(danger_cells(beliefs, wolves_seen, ledger.tick, config, overlay.sky)
+                if config.on("wolves") else frozenset()),
         food_sightings=sightings, source_reports=reports,
         report_food_avoided=report_food_avoided, report_provision_avoided=report_provision_avoided,
         report_listeners=tuple(seen.actor for seen in others

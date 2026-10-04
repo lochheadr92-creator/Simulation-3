@@ -1,6 +1,6 @@
 # Current state — volatile snapshot
 
-## Rich world, P0-P2 — 2026-10-04
+## Rich world, P0-P3 — 2026-10-04
 
 Work is on `claude/youthful-bardeen-wc346l` (draft PR 1) from baseline `02af86b`.
 The volatile status table, verification log and next step are in
