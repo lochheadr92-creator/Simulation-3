@@ -59,8 +59,9 @@ again. At night, with wolves about, somebody at home with wood lights a fire tha
 person with wood may dig a well by their home; once finished it gives water, and it is used only by those who have seen it.
 
 **What watching found.** Upkeep is badly outpaced by wear in the rich world: across eight 600-tick worlds 31 shelters were
-built, 25 collapsed and only 21 repairs were made, because somebody with a worn shelter is mostly serving a need. Cold deaths are
-frequent where this is on. There are no hut, house or storehouse kinds.
+built, 25 collapsed and only 21 repairs were made, because somebody with a worn shelter is mostly serving a need. Switching
+structures off did not change the number of cold deaths (18 of 62 with it, 18 of 64 without, over the same eight seeds), so the
+cold deaths are not caused by wear. There are no hut, house or storehouse kinds.
 
 ## Fields, crops, rot and grain — 2026-10-04
 

@@ -352,6 +352,23 @@ Entries say who ran what and when. A number here is a result of that run only.
   no link restore) were each caught. **Not covered**: the heading arrows are not checked by a test, only by screenshots; the
   launcher was not tried on another operating system.
 
+* P13 survey (8 seeds: 7, 11, 14, 23, 31, 42, 57, 64; 600 ticks; 6 founders each; run by me with `world/presets.py` configurations, wood on
+  where the features need it). People who ever lived / died / alive at the end, with causes of death:
+  plain world 150 / 69 / 81 (starved 50, thirst 12, cold 7), 102 births; the P0-P4 features (beliefs, bonds, explain, personality, skills,
+  sky, sleep, steady, wolves) 88 / 55 / 33 (starved 32, cold 13, thirst 10), 40 births; all 17 features 78 / 62 / 16
+  (cold 18, thirst 17, starved 16, old age 11), 30 births. Mean tick time 9.5 ms (plain), 8.4 ms (older), 9.4 ms (rich) on this
+  machine with four runs sharing four cores; a 600-tick file is 4.3 MB, 4.9 MB and 7.3 MB. Rich-world behaviour totals over the eight
+  seeds: 185 help ticks, 22 plantings, 21 repairs, 15 collections from graves, 10 well-digging ticks, 5 exploring ticks, 2 tools made,
+  0 mourning ticks. Shelters: 31 built, 25 collapsed. Removing one feature at a time from the rich world (same seeds) left the survivors
+  between 10 and 17 of about 78 whichever feature went, and left cold deaths at 14 to 22 (18 with everything); only removing `family`
+  changed the population (51 people instead of 78), because births then follow the older rule; removing `steady` made things worse
+  (starved 33, survivors 10); removing `wolves` lowered cold deaths to 10. **No single feature explains the loss of population; the base
+  world is already lethal over 600 ticks (69 of 150 died with nothing switched on), and the rich world adds fewer births (couples are rare)
+  and old age.** I did not tune any default to change this. The rich world is harsh at six founders: a run that ends with one to four
+  people is the usual outcome at 600 ticks. Old-save compatibility: a run written by baseline `02af86b` opens, verifies, has every
+  tick's overlay digest unchanged under the current code, renders in the viewer and replays identically; resuming it is refused because recovery
+  checks the writing code (`tests/test_old_saves.py`, fixture `tests/fixtures/baseline-02af86b-seed7-ticks120.jsonl`).
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
