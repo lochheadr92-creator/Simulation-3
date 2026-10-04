@@ -1,6 +1,6 @@
 # System retrieval map
 
-## Rich-world additions, P0-P1 — 2026-10-04
+## Rich-world additions, P0-P2 — 2026-10-04
 
 | Concept / purpose | Primary files and entry points | Tests to start with |
 | --- | --- | --- |
@@ -8,6 +8,8 @@
 | Temperament, skills, inner state | [persona](../../world/persona.py), [traits](../../world/traits.py); decide/storage/process consume them | individuality |
 | Fatigue and sleep | [rest](../../world/rest.py); [decide](../../world/decide.py): `_decide_needs`, `rest_candidates`, `_relief_wait` | individuality |
 | Set-aside options | [explain](../../world/explain.py); `Decision.rejected` | individuality |
+| Day, night, weather, exposure | [sky](../../world/sky.py), [draw](../../world/draw.py); `process.advance` (cold, rough ground, promises), `observe` (`chill`, sight), [decide](../../world/decide.py): `cold_slack`, `weather_hold` | [sky tests](../../tests/test_sky.py) |
+| Staying with a need | [steady](../../world/steady.py); `_decide_needs` and `NEED_OF` in decide | sky tests |
 | Baseline guard and ledger audit | [disabled-mode test](../../tests/test_disabled_mode_baseline.py), [ledger audit](../../tests/ledger_audit.py) | those files |
 | Viewer parts | [viewer.js](../../world/viewer.js) extension points, [viewer_persona.js](../../world/viewer_persona.js), [viewer_rich.py](../../world/viewer_rich.py) | [rich viewer](../../tests/test_rich_viewer.py) |
 

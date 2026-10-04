@@ -1,5 +1,51 @@
 # Simulation 3 — Development Directions
 
+## A sky: day, night, weather and what being out in it costs — 2026-10-04
+
+The second piece of the rich world, two more optional features (`sky`, `steady`),
+saved in the run header and off by default. [RICH_WORLD.md](RICH_WORLD.md) has the
+phase plan and the exact next step.
+
+**The sky.** A day is 120 ticks: dawn, day, dusk, then 36 ticks of night. Weather
+changes in fronts every 30 ticks and follows a fixed table, so a storm builds through
+rain and never arrives out of a clear sky. Temperature is the day's base plus the hour,
+the weather and (when seasons are on) the season. Everything is fixed by the seed and
+the tick, and every tick's world records the sky, so the viewer shows what was
+recorded and replay checks it. A person out in the cold, the rain or a storm gains extra
+cold each tick; under a finished shelter they gain none. Sight shrinks at night and in
+storms, climbing onto rough ground costs a tick more in a storm, nobody starts building
+or an optional outing in a storm, and (with sleep on) bedtime comes earlier at night.
+
+**Planning with the weather.** The first version charged the cold but left every plan
+using the nominal rate, and eight seeds of 300 ticks produced 27 cold deaths against
+none without the sky. Three rules fixed that, and each is visible in the inspector:
+
+* Cold's time-left and the "start for home" rule use the cold rate of the sky people
+  are in, and away from home the walk back is taken off the time left, so somebody
+  turns for home while they still can.
+* Somebody at home does not set out on a food or water errand when the round trip would
+  carry their cold past the emergency level, unless the need cannot wait any longer.
+  They stay in and warm up, and the set-aside list says "waiting out bad weather".
+* `steady`: whatever a person was serving last tick counts as 8 ticks more urgent when
+  the next choice is made, so a need has to be clearly worse before they give up the
+  errand. Without it people stepped out of their door and straight back in; in three
+  seeds that happened 63, 52 and 125 times, and with it 4, 11 and 9.
+
+Results of those eight seeds (7, 11, 14, 23, 31, 42, 57, 64) at 300 ticks, with
+explain, personality, skills and sleep on: 34 dead of 93 people without the sky, 51 of
+87 with the first sky, 38 of 75 after planning with the weather's rate, and 34 of 82
+with steadiness and the walk-back rule, of which 2 died of cold. These are what those
+runs did. The weather-wait rule had no measurable effect on survival in them (12 cold
+deaths with it and 12 without, before steadiness), so it is there for what it shows,
+not for what it saves.
+
+**What to watch.** The clock and weather in the corner of the map, the night tint, the
+rain streaks, and in the inspector: a person at their hut in a rainy night, building
+or resting, with the errand they did not make and why.
+
+**Next.** A belief model and wildlife (P3): what people know about places and
+dangers, how old it is, and who told them.
+
 ## People with temperaments, skills and sleep — 2026-10-04
 
 The first piece of the rich world. Three optional features, each saved in the run

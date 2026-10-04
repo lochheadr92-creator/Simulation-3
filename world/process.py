@@ -58,6 +58,7 @@ from world.storage import update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
 from world.persona import advance_persona, born as persona_born
+from world.sky import exposure, sight, sky_at, storm_hold
 from world.traits import build_goal
 
 if TYPE_CHECKING:
@@ -181,7 +182,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         elif decision is not None and decision.step is not None:
             positions[actor] = decision.step
             if decision.step in rough:
-                held[actor] = 1
+                held[actor] = 1 + storm_hold(overlay.sky)       # a storm makes the climb out cost an extra tick
         if (decision is not None and decision.kind == BUILD
                 and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
             built[actor] += 1                           # interrupted work is never lost
@@ -201,7 +202,12 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         if config.warmth_on:
             # Shelter is the person's own home cell, and this is where the tick left them.
             sheltered = positions[actor] == overlay.homes[actor]
-            cold[actor] = max(0, cold[actor] - config.warming if sheltered else cold[actor] + config.cold_rate)
+            # out in the sky costs extra cold unless a finished shelter stands over the person
+            extra = exposure(config, overlay.sky, positions[actor] in shelters) if config.on("sky") else 0
+            if sheltered:
+                cold[actor] = max(0, cold[actor] - max(1, config.warming - extra))
+            else:
+                cold[actor] = cold[actor] + config.cold_rate + extra
         if (hunger[actor] >= config.death_at
                 or (config.water_on and thirst[actor] >= config.thirst_death_at)
                 or (config.warmth_on and cold[actor] >= config.cold_death_at)):
@@ -239,10 +245,13 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                                      if who not in died_at and asked not in died_at},
                            promises={who: owed for who, owed in promises.items()
                                      if who not in died_at and owed not in died_at
-                                     and in_view(positions[who], positions[owed], config.perception_radius)})
+                                     and in_view(positions[who], positions[owed],
+                                                 sight(config, overlay.sky, config.perception_radius))})
 
     if config.features:
         next_overlay = replace(next_overlay, persona=advance_persona(overlay, next_overlay, decisions, record, config))
+    if config.on("sky"):
+        next_overlay = replace(next_overlay, sky=sky_at(config, settled.tick))
     production: list[dict[str, Any]] = []
     ledger = settled
     if config.relocation_on:

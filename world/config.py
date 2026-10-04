@@ -34,6 +34,7 @@ from kernel import Source, WorldState
 
 from world.overlay import Overlay
 from world.persona import Persona, genesis_persona
+from world.sky import sky_at
 from world.registry import (FEATURES, LEVER_DEFAULTS, cross_checks, feature_problems, lever_defaults)
 from world.storage import STORE_TARGET, STORE_LOW, FOOD_EXPECT_TICKS, store_id
 from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
@@ -987,5 +988,6 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         cold={actor: 0 for actor in actors} if config.warmth_on else {},
         age={actor: config.adult_at for actor in actors} if config.childhood_on else {},
         persona=genesis_persona(config, actors) if config.features else Persona(),
+        sky=sky_at(config, 0) if config.on("sky") else None,
     )
     return ledger, overlay

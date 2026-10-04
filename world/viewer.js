@@ -40,8 +40,8 @@
   //   sections  inspector blocks: { after: 'tick'|'needs'|'facts'|'end', html(ctx) }
   //   poseOf    decision kind -> pose name;  poses  pose name -> full-body drawer returning nothing
   //   marks     little signs above a head;  standing  things that stand in the world, depth sorted
-  //   overlays  screen-space tints and labels drawn after the world
-  const EXT = { sections: [], poseOf: {}, poses: {}, marks: [], standing: [], overlays: [] };
+  //   overlays  screen-space tints and labels drawn after the world;  hud  html bits for the corner clock: fn(world, view)
+  const EXT = { sections: [], poseOf: {}, poses: {}, marks: [], standing: [], overlays: [], hud: [] };
   const extHtml = (where, ctx) => EXT.sections.filter(x => x.after === where).map(x => x.html(ctx) || '').join('');
   const MOVES = new Set(IDX.moves || []);
   const BUILD_TICKS = C.build_ticks || 0;
@@ -1082,6 +1082,7 @@
     bits.push(`<span>died <b>${(COUNTS.dead || [])[v] ?? Object.keys(w.died_at || {}).length}</b></span>`);
     if (BUILD_TICKS) bits.push(`<span>shelters <b>${(COUNTS.shelters || [])[v] ?? 0}</b></span>`);
     if (ADULT_AT !== null) bits.push(`<span>children <b>${(COUNTS.children || [])[v] ?? 0}</b></span>`);
+    for (const f of EXT.hud) { const b = f(w, v); if (b) bits.push(b); }
     $('hud-line').innerHTML = bits.join('');
     canvas.setAttribute('aria-label', `Isometric map of the world at tick ${v} of ${n}: ${aliveAt(v)} alive.`);
     if (!playing) $('live').textContent = `World tick ${v}. ${aliveAt(v)} alive.`;

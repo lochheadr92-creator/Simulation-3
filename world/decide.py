@@ -81,7 +81,7 @@ from world.storage import spare_for_store, store_id, start_provisioning
 from world.housing import GO_SETTLE, SETTLE, GO_RELOCATE, RELOCATE, choose_site, choose_relocation
 from world.fishing import FISH_SOURCE, FISH
 from world.materials import GATHER_WOOD, GO_WOOD, WAIT_WOOD, WOOD_PACK, wood_cost, remaining_wood
-from world.explain import FAILED_BEFORE, LESS_URGENT, TOO_LATE, UNWILLING, rejection
+from world.explain import FAILED_BEFORE, LESS_URGENT, TOO_LATE, UNAVAILABLE, UNWILLING, WEATHER, rejection
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
 
@@ -396,12 +396,15 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
                   and not observation.fishing_ready else CLAIM)
         found.append(gather if observation.source_food >= 1 else WAIT)
     if hungry and not observation.at_source:
+        waiting = weather_hold(observation, config, "food") is not None
         if yield_eligible(observation, config):
             found.append(YIELD)
-        if someone_to_ask(observation, config) is not None:
+        if not waiting and someone_to_ask(observation, config) is not None:
             found.append(ASK)
         if too_far_for_a_child(observation, config, observation.source):
             found.append(REST if observation.at_home else HOME)   # too small to go that far; wait to be fed
+        elif waiting:
+            found.append(REST)                                    # at home, waiting out the weather
         else:
             found.append(GO)
     if not hungry:
@@ -410,7 +413,8 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             # rather than turning round and setting off again
             found.append(FISH if config.fishing_on and observation.source_id == FISH_SOURCE
                          and not observation.fishing_ready else CLAIM)
-        elif trip_due(observation, config) and not too_far_for_a_child(observation, config, observation.source):
+        elif (trip_due(observation, config) and not too_far_for_a_child(observation, config, observation.source)
+              and weather_hold(observation, config, "food") is None):
             found.append(GO)
         elif (config.plan_trips and config.fishing_on and observation.source_id == FISH_SOURCE
               and observation.at_source and observation.food == 0 and not observation.fishing_ready
@@ -431,8 +435,9 @@ def candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]
             found.append(OFFER if steps_to(observation.position, _seen(observation, hurt)) <= 1 else GO_OFFER)
         elif not observation.at_home:
             found.append(HOME)
-        elif config.building_on and not observation.home_built and not is_child(observation, config):
-            found.append(BUILD)          # nothing is calling and home has no shelter yet
+        elif (config.building_on and not observation.home_built and not is_child(observation, config)
+                and not observation.storm):
+            found.append(BUILD)          # nothing is calling and home has no shelter yet (not in a storm)
         else:
             found.append(REST)
     return tuple(found)
@@ -501,7 +506,7 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (kind,), home_site=site,
                             step=None if arrived else route_step(observation, site, config),
                             scores=choice.scores + ((kind, (0, 1)),) if choice.scores is not None else None)
-    if observation.relocating and choice.kind in (HOME, BUILD, REST, GO_SHELTER):
+    if observation.relocating and not observation.storm and choice.kind in (HOME, BUILD, REST, GO_SHELTER):
         site = choose_relocation(observation, config)
         if site is not None:
             if config.warmth_on and observation.at_home and observation.cold > 0:
@@ -517,7 +522,8 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (kind,), home_site=site,
                             step=None if arrived else route_step(observation, site, config),
                             scores=choice.scores + ((kind, (0, 1)),) if choice.scores is not None else None)
-    if config.wood_on and not observation.home_built and not is_child(observation, config) and choice.kind in (HOME, BUILD):
+    if (config.wood_on and not observation.home_built and not is_child(observation, config)
+            and not observation.storm and choice.kind in (HOME, BUILD)):
         cost = wood_cost(observation.work_done)
         if observation.wood < cost:
             site = observation.wood_source
@@ -549,8 +555,8 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
 def _provision_decision(observation: Observation, config: WorldConfig, choice: Decision) -> Decision:
     """Use spare time for one natural-source collection, then carry it home."""
     phase = observation.provision_phase
-    if phase is None and not start_provisioning(observation, config):
-        return choice
+    if phase is None and (observation.storm or not start_provisioning(observation, config)):
+        return choice                                    # no new optional outing in a storm
     if is_child(observation, config) or observation.provision_source is None:
         return choice
     if phase is None and config.warmth_on and observation.cold > 0:
@@ -627,7 +633,8 @@ def water_candidates(observation: Observation, config: WorldConfig) -> tuple[str
             raise AssertionError(f"{observation.actor} is at the water but did not observe its stock")
         found.append(DRAW if observation.water_stock >= 1 else WAIT_WATER)
     if (not at_water and (thirsty or water_trip_due(observation, config))
-            and not too_far_for_a_child(observation, config, observation.water_source)):
+            and not too_far_for_a_child(observation, config, observation.water_source)
+            and weather_hold(observation, config, "water") is None):
         found.append(GO_WATER)
     margin = caution_ticks(observation.traits)
     if (at_water and not thirsty and margin > 0 and config.plan_trips and observation.water == 0
@@ -687,14 +694,16 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
         calling.append((slack(observation.thirst, config.thirst_death_at, config.thirst_rate),
                         WATER_PRIORITY, water, _water_decision, "water"))
     if warmth:
-        calling.append((slack(observation.cold, config.cold_death_at, config.cold_rate),
-                        WARMTH_PRIORITY, warmth, _warmth_decision, "warmth"))
+        calling.append((cold_slack(observation, config), WARMTH_PRIORITY, warmth, _warmth_decision, "warmth"))
     if rest:
         calling.append((fatigue_slack(config, observation.fatigue), REST_PRIORITY, rest, _rest_decision, "sleep"))
     if calling and any(action not in IDLE for action in food):
         calling.append((slack(observation.hunger, config.death_at, config.hunger_rate), (), (), None, "food"))
     explained = config.on("explain")
-    postponed: tuple[tuple[str, str, str], ...] = ()
+    held = [(errand, detail) for errand, need in ((GO_WATER, "water"), (GO, "food"))
+            if (detail := weather_hold(observation, config, need)) is not None]
+    postponed: tuple[tuple[str, str, str], ...] = (
+        tuple(rejection(errand, WEATHER, detail) for errand, detail in held) if explained else ())
     if rest:
         margin = config.lever("urgent_margin")
         urgent = [(entry, _relief_wait(observation, config, entry[4])) for entry in calling
@@ -703,9 +712,9 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
         if urgent:
             if explained:
                 entry, wait = min(urgent, key=lambda item: item[0][0])
-                postponed = (rejection("sleep", TOO_LATE,
-                                       f"{entry[4]} has {entry[0]} ticks left and needs {wait} to reach and finish; "
-                                       "it cannot wait for sleep"),)
+                postponed += (rejection("sleep", TOO_LATE,
+                                        f"{entry[4]} has {entry[0]} ticks left and needs {wait} to reach and finish; "
+                                        "it cannot wait for sleep"),)
             calling = [entry for entry in calling if entry[4] != "sleep"]
         elif observation.asleep:
             return replace(_rest_decision(observation, config, rest[0]), candidates=every)
@@ -724,9 +733,9 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
                         else -COMMITMENT if observation.doing == GO_SLEEP else 0)
                 if left > cost + margin - lean:
                     if explained:
-                        postponed = (rejection("sleep", LESS_URGENT,
-                                               f"collapse is {left} ticks away; finishing the {errands[0][4]} errand "
-                                               f"and getting home takes {cost}"),)
+                        postponed += (rejection("sleep", LESS_URGENT,
+                                                f"collapse is {left} ticks away; finishing the {errands[0][4]} errand "
+                                                f"and getting home takes {cost}"),)
                     calling = [entry for entry in calling if entry[4] != "sleep"]
     if config.water_care_on:
         care = _water_care(observation, config, food, water)
@@ -750,23 +759,41 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
         if config.care_by_need_on:
             reason = f"{handoff.reason}; before heading home for warmth"
         return replace(handoff, candidates=every, reason=reason)
+    notes = tuple(detail for _, detail in held)
     if not calling:
-        return replace(_decide_food(observation, config), candidates=every, rejected=postponed)
-    winner = min(calling, key=lambda ranked: ranked[0])
+        return _with(_decide_food(observation, config), every, postponed, notes)
+    serving = NEED_OF.get(observation.doing) if config.on("steady") else None      # what they were just doing
+    lean = config.lever("commitment") if serving is not None else 0
+    winner = min(calling, key=lambda ranked: ranked[0] - (lean if ranked[4] == serving else 0))
     _, priority, options, build, served = winner
     rejected = postponed
     if explained:
-        rejected += tuple(rejection(entry[4], LESS_URGENT, f"{entry[0]} ticks left, against {winner[0]} for {served}")
+        carried = ", which they were already doing" if served == serving else ""
+        rejected += tuple(rejection(entry[4], LESS_URGENT,
+                                    f"{entry[0]} ticks left, against {winner[0]} for {served}"
+                                    f"{carried if winner[0] > entry[0] else ''}")
                           for entry in calling if entry is not winner and entry[0] != INF and winner[0] != INF)
     if build is None:
-        return replace(_decide_food(observation, config), candidates=every, rejected=rejected)
+        return _with(_decide_food(observation, config), every, rejected, notes)
     chosen = next(action for action in priority if action in options)
-    return replace(build(observation, config, chosen), candidates=every, rejected=rejected)
+    return _with(build(observation, config, chosen), every, rejected, notes)
+
+
+def _with(decision: Decision, candidates: tuple[str, ...], extra: tuple[tuple[str, str, str], ...],
+          notes: tuple[str, ...] = ()) -> Decision:
+    """The decision with the full block of open actions and any further options set aside,
+    keeping whatever it already recorded. A person who stays in or keeps to their work says why they did
+    not go out (`notes`)."""
+    reason = decision.reason + "; " + "; ".join(notes) if notes and decision.kind in (REST, BUILD) else decision.reason
+    return replace(decision, candidates=candidates, reason=reason, rejected=decision.rejected + extra)
 
 
 REST_PRIORITY = (COLLAPSE, SLEEP, GO_SLEEP)
 COMMITMENT = 8                     # ticks of extra reason needed to drop what one was just doing
 ERRAND_KINDS = frozenset({GO, CLAIM, FISH, GO_WATER, DRAW, EAT, DRINK})    # progress towards relief; waiting is not
+NEED_OF = {GO_WATER: "water", DRAW: "water", WAIT_WATER: "water", DRINK: "water",         # what each decision served,
+           GO: "food", CLAIM: "food", FISH: "food", WAIT: "food", EAT: "food",            # for the steady feature
+           GO_SHELTER: "warmth", WARM: "warmth"}
 
 
 def rest_candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]:
@@ -779,7 +806,7 @@ def rest_candidates(observation: Observation, config: WorldConfig) -> tuple[str,
         return (COLLAPSE,)                       # down, and staying down until some of it has been slept off
     if observation.asleep:
         return (SLEEP,) if observation.fatigue > config.lever("wake_at") else ()
-    if observation.fatigue >= tired_threshold(config, observation.traits):
+    if observation.fatigue >= tired_threshold(config, observation.traits, observation.sky):
         return (SLEEP,) if observation.at_home else (GO_SLEEP,)
     return ()
 
@@ -858,13 +885,70 @@ def _water_gift(observation: Observation, config: WorldConfig, food: tuple[str, 
                     target=seen.actor, resource=WATER)
 
 
+def away_rate(observation: Observation, config: WorldConfig) -> int:
+    """Cold added each tick spent out in the open as things are now: the world's rate plus what the
+    sky adds (nothing when the sky feature is off)."""
+    return config.cold_rate + observation.chill
+
+
+def cold_slack(observation: Observation, config: WorldConfig) -> int | float:
+    """Ticks before cold kills at the rate it rises out in the open now: at home, the time they would last
+    if they set out. When the sky is adding cold and they are away from home, it is what is left after the
+    walk back: someone further out than they can walk back before the cold kills them is already lost, so
+    they must turn for home while there is still time. In mild weather the plain count is used."""
+    left = slack(observation.cold, config.cold_death_at, away_rate(observation, config))
+    if observation.chill > 0 and not observation.sheltered:
+        return left - steps_to(observation.position, observation.home)
+    return left
+
+
 def shelter_trip_due(observation: Observation, config: WorldConfig) -> bool:
     """The leave-in-time rule for warmth: away from shelter and far enough that
-    setting off now reaches it as cold reaches cold_at."""
+    setting off now reaches it as cold reaches cold_at, at the rate of the sky they are in."""
     return (config.plan_trips and not observation.sheltered
-            and observation.cold + config.cold_rate
+            and observation.cold + away_rate(observation, config)
             * max(0, steps_to(observation.position, observation.home) + caution_ticks(observation.traits))
             >= config.cold_at)
+
+
+def weather_hold(observation: Observation, config: WorldConfig, need: str) -> str | None:
+    """Why somebody at home puts off a due food or water errand in this weather, or None when they set out.
+
+    Out and back in the open costs cold at the sky's rate. When that would carry their cold past
+    cold_emergency_at, and the need can wait - it is under its emergency level and has more than the ticks
+    to reach and finish relief plus weather_margin left - they stay in and warm up, and look again next
+    tick. The need's own clock ends the wait, so the weather never starves or parches anybody indoors."""
+    if observation.chill <= 0 or not observation.at_home or not config.warmth_on:
+        return None
+    if need == "food":
+        if (observation.food >= 1 or observation.at_source
+                or too_far_for_a_child(observation, config, observation.source)
+                or (observation.hunger < config.hungry_at and not trip_due(observation, config))):
+            return None
+        out = food_travel_ticks(observation, config) + int(config.fishing_on and observation.source_id == FISH_SOURCE)
+        level, rate, emergency, death = (observation.hunger, config.hunger_rate, config.emergency_at, config.death_at)
+    else:
+        well = observation.water_source
+        if (well is None or observation.water >= 1 or observation.position == well
+                or too_far_for_a_child(observation, config, well)
+                or (observation.thirst < config.thirsty_at and not water_trip_due(observation, config))):
+            return None
+        out = steps_to(observation.position, well)
+        level, rate, emergency, death = (observation.thirst, config.thirst_rate, config.thirst_emergency_at,
+                                         config.thirst_death_at)
+    away = 2 * out + 2                                      # out, take it and eat or drink, back
+    per_tick = away_rate(observation, config)
+    reach = observation.cold + per_tick * (away + caution_ticks(observation.traits))
+    if reach <= config.cold_emergency_at:
+        return None
+    left = slack(level, death, rate)
+    if level >= emergency or left <= out + 2 + config.lever("weather_margin"):
+        return None
+    sky = observation.sky
+    outside = (f"the {sky.weather}{' at night' if sky.night else ''}" if sky.weather in ("rain", "storm")
+               else f"the cold {sky.phase}")
+    return (f"waiting out {outside}: the {need} errand is about {away} ticks out and back at +{per_tick} cold a "
+            f"tick, which would take cold {observation.cold} to about {reach}; {left} ticks of {need} left")
 
 
 def warmth_candidates(observation: Observation, config: WorldConfig) -> tuple[str, ...]:
@@ -929,7 +1013,7 @@ def own_slack(observation: Observation, config: WorldConfig) -> int | float:
     levels = [slack(observation.thirst, config.thirst_death_at, config.thirst_rate),
               slack(observation.hunger, config.death_at, config.hunger_rate)]
     if config.warmth_on:
-        levels.append(slack(observation.cold, config.cold_death_at, config.cold_rate))
+        levels.append(cold_slack(observation, config))
     return min(levels)
 
 
@@ -1085,4 +1169,10 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
                         options, step=route_step(observation, where, config), target=hurt, scores=scores)
     if selected == BUILD:
         return Decision(actor, BUILD, "nothing wanting, building a shelter at home", options, scores=scores)
-    return Decision(actor, REST, "fed, at home", options, scores=scores)
+    waiting = observation.chill > 0 and weather_hold(observation, config, "food") is not None
+    if (observation.storm and config.building_on and not observation.home_built and not is_child(observation, config)):
+        return Decision(actor, REST, "at home; too stormy to build outside" if waiting
+                        else "fed, at home; too stormy to build outside", options, scores=scores,
+                        rejected=(rejection("build", UNAVAILABLE, "a storm: too wet and windy to work outside"),)
+                        if config.on("explain") else ())
+    return Decision(actor, REST, "at home" if waiting else "fed, at home", options, scores=scores)

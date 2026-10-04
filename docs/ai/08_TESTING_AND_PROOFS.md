@@ -9,6 +9,10 @@
 * Ledger audit: `tests/ledger_audit.py` explains every account change in a saved run.
   Use it in any feature test that moves resources.
 * Features run with `--features a,b,c` and `--lever name=value`.
+* Weather and planning claims are checked on saved worlds in `tests/test_sky.py`: the recorded sky is the rule at
+  every tick, cold rises by exactly the declared arithmetic, and a steady world has far fewer out-and-straight-back
+  moves than the same world without it. Survey runs of several seeds are how behaviour was judged; their numbers
+  are recorded in [RICH_WORLD.md](../../RICH_WORLD.md) with what they do and do not show.
 * Browser tests need Playwright's browser build. If the installed build differs from the
   locked Playwright's, point `PLAYWRIGHT_BROWSERS_PATH` at a directory of links to it.
 

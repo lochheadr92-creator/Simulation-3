@@ -241,13 +241,16 @@ def advance_persona(previous: "Overlay", current: "Overlay", decisions: Mapping[
             doing[actor] = decision.kind
         if config.on("sleep"):
             sleeping = decision.kind in (SLEEP, COLLAPSE)
+            night = config.on("sky") and previous.sky is not None and previous.sky.night
             if sleeping:
-                rate = rest_rate(config, current.positions[actor] == current.homes[actor])
+                rate = rest_rate(config, current.positions[actor] == current.homes[actor]) + (
+                    config.lever("night_rest") if night else 0)
                 fatigue[actor] = max(0, fatigue[actor] - rate)
                 asleep[actor] = asleep.get(actor, previous.tick)
             else:
                 worked = decision.kind in WORK_KINDS
-                fatigue[actor] += config.lever("fatigue_rate") + (config.lever("work_fatigue") if worked else 0)
+                fatigue[actor] += (config.lever("fatigue_rate") + (config.lever("work_fatigue") if worked else 0)
+                                   + (config.lever("night_fatigue") if night else 0))
                 asleep.pop(actor, None)
         if config.on("skills"):
             gained = [0] * len(SKILLS)

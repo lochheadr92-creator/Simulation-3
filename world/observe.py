@@ -61,6 +61,7 @@ from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
+from world.sky import Sky, exposure, sight
 
 
 def chebyshev(a: Position, b: Position) -> int:
@@ -164,6 +165,16 @@ class Observation:
     asleep: bool = False                   # was asleep at the start of the tick
     tried: tuple[tuple[str, str, int, int], ...] = ()   # own recent attempts: kind, target, tick, 1 ok / 0 refused
     doing: str | None = None               # the kind of what this person decided last tick
+    sky: Sky | None = None                 # phase, weather and temperature, which everybody feels (sky feature)
+    chill: int = 0                         # extra cold a tick out in the open in this sky; everybody feels it
+
+    @property
+    def storm(self) -> bool:
+        return self.sky is not None and self.sky.storm
+
+    @property
+    def night(self) -> bool:
+        return self.sky is not None and self.sky.night
 
     @property
     def at_source(self) -> bool:
@@ -259,7 +270,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     persona = overlay.persona
     asleep = actor in persona.asleep
     # A sleeper sees only their own cell; everybody else can see that they are asleep.
-    radius = 0 if asleep else config.perception_radius
+    radius = 0 if asleep else sight(config, overlay.sky, config.perception_radius)
     others = tuple(
         SeenPerson(other, overlay.positions[other], available[actor_account(other)],
                    starving=overlay.hunger[other] >= config.emergency_at,
@@ -400,7 +411,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
           if config.childhood_on else {}),
         traits=persona.traits.get(actor, ()), skills=persona.skills.get(actor, ()),
         fatigue=persona.fatigue.get(actor), asleep=asleep, tried=persona.tried.get(actor, ()),
-        doing=persona.doing.get(actor),
+        doing=persona.doing.get(actor), sky=overlay.sky, chill=exposure(config, overlay.sky, False),
         **_water_view(actor, origin, overlay, config, available, radius),
     )
 

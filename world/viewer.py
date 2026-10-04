@@ -41,7 +41,7 @@ JS_FILE = HERE / "viewer.js"
 PARTS_MARKER = "/*@PARTS@*/"
 # Feature display code, spliced into the page where PARTS_MARKER stands. Each part guards on the
 # features the run records, so a page for an older run is unchanged.
-JS_PARTS = ("viewer_persona.js",)
+JS_PARTS = ("viewer_persona.js", "viewer_sky.js")
 
 
 def _checkpoints(run: Run) -> dict[str, list[int]]:

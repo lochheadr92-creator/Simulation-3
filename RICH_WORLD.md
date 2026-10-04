@@ -74,6 +74,22 @@ Two facts about the existing code shape the work:
 * **Viewer features are parts.** `world/viewer.js` exposes extension points and
   `world/viewer_<feature>.js` files are spliced in only for runs that record the
   feature; `world/viewer_rich.py` derives their events from recorded values.
+* **The sky is a pure function of seed and tick, and is also recorded.** `world/sky.py`
+  derives phase, weather (fronts chained through a fixed table) and temperature; every
+  tick's overlay carries the sky, so the viewer reads it and replay checks it. Weather
+  draws come from `world/draw.py` (sha256 of seed, label and numbers), never from a
+  shared generator, so adding a weather draw cannot move anything else.
+* **Planning uses the rate people actually suffer.** `Observation.chill` is the extra
+  cold of being out in the current sky; `cold_slack` and `shelter_trip_due` use
+  `cold_rate + chill`, and away from home the walk back is taken off the time left. With
+  the sky off `chill` is 0 and every number is what it was.
+* **Putting an errand off is a recorded reason.** `weather_hold` keeps somebody at home
+  when the round trip would push their cold past the emergency level and the need can
+  still wait. The held errand is left out of the candidates and shows as a `weather`
+  entry in the decision's set-aside list. Later holds (danger, injury) follow the same shape.
+* **Steadiness is its own feature.** `steady` makes what a person served last tick count
+  as `commitment` ticks more urgent in the least-slack rule. It is separate from `sky`
+  so each can be switched off and measured alone.
 
 ## Prior art on other branches (not part of this work)
 
@@ -95,7 +111,7 @@ the viewer. `partial` says what is missing.
 | --- | --- | --- |
 | P0 | Baseline, golden digests, ledger audit, replace-based overlay updates, this record | done |
 | P1 | Traits, skills, fatigue and sleep | done for its scope (committed); sociability and curiosity are stored but act only once P4/P11 exist; skills farming/crafting count practice once P6/P7 exist |
-| P2 | Day/night, temperature, rain, storms, exposure | not started |
+| P2 | Day/night, temperature, rain, storms, exposure, planning in the weather, steadiness | done (see log); farming and fire do not use the sky yet; lighting by fire waits for P8 |
 | P3 | Belief model, wolves, danger knowledge, safety | not started |
 | P4 | Relationships, conversations, quarrels, apologies | not started |
 | P5 | Generalised requests, commitments, escrow, cooperation, hosting | not started |
@@ -128,6 +144,21 @@ Entries say who ran what and when. A number here is a result of that run only.
   guard 16/16. **Full suite at the P1 commit: 1262 passed in 605.22s (10m05s)**, run
   fresh on this machine (the baseline's 1172 plus 90 new tests).
 
+* P2: `tests/test_sky.py` 24 passed (the recorded sky equals the rule at every tick,
+  exposure and cold arithmetic, sight, storms, planning with the sky's rate, errand holds and
+  their recorded reasons, steadiness, replay, recovery from a cut at a rainy tick, ledger audit,
+  the page and its index). Disabled-mode guard 16/16 after the sky and steady code was added.
+  **Full suite at the P2 commit: 1286 passed in 631.12s (10m31s)**, run fresh on this machine
+  from an isolated copy of the working tree.
+* P2 survey (8 seeds: 7, 11, 14, 23, 31, 42, 57, 64; 300 ticks; explain, personality, skills and
+  sleep on). People who died / people in the run: no sky 34 / 93 (0 of cold); first sky 51 / 87
+  (27 of cold); planning with the sky's cold rate 38 / 75 (12 of cold); adding steadiness and the
+  walk-back rule 34 / 82 (2 of cold). Out-and-straight-back door moves (go_shelter, go, go_water,
+  warm in an A, B, A pattern) in seeds 7, 42, 57: 63, 52, 125 without steadiness, 4, 11, 9 with it.
+  Holding errands back for the weather made no measurable difference to survival in these runs
+  (12 cold deaths with and without, before steadiness). These are what those runs did, not a
+  claim about every seed. Tick time stayed about 7-8 ms and a 300-tick file about 2 MB.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -136,7 +167,6 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P2: a recorded sky
-(day/night, temperature, rain, storms) that acts on cold, perception, travel and
-sleep. The deterministic sky is derived from the seed and tick and written into
-each tick's overlay so the viewer reads it rather than recomputing it.
+P3: one belief model (what a person saw or was told, how old it is, who said so, when it
+fades) and wolves that hunt people in the open. People see a wolf, run, call out to those in
+view, avoid the places it was, put trips off, and take the risk when a need cannot wait.

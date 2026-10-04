@@ -16,6 +16,7 @@ from kernel import digest as canonical_digest
 from world.social import FOOD_MEMORY_LIMIT
 from world.ecology import CONDITION_MAX, SEASONS
 from world.persona import Persona
+from world.sky import Sky
 
 Position = tuple[int, int]
 
@@ -117,6 +118,7 @@ class Overlay:
     provision_trips: Mapping[str, str] = field(default_factory=dict)  # gather once, then return home
     food_expected: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # listener -> speaker, heard tick
     persona: Persona = field(default_factory=Persona)  # traits, skills, fatigue, sleep, recent attempts (rich-world features)
+    sky: Sky | None = None  # the sky of this tick: phase, weather, temperature (sky feature)
 
     def __post_init__(self) -> None:
         if self.season is not None and self.season not in SEASONS:
@@ -223,6 +225,8 @@ class Overlay:
             if actor not in positions or type(when) is not int or when < 0 or when > self.tick:
                 raise ValueError(f"death of {actor!r} must name a known person and an earlier tick")
         yield_at = _positive_ints(self.yield_at, roster=set(homes), name="yield_at")
+        if self.sky is not None and not isinstance(self.sky, Sky):
+            raise ValueError("sky must be a Sky or absent")
         if not isinstance(self.persona, Persona):
             raise ValueError("persona must be a Persona")
         self.persona.check(set(positions), self.tick)
@@ -347,6 +351,7 @@ class Overlay:
             **({"parent": dict(self.parent)} if self.parent else {}),
             **({"second_parent": dict(self.second_parent)} if self.second_parent else {}),
             **({"persona": self.persona.canonical()} if self.persona else {}),
+            **({"sky": self.sky.canonical()} if self.sky is not None else {}),
             **({"terrain_memory": {actor: [list(cell) for cell in cells]
                                    for actor, cells in self.terrain_memory.items()}}
                if self.terrain_memory else {}),
@@ -360,7 +365,7 @@ class Overlay:
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "second_parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports", "persona"):
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports", "persona", "sky"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -389,6 +394,7 @@ class Overlay:
                    age=dict(data.get("age", {})), parent=dict(data.get("parent", {})),
                    second_parent=dict(data.get("second_parent", {})),
                    persona=Persona.from_canonical(data["persona"]) if "persona" in data else Persona(),
+                   sky=Sky.from_canonical(data["sky"]) if "sky" in data else None,
                    birth_ready=dict(data.get("birth_ready", {})),
                    food_memory=dict(data.get("food_memory", {})),
                    patch_condition=dict(data.get("patch_condition", {})),

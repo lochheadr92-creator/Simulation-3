@@ -13,13 +13,14 @@ from __future__ import annotations
 from typing import Any, Callable, Mapping
 
 from world.traits import level_of
+from world.viewer_sky import sky_events
 
 PHRASES: dict[str, str] = {
     "sleep": "sleeping", "go_sleep": "heading home to sleep", "collapse": "collapsed from exhaustion",
 }
 LABELS: dict[str, str] = {"sleep": "sleep", "go_sleep": "go home to sleep", "collapse": "collapse"}
 MOVES: tuple[str, ...] = ("go_sleep",)
-CATEGORIES: tuple[tuple[str, str], ...] = (("rest", "Sleep and tiredness"), ("skill", "Learning"))
+CATEGORIES: tuple[tuple[str, str], ...] = (("rest", "Sleep and tiredness"), ("skill", "Learning"), ("sky", "Day and weather"))
 
 
 def _event(k: int, cat: str, kind: str, text: str, who: str | None = None, other: str | None = None,
@@ -92,7 +93,7 @@ def _persona_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str,
 
 
 DERIVERS: tuple[Callable[[Any, list[Mapping[str, Any]], Mapping[str, Any]], list[dict[str, Any]]], ...] = (
-    _persona_events,
+    _persona_events, sky_events,
 )
 
 

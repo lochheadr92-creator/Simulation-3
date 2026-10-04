@@ -1,6 +1,6 @@
 # Current architecture
 
-## Scoped update — rich-world features, P0-P1 — 2026-10-04
+## Scoped update — rich-world features, P0-P2 — 2026-10-04
 
 Checked against `02af86b` plus the local rich-world commits. Optional behaviour
 now arrives as named features: [registry](../../world/registry.py) collects
@@ -15,7 +15,12 @@ sparse in the canonical form. `process.advance` and `_births` now use `replace`,
 overlay field no rule names is carried forward instead of reset. [Sleep](../../world/rest.py)
 is a fourth need arbitrated by the existing least-slack rule plus a time-to-relief
 urgency test and remembered-doing hysteresis. Decisions may record set-aside options
-([explain](../../world/explain.py)). The viewer core exposes extension points and
+([explain](../../world/explain.py)). The [sky](../../world/sky.py) (day, night, weather, temperature)
+is a pure function of the seed and tick, written into every tick's overlay so the viewer and replay
+read recorded values; `process.advance` charges exposure on cold, and `observe` carries the current
+`chill` so the planning rules (`cold_slack`, `shelter_trip_due`, `weather_hold` in
+[decide](../../world/decide.py)) use the cold rate of the sky people are in.
+[steady](../../world/steady.py) adds commitment to need arbitration. The viewer core exposes extension points and
 `viewer_<feature>.js` parts are spliced in only for runs that record the feature.
 Status and next steps live in [RICH_WORLD.md](../../RICH_WORLD.md).
 

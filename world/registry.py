@@ -6,9 +6,11 @@ from world.explain import EXPLAIN
 from world.feature import Feature
 from world.persona import PERSONALITY, SKILLS_FEATURE
 from world.rest import SLEEP_FEATURE
+from world.sky import SKY_FEATURE
+from world.steady import STEADY
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    EXPLAIN, PERSONALITY, SKILLS_FEATURE, SLEEP_FEATURE,
+    EXPLAIN, PERSONALITY, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, STEADY,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -67,4 +69,11 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
             problems.append("sleep needs tired_at of at least 20 and collapse_at of at least 30")
         if not 1 <= v("collapse_recovery") < v("collapse_at") - v("tired_at"):
             problems.append("sleep needs collapse_recovery between 1 and collapse_at - tired_at")
+    if "sky" in features:
+        if v("twilight") < 1 or v("front_ticks") < 1 or min(v("night_sight"), v("storm_sight")) < 0:
+            problems.append("sky needs twilight and front_ticks of at least 1")
+        if v("night_length") < 1 or v("night_length") + 2 * v("twilight") >= v("day_length"):
+            problems.append("sky needs night_length of at least 1 and night_length + 2 * twilight below day_length")
+        if v("chill_below") < 0 or v("night_tired") >= v("tired_at") - 15 and "sleep" in features:
+            problems.append("sky needs night_tired well below tired_at when sleep is on")
     return problems

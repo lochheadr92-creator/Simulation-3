@@ -11,7 +11,7 @@ but a person asleep in the open is cold, thirsty and hungry like anybody else.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from world.feature import Feature
 from world.traits import DILIGENCE, CAUTION, caution_ticks, trait_lean
@@ -53,10 +53,12 @@ def rest_rate(config: "WorldConfig", at_home: bool) -> int:
     return config.lever("rest_home" if at_home else "rest_open")
 
 
-def tired_threshold(config: "WorldConfig", traits: tuple[int, ...]) -> int:
+def tired_threshold(config: "WorldConfig", traits: tuple[int, ...], sky: Any = None) -> int:
     """Fatigue at which this person starts looking for sleep. Diligent people
-    work on through more of it; cautious people turn in earlier."""
+    work on through more of it; cautious people turn in earlier; night brings bedtime forward."""
     base = config.lever("tired_at") + trait_lean(traits, DILIGENCE) // 5 - caution_ticks(traits)
+    if sky is not None and sky.night:
+        base -= config.lever("night_tired")
     return max(20, min(config.lever("collapse_at") - 10, base))
 
 

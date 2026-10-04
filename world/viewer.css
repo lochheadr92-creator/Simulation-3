@@ -281,6 +281,7 @@ dl.rules dd { margin: 0; color: #cfe0da; }
 .aside-row .code.less_urgent, .aside-row .code.too_late { color: var(--food); border-color: rgba(242, 166, 94, .5); }
 .aside-row .code.unavailable, .aside-row .code.unknown, .aside-row .code.missing { color: var(--water); border-color: rgba(114, 200, 234, .5); }
 .aside-row .code.unwilling, .aside-row .code.failed_before, .aside-row .code.dangerous { color: var(--need); border-color: rgba(255, 148, 131, .5); }
+.aside-row .code.weather { color: var(--crowd); border-color: rgba(192, 168, 244, .5); }
 .trait { display: grid; grid-template-columns: 78px 1fr 62px; gap: 8px; align-items: center; font-size: 12.5px; margin: 4px 0; }
 .trait .lab { color: var(--muted); }
 .trait .track { position: relative; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .07); }
