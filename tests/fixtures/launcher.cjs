@@ -16,8 +16,9 @@ const { chromium } = require('playwright');
   await page.fill('#ticks', '30');
   await page.click('#go');
   await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Finished'), null, { timeout: 120000 });
-  const frame = page.frames().find(f => f !== page.mainFrame() && f.url().includes('/view/'));
-  await frame.waitForSelector('#minimap', { timeout: 30000 });
+  // a finished world is loaded once more at the end, so wait for that last load before looking inside the viewer
+  await page.waitForFunction(() => { const f = document.getElementById('view'); try { return f.contentWindow.location.href.includes('done=1') && !!f.contentDocument.getElementById('minimap'); } catch (e) { return false; } }, null, { timeout: 60000 });
+  const frame = page.frames().find(f => f !== page.mainFrame() && f.url().includes('done=1'));
   const out = {
     errors, scenes, features,
     status: await page.textContent('#status'),
