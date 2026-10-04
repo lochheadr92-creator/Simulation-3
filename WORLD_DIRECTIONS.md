@@ -1,5 +1,95 @@
 # Simulation 3 — Development Directions
 
+## Start, watch and resume worlds from a page — 2026-10-04
+
+The twelfth piece: no new simulation rule, only ways to look. `python -m world.launch` serves a page on this machine with
+the named scenes (plain, rich, wolves, village, families, explorers), a seed, a length and the features with their rules; it runs
+the world, shows the viewer while the run is still being written, lists saved runs and resumes a run that was cut short. The viewer
+gained a minimap you can click, a knowledge fog for the selected person (ground never seen, ground seen before, ground in sight, and
+what they believe: gold if they saw it, blue if they were told), arrows for where people are heading next, a ring where an event
+happened, and a link that remembers the tick and the person.
+
+**What to watch.** Open the launcher, start the "explorers" scene, tick "Watch while it runs", select a person, and turn on
+Knowledge fog. **Limits.** The fog does not count firelight. Resuming works only for the same code and only up to the planned length.
+Watching live reloads the page, so zoom and pan reset. The page itself saves nothing but its URL hash.
+
+## Paths, patches and curiosity — 2026-10-04
+
+The eleventh piece: `exploration` and `paths`. Each person remembers, for every 3x3 patch of the map, the last time any of it
+was in sight. Rough ground they remember is forgotten once its patch has gone unseen for 240 ticks. A curious person with spare time
+walks to a patch near home they have not looked at for a long time. A finished well that somebody sees is remembered and used from
+out of sight. Every step wears the cell a little, wear fades, and a worn cell is a path: worn rough ground costs no extra tick, and
+between two equally near steps people take the worn one they can see. A person who remembers a cell as rough still plans round it until
+they see it again, even if it has since been worn through.
+
+**What watching found.** Paths form along the busy lines between homes and water within a few hundred ticks. Exploring is rare: spare
+time is scarce, so a surveyed world has between none and six exploring trips in 600 ticks. No rough cell was worn through in a
+surveyed world, because people go round rough ground rather than over it. No well was built in the surveyed rich worlds, so a found
+well is only shown by constructed scenes.
+
+## Graves and what the dead leave — 2026-10-04
+
+The tenth piece: `aftermath`. When somebody dies a grave is set where they fell and a record is saved: when, where, how old, the cause,
+who was in sight, what they held, and who collected it. The cause is for whoever reads the run; the people know only what they saw or were
+told. Somebody who sees a grave believes that person died, and may tell others. Grief comes only from a death somebody has learned of.
+The belongings stay in the dead person's account until a living person collects them from the grave: the partner, a parent or a child
+first, anybody in need after a while. Collecting is an ordinary transfer in the dead person's name, so every unit stays accounted for.
+
+**What watching found.** Between one and four collections in a 700-tick world, nobody mourning at a grave (mourning needs both grief and
+spare time), and almost every death was learned of by sight rather than by telling, because conversations are rare in a small world.
+Writing the tests found two bugs: a gift made on the tick somebody died was recorded as a collection, and the observation listed kin
+deaths the person had not heard of.
+
+## Couples, children, old age and newcomers — 2026-10-04
+
+The ninth piece: `family`. Two free adults who talk, like each other and trust each other become a couple. A couple that stays side by
+side for a while may have a child: the pregnancy lasts 30 ticks, the carrier is hungrier, and the child is born beside them with traits from
+both parents. Everybody has a lifespan fixed by the seed and dies of old age at the end of it; elders slow down. A child with no
+living parent is taken in by the nearest adult who can see them. The bereaved grieve and do no chores while it lasts. When few people
+are left a traveller may arrive. The limits on the population are settings written into the run.
+
+**What watching found.** Couples did not form at the first setting (35), so the default is 18; they are still rare in small worlds.
+Old age kills a world that survives long enough: in 600 ticks, 11 of 62 deaths in eight rich worlds were old age.
+
+## Shelters that wear, fires and wells — 2026-10-04
+
+The eighth piece: `structures`. A finished shelter loses condition with time and storms; below a limit it leaks, at zero it
+collapses and its owner starts building again. Somebody at home with wood mends it, and a neighbour at the door adds the same
+again. At night, with wolves about, somebody at home with wood lights a fire that warms, lights and keeps wolves away. A diligent
+person with wood may dig a well by their home; once finished it gives water, and it is used only by those who have seen it.
+
+**What watching found.** Upkeep is badly outpaced by wear in the rich world: across eight 600-tick worlds 31 shelters were
+built, 25 collapsed and only 21 repairs were made, because somebody with a worn shelter is mostly serving a need. Cold deaths are
+frequent where this is on. There are no hut, house or storehouse kinds.
+
+## Fields, crops, rot and grain — 2026-10-04
+
+The seventh piece: `farming`. Each founder has a field. Seed is spent, the crop grows (faster in rain), and harvest wears the soil,
+which mends when the field lies fallow. Grain rots if left and spoils a third at a time when stored. Grain is eaten before berries
+because it is what spoils, and a unit of it feeds a little more than a berry does (36 hunger against 30).
+
+**What watching found.** Fields are planted and harvested but rarely: across eight rich worlds, 22 plantings. Newborns have no
+field. There is no trading of grain.
+
+## Stone, tools and making things — 2026-10-04
+
+The sixth piece: `crafting`. A quarry gives stone. A person at home with the materials makes an axe (faster building), a pick
+(a bigger stone pack), a basket (a bigger wood pack) or a hoe (one more grain at harvest). Making spends the inputs through the kernel and the
+tool exists by a recorded entry tied to what was spent that tick.
+
+**What watching found.** Tools are made rarely (two in eight rich worlds in 600 ticks). Nobody asks for stone or a tool.
+
+## Asking, promising, building together and hosting — 2026-10-04
+
+The fifth piece: `pledges`. A person who needs water, food, wood or a hand building or mending asks somebody they can see. The one asked
+answers yes or no with a reason. A yes puts the units on hold in the kernel so the helper cannot spend them meanwhile; the promise ends
+kept, declined, expired, failed or interrupted, and each ending has a plain reason and, when it deserves one, a grievance. Somebody at
+a builder's door adds a tick of work. A host with food to spare feeds a guest at their door who has none.
+
+**What watching found.** Help is asked for and given: 185 `help` ticks across eight rich worlds. In storms most declines are "unfit",
+so askers try several people in turn. The test that nobody holds two promises at once was too weak at first (a second asker too far away
+to be answered hid a missing rule); it now uses a second asker as close as the first.
+
 ## Friends, talk, grudges: relationships — 2026-10-04
 
 The fourth piece of the rich world: one more optional feature, `bonds` (it needs `beliefs`).

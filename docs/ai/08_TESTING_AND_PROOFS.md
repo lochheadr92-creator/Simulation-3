@@ -23,6 +23,15 @@
 * Browser tests need Playwright's browser build. If the installed build differs from the
   locked Playwright's, point `PLAYWRIGHT_BROWSERS_PATH` at a directory of links to it.
 
+* P5-P12 checks (2026-10-04): `tests/test_pledges.py`, `test_crafting.py`, `test_farming.py`, `test_structures.py`, `test_family.py`,
+  `test_aftermath.py` and `test_exploration.py` each hold unit scenes, strict storage tests and a saved-world audit that re-derives
+  the feature's state from recorded values (for example `test_exploration.py` rebuilds every person's remembered rough ground, patch
+  dates and the whole wear table from recorded positions alone; `test_aftermath.py` checks that every taker has an accepted transfer out of
+  the dead person's account). `tests/test_launch.py` starts a real local server on a free port. Browser checks
+  (`test_observer_viewer.py`, `test_inspector_sections.py`, the launcher page in `test_launch.py`) need Node and Playwright; tests marked
+  `long_run` run whole worlds. Rule mutations were tried by hand for each feature (the lists are in RICH_WORLD.md); they are not part
+  of the suite, so a future change that weakens a rule is caught only where a test already pins it.
+
 
 ## Baseline consolidation — 2026-10-03
 

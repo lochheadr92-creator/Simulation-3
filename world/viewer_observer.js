@@ -170,15 +170,17 @@
   window.viewerState = () => Object.assign(baseState(), { fog: fogCounts(), layers: { fog: LAYERS.fog, heading: LAYERS.heading }, placeMark: PLACE_MARK ? { x: PLACE_MARK.x, y: PLACE_MARK.y } : null, hash: location.hash });
 
   // ---- a link that remembers where the viewer was ------------------------------------------------------------
+  function currentHash() { const bits = ['v=' + v]; if (selectedPerson()) bits.push('p=' + selectedPerson()); return '#' + bits.join('&'); }
   function writeHash() {
-    const bits = ['v=' + v]; if (selectedPerson()) bits.push('p=' + selectedPerson());
-    try { history.replaceState(null, '', '#' + bits.join('&')); } catch (err) { /* a page opened from a file may refuse */ }
+    try { history.replaceState(null, '', currentHash()); } catch (err) { /* a page opened from a file may refuse */ }
   }
   const OPENED_WITH = location.hash || '';                    // read before the first view is shown and rewrites it
   EXT.onchange.push(writeHash);
-  setTimeout(() => {
-    const m = {}; OPENED_WITH.replace(/^#/, '').split('&').forEach(kv => { const [a, b] = kv.split('='); if (a) m[a] = decodeURIComponent(b || ''); });
+  function restore(hash) {
+    const m = {}; hash.replace(/^#/, '').split('&').forEach(kv => { const [a, b] = kv.split('='); if (a) m[a] = decodeURIComponent(b || ''); });
     if (m.v !== undefined && /^\d+$/.test(m.v)) { show(Number(m.v)); }
     if (m.p && people.includes(m.p)) { select({ type: 'person', id: m.p }, true); focusPerson(m.p); }
-  }, 0);
+  }
+  setTimeout(() => restore(OPENED_WITH), 0);
+  window.addEventListener('hashchange', () => { if (location.hash !== currentHash()) restore(location.hash); });   // a link followed or edited in the page
 })();

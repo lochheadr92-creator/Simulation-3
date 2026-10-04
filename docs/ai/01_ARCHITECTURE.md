@@ -33,6 +33,24 @@ bonds and whether somebody in view looks busy. The viewer core exposes extension
 Status and next steps live in [RICH_WORLD.md](../../RICH_WORLD.md).
 
 
+## Scoped update — rich-world features, P5-P12 — 2026-10-04
+
+Checked against the local commits on `claude/youthful-bardeen-wc346l`; the full suite had not been run on this tree when
+this was written (see [RICH_WORLD.md](../../RICH_WORLD.md) for the log). Anything that moves a balance still goes through
+settlement: a promise is a native kernel reservation (`reserve`, `complete`, `cancel`) whose units are escrow; collecting a
+dead person's belongings is a `transfer` proposal issued in the dead person's name from their own account (the actor named
+in the outcome is the dead person, which `stream/run_file` and the ledger audit treat like any other). Changes that are not
+exchanges between accounts are recorded production entries accepted by `apply_production`: a tool made (`made`, tied to the
+inputs spent that tick), grain rotted or spoiled (`rotted`, `spoiled`, which move units into a named sink), a field
+growing or a well filling (`source`; each founder's field and well source is created empty at genesis). The overlay gained `pledges`, `family`, `ground` and a
+`things` block holding wolves, plots, structures, death records and worn-path wear; people's remembered patches
+(`ground`), rough ground (`terrain_memory`) and beliefs are the only record of what they know, and the observation is built
+from sight and those records. `Observation.kin_dead` lists only deaths the person believes in. A rough-ground hold, a path
+and a grave are all state in the overlay, so replay and recovery reproduce them. The viewer stays a static page with no
+network calls; `world/launch.py` is a separate local server that runs worlds, serves the viewer for a run that is still being
+written (through the verified-prefix reader) and resumes cut runs with the stream's recovery.
+
+
 ## Scoped update — care by visible need, 2026-09-30
 
 Checked against `e34decc` plus the local caregiving-priority change.

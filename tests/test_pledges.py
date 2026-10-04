@@ -280,9 +280,10 @@ def test_a_helper_already_promised_to_somebody_is_busy_so_nobody_has_two_promise
     view, world = helper_view(config, ledger, world)
     busy = replace(view, pledge_owed=(("p03@30", "food", "p03", 1, 8, 8, 70, 1, "action:x", 0, 0),))
     assert decide(busy, config).answered[0][2:4] == ("no", "busy")
-    two = replace(view, pledge_requests=view.pledge_requests + (("p03", "water", 1, 8, 8),))
-    verdicts = [a[2] for a in decide(two, config).answered]
-    assert verdicts.count("yes") == 1                                                      # two at once: one yes at most
+    near = view.position
+    two = replace(view, pledge_requests=view.pledge_requests + (("p03", "water", 1, near[0] + 1, near[1]),))      # a second asker as close as the first
+    verdicts = [a[2:4] for a in decide(two, config).answered]
+    assert [v[0] for v in verdicts] == ["yes", "no"] and verdicts[1][1] == "busy"           # two at once: one yes, and the other is told they are busy
 
 
 def test_a_friend_is_helped_by_somebody_stingy_when_a_stranger_would_not_be():
