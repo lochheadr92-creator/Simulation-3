@@ -460,7 +460,10 @@ def test_somebody_who_is_not_trusted_is_not_believed():
 @pytest.fixture(scope="module")
 def saved(tmp_path_factory):
     path = tmp_path_factory.mktemp("society") / "run.jsonl"
-    config = WorldConfig(seed=11, features=FEATURES)
+    # Seed 11 held a quarrel until the optional-outing gate (a person does not set out on an optional outing that the leave-in-time
+    # rule for warmth would turn round after one step) changed that world's course; quarrels are rare, so this is the first
+    # seed from 11 up whose 300-tick world holds every kind of event the tests below look for. The assertions are unchanged.
+    config = WorldConfig(seed=28, features=FEATURES)
     run_world(config, 300, path)
     return config, path, read_run(path)
 

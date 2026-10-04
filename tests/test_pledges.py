@@ -448,6 +448,51 @@ def promised_scene(**changes):
     return config, steps[-1], steps[-1].processed.overlay
 
 
+def test_a_yes_said_on_the_tick_the_asker_dies_does_not_leave_a_hold_in_the_kernel_for_ever():
+    config, ledger, world = scene(food=(0, 2))
+    steps = play(config, ledger, world, 1, sky=RAIN_NIGHT)                                  # the request is made
+    w = steps[-1].processed.overlay
+    assert [p.state for p in w.pledges.open] == ["asked"]
+    w = replace(w, hunger={**w.hunger, "p01": config.death_at - 1}, sky=RAIN_NIGHT)         # the helper says yes on the very tick the asker dies
+    step = world_step(steps[-1].engine, w, config)
+    assert "p01" in step.processed.overlay.died_at and step.committed.reservations          # the unit was held on that tick
+    assert ended(step)[0][3] == "interrupted" and len(pledges_of(step).release) == 1       # and the ending gives it back
+    engine, overlay = step.engine, step.processed.overlay
+    for _ in range(3):
+        later = world_step(engine, replace(overlay, sky=RAIN_NIGHT), config)
+        engine, overlay = later.engine, later.processed.overlay
+    assert not later.committed.reservations                                                 # nothing is still held a few ticks on
+
+
+@pytest.mark.parametrize("dies", ["p01", "p02"])
+def test_a_hold_made_on_the_tick_either_party_dies_is_always_released(dies):
+    """The ending rule itself, with the kernel's reserve outcome supplied: it names the hold whichever of the two dies."""
+    from types import SimpleNamespace
+    from kernel.proposals import OP_RESERVE
+    from world.pledges import advance_pledges
+    config, ledger, world = scene(food=(0, 2))
+    w = play(config, ledger, world, 1, sky=RAIN_NIGHT)[-1].processed.overlay
+    yes = SimpleNamespace(answered=[("p01", "water", "yes", "has_spare", 1)], kind="rest", keeping=None, gave_up=None, told_to=())
+    reserve = SimpleNamespace(actor="p02", operation=OP_RESERVE, accepted=True, action_id="action:held", effects=())
+    pledges, _, _ = advance_pledges(w, {"p02": yes}, {}, SimpleNamespace(outcomes=[reserve]), w.positions, {dies}, {}, set(), config)
+    assert [(c.outcome, c.reason) for c in pledges.closed] == [("interrupted", "asker_died" if dies == "p01" else "helper_died")]
+    assert pledges.release == (("p02", "action:held"),)
+
+
+def test_a_promise_handed_over_on_the_tick_the_asker_dies_is_kept_and_leaves_nothing_to_cancel():
+    config, ledger, world = scene(food=(0, 2))
+    steps = play(config, ledger, world, 10, sky=RAIN_NIGHT)
+    at = handed_over(steps)
+    steps = play(config, ledger, world, at, sky=RAIN_NIGHT)
+    w = replace(steps[-1].processed.overlay, sky=RAIN_NIGHT)
+    w = replace(w, hunger={**w.hunger, "p01": config.death_at - 1})
+    step = world_step(steps[-1].engine, w, config)
+    assert "p01" in step.processed.overlay.died_at and step.committed.holdings["water"]["p01"] >= 1     # the unit arrived
+    assert [e[3:] for e in ended(step)] == [("kept", "handed_over")] and not pledges_of(step).release
+    later = world_step(step.engine, replace(step.processed.overlay, sky=RAIN_NIGHT), config)
+    assert not [o for o in later.record.outcomes if o.operation == "cancel"]
+
+
 def test_a_helper_who_dies_has_the_promise_end_and_the_reservation_returned():
     config, step, world = promised_scene(food=(2, 0))                                          # the helper has nothing to eat
     assert world.pledges.open[0].action in step.committed.reservations
@@ -785,7 +830,7 @@ def test_the_kernel_holds_exactly_the_units_that_promises_hold_and_hands_back_th
         held = set(run.ticks[k - 1]["state"]["reservations"])
         assert held == wanted, (k, held ^ wanted)                                              # no reservation is left behind or made up
         holds += bool(held)
-    assert holds > 20
+    assert holds > 5          # was 20: the optional-outing gate changed this seed's course (38 held ticks became 10); still a world with promises in flight
 
 
 @pytest.mark.long_run
@@ -841,7 +886,8 @@ def test_every_request_was_spoken_to_somebody_in_sight_and_every_answer_to_a_req
         for actor, d in tick["decisions"].items():
             for helper, kind, amount in d.get("asked", []):
                 assert helper in tick["observations"][actor]["sees"]                           # only somebody they could see
-                assert any(p[0:3] == (kind, actor, helper) and p[4] == k for p in open_of(worlds[k]))
+                died_asking = worlds[k]["died_at"].get(actor) == k                              # asked and died on the same tick: the request never opens
+                assert died_asking or any(p[0:3] == (kind, actor, helper) and p[4] == k for p in open_of(worlds[k]))
                 asked += 1
             for asker, kind, verdict, reason, held in d.get("answered", []):
                 assert asker in tick["observations"][actor]["sees"]                            # and only while the asker was in sight

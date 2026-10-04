@@ -314,6 +314,46 @@ def test_a_grave_with_nothing_left_has_nothing_to_collect():
     assert d.kind != "collect"
 
 
+def test_somebody_who_has_seen_a_grave_with_nothing_left_in_it_does_not_walk_back_to_it():
+    config, ledger, world = buried(near=((8, 7),), kin="child", estate=(), belief=False)
+    ledger = give(ledger, "p01", food=3, water=3)
+    step = world_step(Engine(ledger), world, config)
+    beliefs = step.processed.overlay.persona.beliefs["p01"]
+    assert {b[0] for b in beliefs} == {"death", "empty"}                                      # seen: the grave, and that it is empty
+    far = replace(world, positions={**world.positions, "p01": (1, 1)}, persona=replace(world.persona, beliefs={"p01": beliefs}))
+    assert decide(observe("p01", ledger, far, config), config).kind != "go_grave"
+    # without the memory of having seen it empty, an heir within reach would go (the old behaviour: a shuttle between emptied graves)
+    config2, ledger2, near = buried(near=((6, 8),), kin="child", belief=True)
+    assert decide(observe("p01", give(ledger2, "p01", food=3, water=3), near, config2), config2).kind == "go_grave"
+    emptied = replace(near, persona=replace(near.persona, beliefs={"p01": (("death", "p03", 8, 8, DIED, 39, ""), ("empty", "p03", 8, 8, 39, 39, ""))}))
+    assert decide(observe("p01", give(ledger2, "p01", food=3, water=3), emptied, config2), config2).kind != "go_grave"
+
+
+def test_a_grave_seen_long_after_the_death_is_still_believed_and_a_belief_fades_from_the_day_it_was_learned():
+    config, ledger, world = buried(near=((8, 7),), kin="child", belief=False, tick=DIED + 400)
+    ledger = give(ledger, "p01", food=3, water=3)
+    after = world_step(Engine(ledger), world, config).processed.overlay
+    assert any(b[:2] == ("death", "p03") for b in after.persona.beliefs.get("p01", ()))      # older than memory_span by the death date, new by the sighting
+    from world.belief import file_beliefs
+    span = config.lever("memory_span")
+    old = (("death", "p03", 8, 8, DIED, DIED + 5, ""),)
+    assert file_beliefs(old, (), DIED + 5 + span, config) == old and file_beliefs(old, (), DIED + 6 + span, config) == ()
+
+
+def test_a_parent_does_not_know_a_far_childs_death_until_they_see_the_grave_or_are_told():
+    config = cfg(births_on=True, childhood_on=True)
+    config, ledger, world = buried(config=config, near=((0, 0),), belief=False)
+    child = replace(world, parent={"p03": "p01"}, age={**world.age, "p03": 5})                 # p03 is p01's child, dead, 8 steps away and unseen
+    alive = replace(child, died_at={}, things=Things())
+    ledger = give(ledger, "p01", food=3, water=3)
+    dead_view, alive_view = observe("p01", ledger, child, config), observe("p01", ledger, alive, config)
+    assert dead_view.dependents == alive_view.dependents == frozenset({"p03"})               # the same to a parent who has not heard
+    told = replace(child, persona=replace(child.persona, beliefs={"p01": (("death", "p03", 8, 8, DIED, 39, "p02"),)}))
+    assert observe("p01", ledger, told, config).dependents == frozenset()                    # once they know, the child is no longer somebody to care for
+    plain = cfg(features=tuple(f for f in FEATURES if f != "aftermath"), births_on=True, childhood_on=True)
+    assert observe("p01", ledger, replace(child, things=Things(), persona=world.persona), plain).dependents == frozenset()   # without graves: the older rule, unchanged
+
+
 # --- mourning -----------------------------------------------------------------------------------------
 
 def test_somebody_grieving_goes_to_the_grave_and_stands_there_and_the_grief_lifts_faster():
@@ -415,3 +455,42 @@ def _plain(directory):
     if not path.exists():
         run_world(WorldConfig(seed=11), 60, path)
     return path
+
+
+def test_the_index_names_old_age_only_when_nothing_else_was_near_killing_them():
+    from world.viewer_family import family_events
+    cfg = {"features": ["family"], "feature_levers": {"old_age_at": 480}, "death_at": 80, "thirst_death_at": 80, "cold_death_at": 80}
+    before = {"positions": {"a": [0, 0]}, "hunger": {"a": 5}, "thirst": {"a": 5}, "cold": {"a": 0}, "age": {"a": 521}}
+    after = {"positions": {"a": [0, 0]}, "died_at": {"a": 1}, "age": {"a": 521}}
+    run = SimpleNamespace(ticks=[{"decisions": {}}])
+    assert [e["kind"] for e in family_events(run, [before, after], cfg)] == ["old_age"]
+    parched = {**before, "thirst": {"a": 79}}
+    assert family_events(run, [parched, after], cfg) == []                                     # a thirst death at that age is not old age
+    recorded = {**after, "things": {"deaths": [["a", 1, 0, 0, 521, "froze to death", [], [], "", ""]]}}
+    assert family_events(run, [before, recorded], cfg) == []                                   # the run says what killed them
+    recorded["things"]["deaths"][0][5] = "died of old age"
+    assert [e["kind"] for e in family_events(run, [parched, recorded], cfg)] == ["old_age"]
+
+
+def test_units_a_dead_helper_had_on_hold_are_part_of_the_estate_and_can_be_collected_once_released():
+    from tests.test_pledges import RAIN_NIGHT, scene as pledge_scene
+    from world.family import lifespan
+    config = cfg(features=tuple(sorted(set(FEATURES) | {"pledges"})), childhood_on=True, births_on=True)
+    config, ledger, world = pledge_scene(config, water=(0, 1), food=(2, 0), traits={"p02": (80, 50, 50, 50, 50)})
+    world = replace(world, age={a: config.adult_at + 5 for a in world.roster})
+    steps = play(config, ledger, world, 2, sky=RAIN_NIGHT)                                  # p02 has promised their one water to p01
+    w = steps[-1].processed.overlay
+    assert any(p.state == "promised" and p.action for p in w.pledges.open)
+    w = replace(w, age={**w.age, "p02": lifespan(config, "p02") - 1}, sky=RAIN_NIGHT)       # and dies of old age with it still on hold
+    step = world_step(steps[-1].engine, w, config)
+    [death] = step.processed.overlay.things.deaths
+    assert dict(death.estate).get("water") == 1                                             # the record counts the held unit
+    engine, overlay = step.engine, step.processed.overlay
+    for _ in range(3):
+        later = world_step(engine, replace(overlay, sky=RAIN_NIGHT), config)
+        engine, overlay = later.engine, later.processed.overlay
+    assert not later.committed.reservations and later.committed.availability()["actor@water:p02"] == 1     # released: free to take
+    view = observe("p01", later.committed, overlay, config)
+    graves = [g for g in view.graves if g[0] == "p02"]                                      # p01 is two steps away: in sight
+    assert graves and graves[0][4] == (("water", 1),) and graves[0][6] == 1                 # it lies there to take, and the grave is not empty
+    assert not any(b[0] == "empty" for b in overlay.persona.beliefs.get("p01", ()))

@@ -306,8 +306,8 @@ def test_a_world_with_family_life_audits_replays_and_every_change_has_a_recorded
                 assert parent in (fb.get("pregnant") or {}) and (fb["pregnant"][parent][0] <= k)
                 births += 1
             else:                                                                                       # a traveller: few left, rarely
-                living_before = len(worlds[k - 1]["positions"]) - len(worlds[k - 1].get("died_at", {}))
-                assert living_before < lever("arrive_below") and fw["arrivals"][0] <= lever("max_arrivals")
+                left = len(worlds[k]["positions"]) - len(worlds[k].get("died_at", {})) - 1                  # alive on the tick they came, not counting them
+                assert left < lever("arrive_below") and fw["arrivals"][0] <= lever("max_arrivals")
                 arrivals += 1
         for who, tick in (worlds[k].get("died_at") or {}).items():
             if tick == k and worlds[k]["age"].get(who, 0) >= lifespan(config, who):

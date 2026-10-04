@@ -13,6 +13,8 @@ sight shrinks at night and in storms. A finished shelter is out of all of it.
 
 from __future__ import annotations
 
+import threading
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -116,19 +118,21 @@ def phase_of(config: "WorldConfig", moment: int) -> str:
 
 
 _CHAINS: dict[int, list[str]] = {}
+_CHAIN_LOCK = threading.Lock()          # worlds may run on several threads (the launcher): the chain grows one front at a time
 
 
 def front_weather(seed: int, front: int) -> str:
     """The weather of one front. Front 0 is clear; each later one follows from the one before."""
-    chain = _CHAINS.setdefault(seed, ["clear"])
-    while len(chain) <= front:
-        roll, index = draw(seed, "front", len(chain)) % 100, 0
-        for weather, weight in TRANSITIONS[chain[-1]]:
-            index += weight
-            if roll < index:
-                chain.append(weather)
-                break
-    return chain[front]
+    with _CHAIN_LOCK:
+        chain = _CHAINS.setdefault(seed, ["clear"])
+        while len(chain) <= front:
+            roll, index = draw(seed, "front", len(chain)) % 100, 0
+            for weather, weight in TRANSITIONS[chain[-1]]:
+                index += weight
+                if roll < index:
+                    chain.append(weather)
+                    break
+        return chain[front]
 
 
 def sky_at(config: "WorldConfig", tick: int) -> Sky:

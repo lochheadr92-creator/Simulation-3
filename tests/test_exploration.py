@@ -219,6 +219,28 @@ def test_somebody_with_nothing_to_look_at_does_not_walk_and_a_patch_underfoot_is
     assert d2.kind != EXPLORE or d2.step != mid                                          # never "walks" to where they already stand
 
 
+def test_nobody_sets_out_on_an_outing_the_cold_would_turn_them_back_from_after_one_step():
+    from dataclasses import replace as swap
+    from world.decide import _explore, away_rate, shelter_trip_due
+    config = cfg()
+    config, ledger, world = scene(ground=Ground(), sky=Sky("night", "clear", 5, 30))
+    world = swap(world, sky=Sky("day", "rain", 6, 30))                                       # a chilly day: cold builds away from shelter
+    kinds, flip = [], None
+    for cold in range(0, config.cold_at + 6):
+        view = observe("p01", ledger, swap(world, cold={**world.cold, "p01": cold}), config)
+        base = decide(view, config)
+        kinds.append(base.kind)
+        raw = _explore(view, config, swap(base, kind="rest"))
+        if raw is not None and flip is None and base.kind != EXPLORE:
+            flip = cold
+            probe = swap(view, position=raw.step, doing=EXPLORE, cold=view.cold + away_rate(view, config))
+            assert shelter_trip_due(probe, config)                                         # the outing it declined is exactly one that would turn round
+            earlier = observe("p01", ledger, swap(world, cold={**world.cold, "p01": cold - 1}), config)
+            raw_before = _explore(earlier, config, swap(base, kind="rest"))
+            assert raw_before is not None and not shelter_trip_due(swap(earlier, position=raw_before.step, doing=EXPLORE, cold=earlier.cold + away_rate(earlier, config)), config)
+    assert EXPLORE in kinds and flip is not None and kinds.index(EXPLORE) < flip              # warm enough: they go; just short of the limit: they stay
+
+
 # --- desire paths ---------------------------------------------------------------------------------------
 
 def test_wear_grows_with_each_step_onto_a_cell_is_capped_and_recovers_on_schedule():

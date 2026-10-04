@@ -39,8 +39,15 @@ def family_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str, A
         for who in sorted(new):
             if who not in (worlds[k].get("parent") or {}):
                 event(k, "arrived", f"{who} arrived, a traveller from outside", who)
+        recorded = {d[0]: d[5] for d in (worlds[k].get("things") or {}).get("deaths", [])}
+        before = worlds[k - 1]
         for who, tick in sorted((worlds[k].get("died_at") or {}).items()):
-            if tick == k and (worlds[k].get("age") or {}).get(who, 0) >= old_age_at \
-                    and (worlds[k - 1].get("hunger") or {}).get(who, 0) < cfg.get("death_at", 10 ** 9) - 2:
+            if tick != k or (worlds[k].get("age") or {}).get(who, 0) < old_age_at:
+                continue
+            if who in recorded:                                       # the run names the cause: use it
+                if recorded[who] == "died of old age":
+                    event(k, "old_age", f"{who} died of old age", who)
+            elif all((before.get(level) or {}).get(who, 0) < cfg.get(limit, 10 ** 9) - 2      # otherwise: only if no need was near its limit
+                     for level, limit in (("hunger", "death_at"), ("thirst", "thirst_death_at"), ("cold", "cold_death_at"))):
                 event(k, "old_age", f"{who} died of old age", who)
     return out

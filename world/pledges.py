@@ -289,10 +289,20 @@ def advance_pledges(previous: Any, decisions: Mapping[str, Any], observations: M
         return (listener in living and speaker in living and listener not in asleep
                 and _near(previous.positions[listener], previous.positions[speaker], radius))
 
-    def end(p: Pledge, outcome: str, reason: str, handed_back: bool = False) -> None:
+    def end(p: Pledge, outcome: str, reason: str, handed_back: bool = False, action: str = "") -> None:
         closed.append(Closed(p.kind, p.asker, p.helper, outcome, reason, now))
-        if p.action and outcome != "kept" and not handed_back:
-            release.append((p.helper, p.action))          # the reservation goes back to the helper next tick
+        action = action or p.action
+        if action and outcome != "kept" and not handed_back:
+            release.append((p.helper, action))            # the reservation goes back to the helper next tick
+
+    def delivered(p: Pledge, helper_choice: Any) -> int:
+        """Units the kernel handed to the asker this tick on the strength of this promise."""
+        gave = 0
+        if getattr(helper_choice, "keeping", None) == p.id and getattr(helper_choice, "kind", "") == "offer":
+            for o in outcomes.get(p.helper, ()):
+                if o.operation in (OP_COMPLETE, OP_TRANSFER) and o.accepted:
+                    gave += sum(e.delta for e in o.effects if e.delta > 0 and e.account == actor_account(p.asker, RESOURCES[p.kind]))
+        return gave
 
     def disappointed(p: Pledge, why: str) -> None:
         tried.append((p.asker, "ask", p.helper, then, 0))
@@ -302,7 +312,13 @@ def advance_pledges(previous: Any, decisions: Mapping[str, Any], observations: M
     for p in previous.pledges.open:
         helper_choice, asker_choice = decisions.get(p.helper), decisions.get(p.asker)
         if p.helper in died or p.asker in died:
-            end(p, "interrupted", "helper_died" if p.helper in died else "asker_died")
+            if p.state == "promised" and p.kind in RESOURCES and p.done + delivered(p, helper_choice) >= p.amount:
+                end(p, "kept", "handed_over", handed_back=True)       # the units arrived on the tick somebody died: it was kept
+                continue
+            # a yes said this very tick has put its hold on the helper's units, and that hold must be given back too
+            fresh = next((o.action_id for o in outcomes.get(p.helper, ())
+                          if p.state == "asked" and o.operation == OP_RESERVE and o.accepted and o.action_id), "")
+            end(p, "interrupted", "helper_died" if p.helper in died else "asker_died", action=fresh)
             continue
         if p.state == "asked":
             answer = next((a for a in getattr(helper_choice, "answered", ())
@@ -349,11 +365,7 @@ def advance_pledges(previous: Any, decisions: Mapping[str, Any], observations: M
         done = p.done
         if getattr(helper_choice, "keeping", None) == p.id:
             if helper_choice.kind == "offer":
-                gave = 0
-                for o in mine:
-                    if o.operation in (OP_COMPLETE, OP_TRANSFER) and o.accepted:
-                        gave += sum(e.delta for e in o.effects if e.delta > 0
-                                    and e.account == actor_account(p.asker, RESOURCES[p.kind]))
+                gave = delivered(p, helper_choice)
                 if not gave:
                     end(p, "failed", "could_not_hand_over")
                     disappointed(p, "broke_promise")

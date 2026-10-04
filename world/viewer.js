@@ -426,6 +426,15 @@
     return { gx, gy, x: isoX(gx, gy), y: isoY(gx, gy) - e, e };
   }
   function cellCentre(x, y) { return { x: isoX(x + 0.5, y + 0.5), y: isoY(x + 0.5, y + 0.5) - elev(x, y) }; }
+  // how far somebody could see at a recorded view: the run's perception radius, less at night and in a storm, none asleep
+  // (firelight is not counted)
+  function sightAt(w, p) {
+    if (((w.persona || {}).asleep || {})[p] !== undefined) return 0;
+    const base = typeof C.perception_radius === 'number' ? C.perception_radius : 0, lev = C.feature_levers || {};
+    if (!w.sky || base <= 0) return base;
+    const cut = (w.sky.phase === 'night' ? (lev.night_sight || 0) : 0) + (w.sky.weather === 'storm' ? (lev.storm_sight || 0) : 0);
+    return Math.max(1, base - cut);
+  }
   function roughMemory(w, p) {
     const cells = ((w.terrain_memory || {})[p]) || [];
     return cells.map(c => Array.isArray(c) ? c : null).filter(Boolean);
@@ -725,7 +734,7 @@
     }
     if (LAYERS.memory && selP && present(w, selP)) {
       const nowSeen = new Set();
-      const radius2 = C.perception_radius;
+      const radius2 = sightAt(w, selP);
       if (typeof radius2 === 'number' && !deadIn(w, selP)) {
         const [px, py] = w.positions[selP];
         for (const key of ROUGH) {
@@ -762,7 +771,7 @@
     if (LAYERS.perception !== 'off' && typeof radius === 'number') {
       const whose = LAYERS.perception === 'everyone' ? people.filter(p => present(w, p) && !deadIn(w, p)) : (selP && present(w, selP) && !deadIn(w, selP) ? [selP] : []);
       for (const p of whose) {
-        const [x, y] = w.positions[p];
+        const [x, y] = w.positions[p], radius = sightAt(w, p);
         const x0 = Math.max(0, x - radius), y0 = Math.max(0, y - radius), x1 = Math.min(GW - 1, x + radius) + 1, y1 = Math.min(GH - 1, y + radius) + 1;
         const lift = -4;
         const pts = [[isoX(x0, y0), isoY(x0, y0) + lift], [isoX(x1, y0), isoY(x1, y0) + lift], [isoX(x1, y1), isoY(x1, y1) + lift], [isoX(x0, y1), isoY(x0, y1) + lift]];

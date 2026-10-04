@@ -195,3 +195,25 @@ def test_a_crafting_world_audits_replays_and_every_tool_has_a_recorded_maker(sav
 
 def last_consumed(run):
     return run.ticks[-1]["state"]["consumed_by"]["stone"]
+
+
+def test_the_audit_refuses_a_made_entry_no_recipe_could_have_produced_and_a_birth_with_extra_keys(tmp_path):
+    import copy
+    from dataclasses import replace as swap
+    from stream.run_file import RunFileError, apply_production, read_run
+    from tests.ledger_audit import audit_run
+    path = tmp_path / "r.jsonl"
+    run_world(WorldConfig(seed=7), 12, path)
+    run = read_run(path)
+    assert audit_run(run) == []
+
+    def forged(entry, item):
+        ticks = [copy.deepcopy(t) for t in run.ticks]
+        ticks[3].setdefault("production", []).append(entry)
+        for later in ticks[4:]:                                      # carry the forged units through every later state, as a forger would
+            later["state"]["holdings"][item]["p01"] += entry["amount"]
+        return swap(run, ticks=tuple(ticks))
+    assert any("no recipe yields" in p for p in audit_run(forged({"made": "p01", "item": "water", "amount": 5}, "water")))
+    state = run.ticks[3]["state"]
+    with pytest.raises(RunFileError):
+        apply_production(state, [{"born": "p99", "junk": 1}])

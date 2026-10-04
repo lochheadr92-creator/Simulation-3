@@ -20,13 +20,13 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 Belief = tuple[str, str, int, int, int, int, str]     # kind, subject, x, y, seen, learned, via
-KINDS = ("wolf", "home", "death", "well")                                     # what can be believed; each phase that adds a thing adds a kind
+KINDS = ("wolf", "home", "death", "well", "empty")                                     # what can be believed; each phase that adds a thing adds a kind
 
 BELIEFS = Feature(
     name="beliefs",
     summary="People remember what they have seen and been told, with its age and who said so, and forget it in time.",
     rule=(
-        "A belief is a kind of thing (a wolf, somebody's home, a grave or a well), which one, the cell it was at, the tick it was seen, "
+        "A belief is a kind of thing (a wolf, somebody's home, a grave, an emptied grave or a well), which one, the cell it was at, the tick it was seen, "
         "the tick this person learned of it and who told them (nobody for their own sighting). Somebody "
         "who sees a wolf believes it; somebody told about one believes it with the original sighting tick, "
         "so repeating a rumour never makes it fresher. For the same thing the later sighting replaces the "
@@ -62,7 +62,8 @@ def file_beliefs(held: tuple[Belief, ...], incoming: tuple[Belief, ...], now: in
         current = kept.get(key)
         if current is None or (belief[4], not belief[6]) > (current[4], not current[6]):
             kept[key] = belief
-    live = [b for b in kept.values() if now - b[4] <= span]
+    # a death is dated by the day it happened, but is remembered from the day it was learned of
+    live = [b for b in kept.values() if now - (b[5] if b[0] == "death" else b[4]) <= span]
     live.sort(key=lambda b: (-b[4], b[0], b[1]))
     return tuple(sorted(live[:slots], key=lambda b: (b[0], b[1])))
 
@@ -113,7 +114,9 @@ def advance_beliefs(previous: Any, current: Any, decisions: Any, observations: A
         sighted = tuple(("wolf", wolf, cell[0], cell[1], seen_at, seen_at, "")
                         for wolf, cell in (view.wolves_seen if view is not None else ()))
         sighted += tuple(("death", dead, x, y, tick, seen_at, "")
-                         for dead, x, y, tick, _, _ in (getattr(view, "graves", ()) if view is not None else ()))
+                         for dead, x, y, tick, *_ in (getattr(view, "graves", ()) if view is not None else ()))
+        sighted += tuple(("empty", dead, x, y, seen_at, seen_at, "")                     # a grave seen with nothing left in it
+                         for dead, x, y, _, estate, _, held in (getattr(view, "graves", ()) if view is not None else ()) if not held)
         sighted += tuple(("well", owner, x, y, seen_at, seen_at, "")
                          for owner, x, y in (getattr(view, "wells_seen", ()) if view is not None else ()))
         filed = file_beliefs(previous.persona.beliefs.get(actor, ()), sighted + tuple(told.get(actor, ())),

@@ -421,3 +421,32 @@ def test_the_page_shows_the_clock_and_the_weather_and_the_index_notes_changes(sa
     assert "skyPart" in page
     kinds = {e["kind"] for e in build_index(run)["events"]}
     assert {"night_falls", "dawn_breaks"} <= kinds and kinds & {"rain_begins", "storm_breaks", "weather_clears", "sky_clouds"}
+
+
+def test_the_weather_chain_is_the_same_when_several_threads_extend_it_at_once():
+    import sys
+    import threading
+    from world import sky as sky_module
+    seeds, fronts = range(900, 930), 60
+    serial = {}
+    for seed in seeds:
+        sky_module._CHAINS.pop(seed, None)
+        serial[seed] = [sky_module.front_weather(seed, f) for f in range(fronts)]
+        sky_module._CHAINS.pop(seed, None)
+    old = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)                                         # make a thread change hands in the middle of a step
+    try:
+        results = {}
+
+        def work(name):
+            results[name] = {seed: [sky_module.front_weather(seed, f) for f in range(fronts)] for seed in seeds}
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        sys.setswitchinterval(old)
+    assert all(results[i] == serial for i in range(4))
+    for seed in seeds:
+        sky_module._CHAINS.pop(seed, None)

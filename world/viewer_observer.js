@@ -7,13 +7,6 @@
   const LEV = C.feature_levers || {};
 
   // ---- what a person could see, rebuilt from where they stood ----------------------------------------------
-  function sightAt(w, p) {
-    if (((w.persona || {}).asleep || {})[p] !== undefined) return 0;
-    const base = typeof C.perception_radius === 'number' ? C.perception_radius : 0;
-    if (!w.sky || base <= 0) return base;
-    const cut = (w.sky.phase === 'night' ? (LEV.night_sight || 0) : 0) + (w.sky.weather === 'storm' ? (LEV.storm_sight || 0) : 0);
-    return Math.max(1, base - cut);
-  }
   const FOG = {};
   function lastSeen(p, k) {
     // lastSeen[cell] = the latest view whose start window covered it, for views 0..k-1; -1 when never

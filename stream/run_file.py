@@ -212,8 +212,8 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
             continue
         if "born" in entry:
             born = entry.get("born")
-            if not isinstance(born, str) or not born:
-                raise RunFileError(f"a birth needs a name, got {born!r}")
+            if set(entry) != {"born"} or not isinstance(born, str) or not born:
+                raise RunFileError(f"a birth needs a name and nothing else, got {entry!r}")
             if born in balances or born in seen:
                 raise RunFileError(f"{born!r} is born twice, or was already here")
             seen.add(born)

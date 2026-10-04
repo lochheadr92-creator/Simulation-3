@@ -195,7 +195,7 @@ class Observation:
     stone_stock: int | None = None
     tools: tuple[str, ...] = ()                          # tools they carry
     kin_dead: frozenset[str] = frozenset()               # dead people who were their partner, parent or child
-    graves: tuple[tuple[Any, ...], ...] = ()             # markers in sight: dead, x, y, tick, what lies there, 1 if they are kin (aftermath)
+    graves: tuple[tuple[Any, ...], ...] = ()             # markers in sight: dead, x, y, tick, what lies there to take, 1 if kin, units left in all (aftermath)
     partner: str | None = None                           # who they are paired with (family feature)
     grief: int = 0                                       # how much they are grieving
     elder: bool = False
@@ -382,6 +382,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     choosing_home = (config.homes_on and overlay.alive(actor) and actor in overlay.parent
                      and overlay.age.get(actor, 0) >= config.adult_at and actor not in overlay.home_settled)
     relocating = can_relocate(actor, overlay, config)
+    # With graves, whether a child is dead is something a parent learns by seeing the grave or being told, not by being alive.
+    known_dead = {b[1] for b in persona.beliefs.get(actor, ()) if b[0] == "death"} if config.on("aftermath") else None
     wood_view = {}
     if config.wood_on:
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
@@ -394,9 +396,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
             if s.kind == "grave" and in_view(origin, s.cell, radius):
                 record = records.get(s.owner)
                 live = tuple((r, available.get(actor_account(s.owner, None if r == "food" else r), 0))
-                             for r, _ in (record.estate if record else ()))
+                             for r in ("food",) + tuple(sorted(ledger.holdings)))                # what lies there to take
+                held = ledger.balances.get(s.owner, 0) + sum(h.get(s.owner, 0) for h in ledger.holdings.values())   # all of it, on hold or not
                 kin = record is not None and actor in heirs(overlay, record)
-                seen_graves.append((s.owner, s.x, s.y, s.a, tuple((r, n) for r, n in live if n > 0), int(kin)))
+                seen_graves.append((s.owner, s.x, s.y, s.a, tuple((r, n) for r, n in live if n > 0), int(kin), held))
         wood_view["graves"] = tuple(sorted(seen_graves))
         believed = {b[1] for b in overlay.persona.beliefs.get(actor, ()) if b[0] == "death"}      # only deaths they know of
         wood_view["kin_dead"] = frozenset(d.person for d in overlay.things.deaths
@@ -521,7 +524,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
            "children": overlay.children_of(actor),
            "dependents": frozenset(kid for kid in (set(overlay.children_of(actor)) | {
                                        c for c, g in overlay.family.guardian.items() if g == actor})
-                                   if overlay.alive(kid)
+                                   if (overlay.alive(kid) if known_dead is None else kid not in known_dead)
                                    and overlay.age.get(kid, config.adult_at) < config.adult_at)}
           if config.childhood_on else {}),
         traits=persona.traits.get(actor, ()), skills=persona.skills.get(actor, ()),

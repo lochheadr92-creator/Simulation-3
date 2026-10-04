@@ -704,32 +704,42 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
     grieving = config.on("family") and observation.grief >= config.lever("grief_at")
     if config.on("aftermath"):
-        gravely = _grave(observation, config, choice)
+        gravely = _unless_turned_back(observation, config, _grave(observation, config, choice))
         if gravely is not None:
             return gravely
     if config.on("structures") and not grieving:
-        kept = _maintain(observation, config, choice)
+        kept = _unless_turned_back(observation, config, _maintain(observation, config, choice))
         if kept is not None:
             return kept
     if config.on("farming") and not grieving:
-        worked = _farm(observation, config, choice)
+        worked = _unless_turned_back(observation, config, _farm(observation, config, choice))
         if worked is not None:
             return worked
     if config.on("crafting") and not grieving:
-        made = _craft(observation, config, choice)
+        made = _unless_turned_back(observation, config, _craft(observation, config, choice))
         if made is not None:
             return made
     if config.on("bonds") and choice.kind in (HOME, BUILD, REST):
-        talk = _social(observation, config, choice)
+        talk = _unless_turned_back(observation, config, _social(observation, config, choice))
         if talk is not None:
             return talk
     if config.on("exploration") and not grieving:
-        looked = _explore(observation, config, choice)
+        looked = _unless_turned_back(observation, config, _explore(observation, config, choice))
         if looked is not None:
             return looked
     if config.provisioning_on and choice.kind in (REST, HOME):
         return _provision_decision(observation, config, choice)
     return choice
+
+
+def _unless_turned_back(observation: Observation, config: WorldConfig, outing: Decision | None) -> Decision | None:
+    """An optional outing that the leave-in-time rule for warmth would turn round after its first step is not started, so
+    nobody steps out and straight back in again."""
+    if (outing is None or outing.step is None or not config.warmth_on or outing.step == observation.position
+            or not shelter_trip_due(replace(observation, position=outing.step, doing=outing.kind,       # as it will be after the step
+                                            cold=observation.cold + away_rate(observation, config)), config)):
+        return outing
+    return None
 
 
 PRESSING = frozenset({EAT, DRINK, CLAIM, DRAW, FISH, WARM, SLEEP, COLLAPSE, FLEE})   # serving their own need this very tick
@@ -1030,6 +1040,7 @@ def _grave(observation: Observation, config: WorldConfig, choice: Decision) -> D
                    key=lambda k: (steps_to(observation.position, k[1]), k[0]))
     if not known:
         return None
+    emptied = {b[1] for b in observation.beliefs if b[0] == "empty"}               # graves they have seen with nothing left
     actor = observation.actor
     reach, grace = config.lever("grave_range"), config.lever("heir_grace")
     here = {g[0]: g for g in observation.graves}
@@ -1040,7 +1051,7 @@ def _grave(observation: Observation, config: WorldConfig, choice: Decision) -> D
             continue
         heir = dead in observation.kin_dead
         needy = observation.food < 1 or (config.water_on and observation.water < 1)
-        wants = heir or (observation.tick - died >= grace and needy)
+        wants = dead not in emptied and (heir or (observation.tick - died >= grace and needy))
         mourn = grieving and heir or (grieving and observation.grief >= config.lever("grief_at"))
         if not (wants or mourn):
             continue

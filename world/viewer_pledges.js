@@ -28,16 +28,16 @@
   });
 
   const wordOfPledge = (me, [kind, asker, helper, state, made, due, amount, x, y, held, action, heard, arrived, done]) => {
-    const what = kind === 'build' ? `${amount} ticks of help building` : kind === 'news' ? 'news of the wolf' : `${amount} ${kind}`;
+    const what = kind === 'build' ? `${esc(amount)} ticks of help building` : kind === 'news' ? 'news of the wolf' : `${esc(amount)} ${esc(kind)}`;
     if (asker === me) {
       return state === 'promised'
-        ? (heard ? `${esc(helper)} promised ${what}; due by tick ${due}` : `waiting to hear from ${esc(helper)} about ${what}`)
+        ? (heard ? `${esc(helper)} promised ${what}; due by tick ${esc(due)}` : `waiting to hear from ${esc(helper)} about ${what}`)
         : `asked ${esc(helper)} for ${what}; no answer yet`;
     }
     if (state === 'promised') {
-      const how = kind === 'build' ? (arrived ? `at ${esc(asker)}'s door since tick ${arrived}; ${done} of ${amount} ticks done` : `on the way to ${esc(asker)}'s door`)
-        : held ? `${held} reserved to hand over` : kind === 'wood' ? 'going to fetch it' : 'on the way';
-      return `promised ${esc(asker)} ${what}: ${how}; due by tick ${due}`;
+      const how = kind === 'build' ? (arrived ? `at ${esc(asker)}'s door since tick ${esc(arrived)}; ${esc(done)} of ${esc(amount)} ticks done` : `on the way to ${esc(asker)}'s door`)
+        : held ? `${esc(held)} reserved to hand over` : kind === 'wood' ? 'going to fetch it' : 'on the way';
+      return `promised ${esc(asker)} ${what}: ${how}; due by tick ${esc(due)}`;
     }
     return `${esc(asker)} asked for ${what}; deciding`;
   };

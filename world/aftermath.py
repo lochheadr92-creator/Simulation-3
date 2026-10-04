@@ -32,13 +32,14 @@ AFTERMATH = Feature(
     rule=(
         "When somebody dies a grave is set where they fell and a record is saved: the tick, the cell, their age, the cause "
         "(starved, died of thirst, froze to death, killed by a wolf, died of old age, or died), those living and in sight at the "
-        "time, what they held in each resource, and later who collected it. The cause and the record are for whoever reads "
+        "time, what they held in each resource (units on hold for a promise included), and later who collected it. The cause and the record are for whoever reads "
         "the run; the people know only what they saw or were told. Somebody who sees a grave believes that the person "
         "died, at that cell and tick, and may tell others in conversation. Grief comes only from a death somebody has just "
         "learned of. The belongings stay in the dead person's account: the partner, a parent or a child (or a "
         "guardian's dependent) who knows of the grave and is free walks there within grave_range steps and collects "
         "them all; after heir_grace ticks anybody who knows of the grave, is free and has no food or no water may. "
-        "Collecting hands every unit over by kernel transfers in the dead person's name. Somebody grieving, free and "
+        "Collecting hands every unit over by kernel transfers in the dead person's name. A grave somebody has seen with nothing left in it "
+        "is remembered as emptied, and nobody walks there to collect. Somebody grieving, free and "
         "knowing a grave within grave_range steps walks to it and rests there, and mourning at the grave takes mourn_relief "
         "more off their grief each tick."),
     needs=("beliefs",),
@@ -96,10 +97,9 @@ def cause_of(config: "WorldConfig", previous: Any, current: Any, person: str, li
 
 
 def estate_of(ledger: Any, person: str) -> tuple[tuple[str, int], ...]:
-    """Every unit the person holds free of reservations, by resource."""
-    available = ledger.availability()
-    out = [("food", available.get(actor_account(person), 0))]
-    out += [(resource, available.get(actor_account(person, resource), 0)) for resource in sorted(ledger.holdings)]
+    """Every unit the person holds, by resource, including any that a promise has put on hold."""
+    out = [("food", ledger.balances.get(person, 0))]
+    out += [(resource, ledger.holdings[resource].get(person, 0)) for resource in sorted(ledger.holdings)]
     return tuple((r, n) for r, n in out if n > 0)
 
 

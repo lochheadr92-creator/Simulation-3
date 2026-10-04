@@ -142,6 +142,10 @@ def audit_run(run: Any) -> list[str]:
                 gained[entry["item"]] = gained.get(entry["item"], 0) + entry["amount"]
                 # what a person makes was paid for in the same tick: every recipe input settled as spending
                 from world.crafting import RECIPES
+                if entry["item"] not in RECIPES or entry["amount"] != 1:
+                    problems.append(f"{where}: {entry['made']} made {entry['amount']} {entry['item']}, which no recipe yields")
+                if sum(1 for e in production if e.get("made") == entry["made"] and e.get("item") == entry["item"]) > 1:
+                    problems.append(f"{where}: {entry['made']} made {entry['item']} more than once on one tick")
                 spent = {(o["actor"], e["account"]): -e["delta"] for o in tick["record"]["outcomes"]
                          if o["accepted"] and o["operation"] == "consume" for e in o["effects"] if e["delta"] < 0}
                 for resource, units in RECIPES.get(entry["item"], ()):

@@ -36,7 +36,9 @@ from world.run import DEFAULT_RUNS_DIR, run_id_for, run_world
 from world.viewer import render_html
 
 MAX_TICKS = 5000
-NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]{0,200}\.jsonl$")
+MAX_RUNNING = 3                                   # worlds being written at once
+HOST = re.compile(r"(?P<name>\[[^\]]+\]|[^:]+)(:\d+)?")
+NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,200}\.jsonl")
 SPEC_KEYS = {"seed", "ticks", "features", "levers", "width", "height", "actors"}
 BOUNDS = {"width": (3, 40), "height": (3, 40), "actors": (1, 40)}
 
@@ -119,9 +121,14 @@ class Launcher:
             path = self.runs / f"{stem}-{number}.jsonl"
         return path
 
+    def _check_room(self) -> None:
+        if sum(1 for job in self.jobs.values() if not job.done) >= MAX_RUNNING:
+            raise Refused(f"{MAX_RUNNING} worlds are already running; wait for one to finish")
+
     def start(self, spec: Any) -> dict[str, Any]:
         config, ticks = self.config_from(spec)
         with self.lock:
+            self._check_room()
             path = self.fresh_path(run_id_for(config, ticks))
             job = self.jobs[path.name] = Job(path.name, ticks)                  # the name is held from here on
 
@@ -147,6 +154,7 @@ class Launcher:
         if run.complete:
             raise Refused(f"{name} is complete; there is nothing to resume")
         with self.lock:
+            self._check_room()
             target = self.fresh_path(source.stem + "-resumed")
             job = self.jobs[target.name] = Job(target.name, int(run.header.get("horizon", 0)), resumed_from=name)
 
@@ -170,7 +178,7 @@ class Launcher:
 
     # ---- what is saved ----------------------------------------------------------------------------------------
     def path_of(self, name: str) -> Path:
-        if not NAME.match(name or ""):
+        if not NAME.fullmatch(name or ""):
             raise Refused("that is not the name of a saved run")
         path = (self.runs / name).resolve()
         if path.parent != self.runs.resolve() or not path.is_file():
@@ -179,7 +187,7 @@ class Launcher:
 
     def status(self, name: str) -> dict[str, Any]:
         job = self.jobs.get(name)
-        if job is not None and NAME.match(name) and not (self.runs / name).is_file():       # started, nothing written yet
+        if job is not None and NAME.fullmatch(name) and not (self.runs / name).is_file():       # started, nothing written yet
             return {"name": name, "ticks": 0, "horizon": job.horizon, "complete": False, "running": not job.done,
                     "error": job.error, "cut": False, "resumed_from": job.resumed_from}
         path = self.path_of(name)
@@ -203,7 +211,7 @@ class Launcher:
         return out
 
     def listing(self) -> list[dict[str, Any]]:
-        names = sorted((p.name for p in self.runs.glob("*.jsonl") if NAME.match(p.name)), key=lambda n: -(self.runs / n).stat().st_mtime)
+        names = sorted((p.name for p in self.runs.glob("*.jsonl") if NAME.fullmatch(p.name)), key=lambda n: -(self.runs / n).stat().st_mtime)
         return [self.status(n) for n in names[:60]]
 
     def page_for(self, name: str) -> str:
@@ -241,8 +249,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(status, json.dumps(value).encode("utf-8"), "application/json; charset=utf-8")
 
     def _local(self) -> bool:
-        host = (self.headers.get("Host") or "").split(":")[0]
-        return host in ("127.0.0.1", "localhost", "[::1]")
+        match = HOST.fullmatch(self.headers.get("Host") or "")
+        return bool(match) and match.group("name") in ("127.0.0.1", "localhost", "[::1]")
 
     def do_GET(self) -> None:
         if not self._local():
@@ -272,8 +280,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             length = int(self.headers.get("Content-Length") or 0)
-            if length > 20000:
-                raise Refused("that request is too large")
+            if length < 0 or length > 20000:
+                raise Refused("that request is too large or has no sensible length")
             body = json.loads(self.rfile.read(length) or b"{}")
         except (ValueError, Refused) as exc:
             return self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc) if isinstance(exc, Refused) else "the request is not JSON"})

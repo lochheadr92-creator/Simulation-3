@@ -208,3 +208,31 @@ def test_the_launcher_page_starts_a_world_and_shows_the_viewer_in_a_real_browser
     shown = json.loads(result.stdout)
     assert shown["errors"] == [] and shown["scenes"] == len(SCENES) and shown["features"] == len(FEATURES)
     assert "Finished" in shown["status"] and shown["viewerHasMinimap"] and shown["runs"] >= 1
+
+
+def test_a_negative_length_is_refused_and_only_a_few_worlds_run_at_once(server):
+    request = urllib.request.Request(server.base + "/api/run", data=b"{}", method="POST",
+                                     headers={"X-Launch-Token": server.token, "Content-Length": "-1", "Content-Type": "application/json"})
+    with pytest.raises((urllib.error.HTTPError, urllib.error.URLError, ConnectionError)):
+        urllib.request.urlopen(request, timeout=10)                                  # refused (or the connection is dropped), never left hanging
+    from world.launch import MAX_RUNNING, Job
+    for i in range(MAX_RUNNING):
+        server.launcher.jobs[f"busy-{i}.jsonl"] = Job(f"busy-{i}.jsonl", 10)          # worlds that are still being written
+    status, answer = server.post("/api/run", SMALL)
+    assert status == 400 and "already running" in answer["error"]
+    assert not list(server.runs.glob("*.jsonl"))
+    for job in server.launcher.jobs.values():
+        job.done = True
+    assert server.post("/api/run", SMALL)[0] == 200
+
+
+def test_the_host_check_accepts_the_local_names_with_a_port_and_nothing_else(server):
+    from world.launch import HOST
+    for good in ("127.0.0.1", "127.0.0.1:8731", "localhost:9", "[::1]:8731"):
+        assert HOST.fullmatch(good)
+    assert not HOST.fullmatch("")
+    for bad in ("evil.example", "127.0.0.1.evil.example", "localhost.evil.example:1"):
+        request = urllib.request.Request(server.base + "/api/options", headers={"Host": bad})
+        with pytest.raises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=10)
+        assert caught.value.code == 403
