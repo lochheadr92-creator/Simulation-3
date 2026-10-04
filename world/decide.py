@@ -85,6 +85,7 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
                            WEATHER, rejection)
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
+from world.aftermath import COLLECT, GO_GRAVE, MOURN
 from world.structures import DIG, LIGHT, REPAIR
 from world.farming import FARM_KINDS, GO_FIELD, GRAIN, HARVEST, PLANT, TEND
 from world.crafting import CRAFT, GATHER_STONE, GO_STONE, RECIPES, WAIT_STONE, build_saves
@@ -138,6 +139,7 @@ class Decision:
     keeping: str | None = None           # the promise this tick's action serves
     gave_up: str | None = None           # a promise they broke because their own need could not wait
     action: str | None = None            # the kernel reservation that promise holds
+    estate: tuple[tuple[str, int], ...] = ()   # what they are collecting from a grave: resource, units
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -162,6 +164,8 @@ class Decision:
             out["gave_up"] = self.gave_up
         if self.action is not None:
             out["action"] = self.action
+        if self.estate:
+            out["estate"] = [list(e) for e in self.estate]
         if self.scores is not None:
             out["scores"] = {action: list(pair) for action, pair in self.scores}
         if self.target is not None:
@@ -571,6 +575,7 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
         news = sorted(((b[4], b[1], b[2], b[3]) for b in observation.beliefs if b[0] == "wolf"
                        and observation.tick - b[4] <= config.lever("danger_span")), reverse=True) if config.on("wolves") else []
         told = [("home", observation.actor, observation.home[0], observation.home[1], observation.tick)]
+        told += [("death", b[1], b[2], b[3], b[4]) for b in sorted(observation.beliefs, key=lambda b: -b[4]) if b[0] == "death"]
         told += [("wolf", subject, x, y, seen) for seen, subject, x, y in news]
         choice = replace(choice, told_to=(choice.target,), told=tuple(told[:config.lever("told_per_chat")]))
     if config.on("bonds") and observation.alive and not observation.asleep and choice.kind != DEAD:
@@ -684,6 +689,10 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
     grieving = config.on("family") and observation.grief >= config.lever("grief_at")
+    if config.on("aftermath"):
+        gravely = _grave(observation, config, choice)
+        if gravely is not None:
+            return gravely
     if config.on("structures") and not grieving:
         kept = _maintain(observation, config, choice)
         if kept is not None:
@@ -991,6 +1000,45 @@ def _maintain(observation: Observation, config: WorldConfig, choice: Decision) -
             and observation.wood < config.lever("well_wood") and observation.wood_source is not None):
         return _fetch_material(observation, config, choice, "wood", config.lever("well_wood") - observation.wood,
                                "for a well")
+    return None
+
+
+def _grave(observation: Observation, config: WorldConfig, choice: Decision) -> Decision | None:
+    """Collect a dead person's belongings from their grave, or go and mourn there."""
+    if (not observation.alive or observation.asleep or observation.storm or is_child(observation, config)
+            or choice.kind not in (HOME, REST)):
+        return None
+    known = sorted(((b[1], (b[2], b[3]), b[4]) for b in observation.beliefs if b[0] == "death"),
+                   key=lambda k: (steps_to(observation.position, k[1]), k[0]))
+    if not known:
+        return None
+    actor = observation.actor
+    reach, grace = config.lever("grave_range"), config.lever("heir_grace")
+    here = {g[0]: g for g in observation.graves}
+    grieving = config.on("family") and observation.grief >= config.lever("grief_at")
+    for dead, cell, died in known:
+        away = steps_to(observation.position, cell)
+        if away > reach:
+            continue
+        heir = dead in observation.kin_dead
+        needy = observation.food < 1 or (config.water_on and observation.water < 1)
+        wants = heir or (observation.tick - died >= grace and needy)
+        mourn = grieving and heir or (grieving and observation.grief >= config.lever("grief_at"))
+        if not (wants or mourn):
+            continue
+        if (own_slack(observation, config) <= 2 * away + config.lever("grave_margin")
+                or _promise_hold(observation, config, cell) is not None):
+            continue
+        if away > 0:
+            return Decision(actor, GO_GRAVE, f"walking {away} steps to {dead}'s grave" + (", where their belongings lie" if wants else ""),
+                            choice.candidates + (GO_GRAVE,), step=route_step(observation, cell, config))
+        g = here.get(dead)
+        if wants and g is not None and g[4]:
+            things = ", ".join(f"{n} {r}" for r, n in g[4])
+            return Decision(actor, COLLECT, f"at {dead}'s grave: collecting what they left ({things})",
+                            choice.candidates + (COLLECT,), target=dead, estate=g[4])
+        if mourn:
+            return Decision(actor, MOURN, f"standing at {dead}'s grave, grieving", choice.candidates + (MOURN,))
     return None
 
 

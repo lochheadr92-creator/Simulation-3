@@ -42,6 +42,7 @@ from world.overlay import Overlay
 
 from world.crafting import CRAFT, GATHER_STONE, RECIPES, STONE
 from world.farming import GRAIN, HARVEST, PLANT
+from world.aftermath import COLLECT
 from world.pledges import RESOURCES
 from world.structures import DIG, LIGHT, REPAIR
 from world.process import Processed, advance
@@ -118,6 +119,10 @@ def proposals_for(decisions: dict[str, Decision], tick: int, overlay: Overlay | 
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
         elif decision.kind in (REPAIR, LIGHT) or (decision.kind == DIG and decision.amount):
             out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
+        elif decision.kind == COLLECT:
+            for i, (resource, units) in enumerate(decision.estate):
+                out.append(transfer(f"t{tick}-{actor}-take-{resource}", decision.target, 20 + 10 * len(out) + i, to=actor,
+                                    amount=units, resource=None if resource == "food" else resource))   # in the dead person's name
         elif decision.kind == GATHER_STONE:
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=STONE))
         elif decision.kind == CRAFT and decision.target in RECIPES:

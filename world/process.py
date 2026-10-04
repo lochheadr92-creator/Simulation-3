@@ -49,6 +49,7 @@ from world.observe import in_view
 
 from world.config import WATER, WorldConfig, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE_RENEWAL, STONE_RENEWAL_EVERY, STONE_STOCK, apply_crafting
+from world.aftermath import advance_aftermath
 from world.family import advance_family, lifespan
 from world.farming import GRAIN, advance_farming
 from world.structures import advance_structures, burning, lit_cells
@@ -324,6 +325,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             remember_attempt(tried, actor, (kind, target, when, ok))
         next_overlay = replace(next_overlay, persona=replace(next_overlay.persona, bonds=bonds, lonely=lonely,
                                                               talking=talking, tried=tried))
+    if config.on("beliefs"):
+        next_overlay = replace(next_overlay, persona=replace(
+            next_overlay.persona, beliefs=advance_beliefs(overlay, next_overlay, decisions, observations or {}, config)))
     if config.on("family"):
         family = advance_family(overlay, next_overlay, config)
         lonely = dict(next_overlay.persona.lonely)
@@ -331,10 +335,12 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             for actor, level in family.grief.items():
                 if level >= config.lever("grief_at"):
                     lonely[actor] = min(config.lever("lonely_max"), lonely.get(actor, 0) + 1)     # grief isolates
+        if config.on("aftermath"):
+            graves = {s.owner: s.cell for s in overlay.things.structures if s.kind == "grave"}
+            at_grave = {a for a, d in decisions.items() if d.kind == "mourn" and positions[a] in graves.values()}
+            family = replace(family, grief={a: (max(0, n - config.lever("mourn_relief")) if a in at_grave else n)
+                                            for a, n in family.grief.items() if max(0, n - config.lever("mourn_relief") * (a in at_grave)) > 0})
         next_overlay = replace(next_overlay, family=family, persona=replace(next_overlay.persona, lonely=lonely))
-    if config.on("beliefs"):
-        next_overlay = replace(next_overlay, persona=replace(
-            next_overlay.persona, beliefs=advance_beliefs(overlay, next_overlay, decisions, observations or {}, config)))
     if config.on("sky"):
         next_overlay = replace(next_overlay, sky=sky_at(config, settled.tick))
     production: list[dict[str, Any]] = []
@@ -353,6 +359,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         next_overlay = replace(next_overlay, shelters=tuple(sorted(shelters2)), built=built_now,
                                things=replace(next_overlay.things, structures=structs2))
         production.extend(wells)
+    if config.on("aftermath"):
+        deaths, structs3 = advance_aftermath(overlay, next_overlay, decisions, record, ledger, config)
+        next_overlay = replace(next_overlay, things=replace(next_overlay.things, deaths=deaths, structures=structs3))
     if config.on("farming"):
         plots, ledger, grew = advance_farming(overlay, next_overlay, decisions, record, ledger, config)
         next_overlay = replace(next_overlay, things=replace(next_overlay.things, plots=plots))

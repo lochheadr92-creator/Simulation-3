@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from world.aftermath import AFTERMATH
 from world.belief import BELIEFS
 from world.crafting import CRAFTING
 from world.explain import EXPLAIN
@@ -18,7 +19,7 @@ from world.structures import STRUCTURES
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    BELIEFS, CRAFTING, EXPLAIN, FAMILY, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
+    AFTERMATH, BELIEFS, CRAFTING, EXPLAIN, FAMILY, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -86,6 +87,8 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
                             "retry_after and grievance_gap of at least 1")
         if not v("chat_at") <= v("lonely_at") < v("lonely_max") or v("grudge_gain") > v("grudge_at") or v("believe_at") > 100:
             problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
+    if "aftermath" in features and min(v("grave_range"), v("heir_grace"), v("grave_margin")) < 1:
+        problems.append("aftermath needs grave_range, heir_grace and grave_margin of at least 1")
     if "family" in features:
         if min(v("gestation"), v("pop_cap"), v("pregnant_hunger"), v("grief_fade"), v("arrive_every"), v("elder_at"),
                v("old_age_at")) < 1 or not 1 <= v("couple_at") <= 100 or v("couple_trust") > 100:

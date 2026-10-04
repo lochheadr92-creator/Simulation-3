@@ -57,6 +57,7 @@ from kernel.state import actor_account, source_account
 
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE, tools_held
+from world.aftermath import heirs
 from world.farming import GRAIN, STATES, plot_of
 from world.structures import find as find_struct, lit_cells, well_id
 from world.config import well_sites
@@ -191,6 +192,8 @@ class Observation:
     stone_source: Position | None = None
     stone_stock: int | None = None
     tools: tuple[str, ...] = ()                          # tools they carry
+    kin_dead: frozenset[str] = frozenset()               # dead people who were their partner, parent or child
+    graves: tuple[tuple[Any, ...], ...] = ()             # markers in sight: dead, x, y, tick, what lies there, 1 if they are kin (aftermath)
     partner: str | None = None                           # who they are paired with (family feature)
     grief: int = 0                                       # how much they are grieving
     elder: bool = False
@@ -378,6 +381,20 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+    if config.on("aftermath"):
+        records = {d.person: d for d in overlay.things.deaths}
+        seen_graves = []
+        for s in overlay.things.structures:
+            if s.kind == "grave" and in_view(origin, s.cell, radius):
+                record = records.get(s.owner)
+                live = tuple((r, available.get(actor_account(s.owner, None if r == "food" else r), 0))
+                             for r, _ in (record.estate if record else ()))
+                kin = record is not None and actor in heirs(overlay, record)
+                seen_graves.append((s.owner, s.x, s.y, s.a, tuple((r, n) for r, n in live if n > 0), int(kin)))
+        wood_view["graves"] = tuple(sorted(seen_graves))
+        believed = {b[1] for b in overlay.persona.beliefs.get(actor, ()) if b[0] == "death"}      # only deaths they know of
+        wood_view["kin_dead"] = frozenset(d.person for d in overlay.things.deaths
+                                          if d.person in believed and actor in heirs(overlay, d))
     if config.on("family"):
         wood_view.update({"partner": overlay.family.partner.get(actor), "grief": overlay.family.grief.get(actor, 0),
                           "elder": overlay.age.get(actor, 0) >= config.lever("elder_at")})

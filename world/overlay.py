@@ -237,6 +237,7 @@ class Overlay:
             raise ValueError("persona must be a Persona")
         if not isinstance(self.things, Things):
             raise ValueError("things must be a Things")
+        self.things.check(set(positions), died, self.tick)
         if not isinstance(self.family, Family):
             raise ValueError("family must be a Family")
         self.family.check(set(positions), self.tick)

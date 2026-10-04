@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 REPAIR, LIGHT, DIG = "repair", "light", "dig"
-KINDS = ("shelter", "fire", "well")
+KINDS = ("shelter", "fire", "well", "grave")
 MAINTAIN_KINDS = frozenset({REPAIR, LIGHT, DIG})
 STRUCT_LEVERS = (("wear_every", 6), ("storm_wear", 1), ("repair_at", 45), ("repair_to", 80), ("repair_gain", 25), ("fire_burn", 14),
                  ("fire_warmth", 2), ("fire_light", 1), ("well_ticks", 12), ("well_wood", 4), ("well_every", 5),
@@ -54,8 +54,8 @@ class Struct:
     owner: str
     x: int
     y: int
-    a: int = 0       # shelter: condition; fire: fuel ticks left; well: ticks dug
-    b: int = 0       # well: 1 once it is finished
+    a: int = 0       # shelter: condition; fire: fuel ticks left; well: ticks dug; grave: the tick they died
+    b: int = 0       # well: 1 once it is finished; grave: 1 once somebody has collected their belongings
 
     @property
     def cell(self) -> tuple[int, int]:

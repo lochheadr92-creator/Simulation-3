@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 Belief = tuple[str, str, int, int, int, int, str]     # kind, subject, x, y, seen, learned, via
-KINDS = ("wolf", "home")                                     # what can be believed; each phase that adds a thing adds a kind
+KINDS = ("wolf", "home", "death")                                     # what can be believed; each phase that adds a thing adds a kind
 
 BELIEFS = Feature(
     name="beliefs",
@@ -112,6 +112,8 @@ def advance_beliefs(previous: Any, current: Any, decisions: Any, observations: A
         view = observations.get(actor)
         sighted = tuple(("wolf", wolf, cell[0], cell[1], seen_at, seen_at, "")
                         for wolf, cell in (view.wolves_seen if view is not None else ()))
+        sighted += tuple(("death", dead, x, y, tick, seen_at, "")
+                         for dead, x, y, tick, _, _ in (getattr(view, "graves", ()) if view is not None else ()))
         filed = file_beliefs(previous.persona.beliefs.get(actor, ()), sighted + tuple(told.get(actor, ())),
                              current.tick, config)
         if filed:

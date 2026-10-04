@@ -156,7 +156,10 @@ def _plain_refusal(reason: str) -> str:
 
 
 def _cause_of_death(world: Mapping[str, Any], actor: str, cfg: Mapping[str, Any]) -> str:
-    """Which recorded need stood at or past its declared lethal level."""
+    """Which recorded need stood at or past its declared lethal level, or the saved death record's cause."""
+    for record in (world.get("things") or {}).get("deaths", []):
+        if record[0] == actor:
+            return record[5]
     if "death_at" in cfg and world.get("hunger", {}).get(actor, -1) >= cfg["death_at"]:
         return "starved"
     if "thirst_death_at" in cfg and world.get("thirst", {}).get(actor, -1) >= cfg["thirst_death_at"]:

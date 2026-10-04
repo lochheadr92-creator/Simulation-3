@@ -162,6 +162,14 @@ Two facts about the existing code shape the work:
   `arrive_every` ticks, `max_arrivals` times, and a lifespan is the seed's draw from `old_age_at` plus `old_age_spread`. All of
   these are settings written in the run header's rule text.
 
+* **Death leaves a record, and the news travels like any other belief.** `world/aftermath.py`: when somebody dies a grave
+  (`Struct("grave")`) and a `Death` record go into `things`. The cause is derived from the recorded levels and is for
+  whoever reads the run; people only know what they saw (a grave in sight becomes a belief of kind `death`) or were
+  told. `kin_dead` in the observation holds only the deaths the person believes in. Belongings stay in the dead person's
+  account until somebody collects them: the collector's decision becomes kernel `transfer` proposals issued in the dead
+  person's name, so the audit sees ordinary moves. Without the aftermath feature, family grief still reaches everybody who
+  loved the dead person at the moment of death, as before; with it, grief needs learned news.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -190,7 +198,7 @@ the viewer. `partial` says what is missing.
 | P7 | Farming, spoilage, distinct foods | built and tested (focused tests only): a field per founder, planting, tending, harvest, soil wear, rot, grain as a second food, spoilage; newborns have no field yet (P9); no grain requests or trading |
 | P8 | Building kinds, upkeep, fire, constructed wells | built and tested (focused tests only): shelters wear, are mended (neighbours may help) or collapse; fires burn wood, warm, light and keep wolves off; wells are dug and give water by recorded production and are used once seen; **no hut, house or storehouse kinds**; a finished well is forgotten out of sight (no belief of it yet, P11) |
 | P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | built and tested (focused tests only): couples from talk and a shared bond, pregnancy with a fixed gestation, births only from pregnancies, elders, lifespans, old-age death, orphans taken in, grief, travellers when few are left, explicit population limits; **couples are rare in small worlds at the default bond level**, so the rich-world preset will set it lower; no marriage rites, no inheritance (P10) |
-| P10 | Graves, belongings, aftermath, detailed death records | not started |
+| P10 | Graves, belongings, aftermath, detailed death records | built and tested (focused tests only): a grave and a saved death record (tick, cell, age, cause, who was in sight, what they held, who collected it) for every death; deaths are believed only by those who saw the grave or were told; grief follows learned news; belongings are collected from the grave by kernel transfers in the dead person's name, heirs first and anybody in need after a grace period; mourning at the grave; **telling a death by conversation is rare in small worlds (3 chats in 700 ticks in the survey seed)**; no burial rites or wills |
 | P11 | Exploration, forgetting, desire paths, pathfinding audit | not started |
 | P12 | Viewer: minimap, fog, overlays, launcher, save/resume, live mode | not started |
 | P13 | Rich-world preset, long multi-seed runs, performance, review, final report | not started |
@@ -289,6 +297,24 @@ Entries say who ran what and when. A number here is a result of that run only.
   Seen in worlds: requests for water, food, wood and building help answered, reserved, kept, declined and broken; most
   declines in stormy worlds are `unfit`, so askers ask several people in turn.
 
+* P6 to P9 (each committed with its focused tests; the full suite was deferred to the end by request): `tests/test_crafting.py`
+  11, `tests/test_farming.py` 17, `tests/test_structures.py` 13, `tests/test_family.py` 22 passed, each with the disabled-mode
+  guard (16/16), and the whole-world tests audit clean and replay identically in saved 700-tick worlds. Honest limits: shelters
+  collapse often and cold deaths are common in worlds with structures and family on (no calibration done yet); no hut, house or
+  storehouse kinds; couples form rarely at the default bond level (lowered to 18); newborns have no fields; no tool or stone
+  requests. The viewer sections for these parts were checked by screenshots only.
+
+* P10: `tests/test_aftermath.py` 21 passed (storage and strict validation, the record and grave made on death, each cause,
+  seeing and being told, grief only from learned news, collecting by transfers in the dead person's name, strangers waiting
+  out the grace period, two collectors at one grave, mourning relief, a whole saved world: audit, replay, every taker has a
+  recorded transfer, every belief of a death was seen at the grave or told, every grief follows news, the viewer index events).
+  Seven mutations (collectors taken from the dying tick, kin deaths exposed before they are known, no grace period,
+  grief from old news, no belief from seeing a grave, no mourning relief, starvation never named) were each caught.
+  Two bugs came out of writing them: a unit given away on the tick somebody died would have been recorded as a collection,
+  and the observation listed kin deaths the person had not heard of. Both fixed. Neighbouring focused suites and the
+  disabled-mode guard pass (280 passed in 190s before the last small changes; family, aftermath and the guard rerun: 59
+  passed). **The full suite has not been run on P6 to P10.**
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -297,6 +323,6 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-Finish P5: run the full suite, fix the two-promises test, add a browser check for the Asking and promising section,
-and look at several ordinary worlds. Then P6: stone, tools and crafting (tool and repair requests join the same
-pledge kinds), then P7 onward as in the table.
+P11 (what people know of the map, forgetting, desire paths, a pathfinding audit), then P12 (the viewer) and P13 (the rich-world
+preset, multi-seed surveys, performance, old-save compatibility, the full suite, a critical review and the final report). Still
+owed from earlier phases: the two-promises test, browser checks for the new inspector sections, and a cold-death survey.

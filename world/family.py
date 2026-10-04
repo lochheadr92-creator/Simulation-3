@@ -40,7 +40,8 @@ FAMILY = Feature(
         "guardian is taken in by the nearest living adult who can see them and has fewer than two dependents. When "
         "somebody dies, their living partner, parents and children grieve grief_kin, and anybody with a bond of "
         "friend_at or more grieves grief_friend; grief falls by one every grief_fade ticks, and while it is grief_at "
-        "or more nobody mends, farms, makes tools or digs, and they grow lonelier. When fewer than arrive_below "
+        "or more nobody mends, farms, makes tools or digs, and they grow lonelier. (With the aftermath feature on, only "
+        "somebody who has just learned of the death grieves.) When fewer than arrive_below "
         "people are alive, and no traveller has come for arrive_every ticks, a traveller of grown age with traits "
         "of their own arrives at a free cell near the edge, at most max_arrivals times in all."),
     needs=("bonds",),
@@ -159,13 +160,22 @@ def advance_family(previous: Any, current: Any, config: "WorldConfig") -> Family
                  for x, y in ((actor, other), (other, actor)))
         if ok:
             partner[actor], partner[other] = other, actor
-    # grief for those who died this tick
-    newly = [a for a in current.died_at if a not in previous.died_at]
-    for dead in sorted(newly):
-        kin = {x for x in living if overlay_kin(current, x, dead)} | {family.partner[dead]} if dead in family.partner else \
-            {x for x in living if overlay_kin(current, x, dead)}
-        for x in sorted(living):
-            level = (config.lever("grief_kin") if x in kin
+    # With the aftermath feature, grief comes from a death somebody has just learned of: by seeing the marker or being
+    # told. Without it, as before, everybody who loved the dead person grieves at the moment they die, wherever they are.
+    knowers: dict[str, set[str]] = {}
+    if config.on("aftermath"):
+        for a in sorted(living):
+            for b in persona.beliefs.get(a, ()):
+                if b[0] == "death" and b[5] == previous.tick and b[1] not in living:
+                    knowers.setdefault(b[1], set()).add(a)
+    else:
+        for dead in sorted(a for a in current.died_at if a not in previous.died_at):
+            knowers[dead] = set(living)
+    for dead, who in sorted(knowers.items()):
+        mine = family.partner.get(dead)
+        for x in sorted(who):
+            kin = overlay_kin(current, x, dead) or mine == x
+            level = (config.lever("grief_kin") if kin
                      else config.lever("grief_friend") if is_friend(persona.bonds.get(x, ()), dead, config) else 0)
             if level:
                 grief[x] = max(grief.get(x, 0), level)
