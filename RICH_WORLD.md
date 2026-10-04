@@ -217,7 +217,7 @@ the viewer. `partial` says what is missing.
 | P10 | Graves, belongings, aftermath, detailed death records | built and tested (focused tests only): a grave and a saved death record (tick, cell, age, cause, who was in sight, what they held, who collected it) for every death; deaths are believed only by those who saw the grave or were told; grief follows learned news; belongings are collected from the grave by kernel transfers in the dead person's name, heirs first and anybody in need after a grace period; mourning at the grave; **telling a death by conversation is rare in small worlds (3 chats in 700 ticks in the survey seed)**; no burial rites or wills |
 | P11 | Exploration, forgetting, desire paths, pathfinding audit | built and tested (focused tests only): per-person memory of which map patches were in sight and when; remembered rough ground is forgotten when its patch goes unseen for `terrain_span` ticks; curious people with spare time go and look at stale patches near home; wells seen become beliefs and are used from out of sight; walked cells wear into paths that make rough ground free to cross and attract walkers; a route audit re-derives every person's memory from where they stood. **Exploring is rare**: 0 to 6 trips in 500 to 600 ticks in the seeds surveyed, because spare time is scarce; **no rough cell was worn through in a surveyed world**; **no well was built in the surveyed rich worlds** (so well beliefs are tested on constructed scenes only) |
 | P12 | Viewer: minimap, fog, overlays, launcher, save/resume, live mode | built and tested (focused tests only): minimap with a click-to-move camera; knowledge fog for the selected person (never seen / seen before / in sight, plus what they believe, first-hand or told) re-derived from recorded positions, sky and sleep; arrows for the next recorded step and a dashed line to the destination when the decision names one; a ring where an event happened; a link that remembers the tick and the person; `python -m world.launch` starts scenes or custom worlds from a browser page, shows the viewer while the run is still being written, and resumes cut runs. **Firelight is not counted in the fog; resuming works only for the same code and only to the planned length; the live view reloads the page, so zoom and pan reset; the in-page viewer saves nothing but its URL hash** |
-| P13 | Rich-world preset, long multi-seed runs, performance, review, final report | not started |
+| P13 | Rich-world preset, long multi-seed runs, performance, review, final report | done for its scope: the rich world is a named preset (`world/presets.py`, `rich_world`) with all 17 features at their default settings and six scenes; an 8-seed survey, a one-feature-at-a-time comparison, cost measurements, old-save compatibility, browser checks of every inspector section, two independent reviews (their findings fixed or listed as limits) and the full suite are recorded in the log. **The rich world is harsh at six founders: 16 of 78 people were alive at tick 600 across eight seeds; no default was tuned** |
 
 ## Verification log
 
@@ -408,6 +408,11 @@ Entries say who ran what and when. A number here is a result of that run only.
   17 features, 20 people on 24x24: 37.0 ms (p95 73, max 103), 10.8 MB; peak memory 23 MB. A rich world costs about 1.3 times a plain one at
   six people and about twice at twenty, and writes about 2.6 times as much per tick.
 
+* **Full suite at the final commit (`31ed8a4`, tree clean): 1627 passed in 903.89s (15m04s)**, Linux, Python 3.11, run fresh by me on this
+  machine with the browser-path mapping below, nothing deselected. Earlier full-suite figures in this log (P1 to P4) were run at those
+  commits; P5 to P12 were checked with focused suites only until this run. 427 focused tests (the touched suites, the guard, the viewer
+  and launcher tests) also passed at the commit before the last documentation change.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -416,6 +421,9 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P13 (the rich-world
-preset, multi-seed surveys, performance, old-save compatibility, the full suite, a critical review and the final report). Still
-owed from earlier phases: the two-promises test, browser checks for the new inspector sections, and a cold-death survey.
+Nothing is scheduled. The record above lists what is not done: shelters that collapse out of sight are known at once; no hut, house or
+storehouse kinds; no trading of grain, tools or stone; newborns have no fields; couples and friendships are rare in small worlds; exploring
+and mourning are rare and wells are almost never built in the surveyed rich worlds; the rich world loses most of its people by tick 600;
+`family` without `aftermath` still grieves at any distance; several viewer texts hard-code values the run does not record; the live view
+resets zoom and pan; the fog ignores firelight. A run is the way to find the next piece worth building: open the launcher
+(`python -m world.launch`), start a scene, and watch.
