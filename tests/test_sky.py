@@ -274,6 +274,40 @@ def test_steady_people_carry_on_with_the_need_they_were_serving_unless_another_i
     assert decide(fresh, steady).kind == "go_shelter"                              # nothing was in progress
 
 
+def at_the_well(config, sky=CLEAR_DAY, **changes):
+    """A person standing at the well, one step from home, holding no water."""
+    base = dict(position=(3, 3), home=(3, 2), water_source=(3, 3), water_stock=3, water=0, home_built=True)
+    return view(config, sky, **{**base, **changes})
+
+
+def test_a_steady_person_who_gets_to_the_well_a_tick_early_takes_what_they_came_for():
+    steady, plain = cfg(), cfg(features=WITHOUT_STEADY)
+    early = at_the_well(steady, thirst=23)                                       # 23 + 2 reaches the thirsty line of 25 next tick
+    assert decide(early, steady).kind == "draw"
+    assert decide(at_the_well(plain, thirst=23), plain).kind != "draw"           # without it they are not yet thirsty and turn round
+    assert decide(at_the_well(steady, thirst=10), steady).kind != "draw"        # but not when it is well before the line
+
+
+def test_a_need_met_on_the_spot_counts_for_more_than_one_that_is_merely_walking_home():
+    steady, plain = cfg(), cfg(features=WITHOUT_STEADY)
+    weather = Sky("night", "rain", 4, 100)
+    came_for_water = at_the_well(steady, weather, chill=exposure(steady, weather, False), thirst=36, cold=28, doing="go_water")
+    assert decide(came_for_water, steady).kind == "draw"                          # twelve ticks of cold, twenty-two of thirst, and it is right here
+    assert decide(replace(came_for_water, doing=None), steady).kind == "go_shelter"   # not what they came for: the nearer limit wins
+    assert decide(at_the_well(plain, weather, chill=exposure(plain, weather, False), thirst=36, cold=28), plain).kind == "go_shelter"
+    dying = replace(came_for_water, cold=60)                                       # cold nearly kills: no amount of commitment outweighs it
+    assert decide(dying, steady).kind == "go_shelter"
+
+
+def test_somebody_on_an_errand_is_not_called_home_until_the_cold_is_further_past_the_line():
+    steady, plain = cfg(), cfg(features=WITHOUT_STEADY)
+    out = seen_in(steady, CLEAR_DAY, position=(8, 2), cold=20, doing="go")        # six steps from home: 20 + 6 reaches the line of 25
+    assert shelter_trip_due(replace(out, doing="rest"), steady)                    # somebody idle sets off home
+    assert not shelter_trip_due(out, steady)                                       # somebody on an errand finishes it
+    assert shelter_trip_due(replace(out, cold=28), steady)                         # until it is commitment past the line
+    assert shelter_trip_due(seen_in(plain, CLEAR_DAY, position=(8, 2), cold=20, doing="go"), plain)
+
+
 def door_dithering(run):
     """Times somebody went A, B, A between going out for something and going home for warmth."""
     kinds, count = ("go_shelter", "go", "go_water", "warm"), 0

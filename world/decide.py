@@ -322,7 +322,7 @@ def trip_due(observation: Observation, config: WorldConfig) -> bool:
 def arrived_early(observation: Observation, config: WorldConfig) -> bool:
     """At a stocked source, holding no food, not yet hungry, but within this person's own
     caution margin of being so. Only people with traits of caution above the middle ever are."""
-    margin = caution_ticks(observation.traits)
+    margin = max(caution_ticks(observation.traits), int(config.on("steady")))
     return (margin > 0 and config.plan_trips and observation.alive and observation.food == 0
             and observation.at_source and observation.source_food is not None and observation.source_food >= 1
             and observation.hunger < config.hungry_at
@@ -695,7 +695,7 @@ def water_candidates(observation: Observation, config: WorldConfig) -> tuple[str
             and not too_far_for_a_child(observation, config, observation.water_source)
             and not errand_holds(observation, config, "water")):
         found.append(GO_WATER)
-    margin = caution_ticks(observation.traits)
+    margin = max(caution_ticks(observation.traits), int(config.on("steady")))
     if (at_water and not thirsty and margin > 0 and config.plan_trips and observation.water == 0
             and observation.water_stock is not None and observation.water_stock >= 1
             and observation.thirst + config.thirst_rate * margin >= config.thirsty_at):
@@ -866,12 +866,19 @@ def _decide_needs(observation: Observation, config: WorldConfig) -> Decision:
         food_choice = _decide_food(observation, config)
         return _with(food_choice, every, postponed, notes, risk_note(observation, config, food_choice))
     serving = NEED_OF.get(observation.doing) if config.on("steady") else None      # what they were just doing
-    lean = config.lever("commitment") if serving is not None else 0
-    winner = min(calling, key=lambda ranked: ranked[0] - (lean if ranked[4] == serving else 0))
+    lean = config.lever("commitment") if config.on("steady") else 0
+    at_hand = {"water": any(a in AT_HAND for a in water), "food": any(a in AT_HAND for a in food)} if lean else {}
+
+    def counts_for(ranked: tuple) -> int:
+        """Ticks a need counts as more urgent for being what they were doing, and for being takeable right now."""
+        return (lean if ranked[4] == serving else 0) + (lean if at_hand.get(ranked[4]) else 0)
+
+    winner = min(calling, key=lambda ranked: ranked[0] - counts_for(ranked))
     _, priority, options, build, served = winner
     rejected = postponed
     if explained:
-        carried = ", which they were already doing" if served == serving else ""
+        carried = (", which they were already doing" if served == serving
+                   else ", which could be taken right there" if at_hand.get(served) else "")
         rejected += tuple(rejection(entry[4], LESS_URGENT,
                                     f"{entry[0]} ticks left, against {winner[0]} for {served}"
                                     f"{carried if winner[0] > entry[0] else ''}")
@@ -900,6 +907,7 @@ def _with(decision: Decision, candidates: tuple[str, ...], extra: tuple[tuple[st
 REST_PRIORITY = (COLLAPSE, SLEEP, GO_SLEEP)
 COMMITMENT = 8                     # ticks of extra reason needed to drop what one was just doing
 ERRAND_KINDS = frozenset({GO, CLAIM, FISH, GO_WATER, DRAW, EAT, DRINK})    # progress towards relief; waiting is not
+AT_HAND = frozenset({DRINK, DRAW, EAT, CLAIM, FISH})        # relief that can be taken this very tick
 NEED_OF = {GO_WATER: "water", DRAW: "water", WAIT_WATER: "water", DRINK: "water",         # what each decision served,
            GO: "food", CLAIM: "food", FISH: "food", WAIT: "food", EAT: "food",            # for the steady feature
            GO_SHELTER: "warmth", WARM: "warmth", FLEE: "safety"}
@@ -1018,10 +1026,12 @@ def cold_slack(observation: Observation, config: WorldConfig) -> int | float:
 def shelter_trip_due(observation: Observation, config: WorldConfig) -> bool:
     """The leave-in-time rule for warmth: away from shelter and far enough that
     setting off now reaches it as cold reaches cold_at, at the rate of the sky they are in."""
+    # somebody already out on an errand needs a little more reason to turn back for shelter (steady feature)
+    patience = config.lever("commitment") if config.on("steady") and observation.doing in ERRAND_KINDS else 0
     return (config.plan_trips and not observation.sheltered
             and observation.cold + away_rate(observation, config)
             * max(0, steps_to(observation.position, observation.home) + caution_ticks(observation.traits))
-            >= config.cold_at)
+            >= config.cold_at + patience)
 
 
 def _due_errand(observation: Observation, config: WorldConfig, need: str):

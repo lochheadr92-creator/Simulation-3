@@ -74,7 +74,11 @@ none without the sky. Three rules fixed that, and each is visible in the inspect
 * `steady`: whatever a person was serving last tick counts as 8 ticks more urgent when
   the next choice is made, so a need has to be clearly worse before they give up the
   errand. Without it people stepped out of their door and straight back in; in three
-  seeds that happened 63, 52 and 125 times, and with it 4, 11 and 9.
+  seeds that happened 63, 52 and 125 times, and with it 4, 11 and 9. A later pass added three
+  smaller rules to it: a need whose relief can be taken this tick counts for as much again,
+  somebody who reaches the well a tick early takes the water rather than turning back, and
+  somebody already out is not called home until the cold they would arrive with is a little past
+  the usual line. Across five seeds that cut the remaining door reversals from 44 to 15.
 
 Results of those eight seeds (7, 11, 14, 23, 31, 42, 57, 64) at 300 ticks, with
 explain, personality, skills and sleep on: 34 dead of 93 people without the sky, 51 of

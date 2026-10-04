@@ -109,8 +109,10 @@ Two facts about the existing code shape the work:
   finish the errand plus a margin left, sends a person to a place they believe is dangerous, and
   the decision's reason says so ("taking the risk: ...").
 * **Steadiness is its own feature.** `steady` makes what a person served last tick count
-  as `commitment` ticks more urgent in the least-slack rule. It is separate from `sky`
-  so each can be switched off and measured alone.
+  as `commitment` ticks more urgent in the least-slack rule, counts a need whose relief can be
+  taken this very tick for as much again, lets somebody who reaches a well or patch a tick early
+  take what they came for, and holds the start-for-shelter rule back while somebody is out on an
+  errand. It is separate from `sky` so each can be switched off and measured alone.
 
 ## Prior art on other branches (not part of this work)
 
@@ -197,6 +199,14 @@ Entries say who ran what and when. A number here is a result of that run only.
   in these runs: wolves cost people time, and the deaths come from need they could not meet.
   Tick time about 7.4 ms; a 300-tick file about 1.6 MB. **Full suite at the P3 commit: 1338
   passed in 658.68s (10m59s)**, run fresh from an isolated copy of the working tree.
+
+* Steadiness, second round (found while watching a world with relationships: somebody stepped
+  between a well and their door twelve ticks running): out-and-straight-back moves in seeds 7,
+  14, 31, 42 and 57 went from 4, 18, 11, 11, 9 to 3, 4, 0, 8, 0. Switching the three additions
+  off one at a time: the shelter-rule patience does most of it (24 in total with it alone), the
+  take-it-on-the-spot rule and the early draw bring it to 15. Deaths over eight seeds with and
+  without them ranged 33 to 42 of about 80 with wolves and 33 to 35 without, so no effect on
+  survival was measurable either way.
 
 ## Environment notes
 

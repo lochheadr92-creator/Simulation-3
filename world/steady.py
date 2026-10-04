@@ -17,7 +17,12 @@ STEADY = Feature(
     rule=(
         "Water, food and warmth still compete by the least time left before they kill, but the one a "
         "person was serving last tick (walking to it, taking it, or waiting at it) counts as commitment "
-        "ticks more urgent when the choice is made. A need with more than commitment fewer ticks left "
-        "still wins at once. Sleep has its own, separate, reluctance to turn back from an errand."),
+        "ticks more urgent when the choice is made, and a need whose relief can be taken this very tick "
+        "(drinking, drawing water, eating, claiming food, casting a line) counts as commitment more as well. "
+        "A need with more than that many fewer ticks left still wins at once. Somebody who gets to a stocked "
+        "well or food patch a tick before they are quite thirsty or hungry takes what they came for rather "
+        "than turning back, as cautious people already did, and somebody already out on an errand is not "
+        "called home by the start-for-shelter rule until the cold they would arrive with is commitment past "
+        "the usual line. Sleep has its own, separate, reluctance to turn back from an errand."),
     levers=(("commitment", 8),),
 )
