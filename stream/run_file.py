@@ -223,6 +223,24 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
             for held in (produced.get("holdings") or {}).values():
                 held[born] = 0
             continue
+        if "spoiled" in entry:
+            actor, item, units = entry.get("spoiled"), entry.get("item"), entry.get("amount")
+            held = (produced.get("holdings") or {}).get(item) if isinstance(item, str) else None
+            if (set(entry) != {"spoiled", "item", "amount"} or held is None or actor not in held
+                    or type(units) is not int or not 0 < units <= held[actor]):
+                raise RunFileError(f"spoilage needs a person, an item they hold and no more than they hold, got {entry!r}")
+            held[actor] -= units
+            produced["consumed_by"][item] += units
+            continue
+        if "rotted" in entry:
+            source_id, units = entry.get("rotted"), entry.get("amount")
+            source = sources.get(source_id) if isinstance(source_id, str) else None
+            if (set(entry) != {"rotted", "amount"} or source is None or "resource" not in source
+                    or type(units) is not int or not 0 < units <= source["stock"]):
+                raise RunFileError(f"rot needs a named-resource source and no more than stands in it, got {entry!r}")
+            source["stock"] -= units
+            produced["consumed_by"][source["resource"]] += units
+            continue
         if "made" in entry:
             actor, item, units = entry.get("made"), entry.get("item"), entry.get("amount")
             held = (produced.get("holdings") or {}).get(item) if isinstance(item, str) else None

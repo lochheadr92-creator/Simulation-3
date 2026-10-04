@@ -85,6 +85,7 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
                            WEATHER, rejection)
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
+from world.farming import FARM_KINDS, GO_FIELD, GRAIN, HARVEST, PLANT, TEND
 from world.crafting import CRAFT, GATHER_STONE, GO_STONE, RECIPES, WAIT_STONE, build_saves
 from world.pledges import GO_HELP, HELP, RESOURCES
 from world.society import CHAT, CONFRONT, GO_VISIT, bond_with, find, grudge_of, is_friend, resents, trust_in
@@ -558,6 +559,11 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
 
 def decide(observation: Observation, config: WorldConfig) -> Decision:
     choice = _decide(observation, config)
+    if (config.on("farming") and observation.alive and observation.grain >= 1 and observation.hunger >= config.hungry_at
+            and choice.kind in (EAT, GO, YIELD, WAIT, ASK, CLAIM, FISH)):
+        # hungry with grain in hand: eat it before setting out, since grain is what spoils
+        choice = Decision(observation.actor, EAT, f"hungry, holding {observation.grain} grain: eating a unit of it",
+                          choice.candidates + ((EAT,) if EAT not in choice.candidates else ()), amount=1, resource=GRAIN)
     if choice.kind == CHAT:
         # a quiet word: what they know of wolves seen lately, and where they live, with the dates they were first seen
         news = sorted(((b[4], b[1], b[2], b[3]) for b in observation.beliefs if b[0] == "wolf"
@@ -675,6 +681,10 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    if config.on("farming"):
+        worked = _farm(observation, config, choice)
+        if worked is not None:
+            return worked
     if config.on("crafting"):
         made = _craft(observation, config, choice)
         if made is not None:
@@ -906,6 +916,36 @@ def _asks(observation: Observation, config: WorldConfig, choice: Decision) -> tu
     return ()
 
 
+def _farm(observation: Observation, config: WorldConfig, choice: Decision) -> Decision | None:
+    """Plant, tend or harvest their own field, when free and with their own needs far enough off."""
+    if (not observation.alive or observation.asleep or observation.storm or observation.plot is None
+            or is_child(observation, config) or choice.kind not in (HOME, REST)):
+        return None
+    x, y, state, soil, cared, grown = observation.plot
+    cell = (x, y)
+    away = steps_to(observation.position, cell)
+    if (own_slack(observation, config) <= away + config.lever("farm_margin")
+            or _promise_hold(observation, config, cell) is not None):
+        return None
+    actor, stock = observation.actor, observation.field_stock or 0
+    if state == 2 and stock >= 1:
+        job, why = HARVEST, f"my crop is ripe with {stock} grain standing"
+    elif state == 1 and cared < config.lever("tend_max"):
+        job, why = TEND, f"my crop is growing (tended {cared} of {config.lever('tend_max')})"
+    elif state == 0 and observation.grain >= 1 and soil >= config.lever("min_soil"):
+        job, why = PLANT, f"my field is bare with soil {soil} and I have grain to sow"
+    else:
+        return None
+    if observation.position != cell:
+        return Decision(actor, GO_FIELD, f"{why}; walking {away} steps to it", choice.candidates + (GO_FIELD,),
+                        step=route_step(observation, cell, config))
+    verb = {HARVEST: "harvesting", TEND: "tending", PLANT: "planting a unit of grain in"}[job]
+    return Decision(actor, job, f"{why}; {verb} it", choice.candidates + (job,),
+                    amount=stock if job == HARVEST else 1 if job == PLANT else 0,
+                    target=observation.field_id if job == HARVEST else None,
+                    resource=GRAIN if job == PLANT else None)
+
+
 MATERIAL_TRIPS = frozenset({GO_WOOD, GATHER_WOOD, WAIT_WOOD, GO_STONE, GATHER_STONE, WAIT_STONE})
 
 
@@ -916,6 +956,8 @@ def _wanted_tool(observation: Observation, config: WorldConfig) -> str | None:
         return "axe"
     if "basket" not in held:
         return "basket"
+    if config.on("farming") and "hoe" not in held:
+        return "hoe"
     if "pick" not in held:
         return "pick"
     if "axe" not in held:

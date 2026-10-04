@@ -23,7 +23,7 @@ from world.belief import check_belief
 from world.feature import Feature
 from world.rest import COLLAPSE, SLEEP, WORK_KINDS, rest_rate
 from world.society import check_bond
-from world.traits import BUILDING, CRAFTING, FISHING, GATHERING, SKILL_STEPS, SKILLS, TRAITS
+from world.traits import BUILDING, CRAFTING, FARMING, FISHING, GATHERING, SKILL_STEPS, SKILLS, TRAITS
 
 if TYPE_CHECKING:
     from world.config import WorldConfig
@@ -340,6 +340,8 @@ def advance_persona(previous: "Overlay", current: "Overlay", decisions: Mapping[
                 gained[BUILDING] += 1                   # a hand at somebody's shelter counts as practice
             elif decision.kind == "fish":
                 gained[FISHING] += 1
+            elif decision.kind in ("plant", "tend", "harvest") and (decision.kind == "tend" or any(o.accepted for o in mine)):
+                gained[FARMING] += 1
             elif decision.kind == "craft" and mine and all(o.accepted for o in mine):
                 gained[CRAFTING] += 1
             elif decision.kind in ("claim", "gather_wood", "gather_stone") and any(

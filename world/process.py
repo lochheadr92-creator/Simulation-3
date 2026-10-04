@@ -49,6 +49,7 @@ from world.observe import in_view
 
 from world.config import WATER, WorldConfig, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE_RENEWAL, STONE_RENEWAL_EVERY, STONE_STOCK, apply_crafting
+from world.farming import GRAIN, advance_farming
 from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.foraging import remember_empty, update_reports
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, wood_cost
@@ -149,6 +150,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         raise ValueError("settled ledger and overlay are not one tick apart")
     eaten = units_eaten(record)
     drunk = units_drunk(record)
+    grain_eaten = _consumed(record, sink_account(GRAIN)) if config.on("farming") else {}
     positions = dict(overlay.positions)
     hunger = dict(overlay.hunger)
     thirst = dict(overlay.thirst)
@@ -209,7 +211,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         # shelter slows a need, it never suspends one: a living person always gets
         # hungrier and thirstier, or a roof would be immortality.
         hunger[actor] = max(0, hunger[actor] + eased(config.hunger_rate, relief)
-                            - config.satiation * eaten.get(actor, 0))
+                            - config.satiation * eaten.get(actor, 0)
+                            - (config.lever("grain_satiation") * grain_eaten.get(actor, 0) if grain_eaten else 0))
         if config.water_on:
             thirst[actor] = max(0, thirst[actor] + eased(config.thirst_rate, relief)
                                 - config.quench * drunk.get(actor, 0))
@@ -281,7 +284,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.features:
         next_overlay = replace(next_overlay, persona=advance_persona(overlay, next_overlay, decisions, record, config))
     if config.on("wolves"):
-        next_overlay = replace(next_overlay, things=Things(wolves=wolves),
+        next_overlay = replace(next_overlay, things=replace(next_overlay.things, wolves=wolves),
                                persona=replace(next_overlay.persona, hurt=hurt))
     grievances: list[tuple[str, str, str]] = []
     if config.on("pledges"):
@@ -311,6 +314,10 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.on("crafting"):
         ledger, made = apply_crafting(ledger, decisions, record, config)
         production.extend(made)
+    if config.on("farming"):
+        plots, ledger, grew = advance_farming(overlay, next_overlay, decisions, record, ledger, config)
+        next_overlay = replace(next_overlay, things=replace(next_overlay.things, plots=plots))
+        production.extend(grew)
     if config.homes_on:
         next_overlay, ledger, created = apply_housing(next_overlay, ledger, decisions, config, record.rotated_roster, overlay)
         production.extend(created)

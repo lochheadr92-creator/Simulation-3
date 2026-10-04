@@ -41,6 +41,8 @@ from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_CO
 from world.foraging import EMPTY_SOURCE_TICKS
 from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.crafting import STONE, STONE_STOCK, TOOLS
+from world.farming import GRAIN, Plot, field_id
+from world.things import Things
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
                            SEASON_TICKS, SEASONS, season_at, seasonal_growth)
@@ -284,7 +286,8 @@ class WorldConfig:
 
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
         return (self.food_positions() + self.water_positions()
-                + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self) + stone_sites(self)))
+                + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self) + stone_sites(self))
+                + tuple(pos for _, pos in field_sites(self)))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -401,6 +404,8 @@ class WorldConfig:
                 "of work_per_wood building ticks. A refused payment gives no work. Wood stays in the named "
                 "consumption sink after use; interrupted work is kept. Groves renew independently of food "
                 "and seasons, up to their cap. No wood trading, storage, skills or salvage is added.")
+        if self.on("farming"):
+            out["fields"] = [{"owner": owner, "id": field_id(owner), "position": list(pos)} for owner, pos in field_sites(self)]
         if self.on("crafting"):
             out["stone_sources"] = [{"id": sid, "position": list(pos)} for sid, pos in stone_sites(self)]
         if self.relocation_on:
@@ -955,6 +960,27 @@ def stone_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
 
 
 @lru_cache(maxsize=None)
+def field_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """Each founder's field: the nearest clear cell to their home, by distance, then row, then column."""
+    if not config.on("farming"):
+        return ()
+    rough, spots = config.terrain()
+    homes = homes_for(config)
+    taken = (set(homes.values()) | set(config.food_positions() + config.water_positions()) | set(rough) | set(spots)
+             | {pos for _, pos in wood_sites(config) + fishing_sites(config) + stone_sites(config)})
+    out = []
+    for owner in sorted(homes):
+        home = homes[owner]
+        free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
+        if not free:
+            break
+        cell = min(free, key=lambda p: (abs(p[0] - home[0]) + abs(p[1] - home[1]), p[1], p[0]))
+        taken.add(cell)
+        out.append((owner, cell))
+    return tuple(out)
+
+
+@lru_cache(maxsize=None)
 def fishing_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
     """Use a clear bank cell near the west edge without moving existing landmarks."""
     if not config.fishing_on:
@@ -988,6 +1014,11 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
                         for sid,_ in wood_sites(config)})
         water.setdefault("holdings", {})[WOOD] = {actor: 0 for actor in actors}
         water.setdefault("consumed_by", {})[WOOD] = 0
+    if config.on("farming"):
+        sources.update({field_id(owner): Source(stock=0, authorised=frozenset(actors), resource=GRAIN)
+                        for owner, _ in field_sites(config)})
+        water.setdefault("holdings", {})[GRAIN] = {actor: config.lever("starting_grain") for actor in actors}
+        water.setdefault("consumed_by", {})[GRAIN] = 0
     if config.on("crafting"):
         sources.update({sid: Source(stock=STONE_STOCK, authorised=frozenset(actors), resource=STONE)
                         for sid, _ in stone_sites(config)})
@@ -1016,5 +1047,6 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         age={actor: config.adult_at for actor in actors} if config.childhood_on else {},
         persona=genesis_persona(config, actors) if config.features else Persona(),
         sky=sky_at(config, 0) if config.on("sky") else None,
+        things=Things(plots=tuple(Plot(owner, x, y) for owner, (x, y) in field_sites(config))) if config.on("farming") else Things(),
     )
     return ledger, overlay

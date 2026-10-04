@@ -41,6 +41,7 @@ from world.observe import Observation, observe
 from world.overlay import Overlay
 
 from world.crafting import CRAFT, GATHER_STONE, RECIPES, STONE
+from world.farming import GRAIN, HARVEST, PLANT
 from world.pledges import RESOURCES
 from world.process import Processed, advance
 from world.registry import FEATURES, LEVER_DEFAULTS
@@ -95,7 +96,11 @@ def proposals_for(decisions: dict[str, Decision], tick: int, overlay: Overlay | 
         if decision.kind == OFFER and decision.keeping and decision.action:
             out.append(complete(pid, actor, 0, action_id=decision.action))     # hand over what a promise holds
         elif decision.kind == EAT:
-            out.append(consume(pid, actor, 0, amount=decision.amount))
+            out.append(consume(pid, actor, 0, amount=decision.amount, resource=decision.resource))
+        elif decision.kind == PLANT:
+            out.append(consume(pid, actor, 0, amount=1, resource=GRAIN))
+        elif decision.kind == HARVEST:
+            out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=GRAIN))
         elif decision.kind == CLAIM:
             out.append(claim(pid, actor, 0, sources={decision.target or FOOD_SOURCE: decision.amount}))
         elif decision.kind in (OFFER, HOST):

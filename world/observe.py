@@ -57,6 +57,7 @@ from kernel.state import actor_account, source_account
 
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE, tools_held
+from world.farming import GRAIN, STATES, plot_of
 from world.storage import food_expectation
 from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
@@ -188,6 +189,10 @@ class Observation:
     stone_source: Position | None = None
     stone_stock: int | None = None
     tools: tuple[str, ...] = ()                          # tools they carry
+    grain: int = 0                                       # own grain in hand (farming feature)
+    plot: tuple[int, ...] | None = None                  # their field if in sight: x, y, state index, soil, cared, grown
+    field_stock: int | None = None                       # grain standing in it, if in sight
+    field_id: str | None = None
     pledge_requests: tuple[tuple[Any, ...], ...] = ()    # asked of them, asker in sight: asker, kind, amount, x, y (pledges feature)
     pledge_owed: tuple[tuple[Any, ...], ...] = ()        # promised by them: id, kind, asker, amount, x, y, due, held, action, arrived, done
     pledge_asked: tuple[tuple[Any, ...], ...] = ()       # asked by them: id, kind, helper, asked or promised (once heard), made, due
@@ -360,6 +365,12 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+    if config.on("farming"):
+        mine = plot_of(overlay.things.plots, actor)
+        wood_view["grain"] = available[actor_account(actor, GRAIN)]
+        if mine is not None and in_view(origin, mine.cell, radius):
+            wood_view.update({"plot": (mine.x, mine.y, STATES.index(mine.state), mine.soil, mine.cared, mine.grown),
+                              "field_stock": available[source_account(mine.source)], "field_id": mine.source})
     if config.on("crafting"):
         sid, site, stock = target_source(origin, stone_sites(config), radius, available)
         wood_view.update({"stone": available[actor_account(actor, STONE)], "stone_source_id": sid, "stone_source": site,

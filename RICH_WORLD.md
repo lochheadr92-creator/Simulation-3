@@ -146,6 +146,11 @@ Two facts about the existing code shape the work:
   makings. An axe saves two building ticks (never below four), a basket adds two to a food claim, a pick lets a stone
   claim take a whole recipe's worth instead of one.
 
+* **Fields are plots plus a kernel source.** `world/farming.py`: each founder's field is an empty source of grain and a
+  plot in `things`. A seed is spent by a kernel consume; growth, rot and spoilage are recorded production entries
+  (`{"source","amount"}`, `{"rotted"}`, `{"spoiled"}`) that `apply_production` accepts and the audit accounts for: rot and spoilage move
+  units into a named sink, so totals never change by accident. Grain is eaten before berries since it is what spoils.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -171,7 +176,7 @@ the viewer. `partial` says what is missing.
 | P4 | Relationships, conversations, quarrels, apologies | done for its scope (see log); quarrels need a cause the world already produces (a lost race for food, a meal withheld), so declined help and broken promises join them in P5; couples and attraction wait for P9 |
 | P5 | Generalised requests, commitments, escrow, cooperation, hosting | built and tested but not reviewed or run through the full suite: water, food, wood (hand over or fetch), building help, news, hosting; no tools or repair requests yet (P6, P8); the viewer part was checked by eye, with no browser test for it |
 | P6 | Stone, tools, crafting, hauling | built and tested (focused tests only): a quarry, axe/pick/basket/hoe made from wood and stone, effects of axe, basket and pick; the hoe waits for P7; hauling is the wood fetch from P5; no stone or tool requests yet |
-| P7 | Farming, spoilage, distinct foods | not started |
+| P7 | Farming, spoilage, distinct foods | built and tested (focused tests only): a field per founder, planting, tending, harvest, soil wear, rot, grain as a second food, spoilage; newborns have no field yet (P9); no grain requests or trading |
 | P8 | Building kinds, upkeep, fire, constructed wells | not started |
 | P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | not started |
 | P10 | Graves, belongings, aftermath, detailed death records | not started |

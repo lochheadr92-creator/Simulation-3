@@ -5,6 +5,7 @@ from __future__ import annotations
 from world.belief import BELIEFS
 from world.crafting import CRAFTING
 from world.explain import EXPLAIN
+from world.farming import FARMING
 from world.feature import Feature
 from world.persona import PERSONALITY, SKILLS_FEATURE
 from world.pledges import PLEDGES
@@ -15,7 +16,7 @@ from world.steady import STEADY
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    BELIEFS, CRAFTING, EXPLAIN, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, WOLVES,
+    BELIEFS, CRAFTING, EXPLAIN, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -83,6 +84,11 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
                             "retry_after and grievance_gap of at least 1")
         if not v("chat_at") <= v("lonely_at") < v("lonely_max") or v("grudge_gain") > v("grudge_at") or v("believe_at") > 100:
             problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
+    if "farming" in features:
+        if min(v("grow_ticks"), v("base_yield"), v("tend_max"), v("fallow_every"), v("rot_after"), v("spoil_every"),
+               v("grain_satiation")) < 1 or v("min_soil") > 100:
+            problems.append("farming needs grow_ticks, base_yield, tend_max, fallow_every, rot_after, spoil_every and "
+                            "grain_satiation of at least 1, and min_soil of 100 or less")
     if "crafting" in features:
         if min(v("stone_hand"), v("stone_pack")) < 1 or v("stone_hand") > v("stone_pack") or v("axe_saves") < 1:
             problems.append("crafting needs stone_hand of at least 1 up to stone_pack, and axe_saves of at least 1")
