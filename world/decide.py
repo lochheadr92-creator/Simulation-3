@@ -86,12 +86,13 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
 from world.aftermath import COLLECT, GO_GRAVE, MOURN
+from world.ground import EXPLORE, patch_centre, patch_grid
 from world.structures import DIG, LIGHT, REPAIR
 from world.farming import FARM_KINDS, GO_FIELD, GRAIN, HARVEST, PLANT, TEND
 from world.crafting import CRAFT, GATHER_STONE, GO_STONE, RECIPES, WAIT_STONE, build_saves
 from world.pledges import GO_HELP, HELP, RESOURCES
 from world.society import CHAT, CONFRONT, GO_VISIT, bond_with, find, grudge_of, is_friend, resents, trust_in
-from world.traits import DILIGENCE, SOCIABILITY, trait_lean
+from world.traits import CURIOSITY, DILIGENCE, SOCIABILITY, trait_lean
 from world.wolves import FLEE, manhattan
 
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
@@ -201,8 +202,21 @@ def step_toward(origin: Position, target: Position) -> Position:
 
 
 def route_step(observation: Observation, target: Position, config: WorldConfig) -> Position:
-    """The next step selected by the existing personal route search."""
-    return _route_plan(observation, target, config)[0]
+    """The next step selected by the existing personal route search. With paths on, between two equally near steps
+    somebody takes the worn one they can see."""
+    step = _route_plan(observation, target, config)[0]
+    if not observation.worn_in_view or step in observation.worn_in_view or observation.danger:
+        return step
+    origin = observation.position
+    left = steps_to(origin, target)
+    if steps_to(step, target) != left - 1:
+        return step                                     # a detour round rough ground: not a choice between equals
+    x, y = origin
+    for cell in sorted(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))):
+        if (cell in observation.worn_in_view and 0 <= cell[0] < config.width and 0 <= cell[1] < config.height
+                and steps_to(cell, target) == left - 1 and not too_far_for_a_child(observation, config, cell)):
+            return cell
+    return step
 
 
 def _route_plan(observation: Observation, target: Position, config: WorldConfig) -> tuple[Position, int]:
@@ -234,7 +248,7 @@ def _route_plan(observation: Observation, target: Position, config: WorldConfig)
         return _danger_plan(observation, target, config, straight)
     if not observation.rough_in_view:
         return straight, steps_to(origin, target)
-    radius, rough = config.perception_radius, observation.rough_in_view
+    radius, rough = config.perception_radius, observation.rough_in_view - observation.worn_in_view
     seen_limit = radius
     remembered_limit = max([chebyshev_steps(origin, target), seen_limit]
                            + [chebyshev_steps(origin, cell) for cell in rough])
@@ -288,7 +302,7 @@ def _danger_plan(observation: Observation, target: Position, config: WorldConfig
     they believe a wolf is near it. The whole map is searched so that a step taken now is the first step of
     the same cheapest way next tick (a search that judged only a window of the map changed its mind with every
     step); ground they know nothing of counts as open. Ties go to the plain step."""
-    origin, rough, danger = observation.position, observation.rough_in_view, observation.danger
+    origin, rough, danger = observation.position, observation.rough_in_view - observation.worn_in_view, observation.danger
     price = config.lever("danger_cost")
     x, y = origin
     first_moves = [cell for cell in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1))]
@@ -709,6 +723,10 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
         talk = _social(observation, config, choice)
         if talk is not None:
             return talk
+    if config.on("exploration") and not grieving:
+        looked = _explore(observation, config, choice)
+        if looked is not None:
+            return looked
     if config.provisioning_on and choice.kind in (REST, HOME):
         return _provision_decision(observation, config, choice)
     return choice
@@ -1040,6 +1058,32 @@ def _grave(observation: Observation, config: WorldConfig, choice: Decision) -> D
         if mourn:
             return Decision(actor, MOURN, f"standing at {dead}'s grave, grieving", choice.candidates + (MOURN,))
     return None
+
+
+def _explore(observation: Observation, config: WorldConfig, choice: Decision) -> Decision | None:
+    """A curious person with nothing pressing walks to the nearest patch near home they have not had in sight for long."""
+    if (not observation.alive or observation.asleep or observation.storm or observation.night or observation.danger
+            or is_child(observation, config) or choice.kind not in (HOME, REST) or not observation.traits
+            or observation.traits[CURIOSITY] < config.lever("explore_from")
+            or (config.on("family") and observation.grief >= config.lever("grief_at"))):
+        return None
+    seen = dict(observation.ground)
+    across, down, _ = patch_grid(config)
+    roam, stale = config.lever("roam"), config.lever("stale_after")
+    options = []
+    for index in range(across * down):
+        centre = patch_centre(index, config)
+        away = steps_to(observation.position, centre)
+        if away and steps_to(observation.home, centre) <= roam and observation.tick - seen.get(index, -stale - 1) >= stale:
+            options.append((away, index, centre))
+    if not options:
+        return None
+    away, _, centre = min(options)
+    if own_slack(observation, config) <= 2 * away + config.lever("explore_margin") \
+            or _promise_hold(observation, config, centre) is not None:
+        return None
+    return Decision(observation.actor, EXPLORE, f"curious: walking {away} steps to see ground I have not seen for a long time",
+                    choice.candidates + (EXPLORE,), step=route_step(observation, centre, config))
 
 
 MATERIAL_TRIPS = frozenset({GO_WOOD, GATHER_WOOD, WAIT_WOOD, GO_STONE, GATHER_STONE, WAIT_STONE})

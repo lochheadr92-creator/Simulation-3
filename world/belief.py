@@ -20,13 +20,13 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 Belief = tuple[str, str, int, int, int, int, str]     # kind, subject, x, y, seen, learned, via
-KINDS = ("wolf", "home", "death")                                     # what can be believed; each phase that adds a thing adds a kind
+KINDS = ("wolf", "home", "death", "well")                                     # what can be believed; each phase that adds a thing adds a kind
 
 BELIEFS = Feature(
     name="beliefs",
     summary="People remember what they have seen and been told, with its age and who said so, and forget it in time.",
     rule=(
-        "A belief is a kind of thing (a wolf, or somebody's home), which one, the cell it was at, the tick it was seen, "
+        "A belief is a kind of thing (a wolf, somebody's home, a grave or a well), which one, the cell it was at, the tick it was seen, "
         "the tick this person learned of it and who told them (nobody for their own sighting). Somebody "
         "who sees a wolf believes it; somebody told about one believes it with the original sighting tick, "
         "so repeating a rumour never makes it fresher. For the same thing the later sighting replaces the "
@@ -114,6 +114,8 @@ def advance_beliefs(previous: Any, current: Any, decisions: Any, observations: A
                         for wolf, cell in (view.wolves_seen if view is not None else ()))
         sighted += tuple(("death", dead, x, y, tick, seen_at, "")
                          for dead, x, y, tick, _, _ in (getattr(view, "graves", ()) if view is not None else ()))
+        sighted += tuple(("well", owner, x, y, seen_at, seen_at, "")
+                         for owner, x, y in (getattr(view, "wells_seen", ()) if view is not None else ()))
         filed = file_beliefs(previous.persona.beliefs.get(actor, ()), sighted + tuple(told.get(actor, ())),
                              current.tick, config)
         if filed:

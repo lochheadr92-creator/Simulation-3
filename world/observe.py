@@ -59,6 +59,8 @@ from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_si
 from world.crafting import STONE, tools_held
 from world.aftermath import heirs
 from world.farming import GRAIN, STATES, plot_of
+from world.ground import patches_in_view
+from world.paths import worn
 from world.structures import find as find_struct, lit_cells, well_id
 from world.config import well_sites
 from world.storage import food_expectation
@@ -209,6 +211,10 @@ class Observation:
     pledge_requests: tuple[tuple[Any, ...], ...] = ()    # asked of them, asker in sight: asker, kind, amount, x, y (pledges feature)
     pledge_owed: tuple[tuple[Any, ...], ...] = ()        # promised by them: id, kind, asker, amount, x, y, due, held, action, arrived, done
     pledge_asked: tuple[tuple[Any, ...], ...] = ()       # asked by them: id, kind, helper, asked or promised (once heard), made, due
+    ground: tuple[tuple[int, int], ...] = ()             # patches they have seen and when, last (exploration feature)
+    patches_seen_now: frozenset[int] = frozenset()       # patches with any cell in sight this tick
+    worn_in_view: frozenset[Position] = frozenset()      # paths in sight (paths feature)
+    wells_seen: tuple[tuple[Any, ...], ...] = ()         # finished wells in sight: owner, x, y (exploration with structures)
 
     @property
     def storm(self) -> bool:
@@ -395,6 +401,13 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         believed = {b[1] for b in overlay.persona.beliefs.get(actor, ()) if b[0] == "death"}      # only deaths they know of
         wood_view["kin_dead"] = frozenset(d.person for d in overlay.things.deaths
                                           if d.person in believed and actor in heirs(overlay, d))
+    if config.on("exploration"):
+        wood_view.update({"ground": overlay.ground.seen.get(actor, ()), "patches_seen_now": patches_in_view(origin, radius, config)})
+        if config.on("structures"):
+            wood_view["wells_seen"] = tuple(sorted((s.owner, s.x, s.y) for s in overlay.things.structures
+                                                   if s.kind == "well" and s.b and in_view(origin, s.cell, radius)))
+    if config.on("paths"):
+        wood_view["worn_in_view"] = frozenset(cell for cell in worn(overlay.things.paths, config) if in_view(origin, cell, radius))
     if config.on("family"):
         wood_view.update({"partner": overlay.family.partner.get(actor), "grief": overlay.family.grief.get(actor, 0),
                           "elder": overlay.age.get(actor, 0) >= config.lever("elder_at")})
@@ -546,8 +559,14 @@ def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldCon
     known = tuple(zip(config.water_source_ids(), config.water_positions()))
     if config.on("structures"):
         # a well somebody dug is not a landmark: it is used once it has been seen
-        known += tuple((well_id(s.owner), s.cell) for s in overlay.things.structures
-                       if s.kind == "well" and s.b and in_view(origin, s.cell, radius))
+        wells = {s.owner: s.cell for s in overlay.things.structures if s.kind == "well" and s.b}
+        if config.on("exploration"):
+            # and once seen it is remembered: believed wells are used from out of sight, and one in sight that is dry is not
+            held = {b[1]: (b[2], b[3]) for b in overlay.persona.beliefs.get(actor, ()) if b[0] == "well"}
+            known += tuple((well_id(owner), cell) for owner, cell in sorted({**held, **{o: c for o, c in wells.items() if in_view(origin, c, radius)}}.items())
+                           if not (in_view(origin, cell, radius) and available[source_account(well_id(owner))] == 0))
+        else:
+            known += tuple((well_id(owner), cell) for owner, cell in wells.items() if in_view(origin, cell, radius))
     chosen_id, well, stock = target_source(origin, known, radius, available)
     return {
         "thirst": overlay.thirst[actor],

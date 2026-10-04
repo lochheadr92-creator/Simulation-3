@@ -23,8 +23,14 @@ class Things:
     plots: tuple[Plot, ...] = ()
     structures: tuple[Struct, ...] = ()
     deaths: tuple[Death, ...] = ()
+    paths: tuple[tuple[int, int, int], ...] = ()      # worn cells: x, y, wear, in order
 
     def __post_init__(self) -> None:
+        if (not isinstance(self.paths, tuple) or any(not isinstance(p, tuple) or len(p) != 3 or any(type(n) is not int for n in p)
+                                                    or p[0] < 0 or p[1] < 0 or p[2] < 1 for p in self.paths)):
+            raise ValueError("paths must be a tuple of (x, y, wear) with wear of at least 1")
+        if list(self.paths) != sorted(set(self.paths)) or len({(x, y) for x, y, _ in self.paths}) != len(self.paths):
+            raise ValueError("paths must be in order, one entry to a cell")
         if not isinstance(self.deaths, tuple) or any(not isinstance(d, Death) for d in self.deaths):
             raise ValueError("deaths must be a tuple of Death")
         if len({d.person for d in self.deaths}) != len(self.deaths):
@@ -54,7 +60,7 @@ class Things:
                 raise ValueError(f"the grave of {s.owner!r} does not match when they died")
 
     def __bool__(self) -> bool:
-        return bool(self.wolves or self.plots or self.structures or self.deaths)
+        return bool(self.wolves or self.plots or self.structures or self.deaths or self.paths)
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {}
@@ -66,13 +72,16 @@ class Things:
             out["structures"] = [s.canonical() for s in self.structures]
         if self.deaths:
             out["deaths"] = [d.canonical() for d in self.deaths]
+        if self.paths:
+            out["paths"] = [list(p) for p in self.paths]
         return out
 
     @classmethod
     def from_canonical(cls, data: Mapping[str, Any]) -> "Things":
-        if not isinstance(data, Mapping) or set(data) - {"wolves", "plots", "structures", "deaths"}:
-            raise ValueError("a canonical block of things holds wolves, plots, structures and deaths only")
+        if not isinstance(data, Mapping) or set(data) - {"wolves", "plots", "structures", "deaths", "paths"}:
+            raise ValueError("a canonical block of things holds wolves, plots, structures, deaths and paths only")
         return cls(wolves=tuple(Wolf.from_canonical(w) for w in data.get("wolves", ())),
                    plots=tuple(Plot.from_canonical(p) for p in data.get("plots", ())),
                    structures=tuple(Struct.from_canonical(s) for s in data.get("structures", ())),
-                   deaths=tuple(Death.from_canonical(d) for d in data.get("deaths", ())))
+                   deaths=tuple(Death.from_canonical(d) for d in data.get("deaths", ())),
+                   paths=tuple(tuple(p) if isinstance(p, (list, tuple)) else p for p in data.get("paths", ())))

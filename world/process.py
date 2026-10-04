@@ -50,6 +50,8 @@ from world.observe import in_view
 from world.config import WATER, WorldConfig, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE_RENEWAL, STONE_RENEWAL_EVERY, STONE_STOCK, apply_crafting
 from world.aftermath import advance_aftermath
+from world.ground import refresh_ground
+from world.paths import advance_paths, worn
 from world.family import advance_family, lifespan
 from world.farming import GRAIN, advance_farming
 from world.structures import advance_structures, burning, lit_cells
@@ -191,6 +193,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         for actor, view in observations.items():
             if actor in terrain_memory:
                 terrain_memory[actor].update(view.rough_seen_now)
+    ground = refresh_ground(overlay, observations or {}, terrain_memory, config) if config.on("exploration") else overlay.ground
+    paths_now = worn(overlay.things.paths, config) if config.on("paths") else frozenset()
     died_at = dict(overlay.died_at)
     died: list[str] = []
     for actor in overlay.roster:
@@ -203,7 +207,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             held[actor] = owed - 1
         elif decision is not None and decision.step is not None:
             positions[actor] = decision.step
-            if decision.step in rough:
+            if decision.step in rough and decision.step not in paths_now:     # worn through: no climb
                 held[actor] = 1 + storm_hold(overlay.sky)       # a storm makes the climb out cost an extra tick
             if config.on("wolves") and overlay.persona.hurt.get(actor, 0) >= config.lever("limp_at"):
                 held[actor] = max(held[actor], 1)               # a limp: the next step waits a tick
@@ -294,7 +298,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            food_memory=remember_food(overlay, record) if config.social_memory_on else overlay.food_memory,
                            died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
                            shelters=tuple(sorted(shelters)),
-                           age=age,
+                           age=age, ground=ground,
                            terrain_memory={actor: tuple(sorted(cells)) for actor, cells in terrain_memory.items()
                                            if cells},
                            requests={who: asked for who, asked in requests.items()
@@ -309,6 +313,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.on("wolves"):
         next_overlay = replace(next_overlay, things=replace(next_overlay.things, wolves=wolves),
                                persona=replace(next_overlay.persona, hurt=hurt))
+    if config.on("paths"):
+        next_overlay = replace(next_overlay, things=replace(next_overlay.things, paths=advance_paths(overlay, positions, config)))
     grievances: list[tuple[str, str, str]] = []
     if config.on("pledges"):
         pledges, asks, grievances = advance_pledges(overlay, decisions, observations or {}, record, positions,

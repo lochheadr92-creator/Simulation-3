@@ -9,6 +9,8 @@ from world.explain import EXPLAIN
 from world.family import FAMILY
 from world.farming import FARMING
 from world.feature import Feature
+from world.ground import EXPLORATION
+from world.paths import PATHS
 from world.persona import PERSONALITY, SKILLS_FEATURE
 from world.pledges import PLEDGES
 from world.rest import SLEEP_FEATURE
@@ -19,7 +21,7 @@ from world.structures import STRUCTURES
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    AFTERMATH, BELIEFS, CRAFTING, EXPLAIN, FAMILY, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
+    AFTERMATH, BELIEFS, CRAFTING, EXPLAIN, EXPLORATION, FAMILY, FARMING, PATHS, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -89,6 +91,12 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
             problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
     if "aftermath" in features and min(v("grave_range"), v("heir_grace"), v("grave_margin")) < 1:
         problems.append("aftermath needs grave_range, heir_grace and grave_margin of at least 1")
+    if "exploration" in features:
+        if min(v("patch"), v("terrain_span"), v("roam"), v("stale_after")) < 1 or v("explore_from") > 100:
+            problems.append("exploration needs patch, terrain_span, roam and stale_after of at least 1, and explore_from of 100 or less")
+    if "paths" in features:
+        if min(v("wear_gain"), v("recover_every"), v("worn_at")) < 1 or v("wear_cap") < v("worn_at"):
+            problems.append("paths need wear_gain, recover_every and worn_at of at least 1, and wear_cap of worn_at or more")
     if "family" in features:
         if min(v("gestation"), v("pop_cap"), v("pregnant_hunger"), v("grief_fade"), v("arrive_every"), v("elder_at"),
                v("old_age_at")) < 1 or not 1 <= v("couple_at") <= 100 or v("couple_trust") > 100:

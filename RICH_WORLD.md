@@ -170,6 +170,15 @@ Two facts about the existing code shape the work:
   person's name, so the audit sees ordinary moves. Without the aftermath feature, family grief still reaches everybody who
   loved the dead person at the moment of death, as before; with it, grief needs learned news.
 
+* **What people know of the ground is stored per person and checkable from where they stood.** `world/ground.py` keeps, for each
+  person, the last tick any cell of each 3x3 patch was in sight; the rough cells a person remembers (the existing
+  `terrain_memory`) are dropped once their patch has gone unseen for `terrain_span` ticks, and with exploration on that is the only writer.
+  `world/paths.py` stores wear per cell in `things.paths`; a path that was rough ground costs no extra tick, but a person who
+  remembers the cell as rough still plans round it until they see it again. The new observation fields (`ground`,
+  `patches_seen_now`, `worn_in_view`, `wells_seen`) are all built from what is in sight or remembered. The test
+  `test_a_saved_world_audits_replays_and_what_people_know_of_the_ground_follows_from_where_they_stood` re-derives every
+  person's remembered rough cells, patch dates and the whole wear table from recorded positions and sky alone.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -199,7 +208,7 @@ the viewer. `partial` says what is missing.
 | P8 | Building kinds, upkeep, fire, constructed wells | built and tested (focused tests only): shelters wear, are mended (neighbours may help) or collapse; fires burn wood, warm, light and keep wolves off; wells are dug and give water by recorded production and are used once seen; **no hut, house or storehouse kinds**; a finished well is forgotten out of sight (no belief of it yet, P11) |
 | P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | built and tested (focused tests only): couples from talk and a shared bond, pregnancy with a fixed gestation, births only from pregnancies, elders, lifespans, old-age death, orphans taken in, grief, travellers when few are left, explicit population limits; **couples are rare in small worlds at the default bond level**, so the rich-world preset will set it lower; no marriage rites, no inheritance (P10) |
 | P10 | Graves, belongings, aftermath, detailed death records | built and tested (focused tests only): a grave and a saved death record (tick, cell, age, cause, who was in sight, what they held, who collected it) for every death; deaths are believed only by those who saw the grave or were told; grief follows learned news; belongings are collected from the grave by kernel transfers in the dead person's name, heirs first and anybody in need after a grace period; mourning at the grave; **telling a death by conversation is rare in small worlds (3 chats in 700 ticks in the survey seed)**; no burial rites or wills |
-| P11 | Exploration, forgetting, desire paths, pathfinding audit | not started |
+| P11 | Exploration, forgetting, desire paths, pathfinding audit | built and tested (focused tests only): per-person memory of which map patches were in sight and when; remembered rough ground is forgotten when its patch goes unseen for `terrain_span` ticks; curious people with spare time go and look at stale patches near home; wells seen become beliefs and are used from out of sight; walked cells wear into paths that make rough ground free to cross and attract walkers; a route audit re-derives every person's memory from where they stood. **Exploring is rare**: 0 to 6 trips in 500 to 600 ticks in the seeds surveyed, because spare time is scarce; **no rough cell was worn through in a surveyed world**; **no well was built in the surveyed rich worlds** (so well beliefs are tested on constructed scenes only) |
 | P12 | Viewer: minimap, fog, overlays, launcher, save/resume, live mode | not started |
 | P13 | Rich-world preset, long multi-seed runs, performance, review, final report | not started |
 
@@ -315,6 +324,17 @@ Entries say who ran what and when. A number here is a result of that run only.
   disabled-mode guard pass (280 passed in 190s before the last small changes; family, aftermath and the guard rerun: 59
   passed). **The full suite has not been run on P6 to P10.**
 
+* P11: `tests/test_exploration.py` 25 passed (storage and strict validation, patch geometry, rough ground known only from
+  sight and memory with a counterfactual out-of-sight cell, forgetting after exactly `terrain_span` ticks, curiosity and each
+  reason not to explore, wear arithmetic, rough ground worn through costing no tick, the worn tie-break, a worn cell still
+  looking rough to somebody who remembers it, wells believed and used from afar, a whole saved world re-derived from
+  positions). Ten mutations (no forgetting, worn cells still costing a tick, no tie-break, worn cells still rough in the plan,
+  an omniscient rough map, a wider patch window, an uncapped wear, exploring at night, dry wells in sight still chosen, no well
+  beliefs) were each caught; two survived the first version of the tests (the wear cap and the dry-well rule) because the scenes
+  did not reach them, and the scenes were changed so they do. Neighbouring suites and the disabled-mode guard pass (272 passed
+  in 209s). Survey (5 seeds, 600 ticks, everything on): explore trips 0, 0, 1, 2, 0; saved runs about a third larger than
+  without the two features. **The full suite has not been run on P6 to P11.**
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -323,6 +343,6 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P11 (what people know of the map, forgetting, desire paths, a pathfinding audit), then P12 (the viewer) and P13 (the rich-world
+P12 (the viewer) and P13 (the rich-world
 preset, multi-seed surveys, performance, old-save compatibility, the full suite, a critical review and the final report). Still
 owed from earlier phases: the two-promises test, browser checks for the new inspector sections, and a cold-death survey.
