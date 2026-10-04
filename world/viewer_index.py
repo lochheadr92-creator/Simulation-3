@@ -255,6 +255,8 @@ def build_index(run: Any) -> dict[str, Any]:
                 add(k, "build", "supply_strain", f"{actor} returned from a costly supply outing; home strain is now {strain}", who=actor)
         outcomes: dict[str, dict[str, Any]] = {}
         for outcome in (tick.get("record") or {}).get("outcomes", []):
+            if outcome.get("operation") in ("reserve", "cancel"):
+                continue                    # a promise holding or returning units is not what the decision did
             outcomes.setdefault(outcome.get("actor"), outcome)
         positions = world.get("positions", {})
         died_at, died_before = world.get("died_at", {}), before.get("died_at", {})
@@ -410,6 +412,13 @@ def build_index(run: Any) -> dict[str, Any]:
                 else:
                     add(k, "water", "refused_water",
                         f"{actor} tried to hand {who_} water, but it was refused: "
+                        f"{_plain_refusal(outcome.get('reason', ''))}", who=actor, other=target)
+            elif kind == "offer" and target and outcome is not None and decision.get("resource") == "wood":
+                if outcome.get("accepted"):
+                    add(k, "wood", "gave_wood", f"{actor} handed {target} a unit of wood", who=actor, other=target)
+                else:
+                    add(k, "wood", "refused_wood",
+                        f"{actor} tried to hand {target} wood, but it was refused: "
                         f"{_plain_refusal(outcome.get('reason', ''))}", who=actor, other=target)
             elif kind == "offer" and target and outcome is not None:
                 dependent = (actor in (parent_of.get(target), second_parent_of.get(target)) and adult_at is not None

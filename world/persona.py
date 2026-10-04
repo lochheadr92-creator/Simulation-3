@@ -334,6 +334,10 @@ def advance_persona(previous: "Overlay", current: "Overlay", decisions: Mapping[
             gained = [0] * len(SKILLS)
             if decision.kind == "build" and current.built.get(actor, 0) > previous.built.get(actor, 0):
                 gained[BUILDING] += 1
+            elif decision.kind == "help" and any(
+                    p.id == getattr(decision, "keeping", None)
+                    and current.built.get(p.asker, 0) - previous.built.get(p.asker, 0) >= 2 for p in previous.pledges.open):
+                gained[BUILDING] += 1                   # a hand at somebody's shelter counts as practice
             elif decision.kind == "fish":
                 gained[FISHING] += 1
             elif decision.kind in ("claim", "gather_wood") and any(

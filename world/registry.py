@@ -6,6 +6,7 @@ from world.belief import BELIEFS
 from world.explain import EXPLAIN
 from world.feature import Feature
 from world.persona import PERSONALITY, SKILLS_FEATURE
+from world.pledges import PLEDGES
 from world.rest import SLEEP_FEATURE
 from world.sky import SKY_FEATURE
 from world.society import SOCIETY
@@ -13,7 +14,7 @@ from world.steady import STEADY
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    BELIEFS, EXPLAIN, PERSONALITY, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, WOLVES,
+    BELIEFS, EXPLAIN, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -81,6 +82,11 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
                             "retry_after and grievance_gap of at least 1")
         if not v("chat_at") <= v("lonely_at") < v("lonely_max") or v("grudge_gain") > v("grudge_at") or v("believe_at") > 100:
             problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
+    if "pledges" in features:
+        if min(v("ask_wait"), v("promise_span"), v("place_wait"), v("ask_again"), v("help_range"), v("build_ask")) < 1:
+            problems.append("pledges need ask_wait, promise_span, place_wait, ask_again, help_range and build_ask of at least 1")
+        if v("accept_trust") > 100 or v("ask_wait") > v("promise_span"):
+            problems.append("pledges need accept_trust of 100 or less and ask_wait of promise_span or less")
     if "wolves" in features:
         if min(v("wolves"), v("wolf_arrival"), v("wolf_sense"), v("bite"), v("heal_every"), v("alarm")) < 1:
             problems.append("wolves need wolves, wolf_arrival, wolf_sense, bite, heal_every and alarm of at least 1")

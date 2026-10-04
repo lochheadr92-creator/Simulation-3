@@ -59,6 +59,7 @@ from world.ecology import food_growth, recover_patches, season_at, seasonal_grow
 from world.housing import apply_housing, update_experience
 from world.belief import advance_beliefs
 from world.persona import advance_persona, born as persona_born, remember_attempt
+from world.pledges import advance_pledges, help_credit
 from world.sky import exposure, sight, sky_at, storm_hold
 from world.society import advance_society
 from world.things import Things
@@ -166,6 +167,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             if any(e.account == actor_account(recipient) and e.delta > 0 for e in outcome.effects):
                 promises.pop(outcome.actor, None)
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
+    credited: dict[str, int] = {}                 # pledge -> ticks of work a helper added to somebody's shelter
     wood_spent = _consumed(record, sink_account(WOOD)) if config.wood_on else {}
     age = {actor: overlay.age.get(actor, 0) for actor in overlay.roster} if config.childhood_on else {}
     terrain_memory = {actor: set(overlay.terrain_memory.get(actor, ())) for actor in overlay.roster}
@@ -191,8 +193,13 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 held[actor] = max(held[actor], 1)               # a limp: the next step waits a tick
         if (decision is not None and decision.kind == BUILD
                 and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
+            goal = build_goal(config.build_ticks, overlay.persona.skills.get(actor, ()))
+            helped = help_credit(overlay, decisions, actor, built[actor], goal, config) if config.on("pledges") else None
             built[actor] += 1                           # interrupted work is never lost
-            if built[actor] >= build_goal(config.build_ticks, overlay.persona.skills.get(actor, ())):
+            if helped is not None:
+                built[actor] += 1                       # somebody at the door lends a hand on the same tick
+                credited[helped] = 1
+            if built[actor] >= goal:
                 shelters.add(overlay.homes[actor])      # permanent, and it shelters whoever stands there
         under = positions[actor]
         relief = config.shelter_relief if under in shelter_spots or under in shelters else 0
@@ -273,8 +280,17 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.on("wolves"):
         next_overlay = replace(next_overlay, things=Things(wolves=wolves),
                                persona=replace(next_overlay.persona, hurt=hurt))
+    grievances: list[tuple[str, str, str]] = []
+    if config.on("pledges"):
+        pledges, asks, grievances = advance_pledges(overlay, decisions, observations or {}, record, positions,
+                                                    set(died_at) - set(overlay.died_at), credited, shelters, config)
+        tried = dict(next_overlay.persona.tried)
+        for actor, kind, target, when, ok in asks:
+            remember_attempt(tried, actor, (kind, target, when, ok))
+        next_overlay = replace(next_overlay, pledges=pledges, persona=replace(next_overlay.persona, tried=tried))
     if config.on("bonds"):
-        bonds, lonely, talking, failed = advance_society(overlay, next_overlay, decisions, observations or {}, record, config)
+        bonds, lonely, talking, failed = advance_society(overlay, next_overlay, decisions, observations or {}, record, config,
+                                                         grievances)
         tried = dict(next_overlay.persona.tried)
         for actor, kind, target, when, ok in failed:
             remember_attempt(tried, actor, (kind, target, when, ok))

@@ -85,8 +85,9 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
                            WEATHER, rejection)
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
-from world.society import CHAT, CONFRONT, GO_VISIT, bond_with, find, grudge_of, is_friend, resents
-from world.traits import SOCIABILITY, trait_lean
+from world.pledges import GO_HELP, HELP, RESOURCES
+from world.society import CHAT, CONFRONT, GO_VISIT, bond_with, find, grudge_of, is_friend, resents, trust_in
+from world.traits import DILIGENCE, SOCIABILITY, trait_lean
 from world.wolves import FLEE, manhattan
 
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
@@ -95,6 +96,7 @@ EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
 BUILD = "build"
 DEPOSIT = "deposit"
 OFFER, GO_OFFER = "offer", "go_offer"
+HOST = "host"                  # a host hands a friend at their door a meal (pledges feature)
 ASK, AGREE = "ask", "agree"
 LEG5_PRIORITY = (EAT, CLAIM, FISH, WAIT, YIELD, ASK, GO, AGREE, OFFER, GO_OFFER, HOME, BUILD, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
@@ -127,6 +129,11 @@ class Decision:
     confronted: tuple[str, ...] = ()     # people they told they were angry with them (speech costs no tick)
     told_to: tuple[str, ...] = ()        # people called to, who hear what is told (speech costs no tick)
     told: tuple[tuple[str, str, int, int, int], ...] = ()   # what is told: kind, subject, x, y, tick first seen
+    asked: tuple[tuple[str, str, int], ...] = ()      # who they asked for what and how much (speech costs no tick)
+    answered: tuple[tuple[str, str, str, str, int], ...] = ()   # request answered: asker, kind, yes or no, reason, units held back
+    keeping: str | None = None           # the promise this tick's action serves
+    gave_up: str | None = None           # a promise they broke because their own need could not wait
+    action: str | None = None            # the kernel reservation that promise holds
 
     def canonical(self) -> dict[str, Any]:
         out: dict[str, Any] = {"kind": self.kind, "reason": self.reason, "candidates": list(self.candidates)}
@@ -141,6 +148,16 @@ class Decision:
         if self.told_to:
             out["told_to"] = list(self.told_to)
             out["told"] = [list(entry) for entry in self.told]
+        if self.asked:
+            out["asked"] = [list(entry) for entry in self.asked]
+        if self.answered:
+            out["answered"] = [list(entry) for entry in self.answered]
+        if self.keeping is not None:
+            out["keeping"] = self.keeping
+        if self.gave_up is not None:
+            out["gave_up"] = self.gave_up
+        if self.action is not None:
+            out["action"] = self.action
         if self.scores is not None:
             out["scores"] = {action: list(pair) for action, pair in self.scores}
         if self.target is not None:
@@ -412,11 +429,21 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
         starving = [seen for seen in starving if seen.actor in observation.dependents
                     or (social and is_friend(observation.bonds, seen.actor, config))]
     if not starving:
-        return None
+        return _guest_to_feed(observation, config)
     remembered = dict(observation.food_memory) if config.social_memory_on else {}
     return min(starving, key=lambda seen: (social and not is_friend(observation.bonds, seen.actor, config),
                                          seen.actor not in remembered,
                                          steps_to(observation.position, seen.position), seen.actor)).actor
+
+
+def _guest_to_feed(observation: Observation, config: WorldConfig) -> str | None:
+    """A host with food to spare at home feeds somebody they know at their door who is carrying none."""
+    if not (config.on("pledges") and observation.at_home and observation.food >= config.lever("host_at")):
+        return None
+    guests = [seen for seen in observation.others if seen.food < 1 and not seen.asleep
+              and steps_to(observation.position, seen.position) <= 1
+              and bond_with(observation.bonds, seen.actor) >= 1 and not resents(observation.bonds, seen.actor, config)]
+    return min(guests, key=lambda seen: (steps_to(observation.position, seen.position), seen.actor)).actor if guests else None
 
 
 def someone_to_ask(observation: Observation, config: WorldConfig) -> str | None:
@@ -563,6 +590,8 @@ def decide(observation: Observation, config: WorldConfig) -> Decision:
         if fresh and listeners:
             choice = replace(choice, told_to=listeners, told=tuple(
                 ("wolf", wolf, cell[0], cell[1], observation.tick) for wolf, cell in fresh))
+    if config.on("pledges") and observation.alive and choice.kind != DEAD:
+        choice = _pledges(observation, config, choice)
     if config.on("explain") and observation.alive and observation.traits and choice.kind in (HOME, REST, BUILD):
         # Free to help, somebody visibly starving, and only their own temperament said no.
         wanted = someone_to_help(replace(observation, traits=()), config)
@@ -652,6 +681,224 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
     if config.provisioning_on and choice.kind in (REST, HOME):
         return _provision_decision(observation, config, choice)
     return choice
+
+
+PRESSING = frozenset({EAT, DRINK, CLAIM, DRAW, FISH, WARM, SLEEP, COLLAPSE, FLEE})   # serving their own need this very tick
+
+
+def _pledges(observation: Observation, config: WorldConfig, choice: Decision) -> Decision:
+    """Answer what was asked of them, keep a promise, and ask for help.
+
+    Asking and answering are speech and cost no tick. Keeping a promise is an errand: it replaces what
+    they would otherwise do unless that serves a need right now, or the need left would not outlast
+    the walk."""
+    actor = observation.actor
+    speech = dict(greeted=choice.greeted, confronted=choice.confronted, told_to=choice.told_to, told=choice.told,
+                  rejected=choice.rejected)
+    busy = choice.kind in (FLEE, COLLAPSE, SLEEP)
+    speaking = bool(choice.told_to)                    # already telling somebody something this tick
+    owed = observation.pledge_owed
+    answered: list[tuple[str, str, str, str, int]] = []
+    ranked = sorted(observation.pledge_requests, key=lambda r: (
+        not is_friend(observation.bonds, r[0], config), steps_to(observation.position, (r[3], r[4])), r[0]))
+    for request in ranked:
+        if request[1] == "news" and speaking:
+            verdict, reason, held = "no", "busy", 0
+        else:
+            verdict, reason, held = _answer(observation, config, request, busy or bool(owed))
+        answered.append((request[0], request[1], verdict, reason, held))
+        if verdict == "yes" and request[1] == "news":
+            speaking = True
+            news = sorted(((b[4], b[1], b[2], b[3]) for b in observation.beliefs if b[0] == "wolf"
+                           and observation.tick - b[4] < config.lever("news_after")), reverse=True)
+            told = tuple(("wolf", subject, x, y, seen) for seen, subject, x, y in news[:config.lever("told_per_chat")])
+            choice = replace(choice, told_to=(request[0],), told=told)
+        elif verdict == "yes":
+            owed = owed + ((),)                                  # one promise at a time, this tick too
+    kept = None
+    if observation.pledge_owed:
+        pid, kind, asker, amount, _, _, _, held, action, _, _ = observation.pledge_owed[0]
+        emergency = ((kind == "food" and observation.hunger >= config.emergency_at and observation.food == 0)
+                     or (kind == "water" and config.water_on and observation.thirst >= config.thirst_emergency_at
+                         and observation.water == 0))
+        if held and emergency:
+            kept = replace(choice, gave_up=pid, action=action,
+                           reason=choice.reason + f"; having to give up {kind} promised to {asker}: need it myself")
+        elif choice.kind not in PRESSING:
+            hold = _promise_hold(observation, config, (observation.pledge_owed[0][4], observation.pledge_owed[0][5]))
+            errand = None if hold else _keep(observation, config, choice, observation.pledge_owed[0])
+            if hold and config.on("explain"):
+                code, detail = hold
+                choice = replace(choice, rejected=choice.rejected + (rejection(
+                    "keep promise", code, f"promised {kind} to {asker}, but {detail}"),))
+                speech["rejected"] = choice.rejected
+            if errand is not None:
+                kept = replace(errand, candidates=choice.candidates + (errand.kind,) if errand.kind not in choice.candidates
+                               else choice.candidates, **speech)
+    if kept is not None:
+        choice = kept
+    asked = _asks(observation, config, choice) if kept is None else ()
+    waiting = next((entry[2] for entry in observation.pledge_asked if entry[1] == "wood"),
+                   next((helper for helper, kind, _ in asked if kind == "wood"), None))
+    if kept is None and waiting is not None and choice.kind in (GO_WOOD, GATHER_WOOD, WAIT_WOOD) and observation.at_home:
+        # they asked for wood to be brought, so they wait at home for the answer and for it, rather than going themselves
+        choice = Decision(actor, REST, f"waiting for {waiting} to bring wood for the shelter, as they were asked",
+                          choice.candidates + (REST,), **speech)
+    if answered or asked:
+        choice = replace(choice, answered=tuple(answered), asked=asked)
+    return choice
+
+
+def _answer(observation: Observation, config: WorldConfig, request: tuple[Any, ...], busy: bool) -> tuple[str, str, int]:
+    """Whether to help, as (yes or no, why, units to reserve). Only what they see and know of themselves."""
+    asker, kind, amount, px, py = request
+    place = (px, py)
+    child = asker in observation.dependents
+    friend = is_friend(observation.bonds, asker, config)
+    if busy:
+        return "no", "busy", 0
+    if not child and (resents(observation.bonds, asker, config)
+                      or trust_in(observation.bonds, asker) < config.lever("accept_trust")):
+        return "no", "no_trust", 0
+    if kind == "news":
+        fresh = any(b[0] == "wolf" and observation.tick - b[4] < config.lever("news_after") for b in observation.beliefs)
+        return ("yes", "told", 0) if fresh else ("no", "nothing_known", 0)
+    away = steps_to(observation.position, place)
+    if away > config.lever("help_range"):
+        return "no", "too_far", 0
+    if _promise_hold(observation, config, place) is not None:
+        return "no", "unfit", 0
+    if own_slack(observation, config) <= away + config.lever("help_margin"):
+        return "no", "need_it_myself", 0
+    if kind == "build":
+        if is_child(observation, config) or (observation.traits and observation.traits[DILIGENCE] < 40
+                                              and not (friend or child)):
+            return "no", "unwilling", 0
+        return "yes", "agreed", 0
+    if stingy(observation.traits) and not (friend or child):
+        return "no", "unwilling", 0
+    keep = 0 if (generous(observation.traits) or friend or child) else 1
+    have = {"food": observation.food, "water": observation.water, "wood": observation.wood}[kind]
+    if kind == "wood" and not observation.home_built and not is_child(observation, config):
+        # wood they are saving for their own shelter is not spare
+        have -= remaining_wood(observation.work_done, build_goal(config.build_ticks, observation.skills))
+    if have - keep >= amount:
+        return "yes", "agreed", amount
+    if (kind == "wood" and observation.home_built and not is_child(observation, config)
+            and observation.wood_source is not None
+            and own_slack(observation, config) > 2 * steps_to(observation.position, observation.wood_source)
+            + away + config.lever("help_margin")):
+        return "yes", "agreed", 0                               # nothing in hand, but housed, fit and free to fetch some
+    return "no", "nothing_to_spare", 0
+
+
+def _promise_hold(observation: Observation, config: WorldConfig, place: Position) -> tuple[str, str] | None:
+    """Why somebody should not set out for a place now: a storm, so much cold on the round trip that it
+    would take them past their emergency, a wolf they know of near it, or an injury. (Code, plain detail.)"""
+    away = steps_to(observation.position, place)
+    if observation.storm:
+        return WEATHER, "a storm is out"
+    if (config.warmth_on and observation.chill > 0 and observation.cold + away_rate(observation, config)
+            * (2 * away + 2 + caution_ticks(observation.traits)) > config.cold_emergency_at):
+        return WEATHER, f"the round trip of about {2 * away + 2} ticks would take their cold past its emergency"
+    if observation.danger and place in observation.danger:
+        return DANGEROUS, "a wolf they know of was lately near there"
+    if config.on("wolves") and observation.hurt >= config.lever("limp_at"):
+        return HURT, f"they are hurt ({observation.hurt}) and limping"
+    return None
+
+
+def _keep(observation: Observation, config: WorldConfig, choice: Decision, owed: tuple[Any, ...]) -> Decision | None:
+    """The errand a promise asks: carry what was promised to the asker, fetch wood for them, or go and help
+    them build. None when their own need leaves no ticks for it, or there is nothing to do yet."""
+    pid, kind, asker, amount, px, py, due, held, action, arrived, done = owed
+    actor = observation.actor
+    place = (px, py)
+    away = steps_to(observation.position, place)
+    if own_slack(observation, config) <= away + config.lever("help_margin"):
+        return None
+    seen = next((s for s in observation.others if s.actor == asker), None)
+    goal = seen.position if seen is not None else place          # them, while they are in sight, else where they said they'd be
+    if kind == "build":
+        if observation.position == place:
+            if seen is None:
+                return Decision(actor, REST, f"at {asker}'s door to help them build, but they have gone out; waiting", (),
+                                keeping=pid)
+            return Decision(actor, HELP, f"at {asker}'s door, helping them build as I promised", (), keeping=pid)
+        return Decision(actor, GO_HELP, f"walking {away} steps to {asker}'s door to help them build, as I promised", (),
+                        step=route_step(observation, place, config), keeping=pid)
+    left = amount - done
+    resource = RESOURCES[kind]
+    in_hand = held if held else (observation.wood if kind == "wood" else 0)
+    if in_hand >= left:
+        if seen is not None and steps_to(observation.position, seen.position) <= 1:
+            return Decision(actor, OFFER, f"keeping my word to {asker}: handing over {left} {kind}", (), amount=left,
+                            target=asker, resource=resource, keeping=pid, action=action or None)
+        if observation.position == goal:
+            return Decision(actor, REST, f"at {asker}'s door with their {kind}; waiting for them to come", (), keeping=pid)
+        return Decision(actor, GO_OFFER, f"carrying {asker}'s {kind} to them, {steps_to(observation.position, goal)} "
+                        "steps away, as I promised", (), step=route_step(observation, goal, config), target=asker,
+                        resource=resource, keeping=pid)
+    site = observation.wood_source
+    if kind == "wood" and site is not None:
+        stock = observation.wood_stock
+        if observation.position != site:
+            return Decision(actor, GO_WOOD, f"walking to a grove to fetch wood for {asker}, as I promised", (),
+                            target=observation.wood_source_id, step=route_step(observation, site, config), keeping=pid)
+        if stock:
+            return Decision(actor, GATHER_WOOD, f"gathering wood to take to {asker}, as I promised", (),
+                            amount=min(WOOD_PACK, left - observation.wood, stock), target=observation.wood_source_id,
+                            keeping=pid)
+        return Decision(actor, WAIT_WOOD, f"waiting at an empty grove; I promised {asker} wood", (),
+                        target=observation.wood_source_id, keeping=pid)
+    return None
+
+
+def _asks(observation: Observation, config: WorldConfig, choice: Decision) -> tuple[tuple[str, str, int], ...]:
+    """Who to ask for what: only somebody at home who is held up or short asks, and only one request at a time.
+    They ask for the first thing they want that somebody in sight could give."""
+    if (not observation.alive or observation.asleep or observation.pledge_asked or not observation.at_home
+            or observation.storm or choice.kind in (FLEE, COLLAPSE, SLEEP, DEAD)):
+        return ()                                  # in a storm nobody sets out, so there is no use asking
+    wants: list[tuple[str, int]] = []
+    news_place: Position | None = None
+    for need in (("water",) if config.water_on else ()) + ("food",):
+        holds = errand_holds(observation, config, need)
+        if holds:
+            wants.append((need, 1))
+        if config.on("wolves") and any(code == DANGEROUS for code, _ in holds) and news_place is None:
+            news_place = observation.water_source if need == "water" else observation.source
+    if news_place is not None:
+        news = wolf_news(observation, config, news_place)
+        if news is not None and news[0] >= config.lever("news_after"):
+            wants.append(("news", 1))                  # the rumour keeping them in is old: has anybody seen the wolf since?
+    if config.building_on and not observation.home_built and not is_child(observation, config):
+        remaining = build_goal(config.build_ticks, observation.skills) - observation.work_done
+        if choice.kind == BUILD and (remaining - 2) // 2 >= 2:
+            wants.append(("build", min(config.lever("build_ask"), (remaining - 2) // 2)))   # not for the last few ticks
+        elif choice.kind == GO_WOOD and config.wood_on:
+            wants.append(("wood", 1))
+    reach, again = config.lever("help_range"), config.lever("ask_again")
+    for kind, amount in wants:
+        pool = []
+        for seen in observation.others:
+            if (seen.asleep or steps_to(observation.position, seen.position) > reach
+                    or resents(observation.bonds, seen.actor, config)
+                    or _tried_lately(observation, "ask", seen.actor, again)):
+                continue
+            if kind == "water" and not (seen.water or 0) >= 1:
+                continue
+            if kind == "food" and (seen.food < 1 or seen.starving):
+                continue
+            if kind in ("build", "news", "wood") and seen.busy and (kind != "wood" or (seen.wood or 0) < 1):
+                continue
+            pool.append(seen)
+        if pool:
+            best = min(pool, key=lambda s: (not is_friend(observation.bonds, s.actor, config),
+                                            -bond_with(observation.bonds, s.actor), kind == "wood" and (s.wood or 0) < 1,
+                                            steps_to(observation.position, s.position), s.actor))
+            return ((best.actor, kind, amount),)
+    return ()
 
 
 def _tried_lately(observation: Observation, kind: str, other: str, window: int) -> bool:
@@ -1455,6 +1702,9 @@ def _decide_food(observation: Observation, config: WorldConfig) -> Decision:
             if hurt == adjacent_request(observation, config):
                 return Decision(actor, OFFER, f"{hurt} asked and is alongside; handing over one of {observation.food}",
                                 options, amount=1, target=hurt, scores=scores)
+            if config.on("pledges") and not any(seen.actor == hurt and seen.starving for seen in observation.others):
+                return Decision(actor, HOST, f"{hurt} is at my door with no food of their own; sharing a "
+                                f"meal from my {observation.food}", options, amount=1, target=hurt, scores=scores)
             return Decision(actor, OFFER, f"{hurt} is starving alongside; handing over one of {observation.food}",
                             options, amount=1, target=hurt, scores=scores)
         return Decision(actor, GO_OFFER, f"{hurt} is starving {steps_to(observation.position, where)} steps away",

@@ -31,15 +31,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from kernel import Engine, Proposal, TickRecord, WorldState, claim, consume, deposit, transfer
+from kernel import Engine, Proposal, TickRecord, WorldState, cancel, claim, complete, consume, deposit, reserve, transfer
 
 from stream.run_file import RunFileError, RunWriter, read_run
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, genesis
-from world.decide import BUILD, CLAIM, DEPOSIT, DRAW, DRINK, EAT, OFFER, Decision, decide
+from world.decide import BUILD, CLAIM, DEPOSIT, DRAW, DRINK, EAT, HOST, OFFER, Decision, decide
 from world.materials import WOOD, GATHER_WOOD
 from world.observe import Observation, observe
 from world.overlay import Overlay
 
+from world.pledges import RESOURCES
 from world.process import Processed, advance
 from world.registry import FEATURES, LEVER_DEFAULTS
 
@@ -85,16 +86,18 @@ def feature_tag(config: WorldConfig) -> str:
     return f"-{len(config.features)}features-{digest([list(config.features), [list(p) for p in config.feature_levers]])[:6]}"
 
 
-def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
+def proposals_for(decisions: dict[str, Decision], tick: int, overlay: Overlay | None = None) -> list[Proposal]:
     out: list[Proposal] = []
     for actor in sorted(decisions):
         decision = decisions[actor]
         pid = f"t{tick}-{actor}"
-        if decision.kind == EAT:
+        if decision.kind == OFFER and decision.keeping and decision.action:
+            out.append(complete(pid, actor, 0, action_id=decision.action))     # hand over what a promise holds
+        elif decision.kind == EAT:
             out.append(consume(pid, actor, 0, amount=decision.amount))
         elif decision.kind == CLAIM:
             out.append(claim(pid, actor, 0, sources={decision.target or FOOD_SOURCE: decision.amount}))
-        elif decision.kind == OFFER:
+        elif decision.kind in (OFFER, HOST):
             out.append(transfer(pid, actor, 0, to=decision.target, amount=decision.amount,
                                 resource=decision.resource))
         elif decision.kind == DEPOSIT:
@@ -108,6 +111,17 @@ def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
         elif decision.kind == BUILD and decision.amount:
             out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
+        for asker, kind, verdict, _, held in decision.answered:
+            if verdict == "yes" and held:
+                params = {"to": asker, "amount": held}
+                if RESOURCES[kind] is not None:
+                    params["resource"] = RESOURCES[kind]
+                out.append(reserve(f"{pid}-hold", actor, 1, operation="transfer", params=params))    # a promise holds the units
+        if decision.gave_up and decision.action:
+            out.append(cancel(f"{pid}-cancel", actor, 2, action_id=decision.action))
+    if overlay is not None:
+        for helper, action in overlay.pledges.release:
+            out.append(cancel(f"t{tick}-{helper}-release", helper, 3, action_id=action))   # a promise that ended gives its units back
     return out
 
 
@@ -154,7 +168,7 @@ def world_step(engine: Engine, overlay: Overlay, config: WorldConfig) -> WorldSt
     available = state.availability()
     views = {actor: observe(actor, state, overlay, config, available) for actor in overlay.living}
     decisions = {actor: decide(views[actor], config) for actor in overlay.living}
-    proposals = proposals_for(decisions, state.tick)
+    proposals = proposals_for(decisions, state.tick, overlay)
     record = engine.tick(proposals)
     committed = engine.state
     processed = advance(overlay, decisions, record, committed, config, views)

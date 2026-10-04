@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from kernel.proposals import OP_CLAIM, OP_TRANSFER
+from kernel.proposals import OP_CLAIM, OP_COMPLETE, OP_TRANSFER
 from kernel.state import actor_account
 from world.feature import Feature
 from world.traits import GENEROSITY, SOCIABILITY
@@ -27,7 +27,8 @@ Bond = tuple[str, int, int, int, int, str, int, str]     # other, bond, trust, g
 
 CHAT, GO_VISIT, CONFRONT = "chat", "go_visit", "confront"
 GRIEVANCES = {"kept_food": "kept food while I was starving", "beat_to_it": "got the food or water I was after",
-              "quarrel": "we quarrelled"}
+              "quarrel": "we quarrelled", "refused": "refused me when I was in need",
+              "broke_promise": "promised me help and did not give it"}
 TONES = ("", "greeting", "warm", "quarrel", "apology", "gift")
 NEUTRAL_TRUST = 50
 
@@ -66,7 +67,8 @@ SOCIETY = Feature(
         "saw another in view carrying two or more spare food units, who had seen them starving and was free "
         "to help, and did not offer; and somebody whose claim on a source was refused for lack of stock on "
         "the tick another person in view had a claim on it accepted. Receiving a unit of food "
-        "adds 4 to the bond and 5 to trust and takes 6 off a grudge. A grudge fades by one every "
+        "adds 4 to the bond and 5 to trust and takes 6 off a grudge, whatever it is (food, water or wood). With pledges on, a "
+        "refusal and a broken promise start a grudge in the same way. A grudge fades by one every "
         "grudge_fade ticks. Friends (bond friend_at or more) come first when somebody chooses whom to "
         "help, and a stingy person gives to a friend as readily as to their child."),
     needs=("beliefs",),
@@ -151,7 +153,9 @@ def _source_of(decision: Any) -> str:
 
 
 def advance_society(previous: Any, current: Any, decisions: Mapping[str, Any], observations: Mapping[str, Any],
-                    record: Any, config: "WorldConfig") -> tuple[dict[str, tuple[Bond, ...]], dict[str, int],
+                    record: Any, config: "WorldConfig",
+                    extra_grievances: tuple[tuple[str, str, str], ...] | list[tuple[str, str, str]] = ()
+                    ) -> tuple[dict[str, tuple[Bond, ...]], dict[str, int],
                                                                   dict[str, tuple[str, int]],
                                                                   list[tuple[str, str, str, int, int]]]:
     """Everybody's bonds, loneliness and conversation after one tick, and the attempts that came to nothing.
@@ -180,9 +184,9 @@ def advance_society(previous: Any, current: Any, decisions: Mapping[str, Any], o
                             trust=(entry[2] if entry else NEUTRAL_TRUST) - 5, bond=(entry[1] if entry else 0) - 2)
 
     # a unit handed over softens whatever the one who received it held against the giver
-    people = {actor_account(actor): actor for actor in living}
+    people = {actor_account(actor, resource): actor for actor in living for resource in (None, "water", "wood")}
     for outcome in record.outcomes:
-        if not outcome.accepted or outcome.operation != OP_TRANSFER or outcome.actor not in living:
+        if not outcome.accepted or outcome.operation not in (OP_TRANSFER, OP_COMPLETE) or outcome.actor not in living:
             continue
         for effect in outcome.effects:
             receiver = people.get(effect.account)
@@ -212,6 +216,11 @@ def advance_society(previous: Any, current: Any, decisions: Mapping[str, Any], o
         for winner in won.get(source, []):
             if winner in seen and winner in living and winner != loser:
                 grieve(loser, winner, "beat_to_it")
+
+    # a promise left broken, or a refusal to somebody in need, that the pledges recorded
+    for victim, culprit, why in extra_grievances:
+        if victim in living and culprit in living:
+            grieve(victim, culprit, why)
 
     # somebody starving who saw another carrying spare food, who had seen them starving, free, and did not offer
     for hungry in sorted(living):

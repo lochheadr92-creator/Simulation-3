@@ -943,10 +943,10 @@
       } else if (e.kind === 'unanswered') {
         g.save(); g.setLineDash([1.5, 4]); g.strokeStyle = `rgba(200,200,190,${(0.7 * (1 - 0.5 * t)).toFixed(3)})`; g.lineWidth = 1.2; arc(g, a, b, lift); g.stroke(); g.restore();
         bubble(g, a.x + 9, a.y - 10, '…', 'rgba(210,210,200,0.9)', '#2a2a24');
-      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'gave_water' || e.kind === 'fed_child') {
+      } else if (e.kind === 'delivered' || e.kind === 'gave' || e.kind === 'gave_water' || e.kind === 'gave_wood' || e.kind === 'fed_child') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(241,197,110,0.45)'; g.lineWidth = 1.2; g.stroke();
         const u = REDUCED ? 1 : t, q = along(a, b, m, u);
-        g.fillStyle = e.kind === 'gave_water' ? '#7fb3d9' : '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
+        g.fillStyle = e.kind === 'gave_water' ? '#7fb3d9' : e.kind === 'gave_wood' ? '#a9794a' : '#e8a45a'; rrect(g, q.x - 3.5, q.y - 3, 7, 6, 1.5); g.fill(); g.strokeStyle = '#6b4520'; g.lineWidth = 0.7; g.stroke();
         if (u > 0.85) { g.fillStyle = '#ffe3a3'; g.font = '700 8px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText('+1', b.x, b.y - 12 - 6 * (u - 0.85) / 0.15); }
       } else if (e.kind === 'refused') {
         const m = arc(g, a, b, lift); g.strokeStyle = 'rgba(255,148,131,0.6)'; g.lineWidth = 1.2; g.stroke();
@@ -1204,7 +1204,9 @@
     if (!present(w, p)) return `not born yet — arrives at tick ${BORN[p]}`;
     if (deadIn(w, p)) return `${DIED[p] ? DIED[p].cause : 'died'} at tick ${w.died_at[p]}`;
     if (!d) return k === 0 ? 'at the start: nothing decided yet' : 'nothing recorded this tick';
-    return (PHRASE[d.kind] || d.kind) + (d.target && !SOURCE_BY_ID[d.target] ? ` → ${d.target}` : d.target ? ` (${d.target})` : '');
+    let phrase = PHRASE[d.kind] || d.kind;
+    if (d.resource && (d.kind === 'offer' || d.kind === 'go_offer')) phrase = phrase.replace('food', d.resource);   // water and wood are given too
+    return phrase + (d.target && !SOURCE_BY_ID[d.target] ? ` → ${d.target}` : d.target ? ` (${d.target})` : '');
   }
   function updateFocusCard() {
     const card = $('focus');

@@ -44,8 +44,6 @@ def society_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str, 
                 fresh = last == k - 1
                 if was is None and tone == "greeting" and actor < other:
                     out.append(_event(k, "met", f"{actor} and {other} said hello for the first time", who=actor, other=other))
-                if was is None and tone == "greeting" and actor < other:
-                    out.append(_event(k, "met", f"{actor} and {other} said hello for the first time", who=actor, other=other))
                 if friend_at is not None and was_bond < friend_at <= bond:
                     out.append(_event(k, "friends", f"{actor} came to think of {other} as a friend", who=actor, other=other))
                 if grudge and not was_grudge:

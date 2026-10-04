@@ -61,6 +61,7 @@ from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
+from world.pledges import views as pledge_views
 from world.sky import Sky, exposure, sight
 from world.society import IDLE_LOOK
 from world.wolves import danger_cells, is_active
@@ -85,6 +86,7 @@ class SeenPerson:
     water: int | None = None  # free water units; filled in only when water care is on
     asleep: bool = False      # visibly asleep (the sleep feature)
     busy: bool = False        # visibly occupied with something else: walking somewhere, drawing, eating (bonds feature)
+    wood: int | None = None   # free wood carried; filled in only when pledges and wood are on
 
     @property
     def in_distress(self) -> bool:
@@ -98,6 +100,8 @@ class SeenPerson:
             out["parched"] = 1
         if self.water:
             out["water"] = self.water
+        if self.wood:
+            out["wood"] = self.wood
         return out
 
 
@@ -178,6 +182,9 @@ class Observation:
     bonds: tuple[tuple[Any, ...], ...] = ()              # own view of each person they have dealt with (bonds feature)
     lonely: int = 0                                      # own need for company
     talking: tuple[str, int] | None = None               # who they are talking to and since when
+    pledge_requests: tuple[tuple[Any, ...], ...] = ()    # asked of them, asker in sight: asker, kind, amount, x, y (pledges feature)
+    pledge_owed: tuple[tuple[Any, ...], ...] = ()        # promised by them: id, kind, asker, amount, x, y, due, held, action, arrived, done
+    pledge_asked: tuple[tuple[Any, ...], ...] = ()       # asked by them: id, kind, helper, asked or promised (once heard), made, due
 
     @property
     def storm(self) -> bool:
@@ -288,7 +295,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         SeenPerson(other, overlay.positions[other], available[actor_account(other)],
                    starving=overlay.hunger[other] >= config.emergency_at,
                    parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at,
-                   water=available[actor_account(other, WATER)] if config.water_care_on else None,
+                   water=available[actor_account(other, WATER)] if (config.water_care_on or config.on("pledges")) else None,
+                   wood=available[actor_account(other, WOOD)] if config.on("pledges") and config.wood_on else None,
                    asleep=other in persona.asleep,
                    busy=(config.on("bonds") and persona.doing.get(other) is not None
                          and persona.doing[other] not in IDLE_LOOK))
@@ -370,7 +378,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                if config.on("wolves") else [])
     wolves_seen = tuple((wolf.id, wolf.position) for wolf in sighted)
     beliefs = persona.beliefs.get(actor, ())
+    asked, owing, asking = (pledge_views(overlay.pledges, actor, {seen.actor for seen in others})
+                            if config.on("pledges") else ((), (), ()))
     return Observation(
+        pledge_requests=asked, pledge_owed=owing, pledge_asked=asking,
         wolves_seen=wolves_seen, beliefs=beliefs, hurt=persona.hurt.get(actor, 0),
         bonds=persona.bonds.get(actor, ()), lonely=persona.lonely.get(actor, 0), talking=persona.talking.get(actor),
         wolves_active=frozenset(wolf.id for wolf in sighted if is_active(wolf, overlay.sky)),

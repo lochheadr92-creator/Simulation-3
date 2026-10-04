@@ -225,6 +225,7 @@ class WorldConfig:
                 and 0 <= self.cold_at <= self.cold_emergency_at < self.cold_death_at),
             "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
+            "pledges_with_requests": not (self.on("pledges") and self.requests_on),   # one way of asking, not two
             "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,
             "birth_spacing": type(self.birth_spacing) is int and self.birth_spacing >= 0,

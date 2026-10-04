@@ -162,7 +162,7 @@ the viewer. `partial` says what is missing.
 | P2 | Day/night, temperature, rain, storms, exposure, planning in the weather, steadiness | done (see log); farming and fire do not use the sky yet; lighting by fire waits for P8 |
 | P3 | Belief model, wolves, danger knowledge, safety | done for wolves (see log); homes are the second believed kind (P4); no other kind of thing is believed in yet; dens are not themselves beliefs |
 | P4 | Relationships, conversations, quarrels, apologies | done for its scope (see log); quarrels need a cause the world already produces (a lost race for food, a meal withheld), so declined help and broken promises join them in P5; couples and attraction wait for P9 |
-| P5 | Generalised requests, commitments, escrow, cooperation, hosting | not started |
+| P5 | Generalised requests, commitments, escrow, cooperation, hosting | built and tested but not reviewed or run through the full suite: water, food, wood (hand over or fetch), building help, news, hosting; no tools or repair requests yet (P6, P8); the viewer part was checked by eye, with no browser test for it |
 | P6 | Stone, tools, crafting, hauling | not started |
 | P7 | Farming, spoilage, distinct foods | not started |
 | P8 | Building kinds, upkeep, fire, constructed wells | not started |
@@ -256,6 +256,16 @@ Entries say who ran what and when. A number here is a result of that run only.
   **Full suite at the P4 commit: 1383 passed in 673.73s (11m14s)**, run fresh from an isolated copy
   of the working tree that was then committed unchanged.
 
+* P5 (not committed with a full-suite run): `tests/test_pledges.py` 83 passed; with it, the disabled-mode guard
+  (16/16), society, wolves, sky, individuality and rich-viewer tests passed in the same run (264 in all) until the guard
+  caught my hosting change leaking into legacy asking runs; that was fixed and the guard and pledge tests reran green
+  (98 passed). Three saved 450-tick worlds audit clean and replay identically; recovery from a cut with a promise
+  held by the kernel gives the same run. Seven rule mutations: six were caught by a test; **one was not**: letting a
+  helper make two promises at once still passes, because the test's second request comes from somebody too far away
+  to be answered anyway. The test needs a nearer second asker. **The full suite has not been run on P5.**
+  Seen in worlds: requests for water, food, wood and building help answered, reserved, kept, declined and broken; most
+  declines in stormy worlds are `unfit`, so askers ask several people in turn.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -264,7 +274,6 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P5: generalised requests and promises for water, materials, tools, information, building help,
-repairs and hauling, with accept, decline, fail, expire and interrupt; reservations that are
-released when a promise ends or somebody dies; cooperative construction; shared meals and
-hosting. Declined help and broken promises become new causes for grudges.
+Finish P5: run the full suite, fix the two-promises test, add a browser check for the Asking and promising section,
+and look at several ordinary worlds. Then P6: stone, tools and crafting (tool and repair requests join the same
+pledge kinds), then P7 onward as in the table.
