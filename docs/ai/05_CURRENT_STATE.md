@@ -1,5 +1,14 @@
 # Current state — volatile snapshot
 
+## Rich world, P0-P1 — 2026-10-04
+
+Work is on `claude/youthful-bardeen-wc346l` (draft PR 1) from baseline `02af86b`.
+The volatile status table, verification log and next step are in
+[RICH_WORLD.md](../../RICH_WORLD.md); read that instead of this snapshot for the
+rich-world effort. Everything new is an off-by-default feature; the older
+sections below describe the baseline.
+
+
 ## Baseline consolidation — 2026-10-03
 
 Verified starting branch `codex/kernel-first-slice`, HEAD `019503c`, initially

@@ -27,11 +27,14 @@ import random
 from collections.abc import Mapping
 from functools import lru_cache
 from dataclasses import dataclass, fields
+from functools import cached_property
 from typing import Any
 
 from kernel import Source, WorldState
 
 from world.overlay import Overlay
+from world.persona import Persona, genesis_persona
+from world.registry import (FEATURES, LEVER_DEFAULTS, cross_checks, feature_problems, lever_defaults)
 from world.storage import STORE_TARGET, STORE_LOW, FOOD_EXPECT_TICKS, store_id
 from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
 from world.foraging import EMPTY_SOURCE_TICKS
@@ -146,6 +149,8 @@ class WorldConfig:
     provisioning_on: bool = False  # make food trips for a low shared home cache
     knowledge_sharing_on: bool = False  # share firsthand empty-source sightings with adjacent housemates
     coordination_on: bool = False  # briefly trust a nearby housemate's announced food trip
+    features: tuple[str, ...] = ()  # optional rich-world features, by name: see world/registry.py
+    feature_levers: tuple[tuple[str, int], ...] = ()  # settings that differ from their feature's defaults
 
     def __post_init__(self) -> None:
         # Check every scalar integer, including inactive feature settings, before
@@ -161,7 +166,22 @@ class WorldConfig:
             raise ValueError(f"world configuration requires boolean values: {', '.join(bad_booleans)}")
         if not isinstance(self.yield_set, (tuple, list)):
             raise ValueError("yield_set must be a tuple or list of positive integers")
+        try:
+            features = tuple(self.features)
+            overrides = dict(self.feature_levers)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("features must be a list of names and feature_levers name/value pairs") from exc
+        # Store only the settings that differ from their defaults, so a configuration
+        # rebuilt from its own description compares equal to the original.
+        defaults = lever_defaults(features)
+        object.__setattr__(self, "features", features)
+        object.__setattr__(self, "feature_levers", tuple(sorted(
+            ((name, value) for name, value in overrides.items() if defaults.get(name) != value),
+            key=lambda item: str(item[0]))))
         checks = {
+            "features": not feature_problems(self.features, self.feature_levers)
+                        and not cross_checks(self.features, self.feature_levers),
+            "features_with_scoring": not (self.features and self.scoring_on),   # scoring has no rich actions
             "regrowth": type(self.regrowth_on) is bool,
             "seasons": type(self.seasons_on) is bool,
             "stores": type(self.stores_on) is bool,
@@ -223,6 +243,18 @@ class WorldConfig:
     @property
     def name(self) -> str:
         return "grid-world"
+
+    def on(self, feature: str) -> bool:
+        """Whether an optional rich-world feature is switched on."""
+        return feature in self.features
+
+    @cached_property
+    def _lever_values(self) -> dict[str, int]:
+        return {**LEVER_DEFAULTS, **dict(self.feature_levers)}
+
+    def lever(self, name: str) -> int:
+        """The effective value of a feature setting: its default unless overridden."""
+        return self._lever_values[name]
 
     @property
     def source_position(self) -> tuple[int, int]:
@@ -624,6 +656,14 @@ class WorldConfig:
                                 "takes from that source, recorded as the decision's target")
             out["perception"] += ("; with several sources, every source position is a known landmark and "
                                   "seen_stock records the free stock of each source in view")
+        if self.features:
+            # Written only when something is on, so every earlier header still round-trips.
+            out["features"] = list(self.features)
+            out["feature_levers"] = {name: self.lever(name) for name in sorted(lever_defaults(self.features))}
+            out["feature_rules"] = {name: FEATURES[name].rule for name in self.features}
+            tables = {key: value for name in self.features for key, value in FEATURES[name].tables.items()}
+            if tables:
+                out["feature_tables"] = tables
         return out
 
     @classmethod
@@ -777,7 +817,14 @@ class WorldConfig:
             counts[key] = len(listed) if listed is not None else 1
         if not switches[water]:
             counts["water_sources"] = cls.__dataclass_fields__["water_sources"].default   # unused when off
+        features = described.get("features", [])
+        if not isinstance(features, list) or any(not isinstance(name, str) for name in features):
+            raise ValueError("features must be a list of names")
+        feature_levers = described.get("feature_levers", {})
+        if not isinstance(feature_levers, dict) or any(type(v) is not int for v in feature_levers.values()):
+            raise ValueError("feature_levers must map names to integers")
         config = cls(**values, birth_spacing=described.get("birth_spacing", 0),
+                     features=tuple(features), feature_levers=tuple(feature_levers.items()),
                      yield_set=tuple(yield_set), yield_on=switches[described["yield"]],
                      scoring_on=switches[described["scoring"]], plan_trips=switches[trips],
                      water_on=switches[water], warmth_on=switches[warmth],
@@ -939,5 +986,6 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
         thirst=staggered(config, config.thirsty_at) if config.water_on else {},
         cold={actor: 0 for actor in actors} if config.warmth_on else {},
         age={actor: config.adult_at for actor in actors} if config.childhood_on else {},
+        persona=genesis_persona(config, actors) if config.features else Persona(),
     )
     return ledger, overlay

@@ -1,5 +1,64 @@
 # Simulation 3 — Development Directions
 
+## People with temperaments, skills and sleep — 2026-10-04
+
+The first piece of the rich world. Three optional features, each saved in the run
+header and off by default (`--features explain,personality,skills,sleep`). With all
+of them off a run is identical to before; `tests/test_disabled_mode_baseline.py`
+checks 16 configurations against digests made from the untouched baseline commit.
+[RICH_WORLD.md](RICH_WORLD.md) holds the full inventory, phase plan and next step.
+
+**Temperament.** Everyone has five traits from 0 to 100: generosity, sociability,
+caution, diligence, curiosity. They are drawn at genesis from their own generator
+(so no home or terrain cell moves) and a newborn inherits its two birth adults'
+average with a small deterministic offset. A trait only matters as a distance from
+50. Stingy people (generosity under 35) keep their last unit from a stranger, though
+never from their own child; generous people (75 and over) hand water to somebody
+visibly parched. Cautious people set off a few ticks earlier for food, water and
+home, and go to bed earlier. Diligent people work on through more tiredness and
+keep the shared cache better stocked. Sociability and curiosity are stored but act
+only through conversation and exploration, which come later.
+
+**Skills.** Gathering, fishing, building, farming and crafting each collect practice
+points from real work: an accepted claim, a casting, a finished work tick. Levels
+begin at 0, 8, 24, 48, 80 and 120 points. Every two gathering levels add a unit to a
+pack, every two fishing levels a unit to a catch, and each building level takes a
+tick off a shelter.
+
+**Sleep.** Fatigue is a fourth need that nobody dies of directly. It rises while
+awake, faster on work ticks. A tired person goes home and sleeps for about fifteen
+ticks, waking early only when another need cannot wait. "Cannot wait" means the
+time left is no more than the time to reach the remedy and finish with it, plus a
+small margin, so distance finally enters a choice. At the limit people collapse
+where they stand and stay down. Sleepers see only their own cell; everybody else
+can see they are asleep.
+
+**Why a choice was not made.** Each decision now records the options it set aside
+with a reason: less urgent, too late, unwilling. The inspector lists them, and a
+person remembers their last four distinct attempts and whether each worked.
+
+Watching ordinary worlds (10 seeds, 300 ticks) found four faults that tests alone
+had not, each now fixed and pinned by a test:
+
+1. Cautious people arrived at the source before they were hungry, could not claim,
+   turned round, set off again, and repeated. Arriving within their own margin they
+   now stock up.
+2. A tired person turned back mid-trip to go to bed, then had to make the trip
+   again. A food or water errand that fits before collapse is now finished first,
+   and somebody already on an errand needs a few more ticks of reason to abandon it.
+3. Waiting at an empty source counted as an errand and postponed sleep until
+   collapse. Waiting is now costed as a full renewal period and gets no commitment.
+4. Collapse was one tick long, so a starving, exhausted person collapsed every
+   third tick. A collapsed person now stays down until ten points of fatigue have
+   gone, except for one life-saving bite or sip of something already in hand.
+
+What it did to the worlds: people sleep about 15-20% of the time in ordinary
+runs. Famine worlds (seeds 11, 23, 57, 88) still collapse and starve, now with
+exhaustion in the mix; no one dies of tiredness itself. Births fell in several
+boom-and-bust seeds because sleepers cannot spend settled ticks side by side, and
+rose in a few quiet ones; this is a trade-off to watch, not a tuned result.
+Files grow by about a third (a persona block each tick, plus the set-aside lists).
+
 ## Baseline consolidation — 2026-10-03
 
 The selected starting point is `019503c` on `codex/kernel-first-slice`.

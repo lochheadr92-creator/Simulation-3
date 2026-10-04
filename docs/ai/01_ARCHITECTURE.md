@@ -1,5 +1,25 @@
 # Current architecture
 
+## Scoped update — rich-world features, P0-P1 — 2026-10-04
+
+Checked against `02af86b` plus the local rich-world commits. Optional behaviour
+now arrives as named features: [registry](../../world/registry.py) collects
+[Feature](../../world/feature.py) declarations that each owning module writes
+beside its code (needs, integer settings, rule text, display tables).
+`WorldConfig.features` and `feature_levers` select them; the header gains
+`features`, `feature_levers`, `feature_rules` and `feature_tables` only when something
+is on, and `from_describe` still requires an exact round trip. Inner state lives in
+one immutable [Persona](../../world/persona.py) carried in the overlay (traits, skills,
+fatigue, sleep, recent attempts, last decision kind), validated against the roster and
+sparse in the canonical form. `process.advance` and `_births` now use `replace`, so an
+overlay field no rule names is carried forward instead of reset. [Sleep](../../world/rest.py)
+is a fourth need arbitrated by the existing least-slack rule plus a time-to-relief
+urgency test and remembered-doing hysteresis. Decisions may record set-aside options
+([explain](../../world/explain.py)). The viewer core exposes extension points and
+`viewer_<feature>.js` parts are spliced in only for runs that record the feature.
+Status and next steps live in [RICH_WORLD.md](../../RICH_WORLD.md).
+
+
 ## Scoped update — care by visible need, 2026-09-30
 
 Checked against `e34decc` plus the local caregiving-priority change.

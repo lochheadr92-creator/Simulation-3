@@ -57,6 +57,8 @@ from world.social import remember_food
 from world.storage import update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
+from world.persona import advance_persona, born as persona_born
+from world.traits import build_goal
 
 if TYPE_CHECKING:
     from world.observe import Observation
@@ -183,7 +185,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         if (decision is not None and decision.kind == BUILD
                 and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
             built[actor] += 1                           # interrupted work is never lost
-            if built[actor] >= config.build_ticks:
+            if built[actor] >= build_goal(config.build_ticks, overlay.persona.skills.get(actor, ())):
                 shelters.add(overlay.homes[actor])      # permanent, and it shelters whoever stands there
         under = positions[actor]
         relief = config.shelter_relief if under in shelter_spots or under in shelters else 0
@@ -239,6 +241,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                                      if who not in died_at and owed not in died_at
                                      and in_view(positions[who], positions[owed], config.perception_radius)})
 
+    if config.features:
+        next_overlay = replace(next_overlay, persona=advance_persona(overlay, next_overlay, decisions, record, config))
     production: list[dict[str, Any]] = []
     ledger = settled
     if config.relocation_on:
@@ -292,6 +296,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     second_parent = dict(overlay.second_parent)
     ready = {actor: overlay.birth_ready.get(actor, 0) for actor in overlay.roster}
     born: list[str] = []
+    parents: dict[str, tuple[str, str]] = {}
     roster_size = len(overlay.roster)
     for pair in sorted(counts):
         if counts[pair] < config.together_ticks:
@@ -305,6 +310,7 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
         counts[pair] = 0                               # they start counting again
         name = f"p{roster_size + len(born) + 1:02d}"
         born.append(name)
+        parents[name] = (first, second)
         ready[name] = 0
         if config.birth_spacing:
             ready[first] = ready[second] = overlay.tick + config.birth_spacing
@@ -334,8 +340,11 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     grown = replace(ledger, balances=balances, sources=sources, holdings=holdings)
     # Only the maps a newcomer must appear in are replaced; everything else the
     # overlay carries (memories, casts, trips, structures) survives a birth as it is.
+    persona = overlay.persona
+    for name in born:
+        persona = persona_born(persona, name, *parents[name], config)
     return (replace(overlay, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     thirst=thirst, cold=cold, held=held, built=built, together=counts,
-                    age=age, parent=parent, second_parent=second_parent,
+                    age=age, parent=parent, second_parent=second_parent, persona=persona,
                     birth_ready=ready if config.birth_spacing or overlay.birth_ready else {}),
             grown, born)

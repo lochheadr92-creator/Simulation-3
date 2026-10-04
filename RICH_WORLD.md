@@ -60,6 +60,32 @@ Two facts about the existing code shape the work:
   change in a saved run by an accepted outcome or a recorded production entry.
   Every new feature test runs it. Mutation tests prove it notices tampering.
 
+* **Features are a table, not a pile of switches.** `world/registry.py` collects named
+  features (each declared next to the code that implements it: needs, integer
+  settings, rule text, display tables). A configuration lists the ones that are on;
+  the header gains `features`, `feature_levers`, `feature_rules` and `feature_tables`
+  only then, and `from_describe` still insists on exact round trips. Settings equal to
+  their defaults are not stored, so a rebuilt configuration compares equal.
+* **Inner state is one sub-state.** `world/persona.py` holds traits, skills, fatigue,
+  sleep, recent attempts and "what I was doing" in one immutable `Persona` carried in
+  the overlay, validated against the roster, sparse in the canonical form.
+* **Hysteresis comes from remembered doing.** Boundary choices (errand versus bed) resist
+  flip-flopping because the person remembers what they decided last tick.
+* **Viewer features are parts.** `world/viewer.js` exposes extension points and
+  `world/viewer_<feature>.js` files are spliced in only for runs that record the
+  feature; `world/viewer_rich.py` derives their events from recorded values.
+
+## Prior art on other branches (not part of this work)
+
+Unmerged lines of work exist in this repository and were looked at, not merged:
+
+* `codex/wood-yard-stone-axe`: auto-generated commits from an older baseline adding a
+  live server with pause/step/speed, checkpoint resume, a wood yard, stone and an axe
+  held as a world possession rather than a ledger resource. Evaluate at P6 and P12.
+* `codex/remembered-contribution`: remembering witnessed household food contributions.
+* `claude/isometric-viewer`: a zip of 3D-diorama UI mockups. The existing 2D isometric
+  viewer is being extended instead; the page must stay self-contained (no network).
+
 ## Phases
 
 Status: `done` means built, tested, replay and recovery checked, and watched in
@@ -67,8 +93,8 @@ the viewer. `partial` says what is missing.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| P0 | Baseline, golden digests, ledger audit, replace-based overlay updates, this record | partial: baseline + audit + refactor done |
-| P1 | Traits, skills, fatigue and sleep | not started |
+| P0 | Baseline, golden digests, ledger audit, replace-based overlay updates, this record | done |
+| P1 | Traits, skills, fatigue and sleep | done for its scope (committed); sociability and curiosity are stored but act only once P4/P11 exist; skills farming/crafting count practice once P6/P7 exist |
 | P2 | Day/night, temperature, rain, storms, exposure | not started |
 | P3 | Belief model, wolves, danger knowledge, safety | not started |
 | P4 | Relationships, conversations, quarrels, apologies | not started |
@@ -93,6 +119,14 @@ Entries say who ran what and when. A number here is a result of that run only.
 * `tests/test_disabled_mode_baseline.py`: 16 passed on the refactored overlay code.
 * `tests/test_ledger_audit.py`: 29 passed (4 real runs audit clean; 6 tampering
   mutations are each detected).
+* P1: `tests/test_individuality.py` 41 passed (config and header round trips, strict
+  persona validation, each trait changing a real decision, sleep/wake/collapse rules,
+  fatigue and skill arithmetic against saved runs, replay, recovery from cuts that
+  contain sleepers and newborns, ledger audit); `tests/test_rich_viewer.py` 4 passed
+  (index events, spliced parts, a real browser selecting a sleeper).
+* P1 fast selection after all changes: 1216 passed, 46 deselected in 97.6s. Golden
+  guard 16/16. **Full suite at the P1 commit: 1262 passed in 605.22s (10m05s)**, run
+  fresh on this machine (the baseline's 1172 plus 90 new tests).
 
 ## Environment notes
 
@@ -102,6 +136,7 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-Phase P1, starting with the feature registry in `world/features.py` (named
-features, their integer levers and plain-English rule text, written to the run
-header only when on), then personality traits.
+P2: a recorded sky
+(day/night, temperature, rain, storms) that acts on cold, perception, travel and
+sleep. The deterministic sky is derived from the seed and tick and written into
+each tick's overlay so the viewer reads it rather than recomputing it.

@@ -1,5 +1,18 @@
 # Testing and proof limits
 
+## Rich-world checks — 2026-10-04
+
+* Disabled-mode guard: `python -B -m pytest tests/test_disabled_mode_baseline.py`
+  compares seal-free tick content digests with values made from baseline `02af86b`.
+  (Trail digests include seals, which chain from a hash of every source file, so they
+  change with any edit and prove nothing across revisions.)
+* Ledger audit: `tests/ledger_audit.py` explains every account change in a saved run.
+  Use it in any feature test that moves resources.
+* Features run with `--features a,b,c` and `--lever name=value`.
+* Browser tests need Playwright's browser build. If the installed build differs from the
+  locked Playwright's, point `PLAYWRIGHT_BROWSERS_PATH` at a directory of links to it.
+
+
 ## Baseline consolidation — 2026-10-03
 
 From starting `019503c` plus the local consolidation changes, measured on Windows

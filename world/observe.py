@@ -80,6 +80,7 @@ class SeenPerson:
     starving: bool = False    # visibly in a hunger emergency
     parched: bool = False     # visibly in a thirst emergency
     water: int | None = None  # free water units; filled in only when water care is on
+    asleep: bool = False      # visibly asleep (the sleep feature)
 
     @property
     def in_distress(self) -> bool:
@@ -157,6 +158,12 @@ class Observation:
     food_expected: tuple[str, int] | None = None
     food_expectation_end: str | None = None
     witnessed_deaths: tuple[str, ...] = ()  # expected speaker's locally witnessed death
+    traits: tuple[int, ...] = ()           # own traits, in world.traits order; empty when personality is off
+    skills: tuple[int, ...] = ()           # own practice points, in world.traits order; empty when skills are off
+    fatigue: int | None = None             # own tiredness; None when sleep is off
+    asleep: bool = False                   # was asleep at the start of the tick
+    tried: tuple[tuple[str, str, int, int], ...] = ()   # own recent attempts: kind, target, tick, 1 ok / 0 refused
+    doing: str | None = None               # the kind of what this person decided last tick
 
     @property
     def at_source(self) -> bool:
@@ -249,12 +256,16 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         available = ledger.availability()
     view = ledger.view_for(actor)
     origin = overlay.positions[actor]
-    radius = config.perception_radius
+    persona = overlay.persona
+    asleep = actor in persona.asleep
+    # A sleeper sees only their own cell; everybody else can see that they are asleep.
+    radius = 0 if asleep else config.perception_radius
     others = tuple(
         SeenPerson(other, overlay.positions[other], available[actor_account(other)],
                    starving=overlay.hunger[other] >= config.emergency_at,
                    parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at,
-                   water=available[actor_account(other, WATER)] if config.water_care_on else None)
+                   water=available[actor_account(other, WATER)] if config.water_care_on else None,
+                   asleep=other in persona.asleep)
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
@@ -387,7 +398,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                                    if overlay.alive(kid)
                                    and overlay.age.get(kid, config.adult_at) < config.adult_at)}
           if config.childhood_on else {}),
-        **_water_view(actor, origin, overlay, config, available),
+        traits=persona.traits.get(actor, ()), skills=persona.skills.get(actor, ()),
+        fatigue=persona.fatigue.get(actor), asleep=asleep, tried=persona.tried.get(actor, ()),
+        doing=persona.doing.get(actor),
+        **_water_view(actor, origin, overlay, config, available, radius),
     )
 
 
@@ -413,11 +427,11 @@ def target_source(origin: Position, known: tuple[tuple[str, Position], ...], rad
 
 
 def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldConfig,
-                available: Mapping[str, int]) -> dict[str, Any]:
+                available: Mapping[str, int], radius: int) -> dict[str, Any]:
     if not config.water_on:
         return {}
     known = tuple(zip(config.water_source_ids(), config.water_positions()))
-    well_id, well, stock = target_source(origin, known, config.perception_radius, available)
+    well_id, well, stock = target_source(origin, known, radius, available)
     return {
         "thirst": overlay.thirst[actor],
         "water": available[actor_account(actor, WATER)],

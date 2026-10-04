@@ -38,6 +38,10 @@ from world.viewer_index import build_index, food_sources, stock_at
 HERE = Path(__file__).resolve().parent
 CSS_FILE = HERE / "viewer.css"
 JS_FILE = HERE / "viewer.js"
+PARTS_MARKER = "/*@PARTS@*/"
+# Feature display code, spliced into the page where PARTS_MARKER stands. Each part guards on the
+# features the run records, so a page for an older run is unchanged.
+JS_PARTS = ("viewer_persona.js",)
 
 
 def _checkpoints(run: Run) -> dict[str, list[int]]:
@@ -158,6 +162,15 @@ def _asset(path: Path) -> str:
     return text
 
 
+def _script(scenario: dict) -> str:
+    """The page script: the core, with feature display parts spliced in when the run records features."""
+    core = _asset(JS_FILE)
+    if core.count(PARTS_MARKER) != 1:
+        raise ValueError("viewer.js must contain its splice marker exactly once")
+    parts = "\n".join(_asset(HERE / name) for name in JS_PARTS) if scenario.get("features") else ""
+    return core.replace(PARTS_MARKER, parts)
+
+
 ICONS = {
     "start": '<path d="M5 4v12M16 4l-8 6 8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
     "prev": '<path d="M13 4l-7 6 7 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -241,9 +254,11 @@ def render_html(run: Run) -> str:
     levers = ", ".join(f"{k} {v}" for k, v in scenario.items() if isinstance(v, int) and k != "seed")
     switches = [key for key in ("water", "warmth", "terrain", "building", "offers", "requests", "births",
                                 "childhood", "trips", "regrowth", "seasons", "stores", "homes", "relocation", "wood", "fishing", "source_memory", "provisioning", "coordination", "knowledge_sharing")
-                if scenario.get(key) == "on"]
+                if scenario.get(key) == "on"] + list(scenario.get("features") or [])
     rules = "".join(f"<dt>{html.escape(k)}</dt><dd>{html.escape(v)}</dd>" for k, v in scenario.items()
                     if isinstance(v, str) and len(v) > 24)
+    rules += "".join(f"<dt>feature: {html.escape(k)}</dt><dd>{html.escape(v)}</dd>"
+                     for k, v in (scenario.get("feature_rules") or {}).items())
     layers = "".join([
         "<h3>On the map</h3>",
         _layer("people", "People"), _layer("names", "Names"), _layer("needs", "Need badges"),
@@ -381,7 +396,7 @@ def render_html(run: Run) -> str:
 </details>
 <script id="run-data" type="application/json">{data}</script>
 <script id="view-index" type="application/json">{index}</script>
-<script>{_asset(JS_FILE)}</script>
+<script>{_script(scenario)}</script>
 </body></html>
 """
 

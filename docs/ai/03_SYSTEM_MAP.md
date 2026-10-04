@@ -1,5 +1,17 @@
 # System retrieval map
 
+## Rich-world additions, P0-P1 — 2026-10-04
+
+| Concept / purpose | Primary files and entry points | Tests to start with |
+| --- | --- | --- |
+| Optional features, settings, header text | [registry](../../world/registry.py), [feature](../../world/feature.py), [config](../../world/config.py): `on`, `lever`, `describe`, `from_describe` | [individuality](../../tests/test_individuality.py) (configuration section) |
+| Temperament, skills, inner state | [persona](../../world/persona.py), [traits](../../world/traits.py); decide/storage/process consume them | individuality |
+| Fatigue and sleep | [rest](../../world/rest.py); [decide](../../world/decide.py): `_decide_needs`, `rest_candidates`, `_relief_wait` | individuality |
+| Set-aside options | [explain](../../world/explain.py); `Decision.rejected` | individuality |
+| Baseline guard and ledger audit | [disabled-mode test](../../tests/test_disabled_mode_baseline.py), [ledger audit](../../tests/ledger_audit.py) | those files |
+| Viewer parts | [viewer.js](../../world/viewer.js) extension points, [viewer_persona.js](../../world/viewer_persona.js), [viewer_rich.py](../../world/viewer_rich.py) | [rich viewer](../../tests/test_rich_viewer.py) |
+
+
 ## Source snapshot
 
 - Source branch: `codex/kernel-first-slice`

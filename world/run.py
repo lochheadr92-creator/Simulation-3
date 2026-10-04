@@ -41,6 +41,7 @@ from world.observe import Observation, observe
 from world.overlay import Overlay
 
 from world.process import Processed, advance
+from world.registry import FEATURES, LEVER_DEFAULTS
 
 DEFAULT_RUNS_DIR = Path(__file__).resolve().parent.parent / "runs"
 
@@ -69,7 +70,19 @@ def run_id_for(config: WorldConfig, ticks: int) -> str:
         mode += "-care-by-need"
     if config.water_care_on:
         mode += "-water-care"
-    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
+    return f"{config.name}-seed{config.seed}-ticks{ticks}-yield{mode}" + feature_tag(config) + ("-scoringon" if config.scoring_on else "") + ("-wateron" if config.water_on else "") + ("-warmthon" if config.warmth_on else "") + ("-asking-adjacent" if config.adjacent_requests else "-asking" if config.requests_on else "") + (f"-birthspacing{config.birth_spacing}" if config.birth_spacing else "") + ("-regrowth" if config.regrowth_on else "") + ("-seasons" if config.seasons_on else "") + ("-stores" if config.stores_on else "")
+
+
+def feature_tag(config: WorldConfig) -> str:
+    """Run-id suffix for the rich-world features: their names when there are few,
+    else a count and a short digest of the names and settings, so the file name
+    stays readable and still differs for a different combination."""
+    if not config.features:
+        return ""
+    if len(config.features) <= 3 and not config.feature_levers:
+        return "-" + "+".join(config.features)
+    from kernel import digest
+    return f"-{len(config.features)}features-{digest([list(config.features), [list(p) for p in config.feature_levers]])[:6]}"
 
 
 def proposals_for(decisions: dict[str, Decision], tick: int) -> list[Proposal]:
@@ -252,6 +265,10 @@ def build_parser() -> argparse.ArgumentParser:
                              "not all reach a need on the same tick")
     parser.add_argument("--trips", choices=("on", "off"), default="on",
                         help="leave for the source in time when holding no food (default on)")
+    parser.add_argument("--features", default="", metavar="NAMES",
+                        help="comma-separated rich-world features to switch on; known: " + ", ".join(sorted(FEATURES)))
+    parser.add_argument("--lever", action="append", default=[], metavar="NAME=VALUE",
+                        help="set a rich-world feature setting; repeatable; known: " + ", ".join(sorted(LEVER_DEFAULTS)))
     parser.add_argument("--twice", action="store_true", help="Run again to a second file and compare trail digests.")
     parser.add_argument("--html", action="store_true", help="Render the map viewer next to the run file.")
     parser.add_argument("--replay", default=None, metavar="FILE",
@@ -322,6 +339,14 @@ def config_from(args: argparse.Namespace) -> WorldConfig:
     requests = args.requests if args.requests is not None else "off"
     levers["requests_on"] = requests != "off"
     levers["adjacent_requests"] = requests == "adjacent"
+    levers["features"] = tuple(sorted({name.strip() for name in args.features.split(",") if name.strip()}))
+    overrides = []
+    for item in args.lever:
+        name, _, value = item.partition("=")
+        if not value.lstrip("-").isdigit():
+            raise ValueError(f"--lever needs NAME=INTEGER, got {item!r}")
+        overrides.append((name.strip(), int(value)))
+    levers["feature_levers"] = tuple(overrides)
     water = args.water if args.water is not None else ("off" if args.scoring == "on" else "on")
     levers["water_on"] = water == "on"
     warmth = args.warmth if args.warmth is not None else ("off" if args.scoring == "on" else "on")

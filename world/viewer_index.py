@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from world.viewer_rich import rich_index
+
 # What each recorded decision kind looks like in plain words. The page uses the
 # same table, so a new kind the world grows shows up as its own name until a
 # phrase is added here.
@@ -560,6 +562,16 @@ def build_index(run: Any) -> dict[str, Any]:
         if "end" not in thread:
             thread["end"] = "still carrying at the end" if thread.get("answer") == "agreed" else "waiting at the end"
 
+    categories = [list(pair) for pair in CATEGORIES]
+    phrases, labels, moves = dict(ACTION_PHRASES), dict(ACTION_LABELS), set(MOVES)
+    extra = rich_index(run, worlds, cfg)
+    if extra is not None:
+        events = sorted(events + extra["events"], key=lambda event: event["k"])    # stable: ties keep their order
+        categories += extra["categories"]
+        phrases.update(extra["phrases"])
+        labels.update(extra["labels"])
+        moves.update(extra["moves"])
+
     return {
         "people": people,
         "born": born,
@@ -567,10 +579,10 @@ def build_index(run: Any) -> dict[str, Any]:
         "events": events,
         "threads": threads,
         "counts": counts,
-        "categories": [list(pair) for pair in CATEGORIES],
-        "phrases": ACTION_PHRASES,
-        "labels": ACTION_LABELS,
-        "moves": sorted(MOVES),
+        "categories": categories,
+        "phrases": phrases,
+        "labels": labels,
+        "moves": sorted(moves),
         "food": food,
         "water": water,
         "wood": wood,
