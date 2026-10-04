@@ -253,6 +253,8 @@ Entries say who ran what and when. A number here is a result of that run only.
   Limits seen: in small spread-out worlds (6 people) friendships rarely form; quarrels come only from
   crowded patches or withheld meals until P5; loneliness saturates at its cap in an isolated world;
   a mutual quarrel can repeat on consecutive ticks because the cooldown is per confronter.
+  **Full suite at the P4 commit: 1383 passed in 673.73s (11m14s)**, run fresh from an isolated copy
+  of the working tree that was then committed unchanged.
 
 ## Environment notes
 
