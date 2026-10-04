@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 HELP, GO_HELP = "help", "go_help"
-KINDS = ("water", "food", "wood", "build", "news")
+KINDS = ("water", "food", "wood", "build", "repair", "news")
 RESOURCES = {"food": None, "water": "water", "wood": "wood"}      # what a kind hands over, by kernel resource name
 STATES = ("asked", "promised")
 OUTCOMES = ("kept", "declined", "expired", "failed", "interrupted")
@@ -240,6 +240,18 @@ def help_credit(previous: Any, decisions: Mapping[str, Any], owner: str, built_b
     return None
 
 
+def repair_credit(previous: Any, decisions: Mapping[str, Any], owner: str) -> str | None:
+    """The promised helper who stands at the owner's door while they mend their shelter, as the pledge's id."""
+    for p in previous.pledges.open:
+        if p.kind != "repair" or p.state != "promised" or p.asker != owner:
+            continue
+        d = decisions.get(p.helper)
+        if (d is not None and d.kind == HELP and getattr(d, "keeping", None) == p.id
+                and previous.positions[p.helper] == p.place and previous.alive(p.helper)):
+            return p.id
+    return None
+
+
 def _near(a: Position, b: Position, reach: int) -> bool:
     return max(abs(a[0] - b[0]), abs(a[1] - b[1])) <= reach
 
@@ -347,11 +359,19 @@ def advance_pledges(previous: Any, decisions: Mapping[str, Any], observations: M
                     disappointed(p, "broke_promise")
                     continue
                 done += gave
-            elif p.kind == "build":
+            elif p.kind in ("build", "repair"):
                 done += credited.get(p.id, 0)
         if p.kind in RESOURCES and done >= p.amount:
             end(p, "kept", "handed_over", handed_back=True)
             continue
+        if p.kind == "repair":
+            mended = next((s.a for s in previous.things.structures if s.kind == "shelter" and s.owner == p.asker), 100)
+            if done >= p.amount or mended >= config.lever("repair_to"):
+                if done:
+                    end(p, "kept", "work_done")
+                else:
+                    end(p, "expired", "not_needed")
+                continue
         if p.kind == "build" and (done >= p.amount or previous.homes[p.asker] in sheltered):
             if done:
                 end(p, "kept", "work_done")

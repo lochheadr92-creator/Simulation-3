@@ -58,6 +58,8 @@ from kernel.state import actor_account, source_account
 from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE, tools_held
 from world.farming import GRAIN, STATES, plot_of
+from world.structures import find as find_struct, lit_cells, well_id
+from world.config import well_sites
 from world.storage import food_expectation
 from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
@@ -189,6 +191,11 @@ class Observation:
     stone_source: Position | None = None
     stone_stock: int | None = None
     tools: tuple[str, ...] = ()                          # tools they carry
+    home_condition: int | None = None                    # their shelter's condition, when it stands in sight (structures)
+    fire_fuel: int = 0                                   # ticks left in their own fire, if it is in sight
+    lit: bool = False                                    # standing near a burning fire
+    well_site: Position | None = None                    # where they would dig a well
+    well_progress: int = 0                               # ticks dug so far
     grain: int = 0                                       # own grain in hand (farming feature)
     plot: tuple[int, ...] | None = None                  # their field if in sight: x, y, state index, soil, cared, grown
     field_stock: int | None = None                       # grain standing in it, if in sight
@@ -302,6 +309,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     asleep = actor in persona.asleep
     # A sleeper sees only their own cell; everybody else can see that they are asleep.
     radius = 0 if asleep else sight(config, overlay.sky, config.perception_radius)
+    lit = config.on("structures") and origin in lit_cells(overlay.things.structures, 2)
+    if lit and not asleep and overlay.sky is not None and overlay.sky.night:
+        radius += config.lever("fire_light")                       # firelight wins back some of the dark
     others = tuple(
         SeenPerson(other, overlay.positions[other], available[actor_account(other)],
                    starving=overlay.hunger[other] >= config.emergency_at,
@@ -365,6 +375,18 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+    if config.on("structures"):
+        mine_s = overlay.things.structures
+        cell = overlay.homes[actor]
+        shelter = find_struct(mine_s, "shelter", actor)
+        fire = find_struct(mine_s, "fire", actor)
+        well = find_struct(mine_s, "well", actor)
+        site = next((pos for owner, pos in well_sites(config) if owner == actor), None)
+        wood_view.update({
+            "lit": lit, "well_site": site if not (well and well.b) else None, "well_progress": well.a if well and not well.b else 0,
+            **({"home_condition": shelter.a} if shelter is not None and in_view(origin, cell, radius) else {}),
+            **({"fire_fuel": fire.a} if fire is not None and in_view(origin, cell, radius) else {}),
+        })
     if config.on("farming"):
         mine = plot_of(overlay.things.plots, actor)
         wood_view["grain"] = available[actor_account(actor, GRAIN)]
@@ -498,11 +520,15 @@ def _water_view(actor: str, origin: Position, overlay: Overlay, config: WorldCon
     if not config.water_on:
         return {}
     known = tuple(zip(config.water_source_ids(), config.water_positions()))
-    well_id, well, stock = target_source(origin, known, radius, available)
+    if config.on("structures"):
+        # a well somebody dug is not a landmark: it is used once it has been seen
+        known += tuple((well_id(s.owner), s.cell) for s in overlay.things.structures
+                       if s.kind == "well" and s.b and in_view(origin, s.cell, radius))
+    chosen_id, well, stock = target_source(origin, known, radius, available)
     return {
         "thirst": overlay.thirst[actor],
         "water": available[actor_account(actor, WATER)],
         "water_source": well,
         "water_stock": stock,
-        "water_source_id": well_id,
+        "water_source_id": chosen_id,
     }

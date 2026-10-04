@@ -16,7 +16,8 @@ DRAWN = {"kept": "kept", "declined": "refused", "no_answer": "unanswered"}
 
 def _what(kind: str, amount: int) -> str:
     return {"water": f"{amount} water", "food": f"{amount} food", "wood": f"{amount} wood",
-            "build": f"{amount} ticks of help building", "news": "news of the wolf"}.get(kind, kind)
+            "build": f"{amount} ticks of help building", "repair": f"{amount} ticks of help mending",
+            "news": "news of the wolf"}.get(kind, kind)
 
 
 def _event(k: int, kind: str, stage: str, text: str, who: str, other: str, **extra: Any) -> dict[str, Any]:

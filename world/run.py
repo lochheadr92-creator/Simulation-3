@@ -43,6 +43,7 @@ from world.overlay import Overlay
 from world.crafting import CRAFT, GATHER_STONE, RECIPES, STONE
 from world.farming import GRAIN, HARVEST, PLANT
 from world.pledges import RESOURCES
+from world.structures import DIG, LIGHT, REPAIR
 from world.process import Processed, advance
 from world.registry import FEATURES, LEVER_DEFAULTS
 
@@ -115,6 +116,8 @@ def proposals_for(decisions: dict[str, Decision], tick: int, overlay: Overlay | 
                              resource=WATER))
         elif decision.kind == GATHER_WOOD:
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=WOOD))
+        elif decision.kind in (REPAIR, LIGHT) or (decision.kind == DIG and decision.amount):
+            out.append(consume(pid, actor, 0, amount=decision.amount, resource=WOOD))
         elif decision.kind == GATHER_STONE:
             out.append(claim(pid, actor, 0, sources={decision.target: decision.amount}, resource=STONE))
         elif decision.kind == CRAFT and decision.target in RECIPES:

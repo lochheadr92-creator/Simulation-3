@@ -18,6 +18,7 @@ from world.viewer_crafting import crafting_events
 from world.viewer_farming import farming_events
 from world.viewer_pledges import pledge_events
 from world.viewer_society import society_events
+from world.viewer_structures import structure_events
 from world.viewer_wolves import wolf_events
 
 PHRASES: dict[str, str] = {
@@ -26,14 +27,16 @@ PHRASES: dict[str, str] = {
     "help": "helping somebody build", "go_help": "going to help build", "host": "sharing a meal with a guest",
     "go_stone": "walking to the quarry", "gather_stone": "digging stone", "wait_stone": "waiting at an empty quarry",
     "craft": "making a tool", "go_field": "walking to their field", "plant": "planting", "tend": "tending a crop",
-    "harvest": "harvesting",
+    "harvest": "harvesting", "repair": "mending their shelter", "light": "lighting a fire", "dig": "digging a well",
+    "go_dig": "walking to dig a well",
 }
 LABELS: dict[str, str] = {"sleep": "sleep", "go_sleep": "go home to sleep", "collapse": "collapse", "flee": "run from a wolf",
                           "chat": "talk", "go_visit": "go and visit", "help": "help build", "go_help": "go and help",
                           "host": "feed a guest", "go_stone": "go to the quarry", "gather_stone": "dig stone",
                           "wait_stone": "wait for stone", "craft": "make a tool",
-                          "go_field": "go to the field", "plant": "plant", "tend": "tend the crop", "harvest": "harvest"}
-MOVES: tuple[str, ...] = ("go_sleep", "flee", "go_visit", "go_help", "go_stone", "go_field")
+                          "go_field": "go to the field", "plant": "plant", "tend": "tend the crop", "harvest": "harvest",
+                          "repair": "mend the shelter", "light": "light a fire", "dig": "dig a well", "go_dig": "go and dig"}
+MOVES: tuple[str, ...] = ("go_sleep", "flee", "go_visit", "go_help", "go_stone", "go_field", "go_dig")
 CATEGORIES: tuple[tuple[str, str], ...] = (("rest", "Sleep and tiredness"), ("skill", "Learning"), ("sky", "Day and weather"), ("danger", "Wolves and danger"),
               ("social", "Friends and quarrels"), ("craft", "Stone and tools"), ("farm", "Fields and crops"))
 
@@ -108,7 +111,7 @@ def _persona_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str,
 
 
 DERIVERS: tuple[Callable[[Any, list[Mapping[str, Any]], Mapping[str, Any]], list[dict[str, Any]]], ...] = (
-    _persona_events, sky_events, wolf_events, society_events, pledge_events, crafting_events, farming_events,
+    _persona_events, sky_events, wolf_events, society_events, pledge_events, crafting_events, farming_events, structure_events,
 )
 
 

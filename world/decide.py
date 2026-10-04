@@ -85,6 +85,7 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
                            WEATHER, rejection)
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
+from world.structures import DIG, LIGHT, REPAIR
 from world.farming import FARM_KINDS, GO_FIELD, GRAIN, HARVEST, PLANT, TEND
 from world.crafting import CRAFT, GATHER_STONE, GO_STONE, RECIPES, WAIT_STONE, build_saves
 from world.pledges import GO_HELP, HELP, RESOURCES
@@ -99,6 +100,7 @@ BUILD = "build"
 DEPOSIT = "deposit"
 OFFER, GO_OFFER = "offer", "go_offer"
 HOST = "host"                  # a host hands a friend at their door a meal (pledges feature)
+GO_DIG = "go_dig"              # walking to the place they will dig a well (structures feature)
 ASK, AGREE = "ask", "agree"
 LEG5_PRIORITY = (EAT, CLAIM, FISH, WAIT, YIELD, ASK, GO, AGREE, OFFER, GO_OFFER, HOME, BUILD, REST)
 DRINK, DRAW, WAIT_WATER, GO_WATER = "drink", "draw", "wait_water", "go_water"
@@ -681,6 +683,10 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    if config.on("structures"):
+        kept = _maintain(observation, config, choice)
+        if kept is not None:
+            return kept
     if config.on("farming"):
         worked = _farm(observation, config, choice)
         if worked is not None:
@@ -785,7 +791,7 @@ def _answer(observation: Observation, config: WorldConfig, request: tuple[Any, .
         return "no", "unfit", 0
     if own_slack(observation, config) <= away + config.lever("help_margin"):
         return "no", "need_it_myself", 0
-    if kind == "build":
+    if kind in ("build", "repair"):
         if is_child(observation, config) or (observation.traits and observation.traits[DILIGENCE] < 40
                                               and not (friend or child)):
             return "no", "unwilling", 0
@@ -834,7 +840,7 @@ def _keep(observation: Observation, config: WorldConfig, choice: Decision, owed:
         return None
     seen = next((s for s in observation.others if s.actor == asker), None)
     goal = seen.position if seen is not None else place          # them, while they are in sight, else where they said they'd be
-    if kind == "build":
+    if kind in ("build", "repair"):
         if observation.position == place:
             if seen is None:
                 return Decision(actor, REST, f"at {asker}'s door to help them build, but they have gone out; waiting", (),
@@ -887,6 +893,8 @@ def _asks(observation: Observation, config: WorldConfig, choice: Decision) -> tu
         news = wolf_news(observation, config, news_place)
         if news is not None and news[0] >= config.lever("news_after"):
             wants.append(("news", 1))                  # the rumour keeping them in is old: has anybody seen the wolf since?
+    if choice.kind == REPAIR and config.on("structures"):
+        wants.append(("repair", 3))
     if config.building_on and not observation.home_built and not is_child(observation, config):
         remaining = build_goal(config.build_ticks, observation.skills, build_saves(observation.tools, config)) - observation.work_done
         if choice.kind == BUILD and (remaining - 2) // 2 >= 2:
@@ -905,7 +913,7 @@ def _asks(observation: Observation, config: WorldConfig, choice: Decision) -> tu
                 continue
             if kind == "food" and (seen.food < 1 or seen.starving):
                 continue
-            if kind in ("build", "news", "wood") and seen.busy and (kind != "wood" or (seen.wood or 0) < 1):
+            if kind in ("build", "repair", "news", "wood") and seen.busy and (kind != "wood" or (seen.wood or 0) < 1):
                 continue
             pool.append(seen)
         if pool:
@@ -944,6 +952,45 @@ def _farm(observation: Observation, config: WorldConfig, choice: Decision) -> De
                     amount=stock if job == HARVEST else 1 if job == PLANT else 0,
                     target=observation.field_id if job == HARVEST else None,
                     resource=GRAIN if job == PLANT else None)
+
+
+def _maintain(observation: Observation, config: WorldConfig, choice: Decision) -> Decision | None:
+    """Keep the home up, light a fire at night, dig a well: the upkeep of what they have built."""
+    if (not observation.alive or observation.asleep or observation.storm or is_child(observation, config)
+            or choice.kind not in (HOME, REST)):
+        return None
+    actor = observation.actor
+    cond = observation.home_condition
+    if (observation.home_built and cond is not None
+            and (cond < config.lever("repair_at") or (observation.doing == REPAIR and cond < config.lever("repair_to")))):
+        if observation.at_home and observation.wood >= 1:
+            return Decision(actor, REPAIR, f"my shelter is worn (condition {cond}); mending it with a wood",
+                            choice.candidates + (REPAIR,), amount=1)
+        if observation.wood < 1 and observation.wood_source is not None:
+            fetch = _fetch_material(observation, config, choice, "wood", 1, "to mend my shelter")
+            if fetch is not None:
+                return fetch
+    night = observation.night
+    if (observation.at_home and observation.wood >= 1 and observation.fire_fuel <= 2 and night
+            and (config.on("wolves") or observation.cold >= config.cold_at // 2)):
+        return Decision(actor, LIGHT, "night; lighting a fire at home with a wood" if observation.fire_fuel == 0
+                        else "night; feeding the fire a wood", choice.candidates + (LIGHT,), amount=1)
+    site = observation.well_site
+    diligent = not observation.traits or observation.traits[DILIGENCE] >= config.lever("craft_diligence")
+    if (site is not None and observation.home_built and diligent and config.water_on
+            and (observation.well_progress > 0 or observation.wood >= config.lever("well_wood"))):
+        away = steps_to(observation.position, site)
+        if own_slack(observation, config) > away + config.lever("repair_margin") and _promise_hold(observation, config, site) is None:
+            if observation.position != site:
+                return Decision(actor, GO_DIG, f"going {away} steps to dig a well by my home", choice.candidates + (GO_DIG,),
+                                step=route_step(observation, site, config))
+            return Decision(actor, DIG, f"digging my well ({observation.well_progress} of {config.lever('well_ticks')} ticks)",
+                            choice.candidates + (DIG,), amount=config.lever("well_wood") if observation.well_progress == 0 else 0)
+    if (site is not None and observation.home_built and diligent and config.water_on and observation.well_progress == 0
+            and observation.wood < config.lever("well_wood") and observation.wood_source is not None):
+        return _fetch_material(observation, config, choice, "wood", config.lever("well_wood") - observation.wood,
+                               "for a well")
+    return None
 
 
 MATERIAL_TRIPS = frozenset({GO_WOOD, GATHER_WOOD, WAIT_WOOD, GO_STONE, GATHER_STONE, WAIT_STONE})
@@ -992,6 +1039,14 @@ def _craft(observation: Observation, config: WorldConfig, choice: Decision) -> D
         return Decision(actor, CRAFT, f"free and at home, making {'an' if tool[0] in 'aeiou' else 'a'} {tool} from {parts}",
                         choice.candidates + (CRAFT,), target=tool)
     resource, need = missing[0]
+    return _fetch_material(observation, config, choice, resource, need,
+                           f"for {'an' if tool[0] in 'aeiou' else 'a'} {tool}")
+
+
+def _fetch_material(observation: Observation, config: WorldConfig, choice: Decision, resource: str, need: int,
+                    why: str) -> Decision | None:
+    """Walk to the grove or quarry, gather a pack and wait there if it is empty, when the trip leaves their own needs room."""
+    actor = observation.actor
     site, stock = ((observation.wood_source, observation.wood_stock) if resource == "wood"
                    else (observation.stone_source, observation.stone_stock))
     if site is None:
@@ -1001,7 +1056,6 @@ def _craft(observation: Observation, config: WorldConfig, choice: Decision) -> D
             or _promise_hold(observation, config, site) is not None):
         return None
     sid = observation.wood_source_id if resource == "wood" else observation.stone_source_id
-    why = f"for {'an' if tool[0] in 'aeiou' else 'a'} {tool}"
     if observation.position != site:
         kind = GO_WOOD if resource == "wood" else GO_STONE
         return Decision(actor, kind, f"fetching {resource} {why}, {away} steps away", choice.candidates + (kind,),

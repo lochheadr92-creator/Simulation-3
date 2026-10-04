@@ -151,6 +151,11 @@ Two facts about the existing code shape the work:
   (`{"source","amount"}`, `{"rotted"}`, `{"spoiled"}`) that `apply_production` accepts and the audit accounts for: rot and spoilage move
   units into a named sink, so totals never change by accident. Grain is eaten before berries since it is what spoils.
 
+* **Structures are one more block in `things`.** `world/structures.py`: a shelter's condition, a fire's fuel and a well's
+  progress are saved entries; wood for repair, fuel and the well is spent by kernel consume proposals, and a finished well
+  gives water by the same recorded production entries berries use. A well is not a landmark: observation lists it only while it
+  is in sight. Collapse removes the shelter and starts its residents' building over.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -177,7 +182,7 @@ the viewer. `partial` says what is missing.
 | P5 | Generalised requests, commitments, escrow, cooperation, hosting | built and tested but not reviewed or run through the full suite: water, food, wood (hand over or fetch), building help, news, hosting; no tools or repair requests yet (P6, P8); the viewer part was checked by eye, with no browser test for it |
 | P6 | Stone, tools, crafting, hauling | built and tested (focused tests only): a quarry, axe/pick/basket/hoe made from wood and stone, effects of axe, basket and pick; the hoe waits for P7; hauling is the wood fetch from P5; no stone or tool requests yet |
 | P7 | Farming, spoilage, distinct foods | built and tested (focused tests only): a field per founder, planting, tending, harvest, soil wear, rot, grain as a second food, spoilage; newborns have no field yet (P9); no grain requests or trading |
-| P8 | Building kinds, upkeep, fire, constructed wells | not started |
+| P8 | Building kinds, upkeep, fire, constructed wells | built and tested (focused tests only): shelters wear, are mended (neighbours may help) or collapse; fires burn wood, warm, light and keep wolves off; wells are dug and give water by recorded production and are used once seen; **no hut, house or storehouse kinds**; a finished well is forgotten out of sight (no belief of it yet, P11) |
 | P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | not started |
 | P10 | Graves, belongings, aftermath, detailed death records | not started |
 | P11 | Exploration, forgetting, desire paths, pathfinding audit | not started |

@@ -50,6 +50,7 @@ from world.observe import in_view
 from world.config import WATER, WorldConfig, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE_RENEWAL, STONE_RENEWAL_EVERY, STONE_STOCK, apply_crafting
 from world.farming import GRAIN, advance_farming
+from world.structures import advance_structures, burning, lit_cells
 from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.foraging import remember_empty, update_reports
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, wood_cost
@@ -61,7 +62,7 @@ from world.ecology import food_growth, recover_patches, season_at, seasonal_grow
 from world.housing import apply_housing, update_experience
 from world.belief import advance_beliefs
 from world.persona import advance_persona, born as persona_born, remember_attempt
-from world.pledges import advance_pledges, help_credit
+from world.pledges import advance_pledges, help_credit, repair_credit
 from world.sky import exposure, sight, sky_at, storm_hold
 from world.society import advance_society
 from world.things import Things
@@ -149,6 +150,10 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if settled.tick != overlay.tick + 1:
         raise ValueError("settled ledger and overlay are not one tick apart")
     eaten = units_eaten(record)
+    structs = overlay.things.structures
+    fire_cells = {s.cell for s in burning(structs)} if config.on("structures") else set()
+    leaking = ({s.cell for s in structs if s.kind == "shelter" and s.a < config.lever("leak_below")}
+               if config.on("structures") and overlay.sky is not None and overlay.sky.weather in ("rain", "storm") else set())
     drunk = units_drunk(record)
     grain_eaten = _consumed(record, sink_account(GRAIN)) if config.on("farming") else {}
     positions = dict(overlay.positions)
@@ -170,7 +175,13 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             if any(e.account == actor_account(recipient) and e.delta > 0 for e in outcome.effects):
                 promises.pop(outcome.actor, None)
     built = {actor: overlay.built.get(actor, 0) for actor in overlay.roster}
-    credited: dict[str, int] = {}                 # pledge -> ticks of work a helper added to somebody's shelter
+    credited: dict[str, int] = {}
+    if config.on("pledges") and config.on("structures"):
+        for actor, d in decisions.items():
+            if d.kind == "repair":
+                helped = repair_credit(overlay, decisions, actor)
+                if helped is not None:
+                    credited[helped] = 1                 # pledge -> ticks of work a helper added to somebody's shelter
     wood_spent = _consumed(record, sink_account(WOOD)) if config.wood_on else {}
     age = {actor: overlay.age.get(actor, 0) for actor in overlay.roster} if config.childhood_on else {}
     terrain_memory = {actor: set(overlay.terrain_memory.get(actor, ())) for actor in overlay.roster}
@@ -222,11 +233,14 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             # Shelter is the person's own home cell, and this is where the tick left them.
             sheltered = positions[actor] == overlay.homes[actor]
             # out in the sky costs extra cold unless a finished shelter stands over the person
-            extra = exposure(config, overlay.sky, positions[actor] in shelters) if config.on("sky") else 0
+            extra = (exposure(config, overlay.sky, positions[actor] in shelters and positions[actor] not in leaking)
+                     if config.on("sky") else 0)
             if sheltered:
                 cold[actor] = max(0, cold[actor] - max(1, config.warming - extra))
             else:
                 cold[actor] = cold[actor] + config.cold_rate + extra
+            if positions[actor] in fire_cells:
+                cold[actor] = max(0, cold[actor] - config.lever("fire_warmth"))       # standing at a burning fire
         if (hunger[actor] >= config.death_at
                 or (config.water_on and thirst[actor] >= config.thirst_death_at)
                 or (config.warmth_on and cold[actor] >= config.cold_death_at)):
@@ -239,7 +253,8 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         resting = {actor for actor in living if decisions.get(actor) is not None
                    and decisions[actor].kind in HEALING_KINDS and positions[actor] == overlay.homes[actor]}
         hurt = mend(hurt, living, resting, settled.tick, config)
-        wolves, bites = advance_wolves(config, settled.tick, wolves, positions, living, shelters, overlay.sky,
+        wolves, bites = advance_wolves(config, settled.tick, wolves, positions, living,
+                                       shelters | (lit_cells(structs, 1) if config.on("structures") else set()), overlay.sky,
                                        set(overlay.homes.values()) | set(config.all_source_positions()))
         for actor in sorted(bites):
             hurt[actor] = hurt.get(actor, 0) + bites[actor]
@@ -314,6 +329,15 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.on("crafting"):
         ledger, made = apply_crafting(ledger, decisions, record, config)
         production.extend(made)
+    if config.on("structures"):
+        boosted = {p.asker for p in overlay.pledges.open if p.id in credited and p.kind == "repair"}
+        built_now, fallen = dict(next_overlay.built), []
+        structs2, shelters2, reset, ledger, wells, fallen = advance_structures(
+            overlay, next_overlay, decisions, record, ledger, set(shelters), boosted, config)
+        built_now.update(reset)
+        next_overlay = replace(next_overlay, shelters=tuple(sorted(shelters2)), built=built_now,
+                               things=replace(next_overlay.things, structures=structs2))
+        production.extend(wells)
     if config.on("farming"):
         plots, ledger, grew = advance_farming(overlay, next_overlay, decisions, record, ledger, config)
         next_overlay = replace(next_overlay, things=replace(next_overlay.things, plots=plots))

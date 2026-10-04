@@ -42,6 +42,7 @@ from world.foraging import EMPTY_SOURCE_TICKS
 from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.crafting import STONE, STONE_STOCK, TOOLS
 from world.farming import GRAIN, Plot, field_id
+from world.structures import well_id
 from world.things import Things
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
@@ -230,6 +231,7 @@ class WorldConfig:
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
             "pledges_with_requests": not (self.on("pledges") and self.requests_on),   # one way of asking, not two
             "crafting_needs_wood": not self.on("crafting") or (self.wood_on and self.building_on),
+            "structures_need_wood_and_water": not self.on("structures") or (self.wood_on and self.building_on and self.water_on),
             "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,
             "birth_spacing": type(self.birth_spacing) is int and self.birth_spacing >= 0,
@@ -287,7 +289,7 @@ class WorldConfig:
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
         return (self.food_positions() + self.water_positions()
                 + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self) + stone_sites(self))
-                + tuple(pos for _, pos in field_sites(self)))
+                + tuple(pos for _, pos in field_sites(self) + well_sites(self)))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -404,6 +406,8 @@ class WorldConfig:
                 "of work_per_wood building ticks. A refused payment gives no work. Wood stays in the named "
                 "consumption sink after use; interrupted work is kept. Groves renew independently of food "
                 "and seasons, up to their cap. No wood trading, storage, skills or salvage is added.")
+        if self.on("structures"):
+            out["well_sites"] = [{"owner": owner, "id": well_id(owner), "position": list(pos)} for owner, pos in well_sites(self)]
         if self.on("farming"):
             out["fields"] = [{"owner": owner, "id": field_id(owner), "position": list(pos)} for owner, pos in field_sites(self)]
         if self.on("crafting"):
@@ -981,6 +985,28 @@ def field_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
 
 
 @lru_cache(maxsize=None)
+def well_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """Where each founder would dig a well: the nearest clear cell to their home that no field or source uses."""
+    if not config.on("structures") or not config.water_on:
+        return ()
+    rough, spots = config.terrain()
+    homes = homes_for(config)
+    taken = (set(homes.values()) | set(config.food_positions() + config.water_positions()) | set(rough) | set(spots)
+             | {pos for _, pos in wood_sites(config) + fishing_sites(config) + stone_sites(config) + field_sites(config)})
+    out = []
+    for owner in sorted(homes):
+        home = homes[owner]
+        free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken
+                and abs(x - home[0]) + abs(y - home[1]) >= 2]
+        if not free:
+            break
+        cell = min(free, key=lambda p: (abs(p[0] - home[0]) + abs(p[1] - home[1]), p[1], p[0]))
+        taken.add(cell)
+        out.append((owner, cell))
+    return tuple(out)
+
+
+@lru_cache(maxsize=None)
 def fishing_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
     """Use a clear bank cell near the west edge without moving existing landmarks."""
     if not config.fishing_on:
@@ -1014,6 +1040,9 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
                         for sid,_ in wood_sites(config)})
         water.setdefault("holdings", {})[WOOD] = {actor: 0 for actor in actors}
         water.setdefault("consumed_by", {})[WOOD] = 0
+    if config.on("structures") and config.water_on:
+        sources.update({well_id(owner): Source(stock=0, authorised=frozenset(actors), resource=WATER)
+                        for owner, _ in well_sites(config)})
     if config.on("farming"):
         sources.update({field_id(owner): Source(stock=0, authorised=frozenset(actors), resource=GRAIN)
                         for owner, _ in field_sites(config)})

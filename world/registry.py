@@ -13,10 +13,11 @@ from world.rest import SLEEP_FEATURE
 from world.sky import SKY_FEATURE
 from world.society import SOCIETY
 from world.steady import STEADY
+from world.structures import STRUCTURES
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    BELIEFS, CRAFTING, EXPLAIN, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, WOLVES,
+    BELIEFS, CRAFTING, EXPLAIN, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -84,6 +85,11 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
                             "retry_after and grievance_gap of at least 1")
         if not v("chat_at") <= v("lonely_at") < v("lonely_max") or v("grudge_gain") > v("grudge_at") or v("believe_at") > 100:
             problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
+    if "structures" in features:
+        if min(v("wear_every"), v("repair_gain"), v("fire_burn"), v("well_ticks"), v("well_wood"), v("well_every"),
+               v("well_cap")) < 1 or not 1 <= v("repair_at") <= v("repair_to") <= 100 or v("leak_below") > 100:
+            problems.append("structures need wear_every, repair_gain, fire_burn, well_ticks, well_wood, well_every and "
+                            "well_cap of at least 1, repair_at from 1 up to repair_to up to 100, and leak_below of 100 or less")
     if "farming" in features:
         if min(v("grow_ticks"), v("base_yield"), v("tend_max"), v("fallow_every"), v("rot_after"), v("spoil_every"),
                v("grain_satiation")) < 1 or v("min_soil") > 100:
