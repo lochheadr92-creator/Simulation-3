@@ -369,6 +369,45 @@ Entries say who ran what and when. A number here is a result of that run only.
   tick's overlay digest unchanged under the current code, renders in the viewer and replays identically; resuming it is refused because recovery
   checks the writing code (`tests/test_old_saves.py`, fixture `tests/fixtures/baseline-02af86b-seed7-ticks120.jsonl`).
 
+* P13 independent reviews (two reviewers, each a separate agent context with no knowledge of my reasoning, read-only, working from the
+  branch and their own scripts; one on accounting, persistence and determinism, one on knowledge boundaries, rule correctness and the
+  viewer). **This is independent of me but not independent of the model that wrote the code, and neither reviewer ran the full suite.**
+  Findings, with how each was handled:
+  * Fixed (each reproduced by the reviewer and pinned by a test that fails without the fix): heirs shuttling between graves they had seen
+    emptied (now a remembered "emptied" belief); a grave seen long after a death never believed (death beliefs now fade from the day they
+    were learned); a hold made on the tick the asker or helper died was never given back (kernel reservation leaked for ever); a promise
+    handed over on the tick the asker died was recorded as interrupted and queued a stray cancel; units on hold left out of a dead person's
+    estate, so a grave looked empty while it held them; a far child's death leaking into a parent's decisions through `dependents` (with
+    graves on); optional outings stepping out and straight back in against the warmth rule (out-and-back moves per person-tick in the
+    wolves, village and families scenes went from 8.6%, 5.6% and 4.0% to 5.8%, 3.8% and 3.6%; the worlds differ after the change, so these
+    are rates in different worlds, not a paired comparison); the viewer's perception square ignoring night, storms and sleep; a viewer
+    "died of old age" event for deaths the run recorded as something else; recorded values unescaped in the pledge text; the audit
+    accepting a `made` entry no recipe yields and a birth entry with extra keys; the weather cache not being safe for worlds running on
+    several threads; launcher gaps (negative length, host with a port, names ending in a newline, no cap on running worlds).
+  * Not fixed, recorded as limits: a shelter that collapses out of sight is known at once (`home_built` and the building count are read
+    live); housing's site choice (`world/housing.py`, relocation and homes only) uses the nominal perception radius at night or asleep; the
+    viewer's text still hard-codes a few values the run does not record (the stone cap, a renewal interval, a re-sighting delay, the
+    confidence formula for beliefs) and shows the estate recorded at death as what was collected; `family` with `aftermath` off still
+    grieves every kin and friend at the instant of death at any distance (kept because it is the older behaviour and `family` does not
+    need `aftermath`); grief at or above its threshold switches off optional chores for up to about 160 ticks (documented); `Pledges.check`
+    never cross-checks pledge action ids against the kernel's reservations, so a leak like the one fixed has no runtime tripwire (only
+    the saved-world tests check it); other viewer parts still interpolate recorded numbers without `esc`.
+  * Both reviewers found the disabled-mode contract intact in what they could read and run (4 of the 16 guarded configurations rerun by
+    one of them; the guard test passes in full here), no Observation field changing under about 9,000 mutations of what a person cannot see,
+    identical state under three hash seeds, and every recorded step a legal single move.
+* P13 test adjustments after the outing gate and the review fixes (every one is a change to a test or a fixture, so each is listed):
+  (1) the society whole-world fixture moved from seed 11 to seed 28 because seed 11's world no longer contains a quarrel (quarrels are rare;
+  28 is the first seed from 11 up whose 300-tick world holds every event the tests look for); the assertions did not change;
+  (2) in the pledging world the floor on ticks with a promise held dropped from 20 to 5 (that seed's count went from 38 to 10 after the
+  gate; the exact-match assertions on holds are unchanged);
+  (3) the check that every ask has an open request now allows an asker who died on that tick (the request never opens);
+  (4) the family test counted the living before the tick's deaths when checking that travellers come only when few are left; it now counts
+  those alive on the arrival tick, which is what the rule uses.
+* P13 cost (one process on a quiet machine, seed 7, 300 ticks, Python 3.11): plain 6 people on 12x12: 8.5 ms a tick (p95 13), file 1.4 MB;
+  P0-P4 features: 7.4 ms, 1.8 MB; all 17 features: 11.1 ms (p95 17), 3.6 MB; plain 20 people on 24x24: 18.3 ms (p95 53), 3.4 MB; all
+  17 features, 20 people on 24x24: 37.0 ms (p95 73, max 103), 10.8 MB; peak memory 23 MB. A rich world costs about 1.3 times a plain one at
+  six people and about twice at twenty, and writes about 2.6 times as much per tick.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
