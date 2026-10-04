@@ -217,7 +217,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             if entries and actor not in died_at:
                 empty_sources[actor] = entries
     sightings, reports = update_reports(overlay, decisions, observations or {}, died_at, settled.tick) if config.knowledge_sharing_on else ({}, {})
-    next_overlay = Overlay(tick=settled.tick, homes=overlay.homes, positions=positions, hunger=hunger,
+    # Start from the previous overlay and replace only what this tick changes, so a
+    # field that no rule here touches is carried over instead of being reset.
+    next_overlay = replace(overlay, tick=settled.tick, positions=positions, hunger=hunger,
                            fishing_cast={p: positions[p] for p,d in decisions.items()
                                          if config.fishing_on and d.kind == FISH and p not in died_at
                                          and (d.target, positions[p]) in fishing_sites(config)},
@@ -225,16 +227,10 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                            food_sightings=sightings, source_reports=reports,
                            patch_condition=condition,
                            season=season,
-                           home_targets=overlay.home_targets, home_settled=overlay.home_settled,
-                           home_caches=overlay.home_caches,
-                           home_trip_ticks=overlay.home_trip_ticks, home_strain=overlay.home_strain,
-                           shelter_memory=overlay.shelter_memory,
                            food_memory=remember_food(overlay, record) if config.social_memory_on else overlay.food_memory,
-                           yield_at=overlay.yield_at, died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
-                           shelters=tuple(sorted(shelters)), together=dict(overlay.together),
-                           age=age, parent=dict(overlay.parent),
-                           second_parent=overlay.second_parent,
-                           birth_ready=dict(overlay.birth_ready),
+                           died_at=died_at, thirst=thirst, cold=cold, held=held, built=built,
+                           shelters=tuple(sorted(shelters)),
+                           age=age,
                            terrain_memory={actor: tuple(sorted(cells)) for actor, cells in terrain_memory.items()
                                            if cells},
                            requests={who: asked for who, asked in requests.items()
@@ -336,22 +332,10 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     holdings = {resource: dict(held_map) | {name: 0 for name in born}
                 for resource, held_map in ledger.holdings.items()}
     grown = replace(ledger, balances=balances, sources=sources, holdings=holdings)
-    return (Overlay(tick=overlay.tick, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
-                    died_at=dict(overlay.died_at), thirst=thirst, cold=cold, held=held, built=built,
-                    shelters=overlay.shelters, together=counts, age=age, parent=parent,
-                    second_parent=second_parent,
-                    birth_ready=ready if config.birth_spacing or overlay.birth_ready else {},
-                    terrain_memory=dict(overlay.terrain_memory), food_memory=dict(overlay.food_memory),
-                    patch_condition=dict(overlay.patch_condition),
-                    empty_sources=overlay.empty_sources,
-                    food_sightings=overlay.food_sightings, source_reports=overlay.source_reports,
-                    provision_trips=overlay.provision_trips,
-                    food_expected=overlay.food_expected,
-                    fishing_cast=overlay.fishing_cast,
-                    season=overlay.season,
-                    home_targets=overlay.home_targets, home_settled=overlay.home_settled,
-                    home_caches=overlay.home_caches,
-                    home_trip_ticks=overlay.home_trip_ticks, home_strain=overlay.home_strain,
-                    shelter_memory=overlay.shelter_memory,
-                    requests=dict(overlay.requests), promises=dict(overlay.promises)),
+    # Only the maps a newcomer must appear in are replaced; everything else the
+    # overlay carries (memories, casts, trips, structures) survives a birth as it is.
+    return (replace(overlay, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
+                    thirst=thirst, cold=cold, held=held, built=built, together=counts,
+                    age=age, parent=parent, second_parent=second_parent,
+                    birth_ready=ready if config.birth_spacing or overlay.birth_ready else {}),
             grown, born)
