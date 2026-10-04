@@ -40,6 +40,7 @@ from world.storage import STORE_TARGET, STORE_LOW, FOOD_EXPECT_TICKS, store_id
 from world.housing import HOME_CAPACITY, LONG_OUTING, DIFFICULT_OUTINGS, MOVE_COOLDOWN, ROUTE_IMPROVEMENT
 from world.foraging import EMPTY_SOURCE_TICKS
 from world.fishing import FISH_SOURCE, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
+from world.crafting import STONE, STONE_STOCK, TOOLS
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_PACK, WORK_PER_WOOD
 from world.ecology import (CONDITION_MAX, FULL_GROWTH_AT, RECOVERY_PER_TICK, WEAR_PER_UNIT,
                            SEASON_TICKS, SEASONS, season_at, seasonal_growth)
@@ -226,6 +227,7 @@ class WorldConfig:
             "warmth_with_scoring": not (self.warmth_on and self.scoring_on),  # nor warmth actions
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
             "pledges_with_requests": not (self.on("pledges") and self.requests_on),   # one way of asking, not two
+            "crafting_needs_wood": not self.on("crafting") or (self.wood_on and self.building_on),
             "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,
             "birth_spacing": type(self.birth_spacing) is int and self.birth_spacing >= 0,
@@ -281,7 +283,8 @@ class WorldConfig:
         return ((self.width // 4, self.height // 4), (self.width // 4, 3 * self.height // 4))[: self.water_sources]
 
     def all_source_positions(self) -> tuple[tuple[int, int], ...]:
-        return self.food_positions() + self.water_positions() + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self))
+        return (self.food_positions() + self.water_positions()
+                + tuple(pos for _,pos in wood_sites(self) + fishing_sites(self) + stone_sites(self)))
 
     def terrain(self) -> tuple[tuple[tuple[int, int], ...], tuple[tuple[int, int], ...]]:
         """Rough cells and shelter cells, drawn once from their own generator.
@@ -398,6 +401,8 @@ class WorldConfig:
                 "of work_per_wood building ticks. A refused payment gives no work. Wood stays in the named "
                 "consumption sink after use; interrupted work is kept. Groves renew independently of food "
                 "and seasons, up to their cap. No wood trading, storage, skills or salvage is added.")
+        if self.on("crafting"):
+            out["stone_sources"] = [{"id": sid, "position": list(pos)} for sid, pos in stone_sites(self)]
         if self.relocation_on:
             out["relocation"] = "on"
             out["relocation_rules"] = {"long_outing": LONG_OUTING, "difficult_outings": DIFFICULT_OUTINGS,
@@ -935,6 +940,21 @@ def wood_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
 
 
 @lru_cache(maxsize=None)
+def stone_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
+    """One quarry on clear ground away from homes, other sources, groves and the bank."""
+    if not config.on("crafting"):
+        return ()
+    rough, spots = config.terrain()
+    taken = (set(homes_for(config).values()) | set(config.food_positions() + config.water_positions())
+             | set(rough) | set(spots) | {pos for _, pos in wood_sites(config) + fishing_sites(config)})
+    free = [(x, y) for y in range(config.height) for x in range(config.width) if (x, y) not in taken]
+    if not free:
+        return ()
+    anchor = (config.width // 2, config.height // 4)
+    return ((STONE, min(free, key=lambda p: (abs(p[0] - anchor[0]) + abs(p[1] - anchor[1]), p[1], p[0]))),)
+
+
+@lru_cache(maxsize=None)
 def fishing_sites(config: WorldConfig) -> tuple[tuple[str, tuple[int, int]], ...]:
     """Use a clear bank cell near the west edge without moving existing landmarks."""
     if not config.fishing_on:
@@ -968,6 +988,12 @@ def genesis(config: WorldConfig) -> tuple[WorldState, Overlay]:
                         for sid,_ in wood_sites(config)})
         water.setdefault("holdings", {})[WOOD] = {actor: 0 for actor in actors}
         water.setdefault("consumed_by", {})[WOOD] = 0
+    if config.on("crafting"):
+        sources.update({sid: Source(stock=STONE_STOCK, authorised=frozenset(actors), resource=STONE)
+                        for sid, _ in stone_sites(config)})
+        for resource in (STONE,) + TOOLS:
+            water.setdefault("holdings", {})[resource] = {actor: 0 for actor in actors}
+            water.setdefault("consumed_by", {})[resource] = 0
     ledger = WorldState.genesis(
         balances={actor: config.starting_food for actor in actors},
         sources=sources,

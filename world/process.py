@@ -47,7 +47,8 @@ from kernel.proposals import OP_CONSUME, OP_TRANSFER
 from kernel.state import SINK_ACCOUNT, actor_account, sink_account
 from world.observe import in_view
 
-from world.config import WATER, WorldConfig, wood_sites, fishing_sites
+from world.config import WATER, WorldConfig, stone_sites, wood_sites, fishing_sites
+from world.crafting import STONE_RENEWAL, STONE_RENEWAL_EVERY, STONE_STOCK, apply_crafting
 from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
 from world.foraging import remember_empty, update_reports
 from world.materials import WOOD, WOOD_STOCK, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, wood_cost
@@ -193,7 +194,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 held[actor] = max(held[actor], 1)               # a limp: the next step waits a tick
         if (decision is not None and decision.kind == BUILD
                 and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
-            goal = build_goal(config.build_ticks, overlay.persona.skills.get(actor, ()))
+            axe = config.on("crafting") and settled.holdings.get("axe", {}).get(actor, 0) >= 1
+            goal = build_goal(config.build_ticks, overlay.persona.skills.get(actor, ()),
+                              config.lever("axe_saves") if axe else 0)
             helped = help_credit(overlay, decisions, actor, built[actor], goal, config) if config.on("pledges") else None
             built[actor] += 1                           # interrupted work is never lost
             if helped is not None:
@@ -305,6 +308,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     ledger = settled
     if config.relocation_on:
         next_overlay = update_experience(overlay, next_overlay, decisions, observations, config)
+    if config.on("crafting"):
+        ledger, made = apply_crafting(ledger, decisions, record, config)
+        production.extend(made)
     if config.homes_on:
         next_overlay, ledger, created = apply_housing(next_overlay, ledger, decisions, config, record.rotated_roster, overlay)
         production.extend(created)
@@ -322,6 +328,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                   for source_id in config.water_source_ids()]
     renewals += [(sid, FISH_RENEWAL_EVERY, FISH_RENEWAL, FISH_STOCK) for sid,_ in fishing_sites(config)]
     renewals += [(sid, WOOD_RENEWAL_EVERY, WOOD_RENEWAL, WOOD_STOCK) for sid,_ in wood_sites(config)]
+    renewals += [(sid, STONE_RENEWAL_EVERY, STONE_RENEWAL, STONE_STOCK) for sid, _ in stone_sites(config)]
     for source_id, every, per_renewal, cap in renewals:
         if per_renewal > 0 and settled.tick % every == 0:
             source = ledger.sources[source_id]

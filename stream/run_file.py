@@ -188,6 +188,8 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
     source. A `{"born"}` entry adds a person: an account holding nothing, a
     nothing holding of every named resource, and their name on every source.
     A `{"source_created"}` entry adds an empty source open to the current roster.
+    A `{"made", "item", "amount"}` entry adds that many of a held item to a person; the audit
+    checks it against the inputs the kernel settled spending.
     Neither births nor source creation create units. Pure, on plain JSON, so
     a reader can recompute the state without the kernel. Raises RunFileError on
     a bad entry."""
@@ -220,6 +222,14 @@ def apply_production(state: dict[str, Any], production: list[dict[str, Any]]) ->
                 source["authorised"] = sorted(set(source.get("authorised", [])) | {born})
             for held in (produced.get("holdings") or {}).values():
                 held[born] = 0
+            continue
+        if "made" in entry:
+            actor, item, units = entry.get("made"), entry.get("item"), entry.get("amount")
+            held = (produced.get("holdings") or {}).get(item) if isinstance(item, str) else None
+            if (set(entry) != {"made", "item", "amount"} or actor not in balances or held is None or actor not in held
+                    or type(units) is not int or units <= 0):
+                raise RunFileError(f"making needs a person, an item they can hold and a positive amount, got {entry!r}")
+            held[actor] += units
             continue
         source_id = entry.get("source")
         amount = entry.get("amount")

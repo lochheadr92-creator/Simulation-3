@@ -139,8 +139,14 @@ def audit_run(run: Any) -> list[str]:
                 resource = committed["sources"][entry["source"]].get("resource")
                 gained[resource] = gained.get(resource, 0) + entry["amount"]
             elif "made" in entry:
-                made = entry["made"]
-                gained[made["resource"]] = gained.get(made["resource"], 0) + made["amount"]
+                gained[entry["item"]] = gained.get(entry["item"], 0) + entry["amount"]
+                # what a person makes was paid for in the same tick: every recipe input settled as spending
+                from world.crafting import RECIPES
+                spent = {(o["actor"], e["account"]): -e["delta"] for o in tick["record"]["outcomes"]
+                         if o["accepted"] and o["operation"] == "consume" for e in o["effects"] if e["delta"] < 0}
+                for resource, units in RECIPES.get(entry["item"], ()):
+                    if spent.get((entry["made"], f"actor@{resource}:{entry['made']}")) != units:
+                        problems.append(f"{where}: {entry['made']} made {entry['item']} without spending {units} {resource}")
         produced_totals = resource_totals(produced)
         for resource in sorted(set(produced_totals) | set(committed_totals), key=str):
             delta = produced_totals.get(resource, 0) - committed_totals.get(resource, 0)

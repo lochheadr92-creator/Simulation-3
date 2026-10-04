@@ -139,6 +139,13 @@ Two facts about the existing code shape the work:
   until it fades (`grudge_fade`). Helping prefers friends and leaves out those somebody resents,
   unless a dependent is hungry.
 
+* **Tools are named resources made by recorded production.** `world/crafting.py`: making spends the recipe inputs
+  through ordinary kernel `consume` proposals, and only when every input was accepted does the world add the tool
+  by a `{"made", "item", "amount"}` production entry (`stream/run_file.apply_production` accepts it, and the ledger audit
+  checks that the same actor spent every input that tick). A tool total therefore always equals the number of recorded
+  makings. An axe saves two building ticks (never below four), a basket adds two to a food claim, a pick lets a stone
+  claim take a whole recipe's worth instead of one.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -163,7 +170,7 @@ the viewer. `partial` says what is missing.
 | P3 | Belief model, wolves, danger knowledge, safety | done for wolves (see log); homes are the second believed kind (P4); no other kind of thing is believed in yet; dens are not themselves beliefs |
 | P4 | Relationships, conversations, quarrels, apologies | done for its scope (see log); quarrels need a cause the world already produces (a lost race for food, a meal withheld), so declined help and broken promises join them in P5; couples and attraction wait for P9 |
 | P5 | Generalised requests, commitments, escrow, cooperation, hosting | built and tested but not reviewed or run through the full suite: water, food, wood (hand over or fetch), building help, news, hosting; no tools or repair requests yet (P6, P8); the viewer part was checked by eye, with no browser test for it |
-| P6 | Stone, tools, crafting, hauling | not started |
+| P6 | Stone, tools, crafting, hauling | built and tested (focused tests only): a quarry, axe/pick/basket/hoe made from wood and stone, effects of axe, basket and pick; the hoe waits for P7; hauling is the wood fetch from P5; no stone or tool requests yet |
 | P7 | Farming, spoilage, distinct foods | not started |
 | P8 | Building kinds, upkeep, fire, constructed wells | not started |
 | P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | not started |

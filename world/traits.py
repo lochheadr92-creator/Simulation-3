@@ -48,10 +48,10 @@ def generous(traits: tuple[int, ...]) -> bool:
     return bool(traits) and traits[GENEROSITY] >= GENEROUS_FROM
 
 
-def build_goal(build_ticks: int, skills: tuple[int, ...]) -> int:
-    """Work ticks a shelter takes this builder: each building level takes one off,
-    never below four (or the configured total, if that is already smaller)."""
-    return max(min(build_ticks, 4), build_ticks - skill_level(skills, BUILDING))
+def build_goal(build_ticks: int, skills: tuple[int, ...], saves: int = 0) -> int:
+    """Work ticks a shelter takes this builder: each building level takes one off, and an axe `saves`
+    more, never below four (or the configured total, if that is already smaller)."""
+    return max(min(build_ticks, 4), build_ticks - skill_level(skills, BUILDING) - saves)
 
 
 def provision_low(base: int, traits: tuple[int, ...]) -> int:

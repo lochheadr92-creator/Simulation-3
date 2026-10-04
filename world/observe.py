@@ -55,7 +55,8 @@ from typing import Any
 from kernel import WorldState
 from kernel.state import actor_account, source_account
 
-from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, wood_sites, fishing_sites
+from world.config import FOOD_SOURCE, WATER, WATER_SOURCE, WorldConfig, store_sites, stone_sites, wood_sites, fishing_sites
+from world.crafting import STONE, tools_held
 from world.storage import food_expectation
 from world.foraging import remember_empty, remember_sightings, usable_reports
 from world.materials import WOOD
@@ -182,6 +183,11 @@ class Observation:
     bonds: tuple[tuple[Any, ...], ...] = ()              # own view of each person they have dealt with (bonds feature)
     lonely: int = 0                                      # own need for company
     talking: tuple[str, int] | None = None               # who they are talking to and since when
+    stone: int = 0                                       # own stone in hand (crafting feature)
+    stone_source_id: str | None = None
+    stone_source: Position | None = None
+    stone_stock: int | None = None
+    tools: tuple[str, ...] = ()                          # tools they carry
     pledge_requests: tuple[tuple[Any, ...], ...] = ()    # asked of them, asker in sight: asker, kind, amount, x, y (pledges feature)
     pledge_owed: tuple[tuple[Any, ...], ...] = ()        # promised by them: id, kind, asker, amount, x, y, due, held, action, arrived, done
     pledge_asked: tuple[tuple[Any, ...], ...] = ()       # asked by them: id, kind, helper, asked or promised (once heard), made, due
@@ -354,6 +360,10 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+    if config.on("crafting"):
+        sid, site, stock = target_source(origin, stone_sites(config), radius, available)
+        wood_view.update({"stone": available[actor_account(actor, STONE)], "stone_source_id": sid, "stone_source": site,
+                          "stone_stock": stock, "tools": tools_held(available, actor)})
     visible_caches = tuple((sid, pos) for sid, pos, _ in caches
                            if pos in overlay.shelters and in_view(origin, pos, radius))
     # An empty or unseen cache must never replace the ordinary patch fallback.

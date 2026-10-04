@@ -85,6 +85,7 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
                            WEATHER, rejection)
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
+from world.crafting import CRAFT, GATHER_STONE, GO_STONE, RECIPES, WAIT_STONE, build_saves
 from world.pledges import GO_HELP, HELP, RESOURCES
 from world.society import CHAT, CONFRONT, GO_VISIT, bond_with, find, grudge_of, is_friend, resents, trust_in
 from world.traits import DILIGENCE, SOCIABILITY, trait_lean
@@ -657,7 +658,7 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
             if site is None:
                 raise ValueError("wood construction requires an observed grove landmark")
             kind = GO_WOOD if observation.position != site else GATHER_WOOD if observation.wood_stock else WAIT_WOOD
-            amount = min(WOOD_PACK, remaining_wood(observation.work_done, build_goal(config.build_ticks, observation.skills)) - observation.wood,
+            amount = min(WOOD_PACK, remaining_wood(observation.work_done, build_goal(config.build_ticks, observation.skills, build_saves(observation.tools, config))) - observation.wood,
                          observation.wood_stock or 0) if kind == GATHER_WOOD else 0
             return Decision(observation.actor, kind, "shelter work needs wood; " + {
                 GO_WOOD: "walking to a grove", GATHER_WOOD: "gathering wood to carry home", WAIT_WOOD: "waiting at an empty grove"}[kind],
@@ -674,6 +675,10 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    if config.on("crafting"):
+        made = _craft(observation, config, choice)
+        if made is not None:
+            return made
     if config.on("bonds") and choice.kind in (HOME, BUILD, REST):
         talk = _social(observation, config, choice)
         if talk is not None:
@@ -781,7 +786,7 @@ def _answer(observation: Observation, config: WorldConfig, request: tuple[Any, .
     have = {"food": observation.food, "water": observation.water, "wood": observation.wood}[kind]
     if kind == "wood" and not observation.home_built and not is_child(observation, config):
         # wood they are saving for their own shelter is not spare
-        have -= remaining_wood(observation.work_done, build_goal(config.build_ticks, observation.skills))
+        have -= remaining_wood(observation.work_done, build_goal(config.build_ticks, observation.skills, build_saves(observation.tools, config)))
     if have - keep >= amount:
         return "yes", "agreed", amount
     if (kind == "wood" and observation.home_built and not is_child(observation, config)
@@ -873,7 +878,7 @@ def _asks(observation: Observation, config: WorldConfig, choice: Decision) -> tu
         if news is not None and news[0] >= config.lever("news_after"):
             wants.append(("news", 1))                  # the rumour keeping them in is old: has anybody seen the wolf since?
     if config.building_on and not observation.home_built and not is_child(observation, config):
-        remaining = build_goal(config.build_ticks, observation.skills) - observation.work_done
+        remaining = build_goal(config.build_ticks, observation.skills, build_saves(observation.tools, config)) - observation.work_done
         if choice.kind == BUILD and (remaining - 2) // 2 >= 2:
             wants.append(("build", min(config.lever("build_ask"), (remaining - 2) // 2)))   # not for the last few ticks
         elif choice.kind == GO_WOOD and config.wood_on:
@@ -899,6 +904,75 @@ def _asks(observation: Observation, config: WorldConfig, choice: Decision) -> tu
                                             steps_to(observation.position, s.position), s.actor))
             return ((best.actor, kind, amount),)
     return ()
+
+
+MATERIAL_TRIPS = frozenset({GO_WOOD, GATHER_WOOD, WAIT_WOOD, GO_STONE, GATHER_STONE, WAIT_STONE})
+
+
+def _wanted_tool(observation: Observation, config: WorldConfig) -> str | None:
+    """The first tool this person lacks that would be useful to them."""
+    held = observation.tools
+    if "axe" not in held and config.building_on and not observation.home_built:
+        return "axe"
+    if "basket" not in held:
+        return "basket"
+    if "pick" not in held:
+        return "pick"
+    if "axe" not in held:
+        return "axe"
+    return None
+
+
+def _craft(observation: Observation, config: WorldConfig, choice: Decision) -> Decision | None:
+    """Make a tool, or fetch what is missing for it. Only somebody free (idle, or an unhoused person yet to
+    start building, for an axe), fit to go, with their own need far enough off, takes this on."""
+    if (not observation.alive or observation.asleep or observation.storm or is_child(observation, config)
+            or observation.stone_source is None):
+        return None
+    tool = _wanted_tool(observation, config)
+    if tool is None:
+        return None
+    early_axe = tool == "axe" and observation.work_done == 0 and choice.kind in (BUILD, GO_WOOD)
+    if choice.kind not in (HOME, REST) and not early_axe:
+        return None
+    actor = observation.actor
+    out = observation.doing in MATERIAL_TRIPS
+    if not (observation.at_home or out):
+        return None
+    have = {"wood": observation.wood, "stone": observation.stone}
+    missing = [(resource, units - have[resource]) for resource, units in RECIPES[tool] if have[resource] < units]
+    if observation.traits and observation.traits[DILIGENCE] < config.lever("craft_diligence") and missing:
+        return None
+    if not missing:
+        if not observation.at_home:
+            return None                      # the materials are in hand: walking home is the ordinary choice
+        parts = " and ".join(f"{units} {resource}" for resource, units in RECIPES[tool])
+        return Decision(actor, CRAFT, f"free and at home, making {'an' if tool[0] in 'aeiou' else 'a'} {tool} from {parts}",
+                        choice.candidates + (CRAFT,), target=tool)
+    resource, need = missing[0]
+    site, stock = ((observation.wood_source, observation.wood_stock) if resource == "wood"
+                   else (observation.stone_source, observation.stone_stock))
+    if site is None:
+        return None
+    away = steps_to(observation.position, site)
+    if (own_slack(observation, config) <= 2 * away + config.lever("craft_margin")
+            or _promise_hold(observation, config, site) is not None):
+        return None
+    sid = observation.wood_source_id if resource == "wood" else observation.stone_source_id
+    why = f"for {'an' if tool[0] in 'aeiou' else 'a'} {tool}"
+    if observation.position != site:
+        kind = GO_WOOD if resource == "wood" else GO_STONE
+        return Decision(actor, kind, f"fetching {resource} {why}, {away} steps away", choice.candidates + (kind,),
+                        target=sid, step=route_step(observation, site, config))
+    if stock:
+        pack = (WOOD_PACK if resource == "wood" else
+                config.lever("stone_pack") if "pick" in observation.tools else config.lever("stone_hand"))
+        kind = GATHER_WOOD if resource == "wood" else GATHER_STONE
+        return Decision(actor, kind, f"gathering {min(pack, need, stock)} {resource} {why}", choice.candidates + (kind,),
+                        amount=min(pack, need, stock), target=sid)
+    kind = WAIT_WOOD if resource == "wood" else WAIT_STONE
+    return Decision(actor, kind, f"waiting at an empty {'grove' if resource == 'wood' else 'quarry'} {why}",
+                    choice.candidates + (kind,), target=sid)
 
 
 def _tried_lately(observation: Observation, kind: str, other: str, window: int) -> bool:
@@ -1026,7 +1100,8 @@ def pack_size(observation: Observation, config: WorldConfig, source_id: str | No
     """Most units one food claim takes: the pack, plus one for every two levels of
     gathering skill (fishing skill at the fishing spot). Plain claim_amount without skills."""
     fishing = (source_id or observation.source_id) == FISH_SOURCE
-    return config.claim_amount + skill_level(observation.skills, FISHING if fishing else GATHERING) // 2
+    basket = config.lever("basket_bonus") if "basket" in observation.tools else 0
+    return config.claim_amount + skill_level(observation.skills, FISHING if fishing else GATHERING) // 2 + basket
 
 
 def water_trip_due(observation: Observation, config: WorldConfig) -> bool:

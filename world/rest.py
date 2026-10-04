@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 SLEEP, GO_SLEEP, COLLAPSE = "sleep", "go_sleep", "collapse"
-WORK_KINDS = frozenset({"build", "claim", "fish", "gather_wood", "help"})    # ticks of physical work
+WORK_KINDS = frozenset({"build", "claim", "fish", "gather_wood", "help", "gather_stone", "craft"})    # ticks of physical work
 
 FATIGUE_LEVERS = (("fatigue_rate", 1), ("work_fatigue", 1), ("tired_at", 60), ("collapse_at", 100),
                   ("collapse_recovery", 10), ("rest_home", 4), ("rest_open", 2), ("wake_at", 8), ("urgent_margin", 3))

@@ -14,6 +14,7 @@ from typing import Any, Callable, Mapping
 
 from world.traits import level_of
 from world.viewer_sky import sky_events
+from world.viewer_crafting import crafting_events
 from world.viewer_pledges import pledge_events
 from world.viewer_society import society_events
 from world.viewer_wolves import wolf_events
@@ -22,13 +23,16 @@ PHRASES: dict[str, str] = {
     "sleep": "sleeping", "go_sleep": "heading home to sleep", "collapse": "collapsed from exhaustion",
     "flee": "running from a wolf", "chat": "talking", "go_visit": "going to see somebody",
     "help": "helping somebody build", "go_help": "going to help build", "host": "sharing a meal with a guest",
+    "go_stone": "walking to the quarry", "gather_stone": "digging stone", "wait_stone": "waiting at an empty quarry",
+    "craft": "making a tool",
 }
 LABELS: dict[str, str] = {"sleep": "sleep", "go_sleep": "go home to sleep", "collapse": "collapse", "flee": "run from a wolf",
                           "chat": "talk", "go_visit": "go and visit", "help": "help build", "go_help": "go and help",
-                          "host": "feed a guest"}
-MOVES: tuple[str, ...] = ("go_sleep", "flee", "go_visit", "go_help")
+                          "host": "feed a guest", "go_stone": "go to the quarry", "gather_stone": "dig stone",
+                          "wait_stone": "wait for stone", "craft": "make a tool"}
+MOVES: tuple[str, ...] = ("go_sleep", "flee", "go_visit", "go_help", "go_stone")
 CATEGORIES: tuple[tuple[str, str], ...] = (("rest", "Sleep and tiredness"), ("skill", "Learning"), ("sky", "Day and weather"), ("danger", "Wolves and danger"),
-              ("social", "Friends and quarrels"))
+              ("social", "Friends and quarrels"), ("craft", "Stone and tools"))
 
 
 def _event(k: int, cat: str, kind: str, text: str, who: str | None = None, other: str | None = None,
@@ -101,7 +105,7 @@ def _persona_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str,
 
 
 DERIVERS: tuple[Callable[[Any, list[Mapping[str, Any]], Mapping[str, Any]], list[dict[str, Any]]], ...] = (
-    _persona_events, sky_events, wolf_events, society_events, pledge_events,
+    _persona_events, sky_events, wolf_events, society_events, pledge_events, crafting_events,
 )
 
 

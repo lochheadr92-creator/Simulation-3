@@ -186,6 +186,7 @@ def build_index(run: Any) -> dict[str, Any]:
     food = food_sources(cfg, worlds[-1])
     water = water_sources(cfg)
     wood = cfg.get("wood_sources", [])
+    stone = [{**s, "cap": 10} for s in cfg.get("stone_sources", [])]
     build_ticks = cfg.get("build_ticks")
 
     events: list[dict[str, Any]] = []
@@ -598,6 +599,7 @@ def build_index(run: Any) -> dict[str, Any]:
         "food": food,
         "water": water,
         "wood": wood,
+        "stone": stone,
         "adult_at": adult_at,
         "parent": dict(worlds[-1].get("parent", {}) or {}),
         "second_parent": dict(worlds[-1].get("second_parent", {}) or {}),
