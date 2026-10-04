@@ -313,3 +313,10 @@ dl.rules dd { margin: 0; color: #cfe0da; }
 .bond .fill.bad { background: var(--need); }
 .bond .val { display: block; font-size: 11px; color: var(--faint); }
 .bond-note { color: var(--need); font-size: 11.5px; }
+
+/* ---------- minimap ---------- */
+#minimap {
+  position: absolute; right: 12px; bottom: 12px; width: 132px; height: 132px; border-radius: 10px; cursor: crosshair;
+  background: rgba(8, 20, 24, 0.78); box-shadow: inset 0 0 0 1px var(--line2), 0 4px 14px rgba(0, 0, 0, .35); touch-action: none;
+}
+@media (max-width: 900px) { #minimap { display: none; } }

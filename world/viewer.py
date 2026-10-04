@@ -41,6 +41,7 @@ JS_FILE = HERE / "viewer.js"
 PARTS_MARKER = "/*@PARTS@*/"
 # Feature display code, spliced into the page where PARTS_MARKER stands. Each part guards on the
 # features the run records, so a page for an older run is unchanged.
+OBSERVER_JS = "viewer_observer.js"       # for every run: minimap, fog, headings, a link that remembers the view
 JS_PARTS = ("viewer_persona.js", "viewer_sky.js", "viewer_wolves.js", "viewer_society.js", "viewer_pledges.js", "viewer_crafting.js", "viewer_farming.js", "viewer_structures.js", "viewer_family.js", "viewer_aftermath.js", "viewer_ground.js")
 
 
@@ -168,7 +169,7 @@ def _script(scenario: dict) -> str:
     if core.count(PARTS_MARKER) != 1:
         raise ValueError("viewer.js must contain its splice marker exactly once")
     parts = "\n".join(_asset(HERE / name) for name in JS_PARTS) if scenario.get("features") else ""
-    return core.replace(PARTS_MARKER, parts)
+    return core.replace(PARTS_MARKER, parts + "\n" + _asset(HERE / OBSERVER_JS))
 
 
 ICONS = {
@@ -223,6 +224,8 @@ LEGEND = (
     ('<path d="M7 15v-6q3-4 6 0v6z" fill="#8f8a82"/>', "somebody died here"),
     ('<path d="M3 10l7-4 7 4-7 4z" fill="#ffe3a3" fill-opacity=".08" stroke="#ffe3a3" stroke-dasharray="3 2"/>',
      "Chebyshev perception: the square a person can see"),
+    ('<path d="M3 10l7-4 7 4-7 4z" fill="#06101a" fill-opacity=".66"/>',
+     "knowledge fog: dark ground the selected person has never had in sight, lighter ground seen before; gold squares are what they saw themselves, blue what they were told"),
 )
 
 
@@ -264,6 +267,8 @@ def render_html(run: Run) -> str:
         _layer("people", "People"), _layer("names", "Names"), _layer("needs", "Need badges"),
         _layer("trails", "Trails", "last 12 ticks"),
         _layer("memory", "Remembered rough", "selected person") if terrain else "",
+        _layer("fog", "Knowledge fog", "selected person; from where they stood", checked=False),
+        _layer("heading", "Where people are heading", "the next recorded step", checked=False),
         _layer("links", "Requests and handovers"),
         _layer("family", "Family", "for the selected person") if childhood else "",
         _layer("deaths", "Where people died"),

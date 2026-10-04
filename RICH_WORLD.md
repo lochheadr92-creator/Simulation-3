@@ -179,6 +179,13 @@ Two facts about the existing code shape the work:
   `test_a_saved_world_audits_replays_and_what_people_know_of_the_ground_follows_from_where_they_stood` re-derives every
   person's remembered rough cells, patch dates and the whole wear table from recorded positions and sky alone.
 
+* **The viewer reads, the launcher runs.** The viewer page stays a static file with no network calls (the existing tests ban
+  `fetch(`, `WebSocket` and the like), so everything that starts or watches a run lives in `world/launch.py`: a server on
+  `127.0.0.1` with a per-launch token, scenes and the rich world from `world/presets.py`, requests validated against the
+  feature registry before any world is built, run names that cannot leave the runs folder, and a rule that a saved run is never
+  overwritten. A run in progress is read through the same verified-prefix path the viewer already used for cut files; resuming
+  is the stream's own recovery (`world/recover.py`), which refuses a file written by different code.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -209,7 +216,7 @@ the viewer. `partial` says what is missing.
 | P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | built and tested (focused tests only): couples from talk and a shared bond, pregnancy with a fixed gestation, births only from pregnancies, elders, lifespans, old-age death, orphans taken in, grief, travellers when few are left, explicit population limits; **couples are rare in small worlds at the default bond level**, so the rich-world preset will set it lower; no marriage rites, no inheritance (P10) |
 | P10 | Graves, belongings, aftermath, detailed death records | built and tested (focused tests only): a grave and a saved death record (tick, cell, age, cause, who was in sight, what they held, who collected it) for every death; deaths are believed only by those who saw the grave or were told; grief follows learned news; belongings are collected from the grave by kernel transfers in the dead person's name, heirs first and anybody in need after a grace period; mourning at the grave; **telling a death by conversation is rare in small worlds (3 chats in 700 ticks in the survey seed)**; no burial rites or wills |
 | P11 | Exploration, forgetting, desire paths, pathfinding audit | built and tested (focused tests only): per-person memory of which map patches were in sight and when; remembered rough ground is forgotten when its patch goes unseen for `terrain_span` ticks; curious people with spare time go and look at stale patches near home; wells seen become beliefs and are used from out of sight; walked cells wear into paths that make rough ground free to cross and attract walkers; a route audit re-derives every person's memory from where they stood. **Exploring is rare**: 0 to 6 trips in 500 to 600 ticks in the seeds surveyed, because spare time is scarce; **no rough cell was worn through in a surveyed world**; **no well was built in the surveyed rich worlds** (so well beliefs are tested on constructed scenes only) |
-| P12 | Viewer: minimap, fog, overlays, launcher, save/resume, live mode | not started |
+| P12 | Viewer: minimap, fog, overlays, launcher, save/resume, live mode | built and tested (focused tests only): minimap with a click-to-move camera; knowledge fog for the selected person (never seen / seen before / in sight, plus what they believe, first-hand or told) re-derived from recorded positions, sky and sleep; arrows for the next recorded step and a dashed line to the destination when the decision names one; a ring where an event happened; a link that remembers the tick and the person; `python -m world.launch` starts scenes or custom worlds from a browser page, shows the viewer while the run is still being written, and resumes cut runs. **Firelight is not counted in the fog; resuming works only for the same code and only to the planned length; the live view reloads the page, so zoom and pan reset; the in-page viewer saves nothing but its URL hash** |
 | P13 | Rich-world preset, long multi-seed runs, performance, review, final report | not started |
 
 ## Verification log
@@ -335,6 +342,16 @@ Entries say who ran what and when. A number here is a result of that run only.
   in 209s). Survey (5 seeds, 600 ticks, everything on): explore trips 0, 0, 1, 2, 0; saved runs about a third larger than
   without the two features. **The full suite has not been run on P6 to P11.**
 
+* P12: `tests/test_launch.py` 30 passed (options, a world that finishes and verifies and opens in the viewer, never overwriting,
+  fifteen kinds of refused request and nothing started, token and host checks, run names that try to leave the folder, wood
+  switched on by the features that need it, watching a run while it is written, a cut run resumed to the same world
+  tick for tick, the launcher page driven in a real browser); `tests/test_observer_viewer.py` 3 passed (a real browser: the
+  link restores tick and person, the minimap moves only the camera, the page shows the same for a tick at any speed or camera,
+  the fog counts for two ticks equal a count made in Python from the saved run, an event rings its place). Existing viewer
+  tests still pass (map, rich, security: 18). Three mutations of the observer page (minimap not moving the camera, no ring,
+  no link restore) were each caught. **Not covered**: the heading arrows are not checked by a test, only by screenshots; the
+  launcher was not tried on another operating system.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -343,6 +360,6 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P12 (the viewer) and P13 (the rich-world
+P13 (the rich-world
 preset, multi-seed surveys, performance, old-save compatibility, the full suite, a critical review and the final report). Still
 owed from earlier phases: the two-promises test, browser checks for the new inspector sections, and a cold-death survey.

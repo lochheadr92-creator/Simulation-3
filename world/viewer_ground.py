@@ -30,11 +30,11 @@ def ground_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str, A
                 known = {(e[0], e[1]) for e in pb.get(actor, [])}
                 for kind, owner, x, y, seen, learned, via in entries:
                     if kind == "well" and (kind, owner) not in known:
-                        out.append({"k": k, "cat": "explore", "kind": "found_well", "who": actor, "other": owner,
+                        out.append({"k": k, "cat": "explore", "kind": "found_well", "who": actor, "other": owner, "cell": [x, y],
                                     "text": f"{actor} found {owner}'s well at ({x}, {y})"})
         if "paths" in features and rough:
             before = {(x, y): w for x, y, w in (worlds[k - 1].get("things") or {}).get("paths", [])}
             for x, y, w in (worlds[k].get("things") or {}).get("paths", []):
                 if (x, y) in rough and w >= worn_at > before.get((x, y), 0):
-                    out.append({"k": k, "cat": "explore", "kind": "worn_through", "text": f"the rough ground at ({x}, {y}) has been walked into a path"})
+                    out.append({"k": k, "cat": "explore", "kind": "worn_through", "cell": [x, y], "text": f"the rough ground at ({x}, {y}) has been walked into a path"})
     return out

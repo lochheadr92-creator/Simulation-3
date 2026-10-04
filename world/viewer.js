@@ -42,7 +42,8 @@
   //   poseOf    decision kind -> pose name;  poses  pose name -> full-body drawer returning nothing
   //   marks     little signs above a head;  standing  things that stand in the world, depth sorted
   //   overlays  screen-space tints and labels drawn after the world;  hud  html bits for the corner clock: fn(world, view)
-  const EXT = { sections: [], poseOf: {}, poses: {}, marks: [], standing: [], overlays: [], hud: [] };
+  //   onchange  called after the view or the selection changes
+  const EXT = { sections: [], poseOf: {}, poses: {}, marks: [], standing: [], overlays: [], hud: [], onchange: [] };
   const extHtml = (where, ctx) => EXT.sections.filter(x => x.after === where).map(x => x.html(ctx) || '').join('');
   const MOVES = new Set(IDX.moves || []);
   const BUILD_TICKS = C.build_ticks || 0;
@@ -1064,6 +1065,7 @@
     updateHud(); updateSummary(); markEvents(); updateFocusCard();
     if (tabNow === 'inspector') renderInspector();
     if ($('deep').open) updateDeep();
+    for (const f of EXT.onchange) f();
     needsDraw = true;
   }
   window.show = show;
@@ -1195,6 +1197,7 @@
     if (onlySelected) applyFilter();
     updateFocusCard();
     if (openInspector) setTab('inspector'); else if (tabNow === 'inspector') renderInspector();
+    for (const f of EXT.onchange) f();
     needsDraw = true;
   }
   function focusPerson(p) {

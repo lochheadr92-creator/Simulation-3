@@ -20,12 +20,12 @@ def aftermath_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str
         for person, d in sorted(now.items()):
             was = before.get(person)
             if was is None:
-                out.append({"k": k, "cat": "life", "kind": "grave", "who": person,
+                out.append({"k": k, "cat": "life", "kind": "grave", "who": person, "cell": [d[2], d[3]],
                             "text": f"{person} was laid to rest at ({d[2]}, {d[3]}): {d[5]}"
                                     + (f"; in sight: {', '.join(d[6])}" if d[6] else "; nobody saw it")})
             elif d[8] and not was[8]:
                 things = ", ".join(f"{n} {r}" for r, n in d[7]) or "nothing"
-                out.append({"k": k, "cat": "life", "kind": "collected", "who": d[8], "other": person,
+                out.append({"k": k, "cat": "life", "kind": "collected", "who": d[8], "other": person, "cell": [d[2], d[3]],
                             "text": f"{d[8]} collected what {person} left ({things})"})
         pb, pw = (worlds[k - 1].get("persona") or {}).get("beliefs") or {}, (worlds[k].get("persona") or {}).get("beliefs") or {}
         for actor, entries in sorted(pw.items()):
