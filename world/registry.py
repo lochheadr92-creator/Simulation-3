@@ -5,6 +5,7 @@ from __future__ import annotations
 from world.belief import BELIEFS
 from world.crafting import CRAFTING
 from world.explain import EXPLAIN
+from world.family import FAMILY
 from world.farming import FARMING
 from world.feature import Feature
 from world.persona import PERSONALITY, SKILLS_FEATURE
@@ -17,7 +18,7 @@ from world.structures import STRUCTURES
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    BELIEFS, CRAFTING, EXPLAIN, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
+    BELIEFS, CRAFTING, EXPLAIN, FAMILY, FARMING, PERSONALITY, PLEDGES, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, STRUCTURES, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -85,6 +86,13 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
                             "retry_after and grievance_gap of at least 1")
         if not v("chat_at") <= v("lonely_at") < v("lonely_max") or v("grudge_gain") > v("grudge_at") or v("believe_at") > 100:
             problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
+    if "family" in features:
+        if min(v("gestation"), v("pop_cap"), v("pregnant_hunger"), v("grief_fade"), v("arrive_every"), v("elder_at"),
+               v("old_age_at")) < 1 or not 1 <= v("couple_at") <= 100 or v("couple_trust") > 100:
+            problems.append("family needs gestation, pop_cap, pregnant_hunger, grief_fade, arrive_every, elder_at and old_age_at "
+                            "of at least 1, couple_at from 1 to 100 and couple_trust of 100 or less")
+        if v("elder_at") >= v("old_age_at"):
+            problems.append("family needs elder_at below old_age_at")
     if "structures" in features:
         if min(v("wear_every"), v("repair_gain"), v("fire_burn"), v("well_ticks"), v("well_wood"), v("well_every"),
                v("well_cap")) < 1 or not 1 <= v("repair_at") <= v("repair_to") <= 100 or v("leak_below") > 100:

@@ -231,6 +231,7 @@ class WorldConfig:
             "requests_with_scoring": not (self.requests_on and self.scoring_on),  # nor asking
             "pledges_with_requests": not (self.on("pledges") and self.requests_on),   # one way of asking, not two
             "crafting_needs_wood": not self.on("crafting") or (self.wood_on and self.building_on),
+            "family_needs_births_and_childhood": not self.on("family") or (self.births_on and self.childhood_on),
             "structures_need_wood_and_water": not self.on("structures") or (self.wood_on and self.building_on and self.water_on),
             "adjacent_requests": type(self.adjacent_requests) is bool and (not self.adjacent_requests or self.requests_on),
             "building": (not self.building_on) or self.build_ticks >= 1,

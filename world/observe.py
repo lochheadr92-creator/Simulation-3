@@ -191,6 +191,9 @@ class Observation:
     stone_source: Position | None = None
     stone_stock: int | None = None
     tools: tuple[str, ...] = ()                          # tools they carry
+    partner: str | None = None                           # who they are paired with (family feature)
+    grief: int = 0                                       # how much they are grieving
+    elder: bool = False
     home_condition: int | None = None                    # their shelter's condition, when it stands in sight (structures)
     fire_fuel: int = 0                                   # ticks left in their own fire, if it is in sight
     lit: bool = False                                    # standing near a burning fire
@@ -375,6 +378,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         sid, site, stock = target_source(origin, wood_sites(config), radius, available)
         wood_view = {"wood": available[actor_account(actor, WOOD)], "wood_source_id": sid,
                      "wood_source": site, "wood_stock": stock}
+    if config.on("family"):
+        wood_view.update({"partner": overlay.family.partner.get(actor), "grief": overlay.family.grief.get(actor, 0),
+                          "elder": overlay.age.get(actor, 0) >= config.lever("elder_at")})
     if config.on("structures"):
         mine_s = overlay.things.structures
         cell = overlay.homes[actor]
@@ -483,7 +489,8 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
         | frozenset(cell for cell in config.terrain()[0] if in_view(origin, cell, radius)),
         **({"age": overlay.age.get(actor, config.adult_at),
            "children": overlay.children_of(actor),
-           "dependents": frozenset(kid for kid in overlay.children_of(actor)
+           "dependents": frozenset(kid for kid in (set(overlay.children_of(actor)) | {
+                                       c for c, g in overlay.family.guardian.items() if g == actor})
                                    if overlay.alive(kid)
                                    and overlay.age.get(kid, config.adult_at) < config.adult_at)}
           if config.childhood_on else {}),

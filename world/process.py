@@ -49,6 +49,7 @@ from world.observe import in_view
 
 from world.config import WATER, WorldConfig, stone_sites, wood_sites, fishing_sites
 from world.crafting import STONE_RENEWAL, STONE_RENEWAL_EVERY, STONE_STOCK, apply_crafting
+from world.family import advance_family, lifespan
 from world.farming import GRAIN, advance_farming
 from world.structures import advance_structures, burning, lit_cells
 from world.fishing import FISH, FISH_STOCK, FISH_RENEWAL_EVERY, FISH_RENEWAL
@@ -61,7 +62,7 @@ from world.storage import update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
 from world.belief import advance_beliefs
-from world.persona import advance_persona, born as persona_born, remember_attempt
+from world.persona import advance_persona, arrived as persona_arrived, born as persona_born, remember_attempt
 from world.pledges import advance_pledges, help_credit, repair_credit
 from world.sky import exposure, sight, sky_at, storm_hold
 from world.society import advance_society
@@ -205,6 +206,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
                 held[actor] = 1 + storm_hold(overlay.sky)       # a storm makes the climb out cost an extra tick
             if config.on("wolves") and overlay.persona.hurt.get(actor, 0) >= config.lever("limp_at"):
                 held[actor] = max(held[actor], 1)               # a limp: the next step waits a tick
+            if (config.on("family") and overlay.age.get(actor, 0) >= config.lever("elder_at")
+                    and (settled.tick + int(actor[1:])) % 3 == 0):
+                held[actor] = max(held[actor], 1)               # an elder's every third step costs a tick more
         if (decision is not None and decision.kind == BUILD
                 and (not config.wood_on or wood_spent.get(actor, 0) >= wood_cost(built[actor]))):
             axe = config.on("crafting") and settled.holdings.get("axe", {}).get(actor, 0) >= 1
@@ -223,7 +227,9 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
         # hungrier and thirstier, or a roof would be immortality.
         hunger[actor] = max(0, hunger[actor] + eased(config.hunger_rate, relief)
                             - config.satiation * eaten.get(actor, 0)
-                            - (config.lever("grain_satiation") * grain_eaten.get(actor, 0) if grain_eaten else 0))
+                            - (config.lever("grain_satiation") * grain_eaten.get(actor, 0) if grain_eaten else 0)
+                            + (1 if config.on("family") and actor in overlay.family.pregnant
+                               and settled.tick % config.lever("pregnant_hunger") == 0 else 0))
         if config.water_on:
             thirst[actor] = max(0, thirst[actor] + eased(config.thirst_rate, relief)
                                 - config.quench * drunk.get(actor, 0))
@@ -242,6 +248,7 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             if positions[actor] in fire_cells:
                 cold[actor] = max(0, cold[actor] - config.lever("fire_warmth"))       # standing at a burning fire
         if (hunger[actor] >= config.death_at
+                or (config.on("family") and age[actor] >= lifespan(config, actor))
                 or (config.water_on and thirst[actor] >= config.thirst_death_at)
                 or (config.warmth_on and cold[actor] >= config.cold_death_at)):
             died_at[actor] = settled.tick
@@ -317,6 +324,14 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
             remember_attempt(tried, actor, (kind, target, when, ok))
         next_overlay = replace(next_overlay, persona=replace(next_overlay.persona, bonds=bonds, lonely=lonely,
                                                               talking=talking, tried=tried))
+    if config.on("family"):
+        family = advance_family(overlay, next_overlay, config)
+        lonely = dict(next_overlay.persona.lonely)
+        if settled.tick % 3 == 0:
+            for actor, level in family.grief.items():
+                if level >= config.lever("grief_at"):
+                    lonely[actor] = min(config.lever("lonely_max"), lonely.get(actor, 0) + 1)     # grief isolates
+        next_overlay = replace(next_overlay, family=family, persona=replace(next_overlay.persona, lonely=lonely))
     if config.on("beliefs"):
         next_overlay = replace(next_overlay, persona=replace(
             next_overlay.persona, beliefs=advance_beliefs(overlay, next_overlay, decisions, observations or {}, config)))
@@ -372,9 +387,44 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.births_on:
         next_overlay, ledger, born = _births(next_overlay, ledger, config)
         production.extend({"born": actor} for actor in born)
+    if config.on("family"):
+        next_overlay, ledger, came = _arrive(next_overlay, ledger, config)
+        production.extend({"born": actor} for actor in came)
 
     return Processed(overlay=next_overlay, ledger=ledger, production=tuple(production),
                      eaten=eaten, died=tuple(died))
+
+
+def _arrive(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[Overlay, WorldState, list[str]]:
+    """A traveller comes when few people are left and nobody has come lately, up to a fixed number of times.
+    Like a birth they hold nothing: no unit of anything arrives with them."""
+    family = overlay.family
+    living = overlay.living
+    if (family.arrivals >= config.lever("max_arrivals") or len(living) >= config.lever("arrive_below")
+            or overlay.tick - family.last_arrival < config.lever("arrive_every")):
+        return overlay, ledger, []
+    taken = set(overlay.homes.values()) | set(config.all_source_positions())
+    where = free_cell_near((0, config.height // 2), taken, config)
+    if where is None:
+        return overlay, ledger, []
+    name = f"p{len(overlay.roster) + 1:02d}"
+    homes, positions = dict(overlay.homes) | {name: where}, dict(overlay.positions) | {name: where}
+    hunger = dict(overlay.hunger) | {name: config.hungry_at}
+    yield_at = dict(overlay.yield_at) | {name: (config.yield_set[len(overlay.roster) % len(config.yield_set)]
+                                              if config.yield_on else config.actors + 1)}
+    thirst = dict(overlay.thirst) | ({name: config.thirsty_at} if config.water_on else {})
+    cold = dict(overlay.cold) | ({name: 0} if config.warmth_on else {})
+    held, built = dict(overlay.held) | {name: 0}, dict(overlay.built) | {name: 0}
+    age = dict(overlay.age) | ({name: config.adult_at} if config.childhood_on else {})
+    sources = {sid: replace(source, authorised=frozenset(source.authorised) | {name})
+               for sid, source in ledger.sources.items()}
+    holdings = {resource: dict(held_map) | {name: 0} for resource, held_map in ledger.holdings.items()}
+    grown = replace(ledger, balances=dict(ledger.balances) | {name: 0}, sources=sources, holdings=holdings)
+    persona = persona_arrived(overlay.persona, name, config)
+    return (replace(overlay, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at, thirst=thirst, cold=cold,
+                    held=held, built=built, age=age, persona=persona,
+                    family=replace(overlay.family, arrivals=family.arrivals + 1, last_arrival=overlay.tick)),
+            grown, [name])
 
 
 def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[Overlay, WorldState, list[str]]:
@@ -383,6 +433,24 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     is a mouth, not a meal, and no unit of anything is created by it."""
     adjacent = {f"{a}|{b}" for a, b in settled_pairs(overlay, config)}
     counts = {pair: overlay.together.get(pair, 0) + 1 for pair in adjacent}
+    family = overlay.family if config.on("family") else None
+    pregnant = dict(family.pregnant) if family is not None else {}
+    due_pairs: dict[str, tuple[str, str]] = {}
+    if family is not None:
+        living = set(overlay.living)
+        for pair in sorted(counts):
+            if counts[pair] < config.together_ticks:
+                continue
+            a, b = pair.split("|")
+            if (family.partner.get(a) == b and a not in pregnant and b not in pregnant
+                    and overlay.age.get(a, 0) >= config.adult_at and overlay.age.get(b, 0) >= config.adult_at
+                    and len(living) + len(pregnant) < config.lever("pop_cap")
+                    and not (config.birth_spacing and any(overlay.birth_ready.get(x, 0) > overlay.tick for x in (a, b)))):
+                pregnant[b] = (overlay.tick + config.lever("gestation"), a)       # the second of the pair carries
+                counts[pair] = 0
+        for carrier, (due, other) in sorted(pregnant.items()):
+            if due <= overlay.tick and carrier in living:
+                due_pairs[f"{carrier}|{other}"] = (carrier, other)
     taken = set(overlay.homes.values()) | set(config.all_source_positions())
     homes, positions = dict(overlay.homes), dict(overlay.positions)
     hunger, yield_at = dict(overlay.hunger), dict(overlay.yield_at)
@@ -394,16 +462,19 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     born: list[str] = []
     parents: dict[str, tuple[str, str]] = {}
     roster_size = len(overlay.roster)
-    for pair in sorted(counts):
-        if counts[pair] < config.together_ticks:
+    for pair in (sorted(counts) if family is None else sorted(due_pairs)):
+        if family is None and counts[pair] < config.together_ticks:
             continue
         first, second = pair.split("|")
-        if config.birth_spacing and any(ready[actor] > overlay.tick for actor in (first, second)):
+        if family is None and config.birth_spacing and any(ready[actor] > overlay.tick for actor in (first, second)):
             continue
         where = free_cell_near(overlay.homes[first], taken, config)
         if where is None:
             continue                                   # nowhere left to live
-        counts[pair] = 0                               # they start counting again
+        if family is None:
+            counts[pair] = 0                           # they start counting again
+        else:
+            pregnant.pop(first, None)                  # the carrier delivers
         name = f"p{roster_size + len(born) + 1:02d}"
         born.append(name)
         parents[name] = (first, second)
@@ -423,8 +494,9 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
             thirst[name] = 0
         if config.warmth_on:
             cold[name] = 0
+    kept_family = replace(family, pregnant=pregnant) if family is not None else overlay.family
     if not born:
-        return replace(overlay, together=counts), ledger, []
+        return replace(overlay, together=counts, family=kept_family), ledger, []
     if config.birth_spacing:
         counts = {pair: count for pair, count in counts.items()
                   if all(ready[actor] <= overlay.tick for actor in pair.split("|"))}
@@ -442,5 +514,5 @@ def _births(overlay: Overlay, ledger: WorldState, config: WorldConfig) -> tuple[
     return (replace(overlay, homes=homes, positions=positions, hunger=hunger, yield_at=yield_at,
                     thirst=thirst, cold=cold, held=held, built=built, together=counts,
                     age=age, parent=parent, second_parent=second_parent, persona=persona,
-                    birth_ready=ready if config.birth_spacing or overlay.birth_ready else {}),
+                    birth_ready=ready if config.birth_spacing or overlay.birth_ready else {}, family=kept_family),
             grown, born)

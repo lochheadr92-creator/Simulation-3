@@ -683,15 +683,16 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
-    if config.on("structures"):
+    grieving = config.on("family") and observation.grief >= config.lever("grief_at")
+    if config.on("structures") and not grieving:
         kept = _maintain(observation, config, choice)
         if kept is not None:
             return kept
-    if config.on("farming"):
+    if config.on("farming") and not grieving:
         worked = _farm(observation, config, choice)
         if worked is not None:
             return worked
-    if config.on("crafting"):
+    if config.on("crafting") and not grieving:
         made = _craft(observation, config, choice)
         if made is not None:
             return made

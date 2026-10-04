@@ -15,6 +15,7 @@ from typing import Any, Mapping
 from kernel import digest as canonical_digest
 from world.social import FOOD_MEMORY_LIMIT
 from world.ecology import CONDITION_MAX, SEASONS
+from world.family import Family
 from world.persona import Persona
 from world.pledges import Pledges
 from world.sky import Sky
@@ -122,6 +123,7 @@ class Overlay:
     persona: Persona = field(default_factory=Persona)  # traits, skills, fatigue, sleep, recent attempts (rich-world features)
     sky: Sky | None = None  # the sky of this tick: phase, weather, temperature (sky feature)
     things: Things = field(default_factory=Things)  # what is in the world besides people and food: wolves so far
+    family: Family = field(default_factory=Family)  # couples, pregnancies, grief, guardians (family feature)
     pledges: Pledges = field(default_factory=Pledges)  # requests for help, promises, and how each ended this tick (pledges feature)
 
     def __post_init__(self) -> None:
@@ -235,6 +237,9 @@ class Overlay:
             raise ValueError("persona must be a Persona")
         if not isinstance(self.things, Things):
             raise ValueError("things must be a Things")
+        if not isinstance(self.family, Family):
+            raise ValueError("family must be a Family")
+        self.family.check(set(positions), self.tick)
         if not isinstance(self.pledges, Pledges):
             raise ValueError("pledges must be a Pledges")
         self.pledges.check(set(positions), self.tick)
@@ -363,6 +368,7 @@ class Overlay:
             **({"sky": self.sky.canonical()} if self.sky is not None else {}),
             **({"things": self.things.canonical()} if self.things else {}),
             **({"pledges": self.pledges.canonical()} if self.pledges else {}),
+            **({"family": self.family.canonical()} if self.family else {}),
             **({"terrain_memory": {actor: [list(cell) for cell in cells]
                                    for actor, cells in self.terrain_memory.items()}}
                if self.terrain_memory else {}),
@@ -376,7 +382,7 @@ class Overlay:
         if isinstance(data, Mapping):
             for extra in ("thirst", "cold", "held", "built", "shelters", "together", "requests", "promises",
                           "age", "parent", "second_parent", "terrain_memory", "birth_ready", "food_memory", "patch_condition", "season",
-                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports", "persona", "sky", "things", "pledges"):
+                          "home_targets", "home_settled", "home_caches", "home_trip_ticks", "home_strain", "shelter_memory", "fishing_cast", "empty_sources", "provision_trips", "food_expected", "food_sightings", "source_reports", "persona", "sky", "things", "pledges", "family"):
                 if extra in data:
                     keys = keys | {extra}
         if not isinstance(data, Mapping) or set(data) != keys:
@@ -408,6 +414,7 @@ class Overlay:
                    sky=Sky.from_canonical(data["sky"]) if "sky" in data else None,
                    things=Things.from_canonical(data["things"]) if "things" in data else Things(),
                    pledges=Pledges.from_canonical(data["pledges"]) if "pledges" in data else Pledges(),
+                   family=Family.from_canonical(data["family"]) if "family" in data else Family(),
                    birth_ready=dict(data.get("birth_ready", {})),
                    food_memory=dict(data.get("food_memory", {})),
                    patch_condition=dict(data.get("patch_condition", {})),

@@ -166,6 +166,9 @@ def _cause_of_death(world: Mapping[str, Any], actor: str, cfg: Mapping[str, Any]
     lethal = (cfg.get("feature_levers") or {}).get("lethal_hurt")
     if lethal is not None and ((world.get("persona") or {}).get("hurt") or {}).get(actor, 0) >= lethal:
         return "was killed by a wolf"
+    old_age = (cfg.get("feature_levers") or {}).get("old_age_at", 480) if "family" in (cfg.get("features") or []) else None
+    if old_age is not None and (world.get("age") or {}).get(actor, 0) >= old_age:
+        return "died of old age"
     return "died"
 
 

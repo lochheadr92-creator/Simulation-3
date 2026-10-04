@@ -287,6 +287,20 @@ def born(persona: Persona, name: str, first: str, second: str, config: "WorldCon
     return replace(persona, traits=traits, skills=skills, fatigue=fatigue)
 
 
+def arrived(persona: Persona, name: str, config: "WorldConfig") -> Persona:
+    """A traveller's inner state: traits of their own, no practice, fully rested, a little lonely."""
+    traits, skills, fatigue, lonely = dict(persona.traits), dict(persona.skills), dict(persona.fatigue), dict(persona.lonely)
+    if config.on("personality"):
+        traits[name] = draw_traits(config.seed + 1009 * int(name[1:]), (name,))[name]
+    if config.on("skills"):
+        skills[name] = (0,) * len(SKILLS)
+    if config.on("sleep"):
+        fatigue[name] = 0
+    if config.on("bonds"):
+        lonely[name] = config.lever("lonely_at")
+    return replace(persona, traits=traits, skills=skills, fatigue=fatigue, lonely=lonely)
+
+
 def _remember(tried: dict[str, tuple], actor: str, entry: tuple[str, str, int, int]) -> None:
     """Keep the four most recent distinct (kind, target) attempts, newest first."""
     kept = [e for e in tried.get(actor, ()) if (e[0], e[1]) != (entry[0], entry[1])]

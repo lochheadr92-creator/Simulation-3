@@ -15,6 +15,7 @@ from typing import Any, Callable, Mapping
 from world.traits import level_of
 from world.viewer_sky import sky_events
 from world.viewer_crafting import crafting_events
+from world.viewer_family import family_events
 from world.viewer_farming import farming_events
 from world.viewer_pledges import pledge_events
 from world.viewer_society import society_events
@@ -38,7 +39,7 @@ LABELS: dict[str, str] = {"sleep": "sleep", "go_sleep": "go home to sleep", "col
                           "repair": "mend the shelter", "light": "light a fire", "dig": "dig a well", "go_dig": "go and dig"}
 MOVES: tuple[str, ...] = ("go_sleep", "flee", "go_visit", "go_help", "go_stone", "go_field", "go_dig")
 CATEGORIES: tuple[tuple[str, str], ...] = (("rest", "Sleep and tiredness"), ("skill", "Learning"), ("sky", "Day and weather"), ("danger", "Wolves and danger"),
-              ("social", "Friends and quarrels"), ("craft", "Stone and tools"), ("farm", "Fields and crops"))
+              ("social", "Friends and quarrels"), ("craft", "Stone and tools"), ("farm", "Fields and crops"), ("family", "Family and age"))
 
 
 def _event(k: int, cat: str, kind: str, text: str, who: str | None = None, other: str | None = None,
@@ -111,7 +112,7 @@ def _persona_events(run: Any, worlds: list[Mapping[str, Any]], cfg: Mapping[str,
 
 
 DERIVERS: tuple[Callable[[Any, list[Mapping[str, Any]], Mapping[str, Any]], list[dict[str, Any]]], ...] = (
-    _persona_events, sky_events, wolf_events, society_events, pledge_events, crafting_events, farming_events, structure_events,
+    _persona_events, sky_events, wolf_events, society_events, pledge_events, crafting_events, farming_events, structure_events, family_events,
 )
 
 

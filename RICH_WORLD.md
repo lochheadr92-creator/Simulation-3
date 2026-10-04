@@ -156,6 +156,12 @@ Two facts about the existing code shape the work:
   gives water by the same recorded production entries berries use. A well is not a landmark: observation lists it only while it
   is in sight. Collapse removes the shelter and starts its residents' building over.
 
+* **Family life is its own block.** `world/family.py` holds partners (always mutual), pregnancies (carrier, due tick, other
+  parent), grief, guardians and the traveller count, in the overlay. Nothing about the population is silent: births need a
+  couple and fewer than `pop_cap` living plus pregnant, travellers come only below `arrive_below` living, after
+  `arrive_every` ticks, `max_arrivals` times, and a lifespan is the seed's draw from `old_age_at` plus `old_age_spread`. All of
+  these are settings written in the run header's rule text.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -183,7 +189,7 @@ the viewer. `partial` says what is missing.
 | P6 | Stone, tools, crafting, hauling | built and tested (focused tests only): a quarry, axe/pick/basket/hoe made from wood and stone, effects of axe, basket and pick; the hoe waits for P7; hauling is the wood fetch from P5; no stone or tool requests yet |
 | P7 | Farming, spoilage, distinct foods | built and tested (focused tests only): a field per founder, planting, tending, harvest, soil wear, rot, grain as a second food, spoilage; newborns have no field yet (P9); no grain requests or trading |
 | P8 | Building kinds, upkeep, fire, constructed wells | built and tested (focused tests only): shelters wear, are mended (neighbours may help) or collapse; fires burn wood, warm, light and keep wolves off; wells are dug and give water by recorded production and are used once seen; **no hut, house or storehouse kinds**; a finished well is forgotten out of sight (no belief of it yet, P11) |
-| P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | not started |
+| P9 | Couples, pregnancy, ageing, orphans, grief, newcomers | built and tested (focused tests only): couples from talk and a shared bond, pregnancy with a fixed gestation, births only from pregnancies, elders, lifespans, old-age death, orphans taken in, grief, travellers when few are left, explicit population limits; **couples are rare in small worlds at the default bond level**, so the rich-world preset will set it lower; no marriage rites, no inheritance (P10) |
 | P10 | Graves, belongings, aftermath, detailed death records | not started |
 | P11 | Exploration, forgetting, desire paths, pathfinding audit | not started |
 | P12 | Viewer: minimap, fog, overlays, launcher, save/resume, live mode | not started |
