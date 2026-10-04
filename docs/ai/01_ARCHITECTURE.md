@@ -1,6 +1,6 @@
 # Current architecture
 
-## Scoped update — rich-world features, P0-P3 — 2026-10-04
+## Scoped update — rich-world features, P0-P4 — 2026-10-04
 
 Checked against `02af86b` plus the local rich-world commits. Optional behaviour
 now arrives as named features: [registry](../../world/registry.py) collects
@@ -24,7 +24,11 @@ read recorded values; `process.advance` charges exposure on cold, and `observe` 
 holds dated, attributed beliefs in the persona (sight files first-hand, being told files hearsay that keeps
 its original date); [wolves](../../world/wolves.py) and [things](../../world/things.py) put hunters in the
 overlay. A person's observation holds only wolves inside their sight and their own beliefs, and
-`decide` reads nothing else about wolves. The viewer core exposes extension points and
+`decide` reads nothing else about wolves. [society](../../world/society.py) keeps a person's bonds (bond, trust, grudge, last
+contact, reason) and loneliness in the persona; `advance_society` changes them only from the tick's decisions and
+outcomes (mutual chat and greeting, gifts, quarrels, apologies) and is called from `process.advance`. Chat tellings in
+`advance_beliefs` need a reciprocal chat and enough trust in the teller. The observation carries only the person's own
+bonds and whether somebody in view looks busy. The viewer core exposes extension points and
 `viewer_<feature>.js` parts are spliced in only for runs that record the feature.
 Status and next steps live in [RICH_WORLD.md](../../RICH_WORLD.md).
 

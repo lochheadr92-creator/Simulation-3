@@ -85,6 +85,8 @@ from world.explain import (DANGEROUS, FAILED_BEFORE, HURT, LESS_URGENT, TOO_LATE
                            WEATHER, rejection)
 from world.rest import COLLAPSE, GO_SLEEP, SLEEP, fatigue_slack, tired_threshold
 from world.traits import (FISHING, GATHERING, build_goal, caution_ticks, generous, skill_level, stingy)
+from world.society import CHAT, CONFRONT, GO_VISIT, bond_with, find, grudge_of, is_friend, resents
+from world.traits import SOCIABILITY, trait_lean
 from world.wolves import FLEE, manhattan
 
 EAT, CLAIM, WAIT, YIELD, GO, HOME, REST, DEAD = (
@@ -121,6 +123,8 @@ class Decision:
     report_to: tuple[str, ...] = ()
     resource: str | None = None          # what an offer hands over; None means food
     rejected: tuple[tuple[str, str, str], ...] = ()   # options weighed and set aside: what, reason code, detail
+    greeted: tuple[str, ...] = ()        # people they said hello to (speech costs no tick)
+    confronted: tuple[str, ...] = ()     # people they told they were angry with them (speech costs no tick)
     told_to: tuple[str, ...] = ()        # people called to, who hear what is told (speech costs no tick)
     told: tuple[tuple[str, str, int, int, int], ...] = ()   # what is told: kind, subject, x, y, tick first seen
 
@@ -130,6 +134,10 @@ class Decision:
             out["amount"] = self.amount
         if self.step is not None:
             out["step"] = list(self.step)
+        if self.greeted:
+            out["greeted"] = list(self.greeted)
+        if self.confronted:
+            out["confronted"] = list(self.confronted)
         if self.told_to:
             out["told_to"] = list(self.told_to)
             out["told"] = [list(entry) for entry in self.told]
@@ -394,13 +402,20 @@ def someone_to_help(observation: Observation, config: WorldConfig) -> str | None
     if not config.offers_on:
         return None
     starving = [seen for seen in observation.others if seen.starving]
+    social = config.on("bonds")
+    if social:
+        # nobody goes out of their way for somebody they resent, unless it is their own child
+        starving = [seen for seen in starving
+                    if seen.actor in observation.dependents or not resents(observation.bonds, seen.actor, config)]
     if stingy(observation.traits) and observation.food < 2:
-        # a stingy person keeps their last unit from strangers; their own children are fed regardless
-        starving = [seen for seen in starving if seen.actor in observation.dependents]
+        # a stingy person keeps their last unit from strangers; their own children, and their friends, are fed regardless
+        starving = [seen for seen in starving if seen.actor in observation.dependents
+                    or (social and is_friend(observation.bonds, seen.actor, config))]
     if not starving:
         return None
     remembered = dict(observation.food_memory) if config.social_memory_on else {}
-    return min(starving, key=lambda seen: (seen.actor not in remembered,
+    return min(starving, key=lambda seen: (social and not is_friend(observation.bonds, seen.actor, config),
+                                         seen.actor not in remembered,
                                          steps_to(observation.position, seen.position), seen.actor)).actor
 
 
@@ -515,6 +530,30 @@ def action_score(action: str, observation: Observation, config: WorldConfig) -> 
 
 def decide(observation: Observation, config: WorldConfig) -> Decision:
     choice = _decide(observation, config)
+    if choice.kind == CHAT:
+        # a quiet word: what they know of wolves seen lately, and where they live, with the dates they were first seen
+        news = sorted(((b[4], b[1], b[2], b[3]) for b in observation.beliefs if b[0] == "wolf"
+                       and observation.tick - b[4] <= config.lever("danger_span")), reverse=True) if config.on("wolves") else []
+        told = [("home", observation.actor, observation.home[0], observation.home[1], observation.tick)]
+        told += [("wolf", subject, x, y, seen) for seen, subject, x, y in news]
+        choice = replace(choice, told_to=(choice.target,), told=tuple(told[:config.lever("told_per_chat")]))
+    if config.on("bonds") and observation.alive and not observation.asleep and choice.kind != DEAD:
+        # whoever is within reach and awake gets a hello, unless they have dealt with them lately, and a word if they
+        # are angry with them; neither takes any time
+        reach, again, grudge_at = config.lever("talk_range"), config.lever("greet_every"), config.lever("grudge_at")
+        hello, words = [], []
+        for seen in observation.others:
+            if seen.asleep or max(abs(seen.position[0] - observation.position[0]),
+                                  abs(seen.position[1] - observation.position[1])) > reach:
+                continue
+            held = find(observation.bonds, seen.actor)
+            if held is not None and held[3] >= grudge_at:
+                if not _tried_lately(observation, CONFRONT, seen.actor, 3 * config.lever("retry_after")):
+                    words.append(seen.actor)
+            elif held is None or observation.tick - held[4] >= again:
+                hello.append(seen.actor)
+        if hello or words:
+            choice = replace(choice, greeted=tuple(sorted(hello)), confronted=tuple(sorted(words)))
     if config.on("wolves") and observation.alive and observation.wolves_seen:
         # seeing a wolf, they call out to everybody they can see who is awake; speech costs no tick
         # (once per sighting: not again while they keep seeing the same wolf, nor when they were just told of it)
@@ -606,9 +645,84 @@ def _decide(observation: Observation, config: WorldConfig) -> Decision:
                             choice.candidates + (DEPOSIT,), amount=spare,
                             target=observation.home_store_id or store_id(observation.actor),
                             scores=choice.scores + ((DEPOSIT, (0, 1)),) if choice.scores is not None else None)
+    if config.on("bonds") and choice.kind in (HOME, BUILD, REST):
+        talk = _social(observation, config, choice)
+        if talk is not None:
+            return talk
     if config.provisioning_on and choice.kind in (REST, HOME):
         return _provision_decision(observation, config, choice)
     return choice
+
+
+def _tried_lately(observation: Observation, kind: str, other: str, window: int) -> bool:
+    return any(k == kind and who == other and observation.tick - when < window for k, who, when, _ in observation.tried)
+
+
+def _social(observation: Observation, config: WorldConfig, choice: Decision) -> Decision | None:
+    """Idle people look for company, have it out with somebody they resent, or carry on a conversation.
+
+    Only what they observe and remember counts: who is in view, how they feel about each, who they
+    tried lately, how lonely they are, and the homes of friends they were told of."""
+    if observation.asleep or not observation.alive or observation.storm:
+        return None
+    actor, here, bonds, lonely = observation.actor, observation.position, observation.bonds, observation.lonely
+    reach, retry = config.lever("talk_range"), config.lever("retry_after")
+    awake = [seen for seen in observation.others if not seen.asleep]
+    free = [seen for seen in awake if not seen.busy]
+
+    def near(seen) -> bool:
+        return max(abs(seen.position[0] - here[0]), abs(seen.position[1] - here[1])) <= reach
+
+    # carry on a conversation, or start one
+    talking = observation.talking
+    chat_at = config.lever("chat_at")
+    partners = []
+    for seen in free:
+        held = find(bonds, seen.actor)
+        if resents(bonds, seen.actor, config) or _tried_lately(observation, CHAT, seen.actor, retry):
+            continue
+        carrying_on = talking is not None and talking[0] == seen.actor and observation.tick - talking[1] < config.lever("chat_len")
+        if (not carrying_on and held is not None and held[7] == "warm"
+                and observation.tick - held[4] <= retry):
+            continue                                                  # they have just talked: give it a rest
+        partners.append((seen, carrying_on))
+    ready = lonely >= max(1, chat_at // 2)             # half the need is enough to talk back, and to carry on
+    close = sorted((p for p in partners if near(p[0])), key=lambda p: (not p[1], -bond_with(bonds, p[0].actor),
+                                                                      max(abs(p[0].position[0] - here[0]), abs(p[0].position[1] - here[1])),
+                                                                      p[0].actor))
+    if close and (ready or (close[0][1] and lonely >= 1)):
+        seen = close[0][0]
+        how = ("a friend" if is_friend(bonds, seen.actor, config) else "somebody they know" if find(bonds, seen.actor)
+               else "somebody new")
+        return Decision(actor, CHAT, f"lonely {lonely}; talking with {seen.actor}, {how}",
+                        choice.candidates + (CHAT,), target=seen.actor)
+    if observation.night or observation.hurt >= (config.lever("limp_at") if config.on("wolves") else 10 ** 9):
+        return None
+    # walk to company: somebody in view, else the home of somebody they know, else the well
+    want = lonely >= max(chat_at, config.lever("lonely_at") - trait_lean(observation.traits, SOCIABILITY) // 5)
+    if not want:
+        return None
+    if partners:
+        seen = min(partners, key=lambda p: (-bond_with(bonds, p[0].actor), steps_to(here, p[0].position), p[0].actor))[0]
+        return Decision(actor, GO_VISIT, f"lonely {lonely}; walking over to talk with {seen.actor}",
+                        choice.candidates + (GO_VISIT,), target=seen.actor,
+                        step=route_step(observation, seen.position, config))
+    known = sorted(((bond_with(bonds, b[1]), b[1], (b[2], b[3])) for b in observation.beliefs
+                    if b[0] == "home" and find(bonds, b[1]) is not None and not resents(bonds, b[1], config)),
+                   key=lambda f: (-f[0], steps_to(here, f[2]), f[1]))
+    if known:
+        _, who, cell = known[0]
+        if cell != here and steps_to(here, cell) <= 3 * config.perception_radius + 6:
+            return Decision(actor, GO_VISIT, f"lonely {lonely}; going to see {who}, whose home they know",
+                            choice.candidates + (GO_VISIT,), target=who, step=route_step(observation, cell, config))
+    # nobody known to call on: the well is where people meet, so go and wait there
+    hub = observation.water_source or observation.source
+    if here == hub:
+        return Decision(actor, REST, f"lonely {lonely}; waiting at the well for somebody to talk to", choice.candidates)
+    if steps_to(here, hub) <= 3 * config.perception_radius + 6:
+        return Decision(actor, GO_VISIT, f"lonely {lonely}; going to the well to see who is about",
+                        choice.candidates + (GO_VISIT,), step=route_step(observation, hub, config))
+    return None
 
 
 def _provision_decision(observation: Observation, config: WorldConfig, choice: Decision) -> Decision:

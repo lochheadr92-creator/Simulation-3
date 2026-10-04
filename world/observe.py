@@ -62,6 +62,7 @@ from world.materials import WOOD
 from world.housing import visible_sites, remembered_shelters, can_relocate
 from world.overlay import Overlay, Position
 from world.sky import Sky, exposure, sight
+from world.society import IDLE_LOOK
 from world.wolves import danger_cells, is_active
 
 
@@ -83,6 +84,7 @@ class SeenPerson:
     parched: bool = False     # visibly in a thirst emergency
     water: int | None = None  # free water units; filled in only when water care is on
     asleep: bool = False      # visibly asleep (the sleep feature)
+    busy: bool = False        # visibly occupied with something else: walking somewhere, drawing, eating (bonds feature)
 
     @property
     def in_distress(self) -> bool:
@@ -173,6 +175,9 @@ class Observation:
     beliefs: tuple[tuple[Any, ...], ...] = ()            # own beliefs: kind, subject, x, y, seen, learned, via
     hurt: int = 0                                        # own injury; 0 when wolves are off
     danger: frozenset[Position] = frozenset()            # cells near a wolf they see or believe in; routes avoid them
+    bonds: tuple[tuple[Any, ...], ...] = ()              # own view of each person they have dealt with (bonds feature)
+    lonely: int = 0                                      # own need for company
+    talking: tuple[str, int] | None = None               # who they are talking to and since when
 
     @property
     def storm(self) -> bool:
@@ -284,7 +289,9 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
                    starving=overlay.hunger[other] >= config.emergency_at,
                    parched=config.water_on and overlay.thirst[other] >= config.thirst_emergency_at,
                    water=available[actor_account(other, WATER)] if config.water_care_on else None,
-                   asleep=other in persona.asleep)
+                   asleep=other in persona.asleep,
+                   busy=(config.on("bonds") and persona.doing.get(other) is not None
+                         and persona.doing[other] not in IDLE_LOOK))
         for other in overlay.living
         if other != actor and in_view(origin, overlay.positions[other], radius)
     )
@@ -365,6 +372,7 @@ def observe(actor: str, ledger: WorldState, overlay: Overlay, config: WorldConfi
     beliefs = persona.beliefs.get(actor, ())
     return Observation(
         wolves_seen=wolves_seen, beliefs=beliefs, hurt=persona.hurt.get(actor, 0),
+        bonds=persona.bonds.get(actor, ()), lonely=persona.lonely.get(actor, 0), talking=persona.talking.get(actor),
         wolves_active=frozenset(wolf.id for wolf in sighted if is_active(wolf, overlay.sky)),
         danger=(danger_cells(beliefs, wolves_seen, ledger.tick, config, overlay.sky)
                 if config.on("wolves") else frozenset()),

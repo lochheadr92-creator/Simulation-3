@@ -114,6 +114,31 @@ Two facts about the existing code shape the work:
   take what they came for, and holds the start-for-shelter rule back while somebody is out on an
   errand. It is separate from `sky` so each can be switched off and measured alone.
 
+* **Bonds are one small list per person.** `world/society.py` (feature `bonds`, needs `beliefs`):
+  each entry is (other, bond, trust, grudge, last, why, grieved, tone), all integers 0 to 100 or
+  ticks. Only the person's own list is in their observation, so what A feels about B is never
+  visible to B. Bonds change only in `advance_society`, from what the tick's decisions and
+  outcomes recorded: a mutual conversation, a mutual greeting, a gift given, a quarrel, an apology.
+* **Companionship is a need that does not kill.** `lonely` grows one point every few ticks (staggered
+  by person so nobody is lonely on the same tick) and falls while talking. It sets what an idle person
+  does (talk, visit) and is shown as a need bar; it has no lethal level and takes no part in the
+  least-slack rule.
+* **A conversation needs two.** A chat is only made when both people chose it towards each other and
+  are within `talk_range`; a chat that was not returned is recorded as a failed attempt, so
+  the person tries someone else after `retry_after` ticks. Seeing that somebody is busy (their
+  recorded doing) is part of what a person can observe, so they do not keep asking busy people.
+* **Greetings, confrontations and what is told are speech acts on a decision.** They cost no tick.
+  A greeting needs the other to greet back. A confrontation is one-sided and can be answered with
+  an apology if the other person is generous enough and not holding a grudge themselves.
+* **Hearsay is gated by trust.** A told fact is only believed when the listener trusts the teller
+  at least `believe_at`, and only when the listener also chatted back. Homes are told first,
+  then fresh wolf news, at most `told_per_chat` items. A person visits a home they have only heard of.
+* **Grievances come from losses the world records.** `beat_to_it`: a refused claim at a source where
+  somebody in view had an accepted one. `kept_food`: a starving person saw a free neighbour holding
+  two or more food that never offered. Each costs trust, then bond, and is remembered with its reason
+  until it fades (`grudge_fade`). Helping prefers friends and leaves out those somebody resents,
+  unless a dependent is hungry.
+
 ## Prior art on other branches (not part of this work)
 
 Unmerged lines of work exist in this repository and were looked at, not merged:
@@ -135,8 +160,8 @@ the viewer. `partial` says what is missing.
 | P0 | Baseline, golden digests, ledger audit, replace-based overlay updates, this record | done |
 | P1 | Traits, skills, fatigue and sleep | done for its scope (committed); sociability and curiosity are stored but act only once P4/P11 exist; skills farming/crafting count practice once P6/P7 exist |
 | P2 | Day/night, temperature, rain, storms, exposure, planning in the weather, steadiness | done (see log); farming and fire do not use the sky yet; lighting by fire waits for P8 |
-| P3 | Belief model, wolves, danger knowledge, safety | done for wolves (see log); no other kind of thing is believed in yet; stored beliefs are not yet exchanged in conversation (P4); dens are not themselves beliefs |
-| P4 | Relationships, conversations, quarrels, apologies | not started |
+| P3 | Belief model, wolves, danger knowledge, safety | done for wolves (see log); homes are the second believed kind (P4); no other kind of thing is believed in yet; dens are not themselves beliefs |
+| P4 | Relationships, conversations, quarrels, apologies | done for its scope (see log); quarrels need a cause the world already produces (a lost race for food, a meal withheld), so declined help and broken promises join them in P5; couples and attraction wait for P9 |
 | P5 | Generalised requests, commitments, escrow, cooperation, hosting | not started |
 | P6 | Stone, tools, crafting, hauling | not started |
 | P7 | Farming, spoilage, distinct foods | not started |
@@ -208,6 +233,27 @@ Entries say who ran what and when. A number here is a result of that run only.
   without them ranged 33 to 42 of about 80 with wolves and 33 to 35 without, so no effect on
   survival was measurable either way.
 
+* P4: `tests/test_society.py` 42 passed (storage and strict validation, each rule on its own,
+  decisions that talk, visit, greet and confront, hearsay gated by trust and reciprocal chat, a
+  whole saved world that audits, replays and recovers; provenance audits: every warm or greeting
+  entry was mutual and within reach, every grudge that grew has a recorded cause, every home belief
+  traces to a telling; a counterfactual that moves a person out of sight changes nothing they
+  decide; a real browser opens the Relationships section at the tick a grudge begins). Seven mutations
+  of the rules (a chat that needs only one side, greetings never throttled, everybody believed whatever
+  the trust, resented people still helped, starvation nobody could see counting as a grievance, no
+  cooldown on confronting, bonds left unbounded) were each caught by a test. Disabled-mode guard 16/16.
+  Survey (8 seeds, 300 ticks, beliefs, sky, steady, sleep, personality, explain on): people who died /
+  people in the run, bonds on 20 / 70, bonds off 35 / 85; births differ chaotically between the two
+  runs so this is not a claim that company helps. Tick time 7 to 13 ms; a 300-tick file 2 to 3.6 MB.
+  Watched in the viewer (seed 11, 300 ticks, screenshots taken with Playwright, no console errors):
+  a conversation at the well with its speech bubble and teal thread and a "?" over a lonely person
+  nearby (tick 58), and a night scene with quarrel threads between people and the Company bar at
+  42 of 60 (tick 213). Gifts, apologies and walking to a home somebody had only heard of are pinned
+  by tests on constructed scenes; I did not pick them out of an ordinary run by eye.
+  Limits seen: in small spread-out worlds (6 people) friendships rarely form; quarrels come only from
+  crowded patches or withheld meals until P5; loneliness saturates at its cap in an isolated world;
+  a mutual quarrel can repeat on consecutive ticks because the cooldown is per confronter.
+
 ## Environment notes
 
 * The container's Chromium is build 1194; the locked Playwright (1.63) looks for
@@ -216,6 +262,7 @@ Entries say who ran what and when. A number here is a result of that run only.
 
 ## Next step
 
-P4: relationships and conversation. Greetings, visits, conversations that pass on what people
-believe (with its age and teller kept), gifts, quarrels, apologies and avoidance, all grounded
-in what two people actually know of each other, and a companionship need.
+P5: generalised requests and promises for water, materials, tools, information, building help,
+repairs and hauling, with accept, decline, fail, expire and interrupt; reservations that are
+released when a promise ends or somebody dies; cooperative construction; shared meals and
+hosting. Declined help and broken promises become new causes for grudges.

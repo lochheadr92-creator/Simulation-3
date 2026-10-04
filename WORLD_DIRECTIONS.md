@@ -1,5 +1,41 @@
 # Simulation 3 — Development Directions
 
+## Friends, talk, grudges: relationships — 2026-10-04
+
+The fourth piece of the rich world: one more optional feature, `bonds` (it needs `beliefs`).
+[RICH_WORLD.md](RICH_WORLD.md) has the phase plan and the next step.
+
+**What people feel.** Each person keeps a short list of the people they know: how well they
+like them (bond), how far they trust them, any grudge, when they last met and why the grudge
+exists. A person's feelings are in their own head only: nobody else's observation or choice can read
+them, and a test moves someone out of sight to show it. A new need, company, grows slowly and falls while talking.
+
+**What they do about it.** Somebody lonely and with nothing urgent talks to a free person in reach
+who has not been avoided lately, or walks towards one in view, or to a home they have heard of, or
+to the well where people gather. A conversation needs both people to want it; if the other was busy
+the attempt is recorded as failed and they try someone else later. People greet each other for free
+as they pass. Chat passes on what a person believes: where a home is, then fresh wolf news, with its
+original date, and only when the listener trusts the teller enough.
+
+**What goes wrong.** A person who lost a race for food to somebody else in view, or who starved
+in front of a free neighbour holding spare food that was not offered, holds a grudge. They confront the
+other person, who apologises if they are generous enough and not holding a grudge themselves; otherwise
+it is a quarrel and both like each other less. Grudges fade slowly. Helping prefers friends and skips people
+somebody resents, except for hungry dependents. A gift softens a grudge.
+
+**What watching found.** Most chat attempts were first not returned because the other person was
+busy and neither could tell; showing what others are doing fixed it. Quarrels never happened until confronting became a free speech act.
+Friends are rare in small, spread-out worlds. Over eight seeds at 300 ticks, 20 of 70 people died with
+bonds against 35 of 85 without; births differ between the runs, so that is not a claim company
+helps.
+
+**What to watch.** A speech bubble and a teal thread between two people at a well, a "?" over the lonely,
+a Company bar in the inspector, and a Relationships section listing who the selected person likes,
+trusts, resents and why, with the quarrels and apologies in the event list.
+
+**Next.** Requests, promises and cooperation (P5): water, tools and building help that can be accepted,
+declined, broken or interrupted by a death, with grievances to match.
+
 ## Wolves, and a memory that keeps dates — 2026-10-04
 
 The third piece of the rich world: two more optional features, `beliefs` and `wolves` (wolves
@@ -42,8 +78,7 @@ it 48 of 77.
 person believes it was (fainter as it ages, labelled with who told them), "Knows about wolves"
 in the inspector, and in the set-aside list a trip put off because of a wolf or a wound.
 
-**Next.** Relationships and conversation (P4): people who pass on what they believe,
-gifts, quarrels, apologies and avoidance.
+**Next.** Relationships and conversation (P4), now done: see the entry above.
 
 ## A sky: day, night, weather and what being out in it costs — 2026-10-04
 

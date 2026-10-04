@@ -58,8 +58,9 @@ from world.storage import update_provisioning, update_food_expectations
 from world.ecology import food_growth, recover_patches, season_at, seasonal_growth
 from world.housing import apply_housing, update_experience
 from world.belief import advance_beliefs
-from world.persona import advance_persona, born as persona_born
+from world.persona import advance_persona, born as persona_born, remember_attempt
 from world.sky import exposure, sight, sky_at, storm_hold
+from world.society import advance_society
 from world.things import Things
 from world.traits import build_goal
 from world.wolves import HEALING_KINDS, advance_wolves, mend
@@ -272,6 +273,13 @@ def advance(overlay: Overlay, decisions: Mapping[str, Decision], record: TickRec
     if config.on("wolves"):
         next_overlay = replace(next_overlay, things=Things(wolves=wolves),
                                persona=replace(next_overlay.persona, hurt=hurt))
+    if config.on("bonds"):
+        bonds, lonely, talking, failed = advance_society(overlay, next_overlay, decisions, observations or {}, record, config)
+        tried = dict(next_overlay.persona.tried)
+        for actor, kind, target, when, ok in failed:
+            remember_attempt(tried, actor, (kind, target, when, ok))
+        next_overlay = replace(next_overlay, persona=replace(next_overlay.persona, bonds=bonds, lonely=lonely,
+                                                              talking=talking, tried=tried))
     if config.on("beliefs"):
         next_overlay = replace(next_overlay, persona=replace(
             next_overlay.persona, beliefs=advance_beliefs(overlay, next_overlay, decisions, observations or {}, config)))

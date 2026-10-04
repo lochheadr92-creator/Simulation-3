@@ -20,13 +20,13 @@ if TYPE_CHECKING:
     from world.config import WorldConfig
 
 Belief = tuple[str, str, int, int, int, int, str]     # kind, subject, x, y, seen, learned, via
-KINDS = ("wolf",)                                     # what can be believed; each phase that adds a thing adds a kind
+KINDS = ("wolf", "home")                                     # what can be believed; each phase that adds a thing adds a kind
 
 BELIEFS = Feature(
     name="beliefs",
     summary="People remember what they have seen and been told, with its age and who said so, and forget it in time.",
     rule=(
-        "A belief is a kind of thing (so far: a wolf), which one, the cell it was at, the tick it was seen, "
+        "A belief is a kind of thing (a wolf, or somebody's home), which one, the cell it was at, the tick it was seen, "
         "the tick this person learned of it and who told them (nobody for their own sighting). Somebody "
         "who sees a wolf believes it; somebody told about one believes it with the original sighting tick, "
         "so repeating a rumour never makes it fresher. For the same thing the later sighting replaces the "
@@ -92,9 +92,19 @@ def advance_beliefs(previous: Any, current: Any, decisions: Any, observations: A
     tick of telling. Only a listener who is alive afterwards, and whom the speaker could see, is told."""
     seen_at = previous.tick
     told: dict[str, list[Belief]] = {}
+    friendly = config.on("bonds")
     for speaker in sorted(decisions):
         decision = decisions[speaker]
         for listener in getattr(decision, "told_to", ()):
+            if getattr(decision, "kind", "") == "chat":
+                # a quiet word is heard only by somebody who chose to talk back
+                answer = decisions.get(listener)
+                if answer is None or getattr(answer, "kind", "") != "chat" or getattr(answer, "target", None) != speaker:
+                    continue
+            if friendly:
+                from world.society import trust_in
+                if trust_in(previous.persona.bonds.get(listener, ()), speaker) < config.lever("believe_at"):
+                    continue                              # they do not believe what this person says
             for kind, subject, x, y, seen in getattr(decision, "told", ()):
                 told.setdefault(listener, []).append((kind, subject, x, y, seen, seen_at, speaker))
     out: dict[str, tuple[Belief, ...]] = {}

@@ -8,11 +8,12 @@ from world.feature import Feature
 from world.persona import PERSONALITY, SKILLS_FEATURE
 from world.rest import SLEEP_FEATURE
 from world.sky import SKY_FEATURE
+from world.society import SOCIETY
 from world.steady import STEADY
 from world.wolves import WOLVES
 
 FEATURES: dict[str, Feature] = {feature.name: feature for feature in (
-    BELIEFS, EXPLAIN, PERSONALITY, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, STEADY, WOLVES,
+    BELIEFS, EXPLAIN, PERSONALITY, SKILLS_FEATURE, SKY_FEATURE, SLEEP_FEATURE, SOCIETY, STEADY, WOLVES,
 )}
 
 LEVER_DEFAULTS: dict[str, int] = {}
@@ -73,6 +74,13 @@ def cross_checks(features: tuple[str, ...], levers: tuple[tuple[str, int], ...])
             problems.append("sleep needs collapse_recovery between 1 and collapse_at - tired_at")
     if "beliefs" in features and (v("memory_span") < 1 or v("memory_slots") < 1):
         problems.append("beliefs need memory_span and memory_slots of at least 1")
+    if "bonds" in features:
+        if min(v("talk_range"), v("chat_len"), v("lonely_every"), v("chat_at"), v("friend_at"), v("grudge_gain"),
+               v("grudge_fade"), v("retry_after"), v("grievance_gap")) < 1:
+            problems.append("bonds need talk_range, chat_len, lonely_every, chat_at, friend_at, grudge_gain, grudge_fade, "
+                            "retry_after and grievance_gap of at least 1")
+        if not v("chat_at") <= v("lonely_at") < v("lonely_max") or v("grudge_gain") > v("grudge_at") or v("believe_at") > 100:
+            problems.append("bonds need chat_at <= lonely_at < lonely_max, and grudge_gain <= grudge_at")
     if "wolves" in features:
         if min(v("wolves"), v("wolf_arrival"), v("wolf_sense"), v("bite"), v("heal_every"), v("alarm")) < 1:
             problems.append("wolves need wolves, wolf_arrival, wolf_sense, bite, heal_every and alarm of at least 1")

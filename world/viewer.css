@@ -304,3 +304,12 @@ dl.rules dd { margin: 0; color: #cfe0da; }
 .belief .conf span { display: block; height: 100%; background: var(--need); }
 .belief.hurt-note { color: var(--need); }
 .aside-row .code.hurt { color: var(--need); border-color: rgba(255, 148, 131, .5); }
+
+/* ---------- relationships ---------- */
+.bond { margin: 5px 0; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.bond b { color: var(--fg); }
+.bond .track { display: block; height: 3px; margin: 3px 0 2px; border-radius: 2px; background: var(--raise); overflow: hidden; }
+.bond .fill { display: block; height: 100%; background: var(--life); }
+.bond .fill.bad { background: var(--need); }
+.bond .val { display: block; font-size: 11px; color: var(--faint); }
+.bond-note { color: var(--need); font-size: 11.5px; }

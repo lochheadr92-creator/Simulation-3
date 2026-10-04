@@ -22,6 +22,7 @@ from kernel.proposals import OP_CLAIM
 from world.belief import check_belief
 from world.feature import Feature
 from world.rest import COLLAPSE, SLEEP, WORK_KINDS, rest_rate
+from world.society import check_bond
 from world.traits import BUILDING, FISHING, GATHERING, SKILL_STEPS, SKILLS, TRAITS
 
 if TYPE_CHECKING:
@@ -123,6 +124,9 @@ class Persona:
     doing: Mapping[str, str] = field(default_factory=dict)                # what each person decided last tick, so a choice can resist flip-flopping
     beliefs: Mapping[str, tuple[tuple[Any, ...], ...]] = field(default_factory=dict)   # person -> what they believe (world.belief)
     hurt: Mapping[str, int] = field(default_factory=dict)                 # person -> injury; the dead keep what they died of
+    bonds: Mapping[str, tuple[tuple[Any, ...], ...]] = field(default_factory=dict)   # person -> their view of each other (world.society)
+    lonely: Mapping[str, int] = field(default_factory=dict)               # person -> need for company; nobody dies of it
+    talking: Mapping[str, tuple[str, int]] = field(default_factory=dict)  # person -> (who they are talking to, tick it began)
 
     def __post_init__(self) -> None:
         if not isinstance(self.doing, Mapping) or any(
@@ -166,19 +170,48 @@ class Persona:
             if ordered:
                 beliefs[actor] = ordered
         object.__setattr__(self, "beliefs", MappingProxyType(beliefs))
+        object.__setattr__(self, "lonely", _ints(self.lonely, "lonely"))
+        if not isinstance(self.bonds, Mapping) or not isinstance(self.talking, Mapping):
+            raise ValueError("bonds and talking must map people to values")
+        bonds = {}
+        for actor in sorted(self.bonds):
+            entries = self.bonds[actor]
+            if not isinstance(actor, str) or not isinstance(entries, (list, tuple)) or any(
+                    not isinstance(e, (list, tuple)) or len(e) != 8 for e in entries):
+                raise ValueError(f"bonds of {actor!r} must each be other, bond, trust, grudge, last, why, grieved, tone")
+            ordered = tuple(sorted((tuple(e) for e in entries), key=lambda e: str(e[0])))
+            if len({e[0] for e in ordered}) != len(ordered):
+                raise ValueError(f"{actor!r} has two bonds with the same person")
+            if ordered:
+                bonds[actor] = ordered
+        object.__setattr__(self, "bonds", MappingProxyType(bonds))
+        talking = {}
+        for actor in sorted(self.talking):
+            entry = self.talking[actor]
+            if (not isinstance(actor, str) or not isinstance(entry, (list, tuple)) or len(entry) != 2
+                    or not isinstance(entry[0], str) or type(entry[1]) is not int or entry[1] < 0):
+                raise ValueError(f"talking of {actor!r} must be a partner and the tick it began")
+            talking[actor] = tuple(entry)
+        object.__setattr__(self, "talking", MappingProxyType(talking))
 
     def __bool__(self) -> bool:
         return bool(self.traits or self.skills or self.fatigue or self.asleep or self.tried or self.doing
-                    or self.beliefs or self.hurt)
+                    or self.beliefs or self.hurt or self.bonds or self.lonely or self.talking)
 
     def check(self, roster: set[str], tick: int) -> None:
         for name in ("traits", "skills", "fatigue"):
             names = set(getattr(self, name))
             if names and names != roster:
                 raise ValueError(f"{name} must name every person, or nobody")
-        for name in ("asleep", "tried", "doing", "beliefs", "hurt"):
+        for name in ("asleep", "tried", "doing", "beliefs", "hurt", "bonds", "lonely", "talking"):
             if set(getattr(self, name)) - roster:
                 raise ValueError(f"{name} must name known people")
+        for actor, entries in self.bonds.items():
+            for entry in entries:
+                check_bond(actor, entry, roster, tick)
+        for actor, (partner, since) in self.talking.items():
+            if partner not in roster or partner == actor or since > tick:
+                raise ValueError(f"talking of {actor!r} must name another known person and a past tick")
         for actor, entries in self.beliefs.items():
             for entry in entries:
                 check_belief(actor, entry, roster, tick)
@@ -205,19 +238,29 @@ class Persona:
             out["beliefs"] = {a: [list(e) for e in entries] for a, entries in self.beliefs.items()}
         if self.hurt:
             out["hurt"] = dict(self.hurt)
+        if self.bonds:
+            out["bonds"] = {a: [list(e) for e in entries] for a, entries in self.bonds.items()}
+        if self.lonely:
+            out["lonely"] = dict(self.lonely)
+        if self.talking:
+            out["talking"] = {a: list(entry) for a, entry in self.talking.items()}
         return out
 
     @classmethod
     def from_canonical(cls, data: Mapping[str, Any]) -> "Persona":
         if not isinstance(data, Mapping) or set(data) - {"traits", "skills", "fatigue", "asleep", "tried", "doing",
-                                                         "beliefs", "hurt"}:
-            raise ValueError("a canonical persona holds traits, skills, fatigue, asleep, tried, doing, beliefs and hurt only")
+                                                         "beliefs", "hurt", "bonds", "lonely", "talking"}:
+            raise ValueError("a canonical persona holds traits, skills, fatigue, asleep, tried, doing, beliefs, hurt, "
+                             "bonds, lonely and talking only")
         return cls(traits=dict(data.get("traits", {})), skills=dict(data.get("skills", {})),
                    fatigue=dict(data.get("fatigue", {})), asleep=dict(data.get("asleep", {})),
                    tried={a: tuple(tuple(e) for e in entries) for a, entries in dict(data.get("tried", {})).items()},
                    doing=dict(data.get("doing", {})),
                    beliefs={a: tuple(tuple(e) for e in entries) for a, entries in dict(data.get("beliefs", {})).items()},
-                   hurt=dict(data.get("hurt", {})))
+                   hurt=dict(data.get("hurt", {})),
+                   bonds={a: tuple(tuple(e) for e in entries) for a, entries in dict(data.get("bonds", {})).items()},
+                   lonely=dict(data.get("lonely", {})),
+                   talking={a: tuple(entry) for a, entry in dict(data.get("talking", {})).items()})
 
 
 def genesis_persona(config: "WorldConfig", actors: tuple[str, ...]) -> Persona:
@@ -227,7 +270,9 @@ def genesis_persona(config: "WorldConfig", actors: tuple[str, ...]) -> Persona:
     if config.on("sleep"):
         spread = config.lever("tired_at")
         fatigue = {actor: index * spread // len(actors) for index, actor in enumerate(actors)}
-    return Persona(traits=traits, skills=skills, fatigue=fatigue)
+    lonely = ({actor: index * config.lever("lonely_at") // len(actors) for index, actor in enumerate(actors)}
+              if config.on("bonds") else {})
+    return Persona(traits=traits, skills=skills, fatigue=fatigue, lonely={a: n for a, n in lonely.items() if n})
 
 
 def born(persona: Persona, name: str, first: str, second: str, config: "WorldConfig") -> Persona:
@@ -246,6 +291,9 @@ def _remember(tried: dict[str, tuple], actor: str, entry: tuple[str, str, int, i
     """Keep the four most recent distinct (kind, target) attempts, newest first."""
     kept = [e for e in tried.get(actor, ()) if (e[0], e[1]) != (entry[0], entry[1])]
     tried[actor] = tuple(([entry] + kept)[:TRIED_LIMIT])
+
+
+remember_attempt = _remember
 
 
 def advance_persona(previous: "Overlay", current: "Overlay", decisions: Mapping[str, Any], record: Any,
@@ -267,7 +315,7 @@ def advance_persona(previous: "Overlay", current: "Overlay", decisions: Mapping[
         if decision is None:
             continue
         mine = outcomes.get(actor, [])
-        if config.on("explain") or config.on("sleep"):
+        if config.on("explain") or config.on("sleep") or config.on("bonds"):
             doing[actor] = decision.kind
         if config.on("sleep"):
             sleeping = decision.kind in (SLEEP, COLLAPSE)
